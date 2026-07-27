@@ -1,7 +1,9 @@
-# Local Docker stack — unique host ports to avoid clashing with other apps
-# API:  http://localhost:3210
-# Web:  http://localhost:5180
+# Local Docker — default is DB only (hot-reload API/web via `npm run dev` on the host).
 # DB:   localhost:55432
+#
+# Full stack in Docker (optional):
+#   docker compose --profile full up --build -d
+#   API: http://localhost:3210  |  Web: http://localhost:5180
 
 services:
   db:
@@ -22,6 +24,7 @@ services:
       retries: 20
 
   api:
+    profiles: ["full"]
     build:
       context: .
       dockerfile: Dockerfile
@@ -43,6 +46,7 @@ services:
       - socmed_uploads:/app/uploads
 
   web:
+    profiles: ["full"]
     build:
       context: ./frontend
       dockerfile: Dockerfile
