@@ -50,7 +50,7 @@ export function FeedPage() {
   if (!user) {
     return (
       <section className="space-y-4">
-        <h1 className="text-4xl font-semibold tracking-tight">Socmed</h1>
+        <h1 className="text-4xl font-semibold tracking-tight">SocMed application</h1>
         <p className="text-muted-foreground">Sign in to see your feed.</p>
         <Button asChild>
           <Link to="/login">Sign in</Link>
