@@ -40,7 +40,7 @@ Every instruction to the agent begins with an explicit command. No exceptions, n
 | `--quickfix` | `-q` | Immediate fix — no plan, just execute |
 | `--test-worktree` | `-tw` | Contained acceptance against an isolated runtime |
 | `--status` | `-st` | Session state and spec-code parity |
-| `--review` | `-r` | Code review — read-only analysis |
+| `--review` | `-r` | Code review — read-only analysis; optional plan-folder review trace |
 | `--undo` | `-u` | Revert the last execution safely |
 
 When intent is obvious the agent may infer the command in one line and proceed; when intent is ambiguous or high-risk, it must ask.
@@ -63,6 +63,8 @@ Its heart is a self-contained **spec artifact** — a single static HTML documen
 - **Done** — a checklist that later blocks finalization
 
 Database work adds a `migrations/` folder scaffolded for every engine the project targets.
+
+Review rounds add an append-only `reviews/` subdirectory (see **Review (`-r`)** below) — review-trace markdown only; never application code.
 
 **Spec-Code Parity is a top-level rule.** The spec is the source of truth for intent; code is the source of truth for implementation; they must never drift. Divergence during execution halts work until the spec is updated. Every spec change lands in an **append-only Revision Log** (Rev N, dated, never renumbered).
 
@@ -135,6 +137,86 @@ Runs after **every** execution, no exceptions:
 ## Contained Acceptance (`-tw`)
 
 Behavioral acceptance runs against an **isolated runtime**, never shared infrastructure: a verified secondary worktree, a repository-owned adapter script, disposable database copies, local mail sinks, namespaced queues with workers off by default, external writes disabled, OS-assigned ports, per-runtime hostnames, and a machine-readable runtime manifest. If any safety invariant can't be proven, browser acceptance does not start.
+
+---
+
+## Review (`-r`)
+
+Read-only analysis mode. The agent reads a diff, file, or set of files and provides engineering feedback. No execution of application code.
+
+**Usage:**
+```
+--review                          → review staged changes (git diff --cached)
+--review unstaged                 → review unstaged changes (git diff)
+--review branch {branch-name}     → review diff against branch
+--review file {path}              → review a specific file
+--review plan {folder-name}       → review a spec for quality/completeness
+```
+
+**Output format:**
+- **Issues** — things that should be fixed (with severity: nitpick / concern / must-fix)
+- **Observations** — patterns noticed, potential risks
+- **Verdict** — ship it / needs changes / needs discussion
+
+The agent reviews against the project's engineering standards, existing patterns, and the spec (if one exists for this work). It never changes application code and never runs `-x`; the only thing it may write is a review-trace file in the plan folder, and only after you confirm (see **Review Trace** below).
+
+### Review Trace (stateful review sessions)
+
+`-r` is also the entry point for a **review trace** — an append-only stack of review turns kept with the plan it reviews, so a review survives across sessions, roles, and PR round-trips. It applies only where the project uses the `plans/` workflow; in a project without it, `-r` stays a read-only review and writes nothing.
+
+**`-r` writes review artifacts, never application code.** A review turn is markdown in the plan folder. Changing code is always `-x` — `-r` never runs it. So a contributor's `-r` turn is a *plan* (the list of executions they will run); `-x` is what actually edits files, commits, and updates the spec's Revision Log.
+
+**On every `-r` invocation:**
+1. Produce the review in chat first.
+2. Then ask: **"Are we ready to push this into the spec folder review trace?"** Write the trace file only on a yes — never silently.
+
+**When `-r` is invoked alone (no target), establish context first:**
+- **Branch** — which branch is merging to `main` (or the target branch).
+- **Spec / plan folder** — which `plans/{folder}` this review belongs to.
+- **Your role** — `reviewer` or `contributor`.
+
+In an ongoing session, infer these from context and skip the questions. On a fresh session, read the plan folder's `reviews/` trace to learn the last turn, whose turn it was, and what is still open — then continue from there.
+
+**The trace lives in `plans/{folder}/reviews/`** — one file per turn, append-only: never edit or delete a prior turn, and never overwrite an existing turn file (if the number is taken, increment).
+
+```
+plans/{MMDDYYYY}-{feature-slug}/reviews/
+  {NN}-{MMDDYYYY}-{role}-{response-slug}.md
+```
+
+- `{NN}` — zero-padded turn number, incrementing across the whole trace (01, 02, 03 …), not per role.
+- `{MMDDYYYY}` — date of the turn.
+- `{role}` — `reviewer` or `contributor`.
+- `{response-slug}` — short verdict/response: `needs-changes`, `fix-plan`, `resolved`, `ship-it`, `reply`.
+
+Example: `01-06262026-reviewer-needs-changes.md` → `02-06272026-contributor-fix-plan.md` → `03-06272026-reviewer-resolved.md`.
+
+**Each trace file opens with a metadata header** so any session can resume:
+
+```markdown
+---
+turn: NN
+date: MMDDYYYY
+role: reviewer | contributor
+by: {who acted — e.g. dave, sebastian}
+branch: {branch} → {target}
+spec: plans/{folder}/spec.html
+verdict: needs-changes | fix-plan | resolved | ship-it | reply
+status: open | addressed-pending-review | resolved | ignored
+addresses: [turn numbers this responds to, or none]
+---
+```
+
+`role` is the hat; `by` is the person — record both so the trace shows who did what.
+
+**The body is intent, not a diff.** Reviewer turns list findings with stable IDs (R1, R2 …), each tagged `must-fix`, `concern`, or `advisory`. Contributor turns respond per finding (`fix` or `ignore` + reason) and **link the commit / spec Revision Log entry** that `-x` produces — they never re-narrate the diff. The Revision Log and git stay the record of *what changed*; the trace is the record of *the review conversation*.
+
+**Flow across turns:**
+- **Reviewer** runs `-r {branch} → main`, role `reviewer` → writes `NN-…-reviewer-…`. Paste it to the PR as a comment.
+- **Contributor** runs `-r`, role `contributor`. The agent reads the open reviewer turn(s) and writes the contributor's planned-response turn; the contributor then runs `-x` to execute it. **The reviewer does not see the response before execution — it surfaces only once the work is done.**
+- **Reviewer** runs `-r` again to confirm. Addressed items close and the trace reaches `resolved`. **The loop only closes on a reviewer turn** — a contributor cannot sign off their own work; their items sit at `addressed-pending-review` until a reviewer confirms.
+
+**Be loose, not strict — with one guardrail.** This is a collaboration record, not a gate. A `concern` or `advisory` finding may be marked `ignored` with a one-line reason by either role; honor it and don't re-raise it. **A `must-fix` is the exception: it never closes on a bare "it's fine" — it needs a written `waiver:` reason in the turn, and a reviewer turn has the final say on the waiver.** Surface, don't block — but don't let a must-fix quietly disappear.
 
 ---
 
