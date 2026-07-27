@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AppShell } from "@/components/AppShell";
 import { FeedPage } from "@/pages/FeedPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -17,20 +18,22 @@ function ProfileRedirect() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppShell>
-          <Routes>
-            <Route path="/" element={<FeedPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/posts/:id" element={<PostDetailPage />} />
-            <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/u/me" element={<ProfileRedirect />} />
-            <Route path="/u/:username" element={<ProfilePage />} />
-          </Routes>
-        </AppShell>
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppShell>
+            <Routes>
+              <Route path="/" element={<FeedPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/posts/:id" element={<PostDetailPage />} />
+              <Route path="/friends" element={<FriendsPage />} />
+              <Route path="/u/me" element={<ProfileRedirect />} />
+              <Route path="/u/:username" element={<ProfilePage />} />
+            </Routes>
+          </AppShell>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

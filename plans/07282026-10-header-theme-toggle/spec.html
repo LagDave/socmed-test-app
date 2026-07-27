@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Header Theme Toggle Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:840px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    pre { background:var(--soft); border:1px solid var(--line); border-radius:8px; padding:14px; overflow-x:auto; font-size:0.85rem; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 10</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Header Light/Dark Mode Toggle</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07282026-10-header-theme-toggle</dd></div>
+        <div><dt>Size</dt><dd>Small (4 tasks, ~6 files)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Branch</dt><dd>kylie/dark-mode</dd></div>
+        <div><dt>Depends on</dt><dd>Plans 01–09 complete</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>The app ships with light-mode-only CSS tokens and a hardcoded light body gradient. Users on <code>kylie/dark-mode</code> need a discoverable way to switch appearance without leaving the header. Placement between Profile and Log out keeps auth actions grouped and matches the explicit request.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>A persisted light/dark theme system for the SPA, with an icon toggle in the header nav <strong>between the Profile link and the Log out button</strong> when signed in. Toggling updates all token-driven surfaces immediately and survives reload.</p>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Signed-in header order is: Feed · Friends · Profile · <em>theme toggle</em> · Log out</li>
+        <li>Clicking the toggle switches light ↔ dark across the app</li>
+        <li>Preference persists in <code>localStorage</code> and restores on reload without a visible flash</li>
+        <li>First visit (no saved preference) follows <code>prefers-color-scheme</code></li>
+        <li>Frontend typecheck and build pass</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Header today</strong> — <code>frontend/src/components/AppShell.tsx</code> renders nav buttons inside a flex row. Authenticated block (lines 20–31) is Profile then Log out; this is where the toggle slots in.</p>
+      <p><strong>Tokens today</strong> — <code>frontend/src/index.css</code> defines light-only <code>:root</code> custom properties and a light body gradient. Tailwind v4 maps them via <code>@theme inline</code>. No <code>.dark</code> block exists yet.</p>
+      <p><strong>Provider pattern</strong> — <code>frontend/src/contexts/AuthContext.tsx</code> is the closest analog: create context, hook, provider, wire in <code>App.tsx</code>.</p>
+      <p><strong>UI kit</strong> — <code>Button</code> already supports <code>variant="ghost"</code> and <code>size="icon"</code>. <code>lucide-react</code> is installed (Sun / Moon icons).</p>
+      <p><strong>Recommended mechanism</strong> — toggle a <code>dark</code> class on <code>document.documentElement</code> (<code>&lt;html&gt;</code>), with dark token overrides under <code>.dark { … }</code> in <code>index.css</code>. Matches Tailwind dark-mode convention and keeps React/CSS in sync.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Insert toggle between Profile and Log out in the authenticated nav</li>
+            <li>Reuse existing design tokens — invert the B&amp;W palette for dark mode; no new accent colors</li>
+            <li>Persist theme in <code>localStorage</code> under a named key (e.g. <code>socmed-theme</code>)</li>
+            <li>Apply theme before first paint to avoid flash (inline script in <code>index.html</code>)</li>
+            <li>Follow AuthContext-style provider + hook pattern (<code>ThemeProvider</code>, <code>useTheme</code>)</li>
+            <li>Accessible toggle: <code>aria-label</code>, keyboard operable, icon reflects target mode</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No backend or API changes</li>
+            <li>No new npm dependencies</li>
+            <li>No per-user server-side theme sync</li>
+            <li>No drive-by refactors of unrelated pages</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>System-only mode (no explicit “system” tri-state — first visit uses system, then user choice wins)</li>
+        <li>Animating theme transition beyond existing button hover styles</li>
+        <li>Dark-mode variants for uploaded user images / avatars</li>
+      </ul>
+      <div class="callout">
+        <strong>Logged-out placement (recommended):</strong> Show the same toggle before “Sign in” so guests can set theme on login/register pages. User request only specified authenticated placement; this extension is small and avoids trapping guests in light mode.
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Primary risk is flash-of-wrong-theme (FOUC) on reload if React applies theme too late.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>FOUC on reload</td>
+            <td>All pages — first paint shows wrong palette</td>
+            <td>Blocking inline script in <code>index.html</code> reads storage + <code>matchMedia</code>, sets <code>dark</code> class before module bundle loads</td>
+          </tr>
+          <tr>
+            <td>Hardcoded light body gradient</td>
+            <td>Background stays light in dark mode</td>
+            <td>Add <code>.dark body { … }</code> gradient override in <code>index.css</code></td>
+          </tr>
+          <tr>
+            <td>Token drift</td>
+            <td>Some components look wrong in dark mode</td>
+            <td>Mirror every <code>:root</code> token in <code>.dark</code>; spot-check Feed, Login, Profile</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Consumers touched:</strong> <code>AppShell</code>, <code>App.tsx</code>, <code>main.tsx</code> (if provider wraps there), <code>index.css</code>, <code>index.html</code>, new <code>ThemeContext</code> + <code>ThemeToggle</code>.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Dark CSS tokens + body gradient</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>.dark { … }</code> block mirroring all <code>:root</code> tokens with inverted B&amp;W values. Add <code>.dark body</code> background gradient (dark grays, subtle radial highlights). Keep <code>@theme inline</code> wiring unchanged — it reads vars that flip with class.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>Manually add <code>class="dark"</code> to <code>&lt;html&gt;</code> in devtools; all surfaces invert</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — FOUC guard + theme bootstrap</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add inline <code>&lt;script&gt;</code> in <code>index.html</code> <code>&lt;head&gt;</code> (before CSS) that: reads <code>localStorage['socmed-theme']</code>; if absent, uses <code>window.matchMedia('(prefers-color-scheme: dark)').matches</code>; toggles <code>dark</code> class on <code>document.documentElement</code>. Extract shared resolution logic to a tiny <code>frontend/src/lib/theme.ts</code> constant for the storage key + type (<code>'light' | 'dark'</code>) used by context.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/index.html</code>, <code>frontend/src/lib/theme.ts</code> (new)</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Hard refresh with dark saved — no white flash; throttle CPU in devtools to exaggerate</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — ThemeContext + useTheme</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Create <code>ThemeProvider</code> holding <code>theme</code> state, syncing <code>document.documentElement.classList</code> and <code>localStorage</code> on change. Export <code>useTheme()</code> returning <code>{ theme, setTheme, toggleTheme }</code>. Wrap app in provider (outermost or just inside <code>StrictMode</code> in <code>App.tsx</code>).</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/contexts/ThemeContext.tsx</code> (new), <code>frontend/src/App.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Toggle updates class + storage; reload restores state</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Header ThemeToggle placement</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Create <code>ThemeToggle</code> — ghost icon <code>Button</code>, Sun when dark (click → light), Moon when light (click → dark), <code>aria-label="Switch to light mode"</code> / dark variant. Insert in <code>AppShell</code> nav after Profile <code>Button</code>, before Log out. When logged out, render before Sign in (recommended).</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ThemeToggle.tsx</code> (new), <code>frontend/src/components/AppShell.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>Visual order correct; keyboard + screen reader labels sane</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>Toggle appears between Profile and Log out when signed in</span></li>
+        <li><span>☑</span><span>Toggle visible when signed out (before Sign in)</span></li>
+        <li><span>☑</span><span>Light and dark modes cover header, feed, login, profile pages</span></li>
+        <li><span>☑</span><span>Preference persists across reload without FOUC</span></li>
+        <li><span>☑</span><span><code>npm run typecheck</code> and <code>npm run build</code> pass in <code>frontend/</code></span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Rev 1</td><td>2026-07-28</td><td>Initial spec — header toggle between Profile and Log out on branch <code>kylie/dark-mode</code>.</td></tr>
+          <tr><td>Rev 2</td><td>2026-07-28</td><td>Executed: dark tokens, FOUC script, ThemeContext, ThemeToggle in AppShell. Typecheck/build green. UI acceptance pending.</td></tr>
+          <tr><td>Rev 3</td><td>2026-07-28</td><td>Acceptance Passed via -tw (isolated runtime). Finalized.</td></tr>
+          <tr><td>Rev 4</td><td>2026-07-28</td><td>PR review fixes: drop shell bg-background (restore body gradients); FOUC/storage try scoped so matchMedia still runs; color-scheme; accept-runtime hardcodes removed; T4 waiver for interrupted signed-in click.</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
