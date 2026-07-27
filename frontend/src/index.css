@@ -2,6 +2,7 @@
 
 /* Black & white design tokens — no purple / cream AI defaults */
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #0a0a0a;
   --card: #ffffff;
@@ -26,6 +27,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: #0a0a0a;
   --foreground: #fafafa;
   --card: #141414;

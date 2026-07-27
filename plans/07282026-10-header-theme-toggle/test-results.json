@@ -61,9 +61,9 @@
       ],
       "expected": "Toggle between Profile and Log out when authenticated; before Sign in when logged out.",
       "status": "pass",
-      "evidence": "-tw CDP navLabels signed-out: [Feed, Switch to light mode, Sign in]. Authenticated order verified in AppShell.tsx (ThemeToggle between Profile Button and Log out Button).",
-      "notes": "Live signed-in click interrupted mid -tw; placement confirmed in source + signed-out live order.",
-      "waiver": ""
+      "evidence": "Signed-out -tw CDP navLabels: [Feed, Switch to light mode, Sign in]. Authenticated order verified in AppShell.tsx (ThemeToggle between Profile and Log out).",
+      "notes": "",
+      "waiver": "Live signed-in browser click was interrupted during -tw (session cut mid-register). Authenticated placement re-confirmed by source inspection of AppShell.tsx; signed-out live order passed. Explicit waiver per PR review item 6."
     },
     {
       "id": "D1",
