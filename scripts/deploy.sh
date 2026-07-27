@@ -55,6 +55,19 @@ module.exports = {
 ECO
 chown ubuntu:ubuntu ${DIR}/ecosystem.config.js
 sudo -u ubuntu bash -lc 'source ~/.nvm/nvm.sh; pm2 delete ${NAME} 2>/dev/null || true; pm2 start ${DIR}/ecosystem.config.js; pm2 save'
+ok=0
+for i in \$(seq 1 30); do
+  if curl -sf http://127.0.0.1:${PORT}/api/health >/dev/null; then
+    ok=1
+    break
+  fi
+  sleep 1
+done
+if [[ \"\$ok\" -ne 1 ]]; then
+  echo \"Health check failed for ${NAME} on :${PORT}\" >&2
+  sudo -u ubuntu bash -lc 'source ~/.nvm/nvm.sh; pm2 logs ${NAME} --lines 40 --nostream' >&2 || true
+  exit 1
+fi
 curl -sf http://127.0.0.1:${PORT}/api/health
 echo
 echo Deployed ${BRANCH} → ${NAME} :${PORT}
