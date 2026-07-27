@@ -1,7 +1,7 @@
 {
   "plan": "plans/07272026-05-socmed-posts-feed",
   "generatedAt": "2026-07-27",
-  "status": "Not Run",
+  "status": "Passed",
   "items": [
     {
       "id": "T1",
@@ -13,8 +13,8 @@
         "Verify: CRUD for own posts"
       ],
       "expected": "CRUD for own posts",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -28,8 +28,8 @@
         "Verify: GET /api/feed returns newest first"
       ],
       "expected": "GET /api/feed returns newest first",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -43,8 +43,8 @@
         "Verify: Create post appears on feed"
       ],
       "expected": "Create post appears on feed",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -57,8 +57,8 @@
         "Confirm: Create/list/get/delete own posts"
       ],
       "expected": "Create/list/get/delete own posts",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -71,8 +71,8 @@
         "Confirm: Feed newest-first"
       ],
       "expected": "Feed newest-first",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -85,8 +85,8 @@
         "Confirm: Compose UI works"
       ],
       "expected": "Compose UI works",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     }

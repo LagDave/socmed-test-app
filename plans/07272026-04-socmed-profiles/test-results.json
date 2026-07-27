@@ -1,7 +1,7 @@
 {
   "plan": "plans/07272026-04-socmed-profiles",
   "generatedAt": "2026-07-27",
-  "status": "Not Run",
+  "status": "Passed",
   "items": [
     {
       "id": "T1",
@@ -13,8 +13,8 @@
         "Verify: migrate + unique constraint"
       ],
       "expected": "migrate + unique constraint",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -28,8 +28,8 @@
         "Verify: view and edit profile"
       ],
       "expected": "view and edit profile",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -42,8 +42,8 @@
         "Confirm: Public profile by username"
       ],
       "expected": "Public profile by username",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -56,8 +56,8 @@
         "Confirm: Owner can edit bio/display name/username"
       ],
       "expected": "Owner can edit bio/display name/username",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -70,8 +70,8 @@
         "Confirm: Avatar field exists (upload lands in plan 08)"
       ],
       "expected": "Avatar field exists (upload lands in plan 08)",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     }
