@@ -192,8 +192,14 @@ PY
     die "frontend build failed"
   }
 
-  # Detach so the API survives the parent shell exiting
-  setsid env \
+  # Detach so the API survives the parent shell exiting.
+  # Prefer setsid (Linux); fall back to nohup (macOS has no setsid).
+  if command -v setsid >/dev/null 2>&1; then
+    _detach() { setsid "$@"; }
+  else
+    _detach() { nohup "$@"; }
+  fi
+  _detach env \
     DATABASE_URL="$DATABASE_URL" \
     NODE_ENV="$NODE_ENV" \
     PORT="$PORT" \
