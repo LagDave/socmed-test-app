@@ -53,18 +53,18 @@
 
     <section class="spec-card" id="why">
       <h2>Why</h2>
-      <p>Post detail shows a flat comment list. Users need a Reply control on each top-level comment and indented replies under that parent, without moving the bottom composer.</p>
+      <p>Post detail shows a flat comment list. Users need a Reply control on each top-level comment and indented replies under that parent, with the reply box appearing next to that comment so long threads stay easy to answer.</p>
     </section>
 
     <section class="spec-card" id="what">
       <h2>What</h2>
       <ul>
         <li><strong>Reply</strong> button on the right of each top-level comment row (ghost <code>sm</code>, aligned with author/body row).</li>
-        <li>Clicking Reply sets reply target on the <strong>existing bottom</strong> “Write a comment” form — form stays in place. Show “Replying to {displayName}” + Cancel; submit includes <code>parentId</code>.</li>
+        <li>Clicking Reply opens an <strong>inline composer under that parent</strong> (“Replying to {displayName}” + Cancel + textarea); it scrolls into view. Submit includes <code>parentId</code>.</li>
+        <li>Bottom “Write a comment” form remains for <strong>top-level comments only</strong> (not used for replies).</li>
         <li>After send, list shows <strong>parents chronological</strong>; each parent’s replies indented beneath it, also chronological.</li>
-        <li>Top-level submit (no reply target) unchanged: posts a parent comment.</li>
       </ul>
-      <p><strong>Done when:</strong> Reply appears right-aligned on parents; composer never relocates; replies indent under parent; API rejects a <code>parentId</code> that is not a top-level comment on the same post; typecheck/build green.</p>
+      <p><strong>Done when:</strong> Reply appears right-aligned on parents; reply composer is inline under the parent (no modal); replies indent under parent; API rejects a <code>parentId</code> that is not a top-level comment on the same post; typecheck/build green.</p>
     </section>
 
     <section class="spec-card" id="context">
@@ -84,15 +84,15 @@
             <li>Add nullable <code>parent_id</code> FK → <code>comments.id</code> (ON DELETE CASCADE or SET NULL — prefer CASCADE so deleting a parent removes its replies)</li>
             <li>Create accepts optional <code>parentId</code>; when set, parent must exist, belong to same <code>post_id</code>, and itself have <code>parent_id IS NULL</code></li>
             <li><code>CommentView</code> exposes <code>parentId: string | null</code></li>
-            <li>List response may stay flat; SPA groups for display (parents asc, replies under parent asc)</li>
-            <li>Reply control only on top-level comments; composer stays at bottom</li>
+            <li>List response may stay flat; SPA groups for display (parents asc, replies under parent asc); orphan replies (missing parent) still render</li>
+            <li>Reply control only on top-level comments; reply composer is inline under that parent</li>
             <li>Auth unchanged (<code>requireAuth</code>)</li>
           </ul>
         </div>
         <div>
           <h3>Must Not</h3>
           <ul>
-            <li>Move or duplicate the composer under each comment</li>
+            <li>Modal / overlay reply composer</li>
             <li>New npm dependencies</li>
             <li>Notifications / @mentions / edit</li>
             <li>Change delete ownership rules (owner-only); cascade is DB-level</li>
@@ -106,7 +106,7 @@
         <li>Realtime / websockets</li>
       </ul>
       <div class="callout">
-        <strong>Decisions locked:</strong> one nesting level; fixed bottom composer with “Replying to …” chip; parents then indented children, both chronological.
+        <strong>Decisions locked:</strong> one nesting level; inline reply composer under the parent (scrolls into view); bottom form for top-level comments only; parents then indented children, both chronological.
       </div>
     </section>
 
@@ -160,12 +160,12 @@
       </article>
 
       <article class="task-card" id="T3">
-        <h3>T3 — Post detail UI: Reply + indent + fixed composer</h3>
+        <h3>T3 — Post detail UI: Reply + indent + inline composer</h3>
         <dl>
-          <div><dt>Do</dt><dd>Top-level rows: flex header with author left, Reply right. Track <code>replyTo: CommentView | null</code>. Bottom form: when set, show “Replying to {name}” + Cancel; POST includes <code>parentId</code>; clear on success/cancel. Group list: parents then indented children (<code>pl-6</code> or similar). Reply button only when <code>!c.parentId</code>.</dd></div>
+          <div><dt>Do</dt><dd>Top-level rows: flex header with author left, Reply right. Track <code>replyTo</code>. Inline form under that parent: “Replying to {name}” + Cancel + textarea; POST includes <code>parentId</code>; clear on success/cancel/post change. Bottom form for top-level only. Group list: parents then indented children (<code>pl-6</code>). Reply button only on top-level comments.</dd></div>
           <div><dt>Files</dt><dd><code>frontend/src/pages/PostDetailPage.tsx</code></dd></div>
           <div><dt>Depends on</dt><dd>T2</dd></div>
-          <div><dt>Verify</dt><dd>Visual: Reply right; composer fixed; reply indented under parent</dd></div>
+          <div><dt>Verify</dt><dd>Visual: Reply right; inline composer under parent; reply indented after send</dd></div>
         </dl>
       </article>
 
@@ -202,6 +202,7 @@
           <tr><td>Rev 3</td><td>2026-07-28</td><td>Acceptance Passed via -tw (isolated worktree + disposable DB + OS port). T3 interactive click waived (browser control declined); structure+API verified.</td></tr>
           <tr><td>Rev 4</td><td>2026-07-28</td><td>Reply opens a centered modal composer (viewport middle) so long threads don’t require scrolling; bottom form remains for top-level comments only. Escape / backdrop / Cancel dismiss.</td></tr>
           <tr><td>Rev 5</td><td>2026-07-28</td><td>Drop modal. Reply composer is inline under the parent comment and scrollIntoView(center); bottom form remains for top-level comments.</td></tr>
+          <tr><td>Rev 6</td><td>2026-07-28</td><td>PR review: align What/Must/Must Not/locked decisions/T3/CHANGELOG/acceptance with shipped inline composer; dedupe submit helper; surface orphan replies; clear reply state on post navigate.</td></tr>
         </tbody>
       </table>
     </section>

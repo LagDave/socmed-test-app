@@ -4,7 +4,7 @@
 
 ### Added
 - One-level comment replies: Reply on top-level comments, indented children under parents
-- Fixed bottom composer with “Replying to …” + Cancel (does not move under the comment)
+- Inline reply composer under the parent comment (“Replying to …” + Cancel); bottom form for top-level comments only
 - Nullable `comments.parent_id` with same-post top-level parent validation
 
 ### Plans

@@ -7,19 +7,32 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
-function groupComments(comments: CommentView[]): { parent: CommentView; replies: CommentView[] }[] {
+type CommentThread = { parent: CommentView; replies: CommentView[] };
+
+function groupComments(comments: CommentView[]): { threads: CommentThread[]; orphans: CommentView[] } {
   const parents = comments.filter((c) => !c.parentId);
+  const parentIds = new Set(parents.map((p) => p.id));
   const byParent = new Map<string, CommentView[]>();
+  const orphans: CommentView[] = [];
+
   for (const c of comments) {
     if (!c.parentId) continue;
+    if (!parentIds.has(c.parentId)) {
+      orphans.push(c);
+      continue;
+    }
     const list = byParent.get(c.parentId) ?? [];
     list.push(c);
     byParent.set(c.parentId, list);
   }
-  return parents.map((parent) => ({
-    parent,
-    replies: byParent.get(parent.id) ?? [],
-  }));
+
+  return {
+    threads: parents.map((parent) => ({
+      parent,
+      replies: byParent.get(parent.id) ?? [],
+    })),
+    orphans,
+  };
 }
 
 export function PostDetailPage() {
@@ -35,7 +48,7 @@ export function PostDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const threads = useMemo(() => groupComments(comments), [comments]);
+  const { threads, orphans } = useMemo(() => groupComments(comments), [comments]);
 
   async function load() {
     if (!id) return;
@@ -46,6 +59,14 @@ export function PostDetailPage() {
   }
 
   useEffect(() => {
+    setPost(null);
+    setComments([]);
+    setBody("");
+    setImageFile(null);
+    setReplyTo(null);
+    setReplyBody("");
+    setReplyImageFile(null);
+    setError(null);
     void load().catch((e: Error) => setError(e.message));
   }, [id]);
 
@@ -67,23 +88,31 @@ export function PostDetailPage() {
     setReplyImageFile(null);
   }
 
+  async function submitComment(input: {
+    text: string;
+    file: File | null;
+    parentId: string | null;
+  }): Promise<void> {
+    if (!id) return;
+    let imageUrl: string | null = null;
+    if (input.file) {
+      const up = await api.upload<{ url: string }>("/api/uploads", input.file);
+      imageUrl = up.url;
+    }
+    await api.post(`/api/posts/${id}/comments`, {
+      body: input.text,
+      imageUrl,
+      parentId: input.parentId,
+    });
+    await load();
+  }
+
   async function onComment(e: FormEvent) {
     e.preventDefault();
-    if (!id) return;
     try {
-      let imageUrl: string | null = null;
-      if (imageFile) {
-        const up = await api.upload<{ url: string }>("/api/uploads", imageFile);
-        imageUrl = up.url;
-      }
-      await api.post(`/api/posts/${id}/comments`, {
-        body,
-        imageUrl,
-        parentId: null,
-      });
+      await submitComment({ text: body, file: imageFile, parentId: null });
       setBody("");
       setImageFile(null);
-      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
@@ -91,20 +120,10 @@ export function PostDetailPage() {
 
   async function onReply(e: FormEvent) {
     e.preventDefault();
-    if (!id || !replyTo) return;
+    if (!replyTo) return;
     try {
-      let imageUrl: string | null = null;
-      if (replyImageFile) {
-        const up = await api.upload<{ url: string }>("/api/uploads", replyImageFile);
-        imageUrl = up.url;
-      }
-      await api.post(`/api/posts/${id}/comments`, {
-        body: replyBody,
-        imageUrl,
-        parentId: replyTo.id,
-      });
+      await submitComment({ text: replyBody, file: replyImageFile, parentId: replyTo.id });
       clearReply();
-      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
@@ -191,6 +210,15 @@ export function PostDetailPage() {
                   />
                   <Button type="submit">Reply</Button>
                 </form>
+              )}
+            </li>
+          ))}
+          {orphans.map((orphan) => (
+            <li key={orphan.id} className="border-b border-border pb-3">
+              <p className="text-sm font-medium">{orphan.author.displayName}</p>
+              <p className="whitespace-pre-wrap">{orphan.body}</p>
+              {orphan.imageUrl && (
+                <img src={orphan.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
               )}
             </li>
           ))}
