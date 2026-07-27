@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Deploy socmed-test-app to alloro-asia.
 # Usage: ./scripts/deploy.sh main|dev
+#
+# Local:  relies on SSH host alias `alloro-asia` (or set DEPLOY_SSH_TARGET).
+# CI:     set DEPLOY_SSH_TARGET=user@host and GH_TOKEN (e.g. GITHUB_TOKEN).
 set -euo pipefail
 
 BRANCH="${1:-}"
@@ -21,13 +24,15 @@ else
   PORT=3201
 fi
 
-TOKEN="${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}"
+TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
 if [[ -z "${TOKEN}" ]]; then
-  echo "Set GH_TOKEN or run gh auth login" >&2
+  echo "Set GH_TOKEN (or GITHUB_TOKEN), or run gh auth login" >&2
   exit 1
 fi
 
-ssh alloro-asia "set -euo pipefail
+SSH_TARGET="${DEPLOY_SSH_TARGET:-alloro-asia}"
+
+ssh "$SSH_TARGET" "set -euo pipefail
 source /home/ubuntu/.nvm/nvm.sh
 rm -rf ${DIR}.tmp
 sudo -u ubuntu git clone --branch ${BRANCH} --single-branch https://x-access-token:${TOKEN}@github.com/LagDave/socmed-test-app.git ${DIR}.tmp
