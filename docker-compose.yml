@@ -1,0 +1,61 @@
+# Local Docker stack — unique host ports to avoid clashing with other apps
+# API:  http://localhost:3210
+# Web:  http://localhost:5180
+# DB:   localhost:55432
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: socmed-db
+    environment:
+      POSTGRES_USER: socmed
+      POSTGRES_PASSWORD: socmed
+      POSTGRES_DB: socmed_local
+    ports:
+      - "55432:5432"
+    volumes:
+      - socmed_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U socmed -d socmed_local"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: socmed-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3210
+      DATABASE_URL: postgres://socmed:socmed@db:5432/socmed_local
+      SESSION_SECRET: local-docker-secret-not-for-production
+      CORS_ORIGIN: http://localhost:5180
+      UPLOAD_DIR: /app/uploads
+      COOKIE_SECURE: "false"
+    ports:
+      - "3210:3210"
+    volumes:
+      - socmed_uploads:/app/uploads
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_PROXY_TARGET: http://api:3210
+    container_name: socmed-web
+    depends_on:
+      - api
+    environment:
+      API_PROXY_TARGET: http://api:3210
+    ports:
+      - "5180:80"
+
+volumes:
+  socmed_pgdata:
+  socmed_uploads:

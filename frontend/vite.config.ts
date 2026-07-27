@@ -11,10 +11,11 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 5180,
+    strictPort: true,
     proxy: {
-      "/api": "http://127.0.0.1:3201",
-      "/uploads": "http://127.0.0.1:3201",
+      "/api": "http://127.0.0.1:3210",
+      "/uploads": "http://127.0.0.1:3210",
     },
   },
 });

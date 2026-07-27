@@ -15,15 +15,21 @@ Black-and-white social platform (auth, posts, linear comments, friends).
 | `main` | `socmed.rustinedave.com` |
 | `dev` | `socmed-dev.rustinedave.com` |
 
-## Local
+## Local (Docker)
 
 ```bash
-cp .env.example .env
-# create DB + user, then:
-npm install
-npm --prefix frontend install
-npm run migrate
-npm run dev
+docker compose up --build -d
+```
+
+| Service | URL / port |
+|---------|------------|
+| Web UI | http://localhost:5180 |
+| API | http://localhost:3210 |
+| Postgres | `localhost:55432` (`socmed` / `socmed` / `socmed_local`) |
+
+```bash
+docker compose logs -f
+docker compose down
 ```
 
 Plans live in [`plans/`](plans/README.md). Execute sequentially; DNS is human-owned after plan 09.

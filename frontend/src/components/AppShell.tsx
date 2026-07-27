@@ -11,7 +11,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <Link to="/" className="text-lg font-semibold tracking-tight">
-            Socmed
+            SocMed application
           </Link>
           <nav className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
