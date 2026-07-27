@@ -25,6 +25,27 @@
   --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
+.dark {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #141414;
+  --card-foreground: #fafafa;
+  --popover: #141414;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #fafafa;
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
+  --accent: #1a1a1a;
+  --accent-foreground: #fafafa;
+  --destructive: #fafafa;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #fafafa;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -64,4 +85,11 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+.dark body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.04), transparent 42%),
+    radial-gradient(circle at 88% 0%, rgba(255, 255, 255, 0.03), transparent 36%),
+    linear-gradient(180deg, #0a0a0a 0%, #111111 48%, #0a0a0a 100%);
 }

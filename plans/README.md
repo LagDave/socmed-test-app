@@ -13,6 +13,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 07 | `07272026-07-socmed-friendships` | Friend requests + mutuals |
 | 08 | `07272026-08-socmed-media-uploads` | Photo uploads |
 | 09 | `07272026-09-socmed-deploy-caddy` | Deploy wiring; leave DNS |
+| 10 | `07282026-10-header-theme-toggle` | Header light/dark toggle |
 
 ## Branch → host (hard rule)
 

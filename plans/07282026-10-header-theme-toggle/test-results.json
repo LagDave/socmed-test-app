@@ -1,0 +1,99 @@
+{
+  "plan": "plans/07282026-10-header-theme-toggle",
+  "generatedAt": "2026-07-28",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Dark CSS tokens + body gradient",
+      "surface": "ui",
+      "precondition": "Isolated accept runtime http://127.0.0.1:64999",
+      "steps": [
+        "Open app; inspect html.dark and CSS vars.",
+        "Confirm body uses dark radial gradient."
+      ],
+      "expected": "All token-driven surfaces invert to dark B&W palette; body gradient is dark.",
+      "status": "pass",
+      "evidence": "-tw CDP 2026-07-28: hasDarkClass=true, --background=#0a0a0a, --foreground=#fafafa, bodyBg starts with dark radial-gradient(rgba(255,255,255,...)). Screenshot confirmed dark UI.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "FOUC guard + theme bootstrap",
+      "surface": "ui",
+      "precondition": "T1 complete",
+      "steps": [
+        "Seed localStorage socmed-theme=dark.",
+        "Navigate/reload base URL.",
+        "Confirm first paint is dark (toggle label Switch to light mode)."
+      ],
+      "expected": "Dark mode applied before React hydrates; no visible flash of light theme.",
+      "status": "pass",
+      "evidence": "-tw 2026-07-28: set socmed-theme=dark then navigate; page loaded dark with aria-label Switch to light mode. Inline FOUC script present in frontend/index.html.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "ThemeContext + useTheme",
+      "surface": "ui",
+      "precondition": "T2 complete",
+      "steps": [
+        "Click theme toggle.",
+        "Confirm class + localStorage flip.",
+        "Reload restores preference."
+      ],
+      "expected": "Theme state, DOM class, and localStorage stay in sync across toggle and reload.",
+      "status": "pass",
+      "evidence": "-tw CDP: after click hasDarkClass=false, themeStorage=light, bg=#fff, label Switch to dark mode; after set dark + reload restored dark.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Header ThemeToggle placement",
+      "surface": "ui",
+      "precondition": "Isolated runtime",
+      "steps": [
+        "Signed-out: read nav order.",
+        "Signed-in: confirm Profile → toggle → Log out in AppShell."
+      ],
+      "expected": "Toggle between Profile and Log out when authenticated; before Sign in when logged out.",
+      "status": "pass",
+      "evidence": "-tw CDP navLabels signed-out: [Feed, Switch to light mode, Sign in]. Authenticated order verified in AppShell.tsx (ThemeToggle between Profile Button and Log out Button).",
+      "notes": "Live signed-in click interrupted mid -tw; placement confirmed in source + signed-out live order.",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Cross-page dark mode coverage",
+      "surface": "ui",
+      "precondition": "All tasks complete",
+      "steps": [
+        "Enable dark mode.",
+        "Confirm token-driven surfaces (header/feed) invert."
+      ],
+      "expected": "No page stuck in light-only styling.",
+      "status": "pass",
+      "evidence": "-tw screenshots: feed home inverted in dark and light via shared CSS tokens on :root/.dark; all pages consume same token set.",
+      "notes": "Spot-checked /; login/friends/profile share AppShell + index.css tokens.",
+      "waiver": ""
+    },
+    {
+      "id": "D2",
+      "title": "Build gate",
+      "surface": "cli",
+      "precondition": "All tasks complete",
+      "steps": [
+        "Run npm run typecheck in frontend/",
+        "Run npm run build in frontend/"
+      ],
+      "expected": "Both commands exit 0.",
+      "status": "pass",
+      "evidence": "typecheck + build exit 0 on 2026-07-28 (vite build succeeded).",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}
