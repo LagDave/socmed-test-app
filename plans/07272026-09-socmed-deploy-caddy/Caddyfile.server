@@ -1,0 +1,28 @@
+# alloro-asia edge
+# main → socmed.rustinedave.com → :3200
+# dev  → socmed-dev.rustinedave.com → :3201
+
+dev-asia.getalloro.com {
+	encode gzip
+
+	@minds path /api/minds/*
+	handle @minds {
+		reverse_proxy 127.0.0.1:3000 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}
+
+socmed.rustinedave.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:3200
+}
+
+socmed-dev.rustinedave.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:3201
+}
