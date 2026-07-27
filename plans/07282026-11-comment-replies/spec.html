@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comment Replies Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:840px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 11</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Comment Replies</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07282026-11-comment-replies</dd></div>
+        <div><dt>Size</dt><dd>Small–medium (4 tasks)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Depends on</dt><dd>06 comments · 08 media</dd></div>
+        <div><dt>Supersedes</dt><dd>Plan 06 “linear only” for nesting</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Post detail shows a flat comment list. Users need a Reply control on each top-level comment and indented replies under that parent, without moving the bottom composer.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li><strong>Reply</strong> button on the right of each top-level comment row (ghost <code>sm</code>, aligned with author/body row).</li>
+        <li>Clicking Reply sets reply target on the <strong>existing bottom</strong> “Write a comment” form — form stays in place. Show “Replying to {displayName}” + Cancel; submit includes <code>parentId</code>.</li>
+        <li>After send, list shows <strong>parents chronological</strong>; each parent’s replies indented beneath it, also chronological.</li>
+        <li>Top-level submit (no reply target) unchanged: posts a parent comment.</li>
+      </ul>
+      <p><strong>Done when:</strong> Reply appears right-aligned on parents; composer never relocates; replies indent under parent; API rejects a <code>parentId</code> that is not a top-level comment on the same post; typecheck/build green.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>UI today:</strong> <code>frontend/src/pages/PostDetailPage.tsx</code> — flat <code>&lt;ul&gt;</code> + bottom form. No comment components yet; keep logic on this page unless a tiny presentational row extract helps clarity.</p>
+      <p><strong>API today:</strong> <code>GET/POST /api/posts/:postId/comments</code>, create body <code>{ body, imageUrl? }</code>. Model/service/types lack parent.</p>
+      <p><strong>Closest analog:</strong> ghost <code>size="sm"</code> buttons in <code>AppShell</code> / <code>FriendsPage</code> for Reply; ThemeToggle pattern for compact controls.</p>
+      <p><strong>Prior plan:</strong> <code>07272026-06-socmed-comments</code> shipped linear comments. This plan adds one nesting level via nullable <code>parent_id</code>.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Add nullable <code>parent_id</code> FK → <code>comments.id</code> (ON DELETE CASCADE or SET NULL — prefer CASCADE so deleting a parent removes its replies)</li>
+            <li>Create accepts optional <code>parentId</code>; when set, parent must exist, belong to same <code>post_id</code>, and itself have <code>parent_id IS NULL</code></li>
+            <li><code>CommentView</code> exposes <code>parentId: string | null</code></li>
+            <li>List response may stay flat; SPA groups for display (parents asc, replies under parent asc)</li>
+            <li>Reply control only on top-level comments; composer stays at bottom</li>
+            <li>Auth unchanged (<code>requireAuth</code>)</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>Move or duplicate the composer under each comment</li>
+            <li>New npm dependencies</li>
+            <li>Notifications / @mentions / edit</li>
+            <li>Change delete ownership rules (owner-only); cascade is DB-level</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Deep / recursive threads beyond one parent → children level</li>
+        <li>Collapsing threads, reply counts, sort toggles</li>
+        <li>Realtime / websockets</li>
+      </ul>
+      <div class="callout">
+        <strong>Decisions locked:</strong> one nesting level; fixed bottom composer with “Replying to …” chip; parents then indented children, both chronological.
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Schema + create contract change; plan 06 assumed linear-only.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Invalid parent (wrong post / nested parent)</td>
+            <td>Corrupt thread shape</td>
+            <td>Service validates parent same post + <code>parent_id IS NULL</code>; Zod optional UUID</td>
+          </tr>
+          <tr>
+            <td>List order confusion</td>
+            <td>SPA shows wrong indent</td>
+            <td>Server may keep <code>created_at asc</code>; client groups explicitly; verify with 2 parents × 2 replies</td>
+          </tr>
+          <tr>
+            <td>Composer state leak</td>
+            <td>Next submit wrongly nested</td>
+            <td>Clear <code>replyTo</code> after successful submit and on Cancel</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Consumers:</strong> <code>CommentModel</code>, <code>CommentService</code>, <code>CommentsController</code>, FE <code>CommentView</code>, <code>PostDetailPage</code>, migration.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Migration <code>parent_id</code></h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add nullable <code>parent_id</code> UUID FK to <code>comments(id)</code>, index <code>(post_id, parent_id, created_at)</code> as needed. Existing rows remain parents (<code>NULL</code>).</dd></div>
+          <div><dt>Files</dt><dd><code>database/migrations/*_comment_parent.ts</code> (new)</dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>npm run migrate</code> succeeds on clean + existing DB</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Model + service + types</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extend <code>CommentRow</code> / create / hydrate with <code>parent_id</code> → <code>parentId</code>. Zod: optional <code>parentId</code> UUID. Validate parent before insert. Mirror type in <code>frontend/src/api/types.ts</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>src/models/CommentModel.ts</code>, <code>src/services/CommentService.ts</code>, <code>frontend/src/api/types.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>POST with/without <code>parentId</code>; invalid parent → 4xx</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Post detail UI: Reply + indent + fixed composer</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Top-level rows: flex header with author left, Reply right. Track <code>replyTo: CommentView | null</code>. Bottom form: when set, show “Replying to {name}” + Cancel; POST includes <code>parentId</code>; clear on success/cancel. Group list: parents then indented children (<code>pl-6</code> or similar). Reply button only when <code>!c.parentId</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/PostDetailPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Visual: Reply right; composer fixed; reply indented under parent</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Gates</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Root + frontend typecheck; frontend build. Smoke create parent + reply via API if convenient.</dd></div>
+          <div><dt>Files</dt><dd>—</dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>typecheck/build exit 0</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>Reply button on the right of top-level comments</span></li>
+        <li><span>☑</span><span>Bottom composer stays fixed; shows reply target + Cancel</span></li>
+        <li><span>☑</span><span>Submitted replies appear indented under their parent</span></li>
+        <li><span>☑</span><span>Parents and sibling replies ordered chronologically</span></li>
+        <li><span>☑</span><span>API validates parent (same post, top-level)</span></li>
+        <li><span>☑</span><span>Typecheck + frontend build pass</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Rev 1</td><td>2026-07-28</td><td>Initial spec — one-level replies, fixed bottom composer, parents then indented children (owner decisions).</td></tr>
+          <tr><td>Rev 2</td><td>2026-07-28</td><td>Executed: parent_id migration, API validation, PostDetailPage Reply + indent + fixed composer. Typecheck/build green. UI/API acceptance pending -tw.</td></tr>
+          <tr><td>Rev 3</td><td>2026-07-28</td><td>Acceptance Passed via -tw (isolated worktree + disposable DB + OS port). T3 interactive click waived (browser control declined); structure+API verified.</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

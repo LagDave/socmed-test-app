@@ -1,0 +1,86 @@
+{
+  "plan": "plans/07282026-11-comment-replies",
+  "generatedAt": "2026-07-28",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Migration parent_id",
+      "surface": "cli",
+      "precondition": "DB available",
+      "steps": [
+        "Run npm run migrate",
+        "Confirm comments.parent_id exists and is nullable"
+      ],
+      "expected": "Migration applies; existing comments remain valid parents (NULL parent_id).",
+      "status": "pass",
+      "evidence": "Migrated on primary and on disposable accept DB acc_socmed_accept_1785184559_7014 via accept-runtime.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "API create/list with parentId",
+      "surface": "api",
+      "precondition": "Isolated runtime http://127.0.0.1:60017",
+      "steps": [
+        "POST top-level comment",
+        "POST reply with parentId of that comment",
+        "POST reply with parentId of the reply (should fail)",
+        "GET comments; confirm parentId on views"
+      ],
+      "expected": "Valid reply 201; invalid parent 4xx; list includes parentId.",
+      "status": "pass",
+      "evidence": "-tw API on disposable DB: parent+reply 201 with parentId set; nested reply to reply returned success:false COMMENT_VALIDATION \"Parent must be a top-level comment on this post.\"; GET list includes parentId null/set correctly.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Reply button + fixed composer + indent",
+      "surface": "ui",
+      "precondition": "Isolated runtime serving frontend/dist",
+      "steps": [
+        "Confirm Reply is on the right of a top-level comment",
+        "Click Reply — bottom textarea stays put; see Replying to … + Cancel",
+        "Submit reply — appears indented under parent",
+        "Submit without reply target — new top-level comment"
+      ],
+      "expected": "Composer never moves under the comment; indent visible; Cancel clears reply target.",
+      "status": "pass",
+      "evidence": "Isolated runtime served built bundle containing Reply / Replying to / Write a reply / pl-6. PostDetailPage.tsx: Reply button flex right on parents; bottom form stays put with replyTo chip; replies in border-l pl-6 list. API proved reply create works against same runtime.",
+      "notes": "Interactive browser Reply click was skipped (user declined browser control). UI structure verified via source + dist on accept worktree.",
+      "waiver": "Interactive click-through waived — browser click/unlock declined during -tw; structure + API behavior verified on isolated runtime."
+    },
+    {
+      "id": "D1",
+      "title": "Chronological parent/child ordering",
+      "surface": "api",
+      "precondition": "Two parents each with replies on isolated API",
+      "steps": [
+        "Create Parent A, Parent B, then A reply 1, B reply 1, A reply 2",
+        "GET comments and group like SPA"
+      ],
+      "expected": "Parents oldest→newest; under each parent, replies oldest→newest.",
+      "status": "pass",
+      "evidence": "PARENT_ORDER ['Parent A','Parent B']; UNDER Parent A -> ['A reply 1','A reply 2']; UNDER Parent B -> ['B reply 1'].",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D2",
+      "title": "Build gate",
+      "surface": "cli",
+      "precondition": "Implementation complete",
+      "steps": [
+        "npm run typecheck",
+        "npm --prefix frontend run build"
+      ],
+      "expected": "Both exit 0.",
+      "status": "pass",
+      "evidence": "typecheck + frontend build exit 0 on 2026-07-28; accept worktree rebuild also succeeded.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

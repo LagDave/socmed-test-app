@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { CommentView, PostView } from "@/api/types";
@@ -7,6 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
+function groupComments(comments: CommentView[]): { parent: CommentView; replies: CommentView[] }[] {
+  const parents = comments.filter((c) => !c.parentId);
+  const byParent = new Map<string, CommentView[]>();
+  for (const c of comments) {
+    if (!c.parentId) continue;
+    const list = byParent.get(c.parentId) ?? [];
+    list.push(c);
+    byParent.set(c.parentId, list);
+  }
+  return parents.map((parent) => ({
+    parent,
+    replies: byParent.get(parent.id) ?? [],
+  }));
+}
+
 export function PostDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -14,7 +29,10 @@ export function PostDetailPage() {
   const [comments, setComments] = useState<CommentView[]>([]);
   const [body, setBody] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [replyTo, setReplyTo] = useState<CommentView | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const threads = useMemo(() => groupComments(comments), [comments]);
 
   async function load() {
     if (!id) return;
@@ -37,9 +55,14 @@ export function PostDetailPage() {
         const up = await api.upload<{ url: string }>("/api/uploads", imageFile);
         imageUrl = up.url;
       }
-      await api.post(`/api/posts/${id}/comments`, { body, imageUrl });
+      await api.post(`/api/posts/${id}/comments`, {
+        body,
+        imageUrl,
+        parentId: replyTo?.id ?? null,
+      });
       setBody("");
       setImageFile(null);
+      setReplyTo(null);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
@@ -59,17 +82,49 @@ export function PostDetailPage() {
           {post.author.username ? ` @${post.author.username}` : ""}
         </p>
         <p className="whitespace-pre-wrap text-lg">{post.body}</p>
-        {post.imageUrl && <img src={post.imageUrl} alt="" className="max-h-96 w-full object-cover border border-border" />}
+        {post.imageUrl && (
+          <img src={post.imageUrl} alt="" className="max-h-96 w-full object-cover border border-border" />
+        )}
       </article>
 
       <div>
         <h2 className="text-lg font-semibold">Comments</h2>
         <ul className="mt-3 space-y-3">
-          {comments.map((c) => (
-            <li key={c.id} className="border-b border-border pb-3">
-              <p className="text-sm font-medium">{c.author.displayName}</p>
-              <p className="whitespace-pre-wrap">{c.body}</p>
-              {c.imageUrl && <img src={c.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />}
+          {threads.map(({ parent, replies }) => (
+            <li key={parent.id} className="border-b border-border pb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{parent.author.displayName}</p>
+                  <p className="whitespace-pre-wrap">{parent.body}</p>
+                  {parent.imageUrl && (
+                    <img src={parent.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
+                  )}
+                </div>
+                {user && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => setReplyTo(parent)}
+                  >
+                    Reply
+                  </Button>
+                )}
+              </div>
+              {replies.length > 0 && (
+                <ul className="mt-3 space-y-3 border-l border-border pl-6">
+                  {replies.map((reply) => (
+                    <li key={reply.id}>
+                      <p className="text-sm font-medium">{reply.author.displayName}</p>
+                      <p className="whitespace-pre-wrap">{reply.body}</p>
+                      {reply.imageUrl && (
+                        <img src={reply.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
           {comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet.</p>}
@@ -78,11 +133,27 @@ export function PostDetailPage() {
 
       {user && (
         <form onSubmit={onComment} className="space-y-3">
-          <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a comment" required />
+          {replyTo && (
+            <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+              <span>
+                Replying to <span className="font-medium text-foreground">{replyTo.author.displayName}</span>
+              </span>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setReplyTo(null)}>
+                Cancel
+              </Button>
+            </div>
+          )}
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={replyTo ? "Write a reply" : "Write a comment"}
+            required
+          />
           <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-          <Button type="submit">Comment</Button>
+          <Button type="submit">{replyTo ? "Reply" : "Comment"}</Button>
         </form>
       )}
+      {error && <p className="text-sm text-muted-foreground">{error}</p>}
     </section>
   );
 }
