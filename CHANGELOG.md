@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.2 — 2026-07-28
+
+### Added
+- One-level comment replies: Reply on top-level comments, indented children under parents
+- Inline reply composer under the parent comment (“Replying to …” + Cancel); bottom form for top-level comments only
+- Nullable `comments.parent_id` with same-post top-level parent validation
+
+### Plans
+- `plans/07282026-11-comment-replies` — Completed
+
 ## 0.1.1 — 2026-07-28
 
 ### Added

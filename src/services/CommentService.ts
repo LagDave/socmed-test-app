@@ -8,11 +8,13 @@ import { toPublicUser } from "../types/user";
 const createCommentSchema = z.object({
   body: z.string().min(1).max(2000),
   imageUrl: z.string().max(500).nullable().optional(),
+  parentId: z.string().uuid().nullable().optional(),
 });
 
 export type CommentView = {
   id: string;
   postId: string;
+  parentId: string | null;
   body: string;
   imageUrl: string | null;
   createdAt: Date;
@@ -27,6 +29,7 @@ async function hydrate(rows: CommentRow[]): Promise<CommentView[]> {
     return {
       id: r.id,
       postId: r.post_id,
+      parentId: r.parent_id,
       body: r.body,
       imageUrl: r.image_url,
       createdAt: r.created_at,
@@ -47,11 +50,24 @@ export class CommentService {
     const post = await PostModel.findById(postId);
     if (!post) throw new AppError("POST_NOT_FOUND", "Post not found.");
     const input = createCommentSchema.parse(raw);
+
+    let parentId: string | null = input.parentId ?? null;
+    if (parentId) {
+      const parent = await CommentModel.findById(parentId);
+      if (!parent || parent.post_id !== postId) {
+        throw new AppError("COMMENT_VALIDATION", "Parent comment not found on this post.");
+      }
+      if (parent.parent_id !== null) {
+        throw new AppError("COMMENT_VALIDATION", "Parent must be a top-level comment on this post.");
+      }
+    }
+
     const row = await CommentModel.create({
       postId,
       authorId: userId,
       body: input.body,
       imageUrl: input.imageUrl,
+      parentId,
     });
     return (await hydrate([row]))[0];
   }

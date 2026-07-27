@@ -4,6 +4,7 @@ export type CommentRow = {
   id: string;
   post_id: string;
   author_id: string;
+  parent_id: string | null;
   body: string;
   image_url: string | null;
   created_at: Date;
@@ -16,11 +17,13 @@ export class CommentModel {
     authorId: string;
     body: string;
     imageUrl?: string | null;
+    parentId?: string | null;
   }): Promise<CommentRow> {
     const [row] = await db<CommentRow>("comments")
       .insert({
         post_id: input.postId,
         author_id: input.authorId,
+        parent_id: input.parentId ?? null,
         body: input.body,
         image_url: input.imageUrl ?? null,
       })
