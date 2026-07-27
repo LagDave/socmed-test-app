@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Friend Requests + Mutuals Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:840px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+</style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 7/9</p>
+        <span class="status-pill">Pending Execution</span>
+      </div>
+      <h1>Friend Requests + Mutuals</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07272026-07-socmed-friendships</dd></div>
+        <div><dt>Size</dt><dd>Medium</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Repo</dt><dd>LagDave/socmed-test-app</dd></div>
+        <div><dt>Next plan</dt><dd>08-socmed-media-uploads</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Social graph for a private-ish feed.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Friend requests, accepted mutuals, feed filtered to mutuals + self.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p>Depends on profiles + posts feed.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul><li>Idempotent request handling</li><li>Only addressee can accept</li><li>Canonical pair ordering</li></ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul><li>Followers (one-way)</li><li>Block list (defer)</li></ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul><li>Chat</li><li>Groups</li></ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2.</strong> Feed behavior changes — document in revision if API consumers assume global feed.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+      
+      <article class="task-card" id="T1">
+        <h3>T1 — Friendships schema</h3>
+        <dl>
+          <div><dt>Do</dt><dd>friendships (user_a, user_b, requester_id, status pending|accepted|declined, timestamps). Canonical order user_a < user_b.</dd></div>
+          <div><dt>Files</dt><dd>migration, Friendship model</dd></div>
+          <div><dt>Depends on</dt><dd>04</dd></div>
+          <div><dt>Verify</dt><dd>unique pair constraint</dd></div>
+        </dl>
+      </article>
+      <article class="task-card" id="T2">
+        <h3>T2 — Request API</h3>
+        <dl>
+          <div><dt>Do</dt><dd>send request, accept, decline, list incoming/outgoing, list mutuals, cancel.</dd></div>
+          <div><dt>Files</dt><dd>FriendshipService, routes</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>A requests B; B accepts; both see mutual</dd></div>
+        </dl>
+      </article>
+      <article class="task-card" id="T3">
+        <h3>T3 — Feed filter + UI</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Tighten feed to self + accepted mutuals. SPA friends page.</dd></div>
+          <div><dt>Files</dt><dd>FeedService, frontend</dd></div>
+          <div><dt>Depends on</dt><dd>T2 + 05</dd></div>
+          <div><dt>Verify</dt><dd>Non-mutual posts hidden from feed</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist"><li><span>☐</span><span>Request/accept/decline</span></li><li><span>☐</span><span>Mutuals list</span></li><li><span>☐</span><span>Feed is mutuals + self</span></li></ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>2026-07-27</td><td>Initial approved scope from session grill: Caddy edge, no chat/threads, linear comments, main→primary / dev→-dev.</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,79 @@
+{
+  "plan": "plans/07272026-04-socmed-profiles",
+  "generatedAt": "2026-07-27",
+  "status": "Not Run",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Profile fields",
+      "surface": "ui",
+      "precondition": "Prior plans 01\u201303 complete",
+      "steps": [
+        "Extend users: username unique, bio, avatar_url nullable. Username set at register or profile edit.",
+        "Verify: migrate + unique constraint"
+      ],
+      "expected": "migrate + unique constraint",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Profile API + page",
+      "surface": "api",
+      "precondition": "Prior plans 01\u201303 complete",
+      "steps": [
+        "GET /api/users/:username, PATCH /api/me/profile. SPA profile view + edit own.",
+        "Verify: view and edit profile"
+      ],
+      "expected": "view and edit profile",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Public profile by username",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Public profile by username"
+      ],
+      "expected": "Public profile by username",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D2",
+      "title": "Owner can edit bio/display name/username",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Owner can edit bio/display name/username"
+      ],
+      "expected": "Owner can edit bio/display name/username",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D3",
+      "title": "Avatar field exists (upload lands in plan 08)",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Avatar field exists (upload lands in plan 08)"
+      ],
+      "expected": "Avatar field exists (upload lands in plan 08)",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

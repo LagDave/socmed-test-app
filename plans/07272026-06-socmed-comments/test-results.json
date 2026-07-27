@@ -1,0 +1,79 @@
+{
+  "plan": "plans/07272026-06-socmed-comments",
+  "generatedAt": "2026-07-27",
+  "status": "Not Run",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Comments schema + API",
+      "surface": "api",
+      "precondition": "Prior plans 01\u201305 complete",
+      "steps": [
+        "comments (id, post_id, author_id, body, created_at). Flat list only \u2014 no parent_id. List by post, create, delete-own.",
+        "Verify: linear list ordered by created_at"
+      ],
+      "expected": "linear list ordered by created_at",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "SPA comment UI",
+      "surface": "ui",
+      "precondition": "Prior plans 01\u201305 complete",
+      "steps": [
+        "Under post detail: list + compose. No reply nesting UI.",
+        "Verify: Add comment appears in order"
+      ],
+      "expected": "Add comment appears in order",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Flat comments only",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Flat comments only"
+      ],
+      "expected": "Flat comments only",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D2",
+      "title": "No parent_id column",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: No parent_id column"
+      ],
+      "expected": "No parent_id column",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D3",
+      "title": "UI has no nest/reply-to-comment",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: UI has no nest/reply-to-comment"
+      ],
+      "expected": "UI has no nest/reply-to-comment",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

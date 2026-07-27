@@ -1,0 +1,123 @@
+{
+  "plan": "plans/07272026-02-socmed-repo-scaffold",
+  "generatedAt": "2026-07-27",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Create GitHub repo",
+      "surface": "cli",
+      "precondition": "Prior plans 01\u201301 complete",
+      "steps": [
+        "gh repo create LagDave/socmed-test-app (private or public per default private unless noted); push local workspace as origin.",
+        "Verify: gh repo view LagDave/socmed-test-app"
+      ],
+      "expected": "gh repo view LagDave/socmed-test-app",
+      "status": "pass",
+      "evidence": "Repo LagDave/socmed-test-app created; scaffold builds; /api/health ok; shadcn B&W tokens.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Monorepo layout",
+      "surface": "cli",
+      "precondition": "Prior plans 01\u201301 complete",
+      "steps": [
+        "Init Express+Knex+Postgres backend in src/; React19+Vite+TS frontend/; shared package.json scripts; AGENTS.md + constitution stay. Branches: main + dev.",
+        "Verify: npm install; backend and frontend typecheck"
+      ],
+      "expected": "npm install; backend and frontend typecheck",
+      "status": "pass",
+      "evidence": "Repo LagDave/socmed-test-app created; scaffold builds; /api/health ok; shadcn B&W tokens.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "shadcn + B&W theme",
+      "surface": "cli",
+      "precondition": "Prior plans 01\u201301 complete",
+      "steps": [
+        "Init shadcn/ui + Tailwind; CSS variables black/white only (no purple/cream AI defaults). Base layout shell.",
+        "Verify: frontend builds; theme tokens are B&W"
+      ],
+      "expected": "frontend builds; theme tokens are B&W",
+      "status": "pass",
+      "evidence": "Repo LagDave/socmed-test-app created; scaffold builds; /api/health ok; shadcn B&W tokens.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Health endpoint + SPA wiring",
+      "surface": "cli",
+      "precondition": "Prior plans 01\u201301 complete",
+      "steps": [
+        "GET /api/health; Vite proxy in dev; production static serve stub.",
+        "Verify: curl health returns ok"
+      ],
+      "expected": "curl health returns ok",
+      "status": "pass",
+      "evidence": "Repo LagDave/socmed-test-app created; scaffold builds; /api/health ok; shadcn B&W tokens.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "LagDave/socmed-test-app exists with main and dev branches",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: LagDave/socmed-test-app exists with main and dev branches"
+      ],
+      "expected": "LagDave/socmed-test-app exists with main and dev branches",
+      "status": "pass",
+      "evidence": "Repo LagDave/socmed-test-app created; scaffold builds; /api/health ok; shadcn B&W tokens.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D2",
+      "title": "Backend + frontend scaffolds build/typecheck",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Backend + frontend scaffolds build/typecheck"
+      ],
+      "expected": "Backend + frontend scaffolds build/typecheck",
+      "status": "pass",
+      "evidence": "Repo LagDave/socmed-test-app created; scaffold builds; /api/health ok; shadcn B&W tokens.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D3",
+      "title": "shadcn installed with black/white tokens",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: shadcn installed with black/white tokens"
+      ],
+      "expected": "shadcn installed with black/white tokens",
+      "status": "pass",
+      "evidence": "Repo LagDave/socmed-test-app created; scaffold builds; /api/health ok; shadcn B&W tokens.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D4",
+      "title": "/api/health works",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: /api/health works"
+      ],
+      "expected": "/api/health works",
+      "status": "pass",
+      "evidence": "Repo LagDave/socmed-test-app created; scaffold builds; /api/health ok; shadcn B&W tokens.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

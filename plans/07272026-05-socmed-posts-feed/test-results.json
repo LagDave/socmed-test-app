@@ -1,0 +1,94 @@
+{
+  "plan": "plans/07272026-05-socmed-posts-feed",
+  "generatedAt": "2026-07-27",
+  "status": "Not Run",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Posts schema + API",
+      "surface": "api",
+      "precondition": "Prior plans 01\u201304 complete",
+      "steps": [
+        "posts table (id, author_id, body, created_at). Create/list/get/delete-own.",
+        "Verify: CRUD for own posts"
+      ],
+      "expected": "CRUD for own posts",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Feed",
+      "surface": "ui",
+      "precondition": "Prior plans 01\u201304 complete",
+      "steps": [
+        "Chronological feed: for now all posts or mutuals-ready query stub \u2014 until friends land, show all posts newest-first; revise in 07 to mutuals-only if specified. Spec decision: v1 feed = all public posts newest-first; after 07 tighten to mutuals + self.",
+        "Verify: GET /api/feed returns newest first"
+      ],
+      "expected": "GET /api/feed returns newest first",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "SPA feed + compose",
+      "surface": "ui",
+      "precondition": "Prior plans 01\u201304 complete",
+      "steps": [
+        "Home feed list + create post form; post detail route. B&W shadcn.",
+        "Verify: Create post appears on feed"
+      ],
+      "expected": "Create post appears on feed",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Create/list/get/delete own posts",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Create/list/get/delete own posts"
+      ],
+      "expected": "Create/list/get/delete own posts",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D2",
+      "title": "Feed newest-first",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Feed newest-first"
+      ],
+      "expected": "Feed newest-first",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D3",
+      "title": "Compose UI works",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Compose UI works"
+      ],
+      "expected": "Compose UI works",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "plan": "plans/07272026-03-socmed-auth",
+  "generatedAt": "2026-07-27",
+  "status": "Not Run",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Users + sessions schema",
+      "surface": "api",
+      "precondition": "Prior plans 01\u201302 complete",
+      "steps": [
+        "Migration: users (id, email unique, password_hash, display_name, created_at); sessions or JWT refresh strategy \u2014 prefer httpOnly cookie session table.",
+        "Verify: knex migrate:latest"
+      ],
+      "expected": "knex migrate:latest",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Auth service + routes",
+      "surface": "ui",
+      "precondition": "Prior plans 01\u201302 complete",
+      "steps": [
+        "Register, login, logout, me. bcrypt passwords. Validate input. No business logic in controllers.",
+        "Verify: API register\u2192login\u2192me\u2192logout"
+      ],
+      "expected": "API register\u2192login\u2192me\u2192logout",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Frontend auth pages",
+      "surface": "ui",
+      "precondition": "Prior plans 01\u201302 complete",
+      "steps": [
+        "Login/register forms with shadcn; auth context; protect routes.",
+        "Verify: UI can register and stay logged in"
+      ],
+      "expected": "UI can register and stay logged in",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Register/login/logout/me work",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Register/login/logout/me work"
+      ],
+      "expected": "Register/login/logout/me work",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D2",
+      "title": "Passwords hashed",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Passwords hashed"
+      ],
+      "expected": "Passwords hashed",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D3",
+      "title": "SPA session persists via cookie",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: SPA session persists via cookie"
+      ],
+      "expected": "SPA session persists via cookie",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D4",
+      "title": "Unauthed API returns 401",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Unauthed API returns 401"
+      ],
+      "expected": "Unauthed API returns 401",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

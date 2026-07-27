@@ -1,0 +1,123 @@
+{
+  "plan": "plans/07272026-09-socmed-deploy-caddy",
+  "generatedAt": "2026-07-27",
+  "status": "Not Run",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Server layout",
+      "surface": "cli",
+      "precondition": "Prior plans 01\u201308 complete",
+      "steps": [
+        "Create /var/www/socmed-prod and /var/www/socmed-dev; Postgres DBs; env files; PM2 ecosystem for each (ports 3200 prod, 3201 dev).",
+        "Verify: both processes listen locally"
+      ],
+      "expected": "both processes listen locally",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Branch deploy mapping",
+      "surface": "cli",
+      "precondition": "Prior plans 01\u201308 complete",
+      "steps": [
+        "Document+script: checkout/build main \u2192 prod dir; checkout/build dev \u2192 dev dir.",
+        "Verify: script dry-run or first deploy"
+      ],
+      "expected": "script dry-run or first deploy",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Caddy host blocks",
+      "surface": "cli",
+      "precondition": "Prior plans 01\u201308 complete",
+      "steps": [
+        "Add socmed.rustinedave.com \u2192 :3200 and socmed-dev.rustinedave.com \u2192 :3201 to Caddyfile; reload. TLS may wait on DNS.",
+        "Verify: caddy reload; local curl -H Host: still proxies"
+      ],
+      "expected": "caddy reload; local curl -H Host: still proxies",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Stop before DNS",
+      "surface": "cli",
+      "precondition": "Prior plans 01\u201308 complete",
+      "steps": [
+        "Write DNS instructions for owner; do not change Squarespace DNS from this agent unless asked.",
+        "Verify: DNS.md lists exact A records \u2192 168.144.128.47"
+      ],
+      "expected": "DNS.md lists exact A records \u2192 168.144.128.47",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "main deploys to prod port/host mapping",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: main deploys to prod port/host mapping"
+      ],
+      "expected": "main deploys to prod port/host mapping",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D2",
+      "title": "dev deploys to -dev port/host mapping",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: dev deploys to -dev port/host mapping"
+      ],
+      "expected": "dev deploys to -dev port/host mapping",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D3",
+      "title": "Caddyfile contains both hostnames",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Caddyfile contains both hostnames"
+      ],
+      "expected": "Caddyfile contains both hostnames",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D4",
+      "title": "DNS.md left for human \u2014 plan execution stops here",
+      "surface": "none",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: DNS.md left for human \u2014 plan execution stops here"
+      ],
+      "expected": "DNS.md left for human \u2014 plan execution stops here",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

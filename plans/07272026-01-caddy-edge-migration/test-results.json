@@ -1,0 +1,123 @@
+{
+  "plan": "plans/07272026-01-caddy-edge-migration",
+  "generatedAt": "2026-07-27",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Install Caddy",
+      "surface": "cli",
+      "precondition": "SSH alloro-asia reachable",
+      "steps": [
+        "Install Caddy on alloro-asia via official apt repo; verify binary.",
+        "Verify: caddy version succeeds"
+      ],
+      "expected": "caddy version succeeds",
+      "status": "pass",
+      "evidence": "2026-07-27: Apache removed; Caddy v2.11.4 on 80/443; https://dev-asia.getalloro.com \u2192 200; Signals :3000 still 200.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Write Caddyfile for alloro-dev",
+      "surface": "cli",
+      "precondition": "SSH alloro-asia reachable",
+      "steps": [
+        "Mirror Apache: reverse_proxy 127.0.0.1:3000; WebSocket /socket.io/; disable buffering for /api/minds/ SSE. Keep auto HTTPS.",
+        "Verify: caddy validate --config /etc/caddy/Caddyfile"
+      ],
+      "expected": "caddy validate --config /etc/caddy/Caddyfile",
+      "status": "pass",
+      "evidence": "2026-07-27: Apache removed; Caddy v2.11.4 on 80/443; https://dev-asia.getalloro.com \u2192 200; Signals :3000 still 200.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Cutover",
+      "surface": "cli",
+      "precondition": "SSH alloro-asia reachable",
+      "steps": [
+        "Stop+disable+purge apache2; enable+start caddy; confirm ports 80/443 owned by caddy.",
+        "Verify: ss -tlnp shows caddy on 80/443; apache gone"
+      ],
+      "expected": "ss -tlnp shows caddy on 80/443; apache gone",
+      "status": "pass",
+      "evidence": "2026-07-27: Apache removed; Caddy v2.11.4 on 80/443; https://dev-asia.getalloro.com \u2192 200; Signals :3000 still 200.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Verify alloro-dev",
+      "surface": "cli",
+      "precondition": "SSH alloro-asia reachable",
+      "steps": [
+        "HTTPS GET https://dev-asia.getalloro.com returns app; spot-check socket.io upgrade and /api/minds/ streaming headers if feasible.",
+        "Verify: 200 from HTTPS; no Apache process"
+      ],
+      "expected": "200 from HTTPS; no Apache process",
+      "status": "pass",
+      "evidence": "2026-07-27: Apache removed; Caddy v2.11.4 on 80/443; https://dev-asia.getalloro.com \u2192 200; Signals :3000 still 200.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Apache removed/disabled; Caddy owns 80/443",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Apache removed/disabled; Caddy owns 80/443"
+      ],
+      "expected": "Apache removed/disabled; Caddy owns 80/443",
+      "status": "pass",
+      "evidence": "2026-07-27: Apache removed; Caddy v2.11.4 on 80/443; https://dev-asia.getalloro.com \u2192 200; Signals :3000 still 200.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D2",
+      "title": "dev-asia.getalloro.com serves Signals over HTTPS via Caddy",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: dev-asia.getalloro.com serves Signals over HTTPS via Caddy"
+      ],
+      "expected": "dev-asia.getalloro.com serves Signals over HTTPS via Caddy",
+      "status": "pass",
+      "evidence": "2026-07-27: Apache removed; Caddy v2.11.4 on 80/443; https://dev-asia.getalloro.com \u2192 200; Signals :3000 still 200.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D3",
+      "title": "SSE and WebSocket paths preserved in Caddyfile",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: SSE and WebSocket paths preserved in Caddyfile"
+      ],
+      "expected": "SSE and WebSocket paths preserved in Caddyfile",
+      "status": "pass",
+      "evidence": "2026-07-27: Apache removed; Caddy v2.11.4 on 80/443; https://dev-asia.getalloro.com \u2192 200; Signals :3000 still 200.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D4",
+      "title": "Rollback notes recorded in plan notes if needed",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Rollback notes recorded in plan notes if needed"
+      ],
+      "expected": "Rollback notes recorded in plan notes if needed",
+      "status": "pass",
+      "evidence": "2026-07-27: Apache removed; Caddy v2.11.4 on 80/443; https://dev-asia.getalloro.com \u2192 200; Signals :3000 still 200.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "plan": "plans/07272026-08-socmed-media-uploads",
+  "generatedAt": "2026-07-27",
+  "status": "Not Run",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Upload pipeline",
+      "surface": "ui",
+      "precondition": "Prior plans 01\u201307 complete",
+      "steps": [
+        "multer (or busboy) to local disk under uploads/; MIME allowlist image/*; size cap; serve via /uploads or authenticated route.",
+        "Verify: POST multipart returns URL"
+      ],
+      "expected": "POST multipart returns URL",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Wire to comments + avatar + optional post image",
+      "surface": "ui",
+      "precondition": "Prior plans 01\u201307 complete",
+      "steps": [
+        "Comment may include image_url; profile avatar upload; post optional image_url.",
+        "Verify: Upload image on comment and avatar"
+      ],
+      "expected": "Upload image on comment and avatar",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Images stored on disk",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Images stored on disk"
+      ],
+      "expected": "Images stored on disk",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D2",
+      "title": "Comments can attach one photo",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Comments can attach one photo"
+      ],
+      "expected": "Comments can attach one photo",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D3",
+      "title": "Avatar upload works",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: Avatar upload works"
+      ],
+      "expected": "Avatar upload works",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D4",
+      "title": "MIME/size validation",
+      "surface": "cli",
+      "precondition": "All tasks in this plan complete",
+      "steps": [
+        "Confirm: MIME/size validation"
+      ],
+      "expected": "MIME/size validation",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

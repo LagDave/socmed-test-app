@@ -1,0 +1,25 @@
+# alloro-asia edge — managed for Signals + (later) socmed
+# Plan: plans/07272026-01-caddy-edge-migration
+
+dev-asia.getalloro.com {
+	encode gzip
+
+	# SSE: disable buffering (mirrors Apache flushpackets)
+	@minds path /api/minds/*
+	handle @minds {
+		reverse_proxy 127.0.0.1:3000 {
+			flush_interval -1
+			header_up Connection {http.request.header.Connection}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+		}
+	}
+
+	# Everything else including /socket.io/ WebSocket upgrades
+	handle {
+		reverse_proxy 127.0.0.1:3000 {
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+		}
+	}
+}
