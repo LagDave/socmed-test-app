@@ -1,7 +1,7 @@
 {
   "plan": "plans/07272026-06-socmed-comments",
   "generatedAt": "2026-07-27",
-  "status": "Not Run",
+  "status": "Passed",
   "items": [
     {
       "id": "T1",
@@ -13,8 +13,8 @@
         "Verify: linear list ordered by created_at"
       ],
       "expected": "linear list ordered by created_at",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -28,8 +28,8 @@
         "Verify: Add comment appears in order"
       ],
       "expected": "Add comment appears in order",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -42,8 +42,8 @@
         "Confirm: Flat comments only"
       ],
       "expected": "Flat comments only",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -56,8 +56,8 @@
         "Confirm: No parent_id column"
       ],
       "expected": "No parent_id column",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -70,8 +70,8 @@
         "Confirm: UI has no nest/reply-to-comment"
       ],
       "expected": "UI has no nest/reply-to-comment",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     }

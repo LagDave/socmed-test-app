@@ -1,7 +1,7 @@
 {
   "plan": "plans/07272026-07-socmed-friendships",
   "generatedAt": "2026-07-27",
-  "status": "Not Run",
+  "status": "Passed",
   "items": [
     {
       "id": "T1",
@@ -13,8 +13,8 @@
         "Verify: unique pair constraint"
       ],
       "expected": "unique pair constraint",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -28,8 +28,8 @@
         "Verify: A requests B; B accepts; both see mutual"
       ],
       "expected": "A requests B; B accepts; both see mutual",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -43,8 +43,8 @@
         "Verify: Non-mutual posts hidden from feed"
       ],
       "expected": "Non-mutual posts hidden from feed",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -57,8 +57,8 @@
         "Confirm: Request/accept/decline"
       ],
       "expected": "Request/accept/decline",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -71,8 +71,8 @@
         "Confirm: Mutuals list"
       ],
       "expected": "Mutuals list",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -85,8 +85,8 @@
         "Confirm: Feed is mutuals + self"
       ],
       "expected": "Feed is mutuals + self",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     }

@@ -1,7 +1,7 @@
 {
   "plan": "plans/07272026-03-socmed-auth",
   "generatedAt": "2026-07-27",
-  "status": "Not Run",
+  "status": "Passed",
   "items": [
     {
       "id": "T1",
@@ -13,8 +13,8 @@
         "Verify: knex migrate:latest"
       ],
       "expected": "knex migrate:latest",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -28,8 +28,8 @@
         "Verify: API register\u2192login\u2192me\u2192logout"
       ],
       "expected": "API register\u2192login\u2192me\u2192logout",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -43,8 +43,8 @@
         "Verify: UI can register and stay logged in"
       ],
       "expected": "UI can register and stay logged in",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -57,8 +57,8 @@
         "Confirm: Register/login/logout/me work"
       ],
       "expected": "Register/login/logout/me work",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -71,8 +71,8 @@
         "Confirm: Passwords hashed"
       ],
       "expected": "Passwords hashed",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -85,8 +85,8 @@
         "Confirm: SPA session persists via cookie"
       ],
       "expected": "SPA session persists via cookie",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -99,8 +99,8 @@
         "Confirm: Unauthed API returns 401"
       ],
       "expected": "Unauthed API returns 401",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     }

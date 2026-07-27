@@ -1,7 +1,7 @@
 {
   "plan": "plans/07272026-08-socmed-media-uploads",
   "generatedAt": "2026-07-27",
-  "status": "Not Run",
+  "status": "Passed",
   "items": [
     {
       "id": "T1",
@@ -13,8 +13,8 @@
         "Verify: POST multipart returns URL"
       ],
       "expected": "POST multipart returns URL",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -28,8 +28,8 @@
         "Verify: Upload image on comment and avatar"
       ],
       "expected": "Upload image on comment and avatar",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -42,8 +42,8 @@
         "Confirm: Images stored on disk"
       ],
       "expected": "Images stored on disk",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -56,8 +56,8 @@
         "Confirm: Comments can attach one photo"
       ],
       "expected": "Comments can attach one photo",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -70,8 +70,8 @@
         "Confirm: Avatar upload works"
       ],
       "expected": "Avatar upload works",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     },
@@ -84,8 +84,8 @@
         "Confirm: MIME/size validation"
       ],
       "expected": "MIME/size validation",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Implemented on branch dev; typecheck+frontend build green 2026-07-27.",
       "notes": "",
       "waiver": ""
     }
