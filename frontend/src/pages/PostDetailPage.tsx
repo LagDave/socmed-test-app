@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { CommentView, PostView } from "@/api/types";
@@ -30,7 +30,10 @@ export function PostDetailPage() {
   const [body, setBody] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [replyTo, setReplyTo] = useState<CommentView | null>(null);
+  const [replyBody, setReplyBody] = useState("");
+  const [replyImageFile, setReplyImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const threads = useMemo(() => groupComments(comments), [comments]);
 
@@ -46,6 +49,24 @@ export function PostDetailPage() {
     void load().catch((e: Error) => setError(e.message));
   }, [id]);
 
+  useEffect(() => {
+    if (!replyTo) return;
+    replyTextareaRef.current?.focus();
+    replyTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [replyTo]);
+
+  function clearReply() {
+    setReplyTo(null);
+    setReplyBody("");
+    setReplyImageFile(null);
+  }
+
+  function startReply(comment: CommentView) {
+    setReplyTo(comment);
+    setReplyBody("");
+    setReplyImageFile(null);
+  }
+
   async function onComment(e: FormEvent) {
     e.preventDefault();
     if (!id) return;
@@ -58,11 +79,31 @@ export function PostDetailPage() {
       await api.post(`/api/posts/${id}/comments`, {
         body,
         imageUrl,
-        parentId: replyTo?.id ?? null,
+        parentId: null,
       });
       setBody("");
       setImageFile(null);
-      setReplyTo(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function onReply(e: FormEvent) {
+    e.preventDefault();
+    if (!id || !replyTo) return;
+    try {
+      let imageUrl: string | null = null;
+      if (replyImageFile) {
+        const up = await api.upload<{ url: string }>("/api/uploads", replyImageFile);
+        imageUrl = up.url;
+      }
+      await api.post(`/api/posts/${id}/comments`, {
+        body: replyBody,
+        imageUrl,
+        parentId: replyTo.id,
+      });
+      clearReply();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
@@ -106,7 +147,7 @@ export function PostDetailPage() {
                     variant="ghost"
                     size="sm"
                     className="shrink-0"
-                    onClick={() => setReplyTo(parent)}
+                    onClick={() => startReply(parent)}
                   >
                     Reply
                   </Button>
@@ -125,6 +166,32 @@ export function PostDetailPage() {
                   ))}
                 </ul>
               )}
+              {user && replyTo?.id === parent.id && (
+                <form onSubmit={onReply} className="mt-3 space-y-3 border-l border-border pl-6">
+                  <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                    <span>
+                      Replying to{" "}
+                      <span className="font-medium text-foreground">{replyTo.author.displayName}</span>
+                    </span>
+                    <Button type="button" variant="ghost" size="sm" onClick={clearReply}>
+                      Cancel
+                    </Button>
+                  </div>
+                  <Textarea
+                    ref={replyTextareaRef}
+                    value={replyBody}
+                    onChange={(e) => setReplyBody(e.target.value)}
+                    placeholder="Write a reply"
+                    required
+                  />
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setReplyImageFile(e.target.files?.[0] || null)}
+                  />
+                  <Button type="submit">Reply</Button>
+                </form>
+              )}
             </li>
           ))}
           {comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet.</p>}
@@ -133,26 +200,17 @@ export function PostDetailPage() {
 
       {user && (
         <form onSubmit={onComment} className="space-y-3">
-          {replyTo && (
-            <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-              <span>
-                Replying to <span className="font-medium text-foreground">{replyTo.author.displayName}</span>
-              </span>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setReplyTo(null)}>
-                Cancel
-              </Button>
-            </div>
-          )}
           <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder={replyTo ? "Write a reply" : "Write a comment"}
+            placeholder="Write a comment"
             required
           />
           <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-          <Button type="submit">{replyTo ? "Reply" : "Comment"}</Button>
+          <Button type="submit">Comment</Button>
         </form>
       )}
+
       {error && <p className="text-sm text-muted-foreground">{error}</p>}
     </section>
   );

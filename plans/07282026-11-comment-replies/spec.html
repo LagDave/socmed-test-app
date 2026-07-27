@@ -184,7 +184,7 @@
       <h2>Done</h2>
       <ul class="checklist">
         <li><span>☑</span><span>Reply button on the right of top-level comments</span></li>
-        <li><span>☑</span><span>Bottom composer stays fixed; shows reply target + Cancel</span></li>
+        <li><span>☑</span><span>Reply composer appears inline under that comment (no modal); scrolls into view</span></li>
         <li><span>☑</span><span>Submitted replies appear indented under their parent</span></li>
         <li><span>☑</span><span>Parents and sibling replies ordered chronologically</span></li>
         <li><span>☑</span><span>API validates parent (same post, top-level)</span></li>
@@ -200,6 +200,8 @@
           <tr><td>Rev 1</td><td>2026-07-28</td><td>Initial spec — one-level replies, fixed bottom composer, parents then indented children (owner decisions).</td></tr>
           <tr><td>Rev 2</td><td>2026-07-28</td><td>Executed: parent_id migration, API validation, PostDetailPage Reply + indent + fixed composer. Typecheck/build green. UI/API acceptance pending -tw.</td></tr>
           <tr><td>Rev 3</td><td>2026-07-28</td><td>Acceptance Passed via -tw (isolated worktree + disposable DB + OS port). T3 interactive click waived (browser control declined); structure+API verified.</td></tr>
+          <tr><td>Rev 4</td><td>2026-07-28</td><td>Reply opens a centered modal composer (viewport middle) so long threads don’t require scrolling; bottom form remains for top-level comments only. Escape / backdrop / Cancel dismiss.</td></tr>
+          <tr><td>Rev 5</td><td>2026-07-28</td><td>Drop modal. Reply composer is inline under the parent comment and scrollIntoView(center); bottom form remains for top-level comments.</td></tr>
         </tbody>
       </table>
     </section>
