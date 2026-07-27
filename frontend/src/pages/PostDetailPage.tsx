@@ -6,8 +6,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { formatRelativeTime } from "@/lib/formatRelativeTime";
 
 type CommentThread = { parent: CommentView; replies: CommentView[] };
+
+function CommentTimestamp({ createdAt }: { createdAt: string }) {
+  return (
+    <time
+      className="shrink-0 text-xs font-normal text-muted-foreground"
+      dateTime={createdAt}
+      title={new Date(createdAt).toLocaleString()}
+    >
+      {formatRelativeTime(createdAt)}
+    </time>
+  );
+}
 
 function groupComments(comments: CommentView[]): { threads: CommentThread[]; orphans: CommentView[] } {
   const parents = comments.filter((c) => !c.parentId);
@@ -154,7 +167,10 @@ export function PostDetailPage() {
             <li key={parent.id} className="border-b border-border pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{parent.author.displayName}</p>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium">{parent.author.displayName}</p>
+                    <CommentTimestamp createdAt={parent.createdAt} />
+                  </div>
                   <p className="whitespace-pre-wrap">{parent.body}</p>
                   {parent.imageUrl && (
                     <img src={parent.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
@@ -176,7 +192,10 @@ export function PostDetailPage() {
                 <ul className="mt-3 space-y-3 border-l border-border pl-6">
                   {replies.map((reply) => (
                     <li key={reply.id}>
-                      <p className="text-sm font-medium">{reply.author.displayName}</p>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-sm font-medium">{reply.author.displayName}</p>
+                        <CommentTimestamp createdAt={reply.createdAt} />
+                      </div>
                       <p className="whitespace-pre-wrap">{reply.body}</p>
                       {reply.imageUrl && (
                         <img src={reply.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
@@ -215,7 +234,10 @@ export function PostDetailPage() {
           ))}
           {orphans.map((orphan) => (
             <li key={orphan.id} className="border-b border-border pb-3">
-              <p className="text-sm font-medium">{orphan.author.displayName}</p>
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-sm font-medium">{orphan.author.displayName}</p>
+                <CommentTimestamp createdAt={orphan.createdAt} />
+              </div>
               <p className="whitespace-pre-wrap">{orphan.body}</p>
               {orphan.imageUrl && (
                 <img src={orphan.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />

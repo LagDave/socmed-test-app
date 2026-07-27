@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { formatRelativeTime } from "@/lib/formatRelativeTime";
 
 export function FeedPage() {
   const { user, loading } = useAuth();
@@ -88,7 +89,13 @@ export function FeedPage() {
                 {p.author.displayName}
                 {p.author.username ? ` @${p.author.username}` : ""}
               </Link>
-              <time className="text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleString()}</time>
+              <time
+                className="shrink-0 text-xs text-muted-foreground"
+                dateTime={p.createdAt}
+                title={new Date(p.createdAt).toLocaleString()}
+              >
+                {formatRelativeTime(p.createdAt)}
+              </time>
             </div>
             <Link to={`/posts/${p.id}`} className="mt-2 block whitespace-pre-wrap">
               {p.body}
