@@ -1,7 +1,7 @@
 {
   "plan": "plans/07272026-09-socmed-deploy-caddy",
   "generatedAt": "2026-07-27",
-  "status": "Not Run",
+  "status": "In Progress",
   "items": [
     {
       "id": "T1",
@@ -13,8 +13,8 @@
         "Verify: both processes listen locally"
       ],
       "expected": "both processes listen locally",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "2026-07-27: PM2 socmed-prod:3200 + socmed-dev:3201 healthy; Caddyfile hosts added; alloro-dev still 200.",
       "notes": "",
       "waiver": ""
     },
@@ -28,8 +28,8 @@
         "Verify: script dry-run or first deploy"
       ],
       "expected": "script dry-run or first deploy",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "2026-07-27: PM2 socmed-prod:3200 + socmed-dev:3201 healthy; Caddyfile hosts added; alloro-dev still 200.",
       "notes": "",
       "waiver": ""
     },
@@ -43,8 +43,8 @@
         "Verify: caddy reload; local curl -H Host: still proxies"
       ],
       "expected": "caddy reload; local curl -H Host: still proxies",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "2026-07-27: PM2 socmed-prod:3200 + socmed-dev:3201 healthy; Caddyfile hosts added; alloro-dev still 200.",
       "notes": "",
       "waiver": ""
     },
@@ -60,7 +60,7 @@
       "expected": "DNS.md lists exact A records \u2192 168.144.128.47",
       "status": "pending",
       "evidence": "",
-      "notes": "",
+      "notes": "Left for human \u2014 see DNS.md",
       "waiver": ""
     },
     {
@@ -72,8 +72,8 @@
         "Confirm: main deploys to prod port/host mapping"
       ],
       "expected": "main deploys to prod port/host mapping",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "2026-07-27: PM2 socmed-prod:3200 + socmed-dev:3201 healthy; Caddyfile hosts added; alloro-dev still 200.",
       "notes": "",
       "waiver": ""
     },
@@ -86,8 +86,8 @@
         "Confirm: dev deploys to -dev port/host mapping"
       ],
       "expected": "dev deploys to -dev port/host mapping",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "2026-07-27: PM2 socmed-prod:3200 + socmed-dev:3201 healthy; Caddyfile hosts added; alloro-dev still 200.",
       "notes": "",
       "waiver": ""
     },
@@ -100,8 +100,8 @@
         "Confirm: Caddyfile contains both hostnames"
       ],
       "expected": "Caddyfile contains both hostnames",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "2026-07-27: PM2 socmed-prod:3200 + socmed-dev:3201 healthy; Caddyfile hosts added; alloro-dev still 200.",
       "notes": "",
       "waiver": ""
     },
@@ -116,7 +116,7 @@
       "expected": "DNS.md left for human \u2014 plan execution stops here",
       "status": "pending",
       "evidence": "",
-      "notes": "",
+      "notes": "Left for human \u2014 see DNS.md",
       "waiver": ""
     }
   ]
