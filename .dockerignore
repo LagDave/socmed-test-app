@@ -1,0 +1,13 @@
+node_modules
+frontend/node_modules
+frontend/dist
+dist
+.git
+.npm-cache
+uploads
+.env
+*.log
+.DS_Store
+plans
+.cursor
+AGENTS.md
