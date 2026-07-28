@@ -3,9 +3,12 @@ import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { PostView } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { formatRelativeTime } from "@/lib/formatRelativeTime";
+import { submitOnEnter } from "@/lib/submitOnEnter";
 
 export function FeedPage() {
   const { user, loading } = useAuth();
@@ -14,6 +17,8 @@ export function FeedPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     const data = await api.get<{ posts: PostView[] }>("/api/feed");
@@ -27,6 +32,8 @@ export function FeedPage() {
 
   async function onCompose(e: FormEvent) {
     e.preventDefault();
+    const text = body.trim();
+    if (!text) return;
     setBusy(true);
     setError(null);
     try {
@@ -35,7 +42,7 @@ export function FeedPage() {
         const up = await api.upload<{ url: string }>("/api/uploads", imageFile);
         imageUrl = up.url;
       }
-      await api.post("/api/posts", { body, imageUrl });
+      await api.post("/api/posts", { body: text, imageUrl });
       setBody("");
       setImageFile(null);
       await load();
@@ -43,6 +50,21 @@ export function FeedPage() {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function confirmDeletePost() {
+    if (!pendingDeleteId) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await api.delete(`/api/posts/${pendingDeleteId}`);
+      setPendingDeleteId(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -71,6 +93,7 @@ export function FeedPage() {
           placeholder="What's happening?"
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          onKeyDown={submitOnEnter}
           required
         />
         <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
@@ -88,7 +111,20 @@ export function FeedPage() {
                 {p.author.displayName}
                 {p.author.username ? ` @${p.author.username}` : ""}
               </Link>
-              <time className="text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleString()}</time>
+              <div className="flex shrink-0 items-center gap-2">
+                <time
+                  className="text-xs text-muted-foreground"
+                  dateTime={p.createdAt}
+                  title={new Date(p.createdAt).toLocaleString()}
+                >
+                  {formatRelativeTime(p.createdAt)}
+                </time>
+                {user.id === p.author.id && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setPendingDeleteId(p.id)}>
+                    Delete
+                  </Button>
+                )}
+              </div>
             </div>
             <Link to={`/posts/${p.id}`} className="mt-2 block whitespace-pre-wrap">
               {p.body}
@@ -100,6 +136,17 @@ export function FeedPage() {
         ))}
         {posts.length === 0 && <p className="text-sm text-muted-foreground">No posts yet.</p>}
       </ul>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete this post?"
+        description="This removes the post and all of its comments."
+        busy={deleting}
+        onCancel={() => {
+          if (!deleting) setPendingDeleteId(null);
+        }}
+        onConfirm={() => void confirmDeletePost()}
+      />
     </section>
   );
 }

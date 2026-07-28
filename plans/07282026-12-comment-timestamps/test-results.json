@@ -1,0 +1,70 @@
+{
+  "plan": "plans/07282026-12-comment-timestamps",
+  "generatedAt": "2026-07-28",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Shared formatRelativeTime helper",
+      "surface": "none",
+      "precondition": "Execution complete; frontend lib file present",
+      "steps": [
+        "Open frontend/src/lib/formatRelativeTime.ts",
+        "Confirm Intl.RelativeTimeFormat (or equivalent native) buckets match the spec table"
+      ],
+      "expected": "Single shared helper with no new npm dependencies.",
+      "status": "pass",
+      "evidence": "2026-07-28: Human verified (user declined -tw after checking results). Helper present at frontend/src/lib/formatRelativeTime.ts; smoke: just now / N minutes|hours|days ago; no new deps.",
+      "notes": "Isolated accept runtime was started then stopped; UI acceptance deferred to human check.",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Feed post relative timestamps",
+      "surface": "ui",
+      "precondition": "Signed-in app with at least one post",
+      "steps": [
+        "Open Feed",
+        "Confirm each post header shows a right-aligned relative time (e.g. minutes/hours/days ago), not a full locale datetime as primary text",
+        "Hover the time and confirm absolute title"
+      ],
+      "expected": "Feed uses formatRelativeTime; layout remains name left / time right.",
+      "status": "pass",
+      "evidence": "2026-07-28: Human verified by user — feed relative timestamps checked in running app; -tw browser pass skipped per user.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Comment and reply relative timestamps",
+      "surface": "ui",
+      "precondition": "Post detail with a parent comment and at least one reply",
+      "steps": [
+        "Open a post with threaded comments",
+        "Confirm top-level comment author row shows right-aligned relative time",
+        "Confirm each reply shows right-aligned relative time",
+        "Confirm Reply button and inline reply composer still work"
+      ],
+      "expected": "Parents and replies show relative times right-aligned; composer/Reply behavior unchanged.",
+      "status": "pass",
+      "evidence": "2026-07-28: Human verified by user — comment and reply timestamps checked; -tw browser pass skipped per user.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "No live ticking / no API change",
+      "surface": "none",
+      "precondition": "Code review of changed files",
+      "steps": [
+        "Confirm no setInterval for relative labels",
+        "Confirm no migration or backend changes in the execution diff"
+      ],
+      "expected": "Display-only frontend change; labels update only on re-render/reload.",
+      "status": "pass",
+      "evidence": "2026-07-28: Diff is frontend-only (formatRelativeTime.ts, FeedPage, PostDetailPage, plans). No setInterval; no migration/API changes.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}
