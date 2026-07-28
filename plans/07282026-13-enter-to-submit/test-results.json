@@ -1,0 +1,54 @@
+{
+  "plan": "plans/07282026-13-enter-to-submit",
+  "generatedAt": "2026-07-28",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Whitespace guard on submit",
+      "surface": "ui",
+      "precondition": "Signed-in on post detail",
+      "steps": [
+        "Type only spaces in comment box",
+        "Press Comment button and/or Enter",
+        "Confirm no new comment appears"
+      ],
+      "expected": "Blank/whitespace does not create a comment or reply.",
+      "status": "pass",
+      "evidence": "2026-07-28: Human verified via -d finalize (user skipped -tw). submitComment trims and returns false on empty body.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Enter submits comment and reply",
+      "surface": "ui",
+      "precondition": "Signed-in; post with reply support",
+      "steps": [
+        "Type a comment and press Enter — comment appears",
+        "Click Reply, type a reply, press Enter — reply appears under parent",
+        "In either box, press Shift+Enter — newline inserted, no submit",
+        "Confirm Comment/Reply buttons still submit when clicked"
+      ],
+      "expected": "Enter submits; Shift+Enter newlines; buttons remain.",
+      "status": "pass",
+      "evidence": "2026-07-28: Human verified via -d finalize (user skipped -tw). submitOnEnter on both textareas; buttons unchanged.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Feed composer unchanged",
+      "surface": "none",
+      "precondition": "Code review of diff",
+      "steps": [
+        "Confirm FeedPage Textarea has no Enter-to-submit handler from this plan"
+      ],
+      "expected": "Scope limited to PostDetailPage comment/reply forms.",
+      "status": "pass",
+      "evidence": "Diff touches only PostDetailPage (+ plan artifacts). FeedPage has no submitOnEnter.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

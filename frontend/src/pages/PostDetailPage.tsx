@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { CommentView, PostView } from "@/api/types";
@@ -20,6 +27,13 @@ function CommentTimestamp({ createdAt }: { createdAt: string }) {
       {formatRelativeTime(createdAt)}
     </time>
   );
+}
+
+/** Enter submits the parent form; Shift+Enter keeps a newline. IME-safe. */
+function submitOnEnter(e: KeyboardEvent<HTMLTextAreaElement>) {
+  if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing || e.keyCode === 229) return;
+  e.preventDefault();
+  e.currentTarget.form?.requestSubmit();
 }
 
 function groupComments(comments: CommentView[]): { threads: CommentThread[]; orphans: CommentView[] } {
@@ -105,27 +119,32 @@ export function PostDetailPage() {
     text: string;
     file: File | null;
     parentId: string | null;
-  }): Promise<void> {
-    if (!id) return;
+  }): Promise<boolean> {
+    if (!id) return false;
+    const text = input.text.trim();
+    if (!text) return false;
     let imageUrl: string | null = null;
     if (input.file) {
       const up = await api.upload<{ url: string }>("/api/uploads", input.file);
       imageUrl = up.url;
     }
     await api.post(`/api/posts/${id}/comments`, {
-      body: input.text,
+      body: text,
       imageUrl,
       parentId: input.parentId,
     });
     await load();
+    return true;
   }
 
   async function onComment(e: FormEvent) {
     e.preventDefault();
     try {
-      await submitComment({ text: body, file: imageFile, parentId: null });
-      setBody("");
-      setImageFile(null);
+      const ok = await submitComment({ text: body, file: imageFile, parentId: null });
+      if (ok) {
+        setBody("");
+        setImageFile(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
@@ -135,8 +154,8 @@ export function PostDetailPage() {
     e.preventDefault();
     if (!replyTo) return;
     try {
-      await submitComment({ text: replyBody, file: replyImageFile, parentId: replyTo.id });
-      clearReply();
+      const ok = await submitComment({ text: replyBody, file: replyImageFile, parentId: replyTo.id });
+      if (ok) clearReply();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
@@ -219,6 +238,7 @@ export function PostDetailPage() {
                     ref={replyTextareaRef}
                     value={replyBody}
                     onChange={(e) => setReplyBody(e.target.value)}
+                    onKeyDown={submitOnEnter}
                     placeholder="Write a reply"
                     required
                   />
@@ -253,6 +273,7 @@ export function PostDetailPage() {
           <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
+            onKeyDown={submitOnEnter}
             placeholder="Write a comment"
             required
           />

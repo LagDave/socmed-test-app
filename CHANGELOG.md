@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4 — 2026-07-28
+
+### Added
+- Enter submits comments and replies on post detail; Shift+Enter inserts a newline
+- Shared whitespace trim guard so blank bodies do not submit (button or Enter)
+
+### Plans
+- `plans/07282026-13-enter-to-submit` — Completed
+
 ## 0.1.3 — 2026-07-28
 
 ### Added
