@@ -1,0 +1,74 @@
+{
+  "plan": "plans/07282026-14-delete-buttons",
+  "generatedAt": "2026-07-28",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1a",
+      "title": "Delete own post from Feed with confirm",
+      "surface": "ui",
+      "precondition": "Signed in; have at least one own post on the Feed",
+      "steps": [
+        "Confirm Delete is visible only on your own posts",
+        "Click Delete on your post, then Cancel the confirm modal",
+        "Confirm the post is still on the Feed",
+        "Click Delete again, confirm Delete in the modal",
+        "Confirm the post is gone from the Feed"
+      ],
+      "expected": "Cancel keeps the post; OK removes it. Others’ posts have no Delete.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not run under contained acceptance (-tw).",
+      "waiver": "Finalized at contributor request (-d) without -tw; in-app ConfirmDialog verified visually during continue; formal UI checklist deferred."
+    },
+    {
+      "id": "T1b",
+      "title": "Delete own post from detail navigates to Feed",
+      "surface": "ui",
+      "precondition": "Signed in; open your own post detail page",
+      "steps": [
+        "Click Delete on the post, confirm Delete in the modal",
+        "Confirm you land on the Feed",
+        "Confirm the post is no longer listed"
+      ],
+      "expected": "Post is deleted and the app navigates to Feed.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not run under contained acceptance (-tw).",
+      "waiver": "Finalized at contributor request (-d) without -tw; formal UI checklist deferred."
+    },
+    {
+      "id": "T2a",
+      "title": "Delete own comment and reply with confirm",
+      "surface": "ui",
+      "precondition": "Signed in on a post detail page with your own comment and reply",
+      "steps": [
+        "Confirm Delete shows only on your comments/replies",
+        "Click Delete on a reply, Cancel — reply remains",
+        "Click Delete on a reply, Delete in modal — reply disappears",
+        "Click Delete on your top-level comment that has replies, confirm — comment and its replies disappear after refresh"
+      ],
+      "expected": "Confirm gates delete; own comment/reply removable; parent delete cascades replies via existing DB behavior.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Not run under contained acceptance (-tw).",
+      "waiver": "Finalized at contributor request (-d) without -tw; formal UI checklist deferred."
+    },
+    {
+      "id": "D1",
+      "title": "No backend/schema/dependency scope creep",
+      "surface": "none",
+      "precondition": "Code review of the execution diff",
+      "steps": [
+        "Confirm frontend-only: FeedPage, PostDetailPage, ConfirmDialog, plans",
+        "Confirm Friends Cancel behavior unchanged",
+        "Confirm no new dependencies or migrations"
+      ],
+      "expected": "Frontend-only wiring to existing delete APIs plus local ConfirmDialog.",
+      "status": "pass",
+      "evidence": "Diff review + typecheck/build green; no package.json dependency adds; no migrations.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

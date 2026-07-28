@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { PostView } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,9 @@ export function FeedPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
 
   async function load() {
     const data = await api.get<{ posts: PostView[] }>("/api/feed");
@@ -51,6 +55,23 @@ export function FeedPage() {
     } finally {
       busyRef.current = false;
       setBusy(false);
+    }
+  }
+
+  async function confirmDeletePost() {
+    if (!pendingDeleteId || deleting || deletingRef.current) return;
+    deletingRef.current = true;
+    setDeleting(true);
+    setError(null);
+    try {
+      await api.delete(`/api/posts/${pendingDeleteId}`);
+      setPendingDeleteId(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      deletingRef.current = false;
+      setDeleting(false);
     }
   }
 
@@ -97,13 +118,20 @@ export function FeedPage() {
                 {p.author.displayName}
                 {p.author.username ? ` @${p.author.username}` : ""}
               </Link>
-              <time
-                className="shrink-0 text-xs text-muted-foreground"
-                dateTime={p.createdAt}
-                title={formatAbsoluteTime(p.createdAt) || undefined}
-              >
-                {formatRelativeTime(p.createdAt)}
-              </time>
+              <div className="flex shrink-0 items-center gap-2">
+                <time
+                  className="text-xs text-muted-foreground"
+                  dateTime={p.createdAt}
+                  title={formatAbsoluteTime(p.createdAt) || undefined}
+                >
+                  {formatRelativeTime(p.createdAt)}
+                </time>
+                {user.id === p.author.id && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setPendingDeleteId(p.id)}>
+                    Delete
+                  </Button>
+                )}
+              </div>
             </div>
             <Link to={`/posts/${p.id}`} className="mt-2 block whitespace-pre-wrap">
               {p.body}
@@ -115,6 +143,17 @@ export function FeedPage() {
         ))}
         {posts.length === 0 && <p className="text-sm text-muted-foreground">No posts yet.</p>}
       </ul>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete this post?"
+        description="This removes the post and all of its comments."
+        busy={deleting}
+        onCancel={() => {
+          if (!deleting) setPendingDeleteId(null);
+        }}
+        onConfirm={() => void confirmDeletePost()}
+      />
     </section>
   );
 }
