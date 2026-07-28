@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.2 — 2026-07-28
+
+### Added
+- Friends management dashboard UI (page-scoped soft canvas, elevated card, Send Request row, Friend Request + Friends sections with empty states)
+- Edit Profile settings UI (circular avatar banner, labeled form, custom picture upload)
+- Profile overflow menu (remove picture, public preview, account settings stub, copy profile link)
+- Account Settings page at `/settings` (privacy / security / general placeholders)
+
+### Changed
+- Shared `.soft-page-canvas` styling for Friends and Profile
+- Friend request accept button label → Confirm; mutuals section → Friends
+- Outgoing requests list removed from Friends UI (API cancel endpoint retained)
+
+### Plans
+- `plans/07282026-16-friends-management-ui` — Completed
+
 ## 0.1.1 — 2026-07-28
 
 ### Added

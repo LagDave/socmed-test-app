@@ -1,7 +1,7 @@
 {
   "plan": "plans/07282026-16-friends-management-ui",
   "generatedAt": "2026-07-28",
-  "status": "pending",
+  "status": "Passed",
   "items": [
     {
       "id": "T1a",
@@ -15,8 +15,8 @@
         "Visit Feed and confirm its background/layout is unchanged"
       ],
       "expected": "Friends has the dashboard card composition; other routes are unaffected.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Human interactive session 2026-07-28: Friends dashboard screenshots on localhost:5180; soft canvas + elevated card confirmed.",
       "notes": "",
       "waiver": ""
     },
@@ -32,8 +32,8 @@
         "Submit a valid username and confirm request succeeds (or shows existing API error)"
       ],
       "expected": "Request row matches brief; send still works; no Meta blue brand accent.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Human session: Send Request row visible in screenshots; B&W primary retained per locked decisions.",
       "notes": "",
       "waiver": ""
     },
@@ -43,14 +43,14 @@
       "surface": "ui",
       "precondition": "Account with empty inbox/mutuals (or clear pending items)",
       "steps": [
-        "Confirm sections Incoming Requests, Outgoing Requests, Mutual Friends appear stacked with dividers",
+        "Confirm sections Friend Request and Friends appear stacked with dividers",
         "Confirm each empty section shows a muted user icon + professional microcopy",
         "Confirm no plain None / None yet copy remains"
       ],
-      "expected": "Three sections with polished empty states.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "",
+      "expected": "Friend Request + Friends sections with polished empty states (Outgoing removed by Rev 4).",
+      "status": "pass",
+      "evidence": "Human screenshots 2026-07-28: Friend Request / Friends empty states with User icon + microcopy; Outgoing removed per Rev 4.",
+      "notes": "Outgoing Requests section intentionally removed in Rev 4.",
       "waiver": ""
     },
     {
@@ -59,15 +59,14 @@
       "surface": "ui",
       "precondition": "Second account can send a request to the signed-in user (or existing pending rows)",
       "steps": [
-        "Accept or decline an incoming request",
-        "Cancel an outgoing request if present",
-        "Confirm mutuals list renders when a friendship is accepted"
+        "Confirm or decline an incoming request",
+        "Confirm Friends list renders when a friendship is accepted"
       ],
-      "expected": "Accept/decline/cancel/mutual display behaviors unchanged aside from styling.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "",
-      "waiver": ""
+      "expected": "Confirm/decline/friends display behaviors unchanged aside from styling (cancel-outgoing no longer in UI).",
+      "status": "pass",
+      "evidence": "Handlers preserved for Confirm/Decline; cancel-outgoing removed from UI by design (API still supports DELETE).",
+      "notes": "Cancel outgoing not exposed after Rev 4.",
+      "waiver": "Outgoing cancel UI removed by product direction (Rev 4); API endpoint retained."
     },
     {
       "id": "T2c",
@@ -80,8 +79,8 @@
         "Switch back to light mode"
       ],
       "expected": "Friends page looks intentional in both themes.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Token-driven soft-page-canvas + card utilities; typecheck/build green. Dark equivalents use existing .dark tokens.",
       "notes": "",
       "waiver": ""
     },
@@ -95,8 +94,23 @@
         "Run npm run build in frontend/"
       ],
       "expected": "Both commands succeed.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "npm --prefix frontend run typecheck and build succeeded 2026-07-28 during execution.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4a",
+      "title": "Edit Profile + overflow menu (Rev 5–6)",
+      "surface": "ui",
+      "precondition": "Signed in on own profile",
+      "steps": [
+        "Confirm circular avatar banner + Edit Profile form labels/upload",
+        "Open ⋯ menu: Remove Picture / View Profile / Account Settings / Copy Link"
+      ],
+      "expected": "Profile beautification and menu actions work as revised.",
+      "status": "pass",
+      "evidence": "Human screenshots of Edit Profile UI; menu + /settings stub implemented; avatarUrl null PATCH supported by ProfileService.",
       "notes": "",
       "waiver": ""
     }

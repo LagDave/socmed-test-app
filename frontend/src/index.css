@@ -96,11 +96,11 @@ body {
     linear-gradient(180deg, #0a0a0a 0%, #111111 48%, #0a0a0a 100%);
 }
 
-/* Friends page — soft canvas scoped to /friends only */
-.friends-page-canvas {
+/* Soft canvas for settings-style pages (Friends, Profile) — not global body */
+.soft-page-canvas {
   background: color-mix(in srgb, var(--muted) 88%, var(--background));
 }
 
-.dark .friends-page-canvas {
+.dark .soft-page-canvas {
   background: color-mix(in srgb, var(--muted) 70%, var(--background));
 }

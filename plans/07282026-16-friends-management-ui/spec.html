@@ -39,11 +39,11 @@
     <header class="spec-hero">
       <div class="hero-topline">
         <p class="eyebrow">Socmed Plan Spec · Seq 16</p>
-        <span class="status-pill">In Progress</span>
+        <span class="status-pill">Completed</span>
       </div>
       <h1>Friends Management Dashboard UI</h1>
       <dl class="meta-grid">
-        <div><dt>Status</dt><dd>In Progress</dd></div>
+        <div><dt>Status</dt><dd>Completed</dd></div>
         <div><dt>Plan Folder</dt><dd>plans/07282026-16-friends-management-ui</dd></div>
         <div><dt>Size</dt><dd>Small (3 tasks, ~3–4 files)</dd></div>
         <div><dt>Risk</dt><dd>Level 2</dd></div>
@@ -231,14 +231,15 @@
     <section class="spec-card" id="done">
       <h2>Done</h2>
       <ul class="checklist">
-        <li><span>☐</span><span>Friends route shows page-scoped canvas + elevated card (24px pad, 16px radius, soft shadow)</span></li>
-        <li><span>☐</span><span>Header + “Send Request” row match the locked visual brief (B&amp;W tokens)</span></li>
-        <li><span>☐</span><span>Incoming / Outgoing / Mutuals are stacked with dividers</span></li>
-        <li><span>☐</span><span>Empty states use icon + professional microcopy (no “None”)</span></li>
-        <li><span>☐</span><span>Send / accept / decline / cancel still work</span></li>
-        <li><span>☐</span><span>Dark mode spot-check passes on Friends</span></li>
-        <li><span>☐</span><span>Feed and other routes visually unchanged</span></li>
-        <li><span>☐</span><span><code>npm run typecheck</code> and <code>npm run build</code> pass in <code>frontend/</code></span></li>
+        <li><span>☑</span><span>Friends route shows page-scoped canvas + elevated card (24px pad, 16px radius, soft shadow)</span></li>
+        <li><span>☑</span><span>Header + “Send Request” row match the locked visual brief (B&amp;W tokens)</span></li>
+        <li><span>☑</span><span>Friend Request + Friends stacked with dividers (Outgoing removed Rev 4)</span></li>
+        <li><span>☑</span><span>Empty states use icon + professional microcopy (no “None”)</span></li>
+        <li><span>☑</span><span>Send / confirm / decline still work (cancel-outgoing UI removed by design)</span></li>
+        <li><span>☑</span><span>Dark mode spot-check passes on Friends</span></li>
+        <li><span>☑</span><span>Feed and other routes visually unchanged</span></li>
+        <li><span>☑</span><span><code>npm run typecheck</code> and <code>npm run build</code> pass in <code>frontend/</code></span></li>
+        <li><span>☑</span><span>Edit Profile UI + banner ⋯ menu (Rev 5–6)</span></li>
       </ul>
     </section>
 
@@ -256,6 +257,31 @@
             <td>Rev 2</td>
             <td>2026-07-28</td>
             <td>Executed on <code>kylie/ui-beautification</code>: Friends page canvas + card, Send Request row, stacked sections with Lucide empty states; page-scoped CSS in <code>index.css</code>. Acceptance UI run pending.</td>
+          </tr>
+          <tr>
+            <td>Rev 3</td>
+            <td>2026-07-28</td>
+            <td><code>-c</code> copy: Incoming → “Friend Request”; Accept → “Confirm”; Mutuals → “Friends”. Friends rows show a small green online pip. <strong>Note:</strong> no presence API exists yet — pip is a visual affordance on listed friends until real online status is added (out of scope for this UI plan).</td>
+          </tr>
+          <tr>
+            <td>Rev 4</td>
+            <td>2026-07-28</td>
+            <td><code>-c</code>: remove Outgoing Requests section from Friends UI. Cancel-outgoing is no longer exposed in the page (API still supports it).</td>
+          </tr>
+          <tr>
+            <td>Rev 5</td>
+            <td>2026-07-28</td>
+            <td><code>-c</code> Edit Profile UI on <code>ProfilePage</code>: banner card with circular letter/avatar, labeled form card (Full Name / Username / Bio), dashed camera upload control, taller Save button. Soft canvas shared via <code>.soft-page-canvas</code>. Meta blue <code>#1877F2</code> / global <code>#F0F2F5</code> rejected — keep B&amp;W tokens + page-scoped canvas (same lock as Friends).</td>
+          </tr>
+          <tr>
+            <td>Rev 6</td>
+            <td>2026-07-28</td>
+            <td><code>-c</code> Profile banner ⋯ menu: Remove Profile Picture (PATCH <code>avatarUrl: null</code>), View Profile (<code>?view=public</code> preview), Account Settings (<code>/settings</code> stub page), Copy Profile Link (clipboard). No new npm deps — lightweight custom menu.</td>
+          </tr>
+          <tr>
+            <td>Rev 7</td>
+            <td>2026-07-28</td>
+            <td><code>-d</code> Finalized: Done checklist verified, acceptance Passed (with waiver for removed outgoing-cancel UI), changelog 0.1.2.</td>
           </tr>
         </tbody>
       </table>

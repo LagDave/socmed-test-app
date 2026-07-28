@@ -16,6 +16,17 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
+function OnlineDot({ isOnline }: { isOnline: boolean }) {
+  if (!isOnline) return null;
+  return (
+    <span
+      className="inline-block size-2 shrink-0 rounded-full bg-emerald-500"
+      title="Online"
+      aria-label="Online"
+    />
+  );
+}
+
 function FriendsSection({
   title,
   children,
@@ -33,7 +44,6 @@ function FriendsSection({
 
 export function FriendsPage() {
   const [incoming, setIncoming] = useState<InboxItem[]>([]);
-  const [outgoing, setOutgoing] = useState<InboxItem[]>([]);
   const [mutuals, setMutuals] = useState<PublicUser[]>([]);
   const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +52,6 @@ export function FriendsPage() {
     const inbox = await api.get<{ incoming: InboxItem[]; outgoing: InboxItem[] }>("/api/friends/inbox");
     const m = await api.get<{ users: PublicUser[] }>("/api/friends/mutuals");
     setIncoming(inbox.incoming);
-    setOutgoing(inbox.outgoing);
     setMutuals(m.users);
   }
 
@@ -63,8 +72,8 @@ export function FriendsPage() {
   }
 
   return (
-    <div className="friends-page-canvas -mx-4 rounded-2xl px-4 py-6 sm:px-6">
-      <div className="friends-page-card mx-auto max-w-2xl space-y-6 rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.45)]">
+    <div className="soft-page-canvas -mx-4 rounded-2xl px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-2xl space-y-6 rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.45)]">
         <header>
           <h1 className="text-3xl font-bold tracking-tight">Friends</h1>
           <p className="mt-1 text-sm text-muted-foreground">Requests and mutuals.</p>
@@ -86,7 +95,7 @@ export function FriendsPage() {
         {error && <p className="text-sm text-muted-foreground">{error}</p>}
 
         <div className="space-y-6">
-          <FriendsSection title="Incoming Requests">
+          <FriendsSection title="Friend Request">
             {incoming.length === 0 ? (
               <EmptyState message="No pending requests" />
             ) : (
@@ -105,7 +114,7 @@ export function FriendsPage() {
                         size="sm"
                         onClick={() => void api.post(`/api/friends/${i.id}/accept`).then(load)}
                       >
-                        Accept
+                        Confirm
                       </Button>
                       <Button
                         size="sm"
@@ -121,41 +130,20 @@ export function FriendsPage() {
             )}
           </FriendsSection>
 
-          <FriendsSection title="Outgoing Requests">
-            {outgoing.length === 0 ? (
-              <EmptyState message="No outgoing requests" />
-            ) : (
-              <ul className="space-y-1">
-                {outgoing.map((i) => (
-                  <li
-                    key={i.id}
-                    className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-3 last:border-b-0"
-                  >
-                    <span>
-                      {i.user.displayName}{" "}
-                      <span className="text-muted-foreground">@{i.user.username}</span>
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => void api.delete(`/api/friends/${i.id}`).then(load)}
-                    >
-                      Cancel
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </FriendsSection>
-
-          <FriendsSection title="Mutual Friends">
+          <FriendsSection title="Friends">
             {mutuals.length === 0 ? (
-              <EmptyState message="Your mutual friends will appear here" />
+              <EmptyState message="Your friends will appear here" />
             ) : (
               <ul className="space-y-1">
                 {mutuals.map((u) => (
-                  <li key={u.id} className="border-b border-border py-3 last:border-b-0">
-                    {u.displayName} <span className="text-muted-foreground">@{u.username}</span>
+                  <li
+                    key={u.id}
+                    className="flex items-center gap-2 border-b border-border py-3 last:border-b-0"
+                  >
+                    <OnlineDot isOnline />
+                    <span>
+                      {u.displayName} <span className="text-muted-foreground">@{u.username}</span>
+                    </span>
                   </li>
                 ))}
               </ul>

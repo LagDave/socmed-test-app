@@ -8,6 +8,7 @@ import { RegisterPage } from "@/pages/RegisterPage";
 import { PostDetailPage } from "@/pages/PostDetailPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { FriendsPage } from "@/pages/FriendsPage";
+import { AccountSettingsPage } from "@/pages/AccountSettingsPage";
 
 function ProfileRedirect() {
   const { user, loading } = useAuth();
@@ -28,6 +29,7 @@ export default function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/posts/:id" element={<PostDetailPage />} />
               <Route path="/friends" element={<FriendsPage />} />
+              <Route path="/settings" element={<AccountSettingsPage />} />
               <Route path="/u/me" element={<ProfileRedirect />} />
               <Route path="/u/:username" element={<ProfilePage />} />
             </Routes>
