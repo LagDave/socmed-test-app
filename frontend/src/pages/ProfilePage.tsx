@@ -71,7 +71,7 @@ export function ProfilePage() {
 
   return (
     <section className="space-y-6">
-      <div className="flex items-start gap-4">
+      <div className="feed-card flex items-start gap-4 p-5">
         {profile.avatarUrl ? (
           <img src={profile.avatarUrl} alt="" className="h-20 w-20 object-cover border border-border" />
         ) : (
@@ -79,21 +79,20 @@ export function ProfilePage() {
             {profile.displayName.slice(0, 1).toUpperCase()}
           </div>
         )}
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-3xl font-semibold tracking-tight">{profile.displayName}</h1>
           <p className="text-muted-foreground">@{profile.username || "no-username"}</p>
           {profile.bio && <p className="mt-2 max-w-prose">{profile.bio}</p>}
+          {!isSelf && profile.username && (
+            <Button type="button" className="mt-4" onClick={() => void sendFriendRequest()}>
+              Add friend
+            </Button>
+          )}
         </div>
       </div>
 
-      {!isSelf && profile.username && (
-        <Button type="button" onClick={() => void sendFriendRequest()}>
-          Add friend
-        </Button>
-      )}
-
       {isSelf && (
-        <form onSubmit={onSave} className="space-y-3 border border-border p-4">
+        <form onSubmit={onSave} className="feed-card space-y-3 p-5">
           <h2 className="font-semibold">Edit profile</h2>
           <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Display name" />
           <Input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} placeholder="Username" />
