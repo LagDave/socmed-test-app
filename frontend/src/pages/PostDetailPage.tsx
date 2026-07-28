@@ -14,6 +14,7 @@ export function PostDetailPage() {
   const [comments, setComments] = useState<CommentView[]>([]);
   const [body, setBody] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [replyTo, setReplyTo] = useState<CommentView | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
@@ -37,14 +38,26 @@ export function PostDetailPage() {
         const up = await api.upload<{ url: string }>("/api/uploads", imageFile);
         imageUrl = up.url;
       }
-      await api.post(`/api/posts/${id}/comments`, { body, imageUrl });
+      await api.post(`/api/posts/${id}/comments`, {
+        body,
+        imageUrl,
+        parentId: replyTo?.id ?? null,
+      });
       setBody("");
       setImageFile(null);
+      setReplyTo(null);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
   }
+
+  const topLevel = comments.filter((c) => !c.parentId);
+  const repliesByParent = comments.reduce<Record<string, CommentView[]>>((acc, c) => {
+    if (!c.parentId) return acc;
+    (acc[c.parentId] ||= []).push(c);
+    return acc;
+  }, {});
 
   if (!post) return <p className="text-sm text-muted-foreground">{error || "Loading…"}</p>;
 
@@ -59,17 +72,39 @@ export function PostDetailPage() {
           {post.author.username ? ` @${post.author.username}` : ""}
         </p>
         <p className="whitespace-pre-wrap text-lg">{post.body}</p>
-        {post.imageUrl && <img src={post.imageUrl} alt="" className="max-h-96 w-full object-cover border border-border" />}
+        {post.imageUrl && (
+          <img src={post.imageUrl} alt="" className="max-h-96 w-full border border-border object-cover" />
+        )}
       </article>
 
       <div>
         <h2 className="text-lg font-semibold">Comments</h2>
         <ul className="mt-3 space-y-3">
-          {comments.map((c) => (
+          {topLevel.map((c) => (
             <li key={c.id} className="border-b border-border pb-3">
               <p className="text-sm font-medium">{c.author.displayName}</p>
               <p className="whitespace-pre-wrap">{c.body}</p>
               {c.imageUrl && <img src={c.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />}
+              {user && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="mt-1 px-0"
+                  onClick={() => setReplyTo(c)}
+                >
+                  Reply
+                </Button>
+              )}
+              {(repliesByParent[c.id] || []).map((r) => (
+                <div key={r.id} className="mt-3 ml-4 border-l border-border pl-3">
+                  <p className="text-sm font-medium">{r.author.displayName}</p>
+                  <p className="whitespace-pre-wrap">{r.body}</p>
+                  {r.imageUrl && (
+                    <img src={r.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
+                  )}
+                </div>
+              ))}
             </li>
           ))}
           {comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet.</p>}
@@ -78,11 +113,25 @@ export function PostDetailPage() {
 
       {user && (
         <form onSubmit={onComment} className="space-y-3">
-          <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a comment" required />
+          {replyTo && (
+            <p className="text-sm text-muted-foreground">
+              Replying to {replyTo.author.displayName}{" "}
+              <button type="button" className="underline" onClick={() => setReplyTo(null)}>
+                Cancel
+              </button>
+            </p>
+          )}
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={replyTo ? "Write a reply" : "Write a comment"}
+            required
+          />
           <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-          <Button type="submit">Comment</Button>
+          <Button type="submit">{replyTo ? "Reply" : "Comment"}</Button>
         </form>
       )}
+      {error && <p className="text-sm text-muted-foreground">{error}</p>}
     </section>
   );
 }

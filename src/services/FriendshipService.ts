@@ -2,6 +2,7 @@ import { FriendshipModel } from "../models/FriendshipModel";
 import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
 import { toPublicUser, type PublicUser } from "../types/user";
+import { NotificationService } from "./NotificationService";
 
 export class FriendshipService {
   static async request(userId: string, targetUsername: string) {
@@ -15,6 +16,12 @@ export class FriendshipService {
       await FriendshipModel.deleteById(existing.id);
     }
     const row = await FriendshipModel.createPending(userId, target.id);
+    await NotificationService.notify({
+      recipientId: target.id,
+      actorId: userId,
+      type: "friend_request",
+      friendshipId: row.id,
+    });
     return { id: row.id, status: row.status, user: toPublicUser(target) };
   }
 

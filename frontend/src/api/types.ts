@@ -26,6 +26,7 @@ export type PostView = {
 export type CommentView = {
   id: string;
   postId: string;
+  parentId?: string | null;
   body: string;
   imageUrl: string | null;
   createdAt: string;

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.4 — 2026-07-28
+
+### Added
+- Activity notifications (comments on your posts, replies to your comments, friend requests) with bell badge counts
+- Home/Feed badge for friends’ new posts since last feed visit
+- One-level comment replies on post detail
+- Notifications API (`/api/notifications`, counts, mark-read, `/api/feed/seen`)
+
+### Plans
+- `plans/07282026-16-friends-management-ui` — Continued (Rev 11–15)
+
 ## 0.1.3 — 2026-07-28
 
 ### Changed
