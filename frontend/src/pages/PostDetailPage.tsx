@@ -6,8 +6,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
+import { submitOnEnter } from "@/lib/submitOnEnter";
 
 type CommentThread = { parent: CommentView; replies: CommentView[] };
+
+function CommentTimestamp({ createdAt }: { createdAt: string }) {
+  return (
+    <time
+      className="shrink-0 text-xs font-normal text-muted-foreground"
+      dateTime={createdAt}
+      title={formatAbsoluteTime(createdAt) || undefined}
+    >
+      {formatRelativeTime(createdAt)}
+    </time>
+  );
+}
 
 function groupComments(comments: CommentView[]): { threads: CommentThread[]; orphans: CommentView[] } {
   const parents = comments.filter((c) => !c.parentId);
@@ -46,6 +60,8 @@ export function PostDetailPage() {
   const [replyBody, setReplyBody] = useState("");
   const [replyImageFile, setReplyImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { threads, orphans } = useMemo(() => groupComments(comments), [comments]);
@@ -67,6 +83,8 @@ export function PostDetailPage() {
     setReplyBody("");
     setReplyImageFile(null);
     setError(null);
+    busyRef.current = false;
+    setBusy(false);
     void load().catch((e: Error) => setError(e.message));
   }, [id]);
 
@@ -92,27 +110,41 @@ export function PostDetailPage() {
     text: string;
     file: File | null;
     parentId: string | null;
-  }): Promise<void> {
-    if (!id) return;
-    let imageUrl: string | null = null;
-    if (input.file) {
-      const up = await api.upload<{ url: string }>("/api/uploads", input.file);
-      imageUrl = up.url;
+  }): Promise<boolean> {
+    if (!id || busyRef.current) return false;
+    const text = input.text.trim();
+    if (!text) return false;
+    busyRef.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      let imageUrl: string | null = null;
+      if (input.file) {
+        const up = await api.upload<{ url: string }>("/api/uploads", input.file);
+        imageUrl = up.url;
+      }
+      await api.post(`/api/posts/${id}/comments`, {
+        body: text,
+        imageUrl,
+        parentId: input.parentId,
+      });
+      await load();
+      return true;
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
     }
-    await api.post(`/api/posts/${id}/comments`, {
-      body: input.text,
-      imageUrl,
-      parentId: input.parentId,
-    });
-    await load();
   }
 
   async function onComment(e: FormEvent) {
     e.preventDefault();
+    if (busyRef.current) return;
     try {
-      await submitComment({ text: body, file: imageFile, parentId: null });
-      setBody("");
-      setImageFile(null);
+      const ok = await submitComment({ text: body, file: imageFile, parentId: null });
+      if (ok) {
+        setBody("");
+        setImageFile(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
@@ -120,10 +152,10 @@ export function PostDetailPage() {
 
   async function onReply(e: FormEvent) {
     e.preventDefault();
-    if (!replyTo) return;
+    if (!replyTo || busyRef.current) return;
     try {
-      await submitComment({ text: replyBody, file: replyImageFile, parentId: replyTo.id });
-      clearReply();
+      const ok = await submitComment({ text: replyBody, file: replyImageFile, parentId: replyTo.id });
+      if (ok) clearReply();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     }
@@ -154,7 +186,10 @@ export function PostDetailPage() {
             <li key={parent.id} className="border-b border-border pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{parent.author.displayName}</p>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium">{parent.author.displayName}</p>
+                    <CommentTimestamp createdAt={parent.createdAt} />
+                  </div>
                   <p className="whitespace-pre-wrap">{parent.body}</p>
                   {parent.imageUrl && (
                     <img src={parent.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
@@ -176,7 +211,10 @@ export function PostDetailPage() {
                 <ul className="mt-3 space-y-3 border-l border-border pl-6">
                   {replies.map((reply) => (
                     <li key={reply.id}>
-                      <p className="text-sm font-medium">{reply.author.displayName}</p>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-sm font-medium">{reply.author.displayName}</p>
+                        <CommentTimestamp createdAt={reply.createdAt} />
+                      </div>
                       <p className="whitespace-pre-wrap">{reply.body}</p>
                       {reply.imageUrl && (
                         <img src={reply.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
@@ -200,6 +238,7 @@ export function PostDetailPage() {
                     ref={replyTextareaRef}
                     value={replyBody}
                     onChange={(e) => setReplyBody(e.target.value)}
+                    onKeyDown={submitOnEnter}
                     placeholder="Write a reply"
                     required
                   />
@@ -208,14 +247,19 @@ export function PostDetailPage() {
                     accept="image/*"
                     onChange={(e) => setReplyImageFile(e.target.files?.[0] || null)}
                   />
-                  <Button type="submit">Reply</Button>
+                  <Button type="submit" disabled={busy}>
+                    Reply
+                  </Button>
                 </form>
               )}
             </li>
           ))}
           {orphans.map((orphan) => (
             <li key={orphan.id} className="border-b border-border pb-3">
-              <p className="text-sm font-medium">{orphan.author.displayName}</p>
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-sm font-medium">{orphan.author.displayName}</p>
+                <CommentTimestamp createdAt={orphan.createdAt} />
+              </div>
               <p className="whitespace-pre-wrap">{orphan.body}</p>
               {orphan.imageUrl && (
                 <img src={orphan.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
@@ -231,11 +275,14 @@ export function PostDetailPage() {
           <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
+            onKeyDown={submitOnEnter}
             placeholder="Write a comment"
             required
           />
           <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-          <Button type="submit">Comment</Button>
+          <Button type="submit" disabled={busy}>
+            Comment
+          </Button>
         </form>
       )}
 

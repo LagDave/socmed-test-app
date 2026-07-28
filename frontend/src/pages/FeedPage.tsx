@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { PostView } from "@/api/types";
@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
+import { submitOnEnter } from "@/lib/submitOnEnter";
 
 export function FeedPage() {
   const { user, loading } = useAuth();
@@ -14,6 +16,7 @@ export function FeedPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
 
   async function load() {
     const data = await api.get<{ posts: PostView[] }>("/api/feed");
@@ -27,6 +30,10 @@ export function FeedPage() {
 
   async function onCompose(e: FormEvent) {
     e.preventDefault();
+    if (busyRef.current) return;
+    const text = body.trim();
+    if (!text) return;
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -35,13 +42,14 @@ export function FeedPage() {
         const up = await api.upload<{ url: string }>("/api/uploads", imageFile);
         imageUrl = up.url;
       }
-      await api.post("/api/posts", { body, imageUrl });
+      await api.post("/api/posts", { body: text, imageUrl });
       setBody("");
       setImageFile(null);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }
@@ -71,6 +79,7 @@ export function FeedPage() {
           placeholder="What's happening?"
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          onKeyDown={submitOnEnter}
           required
         />
         <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
@@ -88,7 +97,13 @@ export function FeedPage() {
                 {p.author.displayName}
                 {p.author.username ? ` @${p.author.username}` : ""}
               </Link>
-              <time className="text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleString()}</time>
+              <time
+                className="shrink-0 text-xs text-muted-foreground"
+                dateTime={p.createdAt}
+                title={formatAbsoluteTime(p.createdAt) || undefined}
+              >
+                {formatRelativeTime(p.createdAt)}
+              </time>
             </div>
             <Link to={`/posts/${p.id}`} className="mt-2 block whitespace-pre-wrap">
               {p.body}

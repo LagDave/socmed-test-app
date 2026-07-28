@@ -15,6 +15,8 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 09 | `07272026-09-socmed-deploy-caddy` | Deploy wiring; leave DNS |
 | 10 | `07282026-10-header-theme-toggle` | Header light/dark toggle |
 | 11 | `07282026-11-comment-replies` | One-level comment replies |
+| 12 | `07282026-12-comment-timestamps` | Relative timestamps on feed, comments, replies |
+| 13 | `07282026-13-enter-to-submit` | Enter submits comment/reply (Shift+Enter newline) |
 
 ## Branch → host (hard rule)
 
