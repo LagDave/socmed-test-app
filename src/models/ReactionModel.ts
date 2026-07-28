@@ -39,18 +39,11 @@ export class ReactionModel {
     postId: string,
     emoji: ReactionEmoji
   ): Promise<ReactionRow> {
-    const existing = await db<ReactionRow>("reactions")
-      .where({ user_id: userId, post_id: postId })
-      .first();
-    if (existing) {
-      const [row] = await db<ReactionRow>("reactions")
-        .where({ id: existing.id })
-        .update({ emoji, updated_at: db.fn.now() })
-        .returning("*");
-      return row;
-    }
+    // Partial unique index: reactions_user_post_unique (user_id, post_id) WHERE post_id IS NOT NULL
     const [row] = await db<ReactionRow>("reactions")
       .insert({ user_id: userId, post_id: postId, comment_id: null, emoji })
+      .onConflict(db.raw("(user_id, post_id) WHERE post_id IS NOT NULL"))
+      .merge({ emoji, updated_at: db.fn.now() })
       .returning("*");
     return row;
   }
@@ -60,18 +53,11 @@ export class ReactionModel {
     commentId: string,
     emoji: ReactionEmoji
   ): Promise<ReactionRow> {
-    const existing = await db<ReactionRow>("reactions")
-      .where({ user_id: userId, comment_id: commentId })
-      .first();
-    if (existing) {
-      const [row] = await db<ReactionRow>("reactions")
-        .where({ id: existing.id })
-        .update({ emoji, updated_at: db.fn.now() })
-        .returning("*");
-      return row;
-    }
+    // Partial unique index: reactions_user_comment_unique (user_id, comment_id) WHERE comment_id IS NOT NULL
     const [row] = await db<ReactionRow>("reactions")
       .insert({ user_id: userId, post_id: null, comment_id: commentId, emoji })
+      .onConflict(db.raw("(user_id, comment_id) WHERE comment_id IS NOT NULL"))
+      .merge({ emoji, updated_at: db.fn.now() })
       .returning("*");
     return row;
   }
