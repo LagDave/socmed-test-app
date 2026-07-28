@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Friends Management UI Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:840px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 16</p>
+        <span class="status-pill">In Progress</span>
+      </div>
+      <h1>Friends Management Dashboard UI</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>In Progress</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07282026-16-friends-management-ui</dd></div>
+        <div><dt>Size</dt><dd>Small (3 tasks, ~3–4 files)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Branch</dt><dd>kylie/ui-beautification</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 07 (friendships) + plan 10 (theme toggle)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>The Friends page works functionally but reads as a bare scaffold: flat sections, button label “Request”, and empty states that say “None”. Users managing requests and mutuals need a clearer dashboard composition — header hierarchy, a polished request row, structured sections, and professional empty states — without fracturing the app’s black-and-white design system.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>A visual redesign of the existing Friends management surface on <code>/friends</code>: page-scoped soft canvas, centered white container card, clearer header + request form, stacked Incoming / Outgoing / Mutuals sections with dividers, and icon + microcopy empty states. Behavior and API contracts stay unchanged.</p>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Friends page shows a centered card on a soft page-local canvas (not a global body override)</li>
+        <li>Heading is “Friends”; subtitle is “Requests and mutuals.”</li>
+        <li>Request row has a taller Username input and a “Send Request” primary button with hover affordance</li>
+        <li>Incoming, Outgoing, and Mutual Friends are stacked sections with clear horizontal dividers</li>
+        <li>Each empty section shows a muted user silhouette icon + professional microcopy (not “None”)</li>
+        <li>Existing accept / decline / cancel / send-request flows still work</li>
+        <li>Light and dark themes both look intentional on this page</li>
+        <li>Frontend typecheck and build pass</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Color strategy</td>
+            <td><strong>B — Layout language + B&amp;W tokens</strong></td>
+            <td>App contract is black &amp; white (plan 02 / <code>index.css</code>). Meta blue <code>#1877F2</code> rejected as a one-off brand fracture. Primary button uses existing <code>primary</code> token.</td>
+          </tr>
+          <tr>
+            <td>Background scope</td>
+            <td><strong>Friends page canvas only</strong></td>
+            <td>Global <code>#F0F2F5</code> would restyle Feed/Profile and fight the body gradient + dark mode.</td>
+          </tr>
+          <tr>
+            <td>Organization</td>
+            <td><strong>Stacked sections + dividers</strong></td>
+            <td>All three lists visible for management; no new Tabs primitive required.</td>
+          </tr>
+          <tr>
+            <td>Implementation</td>
+            <td><strong>Restyle <code>FriendsPage</code> in place</strong></td>
+            <td>Keep data loading / mutations; optional tiny empty-state helper inside the page file unless reuse appears.</td>
+          </tr>
+          <tr>
+            <td>Dark mode</td>
+            <td><strong>Token-driven dark equivalents</strong></td>
+            <td>Use <code>bg-card</code>, <code>bg-muted</code>/<code>bg-secondary</code>, <code>text-muted-foreground</code>, <code>border-border</code>, shadow that works in both themes — no hardcoded Facebook hexes.</td>
+          </tr>
+          <tr>
+            <td>Typography</td>
+            <td><strong>Keep IBM Plex Sans</strong></td>
+            <td>“System font” request deferred; stay on existing <code>--font-sans</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Visual translation of the original brief:</strong> soft page canvas ≈ light gray panel behind the card (tokenized, not literal <code>#F0F2F5</code>); white card ≈ <code>bg-card</code> with <code>border-radius: 16px</code>, <code>padding: 24px</code>, soft shadow; vibrant CTA ≈ existing primary button styling with hover; empty states ≈ Lucide <code>User</code> (or similar) + microcopy.
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Page today</strong> — <code>frontend/src/pages/FriendsPage.tsx</code> loads <code>/api/friends/inbox</code> + <code>/api/friends/mutuals</code>, posts requests, accept/decline/cancel. Structure is three plain <code>&lt;div&gt;</code> lists with <code>None</code> / <code>None yet</code> empty text. Button label is “Request”.</p>
+      <p><strong>Shell</strong> — <code>AppShell</code> wraps pages in <code>main.mx-auto.max-w-3xl</code>. Friends redesign stays inside that width; page may use a full-bleed-within-main soft canvas + inner card.</p>
+      <p><strong>UI kit</strong> — Reuse <code>Button</code> and <code>Input</code> from <code>@/components/ui/*</code>. Icons via installed <code>lucide-react</code> (already used by <code>ThemeToggle</code>).</p>
+      <p><strong>Tokens</strong> — <code>frontend/src/index.css</code> B&amp;W light/dark variables. Prefer utility classes bound to tokens over new hex literals. If a page-scoped canvas needs a dedicated class, add a small Friends-only block in <code>index.css</code> that reads existing CSS variables (light + <code>.dark</code>).</p>
+      <p><strong>Closest analog</strong> — Current <code>FriendsPage</code> itself; no separate dashboard component exists. Do not invent a parallel friends API client.</p>
+      <p><strong>Execution branch</strong> — Implement on <code>kylie/ui-beautification</code> (planning artifacts authored on <code>plan/07282026-16-friends-management-ui</code> worktree).</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Preserve all existing friend API behaviors and error handling</li>
+            <li>Keep B&amp;W design tokens — no Meta blue / new brand accent</li>
+            <li>Scope background/canvas styling to the Friends route only</li>
+            <li>Support light and dark themes</li>
+            <li>Use stacked sections (Incoming Requests, Outgoing Requests, Mutual Friends)</li>
+            <li>Empty states: muted icon + microcopy per section</li>
+            <li>Rename submit CTA to “Send Request”</li>
+            <li>Follow Code Constitution frontend layering (presentation in page/components; API via existing client)</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No backend, route, migration, or API contract changes</li>
+            <li>No new npm dependencies</li>
+            <li>No global body background rewrite</li>
+            <li>No Tabs implementation (deferred)</li>
+            <li>No drive-by restyles of Feed / Profile / Auth pages</li>
+            <li>No change to friendship business rules</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Avatars / profile photos on list rows</li>
+        <li>Search/filter of mutuals (Username field remains “send request”, not list filter)</li>
+        <li>Pagination, infinite scroll, or realtime updates</li>
+        <li>Unfriend action on mutuals (unless already present — it is not today)</li>
+        <li>Global design-system token overhaul</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Main hazard is visual inconsistency if Friends becomes a one-off “Facebook island” while the rest of the app stays B&amp;W. Mitigated by locked decision B (tokens only).</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Hardcoded Facebook hexes</td>
+            <td>Friends page fights theme toggle + brand contract</td>
+            <td>Token utilities / CSS vars only; reject <code>#1877F2</code></td>
+          </tr>
+          <tr>
+            <td>Global background change</td>
+            <td>Feed, Profile, Auth all shift</td>
+            <td>Page-scoped wrapper on Friends only</td>
+          </tr>
+          <tr>
+            <td>Dark-mode card/shadow unreadability</td>
+            <td>Friends page only</td>
+            <td>Use <code>bg-card</code> + border + soft shadow; spot-check with theme toggle</td>
+          </tr>
+          <tr>
+            <td>Accidental behavior regression</td>
+            <td>Request / accept / decline / cancel</td>
+            <td>UI-only rewrite; keep handlers; acceptance checklist covers flows</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Consumers touched:</strong> <code>FriendsPage</code> (primary), optionally <code>index.css</code> for page-scoped helpers. No backend consumers. <code>AppShell</code> unchanged unless a tiny layout tweak is required for the card (prefer page-local).</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Friends page shell: canvas + card + header + request row</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Restyle <code>FriendsPage</code> root into a soft page-local canvas containing a centered white/<code>bg-card</code> container (padding 24px, radius 16px, soft shadow). Keep title “Friends” and subtitle “Requests and mutuals.” Rebuild the form row: taller spacious Username <code>Input</code>, submit <code>Button</code> labeled “Send Request” with clear hover. Preserve <code>onRequest</code> / error display.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/FriendsPage.tsx</code>; optionally <code>frontend/src/index.css</code> for Friends-scoped canvas/shadow helpers that read theme tokens</dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>Visual: card composition on <code>/friends</code>; other routes unchanged; light + dark both readable</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Stacked sections + empty states</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Organize content as three stacked subsections with horizontal dividers: “Incoming Requests”, “Outgoing Requests”, “Mutual Friends”. Keep existing row actions (Accept/Decline, Cancel, mutual display). Replace bare “None” / “None yet” with empty states: muted Lucide user silhouette + microcopy — e.g. “No pending requests”, “No outgoing requests”, “Your mutual friends will appear here”.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/FriendsPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Empty accounts show all three empty states; populated lists still show actions</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Plan index + acceptance artifacts</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Ensure <code>plans/README.md</code> lists seq 16. Confirm <code>test-results.json</code> / <code>test.html</code> match Done criteria (already scaffolded with this spec). No app behavior change in this task beyond README if needed during execution packaging.</dd></div>
+          <div><dt>Files</dt><dd><code>plans/README.md</code>, plan folder acceptance files</dd></div>
+          <div><dt>Depends on</dt><dd>T1–T2</dd></div>
+          <div><dt>Verify</dt><dd>README lists plan 16; acceptance checklist covers UI flows</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☐</span><span>Friends route shows page-scoped canvas + elevated card (24px pad, 16px radius, soft shadow)</span></li>
+        <li><span>☐</span><span>Header + “Send Request” row match the locked visual brief (B&amp;W tokens)</span></li>
+        <li><span>☐</span><span>Incoming / Outgoing / Mutuals are stacked with dividers</span></li>
+        <li><span>☐</span><span>Empty states use icon + professional microcopy (no “None”)</span></li>
+        <li><span>☐</span><span>Send / accept / decline / cancel still work</span></li>
+        <li><span>☐</span><span>Dark mode spot-check passes on Friends</span></li>
+        <li><span>☐</span><span>Feed and other routes visually unchanged</span></li>
+        <li><span>☐</span><span><code>npm run typecheck</code> and <code>npm run build</code> pass in <code>frontend/</code></span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Rev 1</td>
+            <td>2026-07-28</td>
+            <td>Initial spec. Locked recommendations: B&amp;W tokens (no Meta blue), page-scoped canvas, stacked sections, in-place <code>FriendsPage</code> restyle, dark-mode token equivalents. Target branch <code>kylie/ui-beautification</code>.</td>
+          </tr>
+          <tr>
+            <td>Rev 2</td>
+            <td>2026-07-28</td>
+            <td>Executed on <code>kylie/ui-beautification</code>: Friends page canvas + card, Send Request row, stacked sections with Lucide empty states; page-scoped CSS in <code>index.css</code>. Acceptance UI run pending.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,104 @@
+{
+  "plan": "plans/07282026-16-friends-management-ui",
+  "generatedAt": "2026-07-28",
+  "status": "pending",
+  "items": [
+    {
+      "id": "T1a",
+      "title": "Friends page canvas + card composition",
+      "surface": "ui",
+      "precondition": "Signed in; navigate to /friends",
+      "steps": [
+        "Open /friends",
+        "Confirm a soft page-local canvas behind a centered elevated card",
+        "Confirm card has generous padding (~24px), rounded corners (~16px), and a soft shadow",
+        "Visit Feed and confirm its background/layout is unchanged"
+      ],
+      "expected": "Friends has the dashboard card composition; other routes are unaffected.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T1b",
+      "title": "Header and Send Request row",
+      "surface": "ui",
+      "precondition": "On /friends signed in",
+      "steps": [
+        "Confirm heading Friends and subtitle Requests and mutuals.",
+        "Confirm Username input is taller/spacious",
+        "Confirm button label is Send Request and uses primary (B&W) styling with hover",
+        "Submit a valid username and confirm request succeeds (or shows existing API error)"
+      ],
+      "expected": "Request row matches brief; send still works; no Meta blue brand accent.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2a",
+      "title": "Stacked sections and empty states",
+      "surface": "ui",
+      "precondition": "Account with empty inbox/mutuals (or clear pending items)",
+      "steps": [
+        "Confirm sections Incoming Requests, Outgoing Requests, Mutual Friends appear stacked with dividers",
+        "Confirm each empty section shows a muted user icon + professional microcopy",
+        "Confirm no plain None / None yet copy remains"
+      ],
+      "expected": "Three sections with polished empty states.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2b",
+      "title": "Request actions still work when lists are populated",
+      "surface": "ui",
+      "precondition": "Second account can send a request to the signed-in user (or existing pending rows)",
+      "steps": [
+        "Accept or decline an incoming request",
+        "Cancel an outgoing request if present",
+        "Confirm mutuals list renders when a friendship is accepted"
+      ],
+      "expected": "Accept/decline/cancel/mutual display behaviors unchanged aside from styling.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2c",
+      "title": "Dark mode Friends spot-check",
+      "surface": "ui",
+      "precondition": "Theme toggle available",
+      "steps": [
+        "Switch to dark mode on /friends",
+        "Confirm card, canvas, text, dividers, and empty states remain readable",
+        "Switch back to light mode"
+      ],
+      "expected": "Friends page looks intentional in both themes.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3a",
+      "title": "Frontend typecheck and build",
+      "surface": "cli",
+      "precondition": "Frontend deps installed",
+      "steps": [
+        "Run npm run typecheck in frontend/",
+        "Run npm run build in frontend/"
+      ],
+      "expected": "Both commands succeed.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}
