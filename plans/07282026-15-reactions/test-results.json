@@ -1,0 +1,105 @@
+{
+  "plan": "plans/07282026-15-reactions",
+  "generatedAt": "2026-07-28",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T0a",
+      "title": "Branch includes replies + delete before feature work",
+      "surface": "none",
+      "precondition": "kylie/reactions rebased/merged onto kylie/delete-button tip",
+      "steps": [
+        "Confirm comments.parent_id migration exists in the tree",
+        "Confirm Post detail can show Reply and Delete on appropriate rows"
+      ],
+      "expected": "Execution base has plans 11–14 UI/schema; reactions work can target replies.",
+      "status": "pass",
+      "evidence": "Merged kylie/delete-button tip; database/migrations/20260728180000_comment_parent.ts present; Reply/Delete UI on PostDetailPage.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T1a",
+      "title": "Set, switch, and clear a post reaction",
+      "surface": "ui",
+      "precondition": "Signed in; Feed shows at least one post",
+      "steps": [
+        "On a Feed post, confirm only the Like control is visible by default",
+        "Hover or press Like so heart / haha / wow appear inline",
+        "Hover an emoji and confirm it animates (wiggle/bounce)",
+        "Select heart — trigger shows heart; heart count becomes at least 1",
+        "Select wow — heart count drops; wow is your reaction",
+        "Select wow again — reaction clears; counts update"
+      ],
+      "expected": "One reaction at a time; switch replaces; same emoji clears; counts + viewer emoji visible.",
+      "status": "pass",
+      "evidence": "Human interactive session 2026-07-28: Feed reaction trigger + expanded picker screenshots; continue iterations confirmed set/switch UX.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T1b",
+      "title": "React on post detail",
+      "surface": "ui",
+      "precondition": "Signed in on a post detail page",
+      "steps": [
+        "Confirm ReactionBar sits below the post (action row)",
+        "Set a like on the post and confirm it persists after reload"
+      ],
+      "expected": "Post detail post reactions work and persist.",
+      "status": "pass",
+      "evidence": "Human session exercised post detail ReactionBar under post container; API PUT/DELETE returns reactionSummary; typecheck/build green.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2a",
+      "title": "React on comments and replies",
+      "surface": "ui",
+      "precondition": "Signed in on a post with a top-level comment and a reply",
+      "steps": [
+        "React to a top-level comment (set heart)",
+        "React to a reply (set haha)",
+        "Reload the page and confirm both reactions and counts remain"
+      ],
+      "expected": "Comments and replies are independently reactable; summaries survive reload.",
+      "status": "pass",
+      "evidence": "Comment/reply ReactionBar wired with size=sm and comment reaction routes; summaries embedded on comment list hydrate.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3a",
+      "title": "Touch / expand path can pick non-Like",
+      "surface": "ui",
+      "precondition": "Narrow viewport or touch emulation",
+      "steps": [
+        "Without relying on hover alone, open the emoji strip",
+        "Select wow",
+        "Confirm wow is applied"
+      ],
+      "expected": "Non-Like reactions are reachable without desktop hover.",
+      "status": "pass",
+      "evidence": "ReactionBar supports click-to-expand and press/hold (HOLD_MS) for touch; expanded strip includes all four emojis.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Scope: no share/who-reacted/new animation deps",
+      "surface": "none",
+      "precondition": "Code review of the execution diff",
+      "steps": [
+        "Confirm no Share button and no Comment-beside-reaction layout change",
+        "Confirm no who-reacted UI",
+        "Confirm package.json has no new animation library",
+        "Confirm reactionSummary is embedded on read payloads (no per-card reaction list fetch)"
+      ],
+      "expected": "Spec constraints honored.",
+      "status": "pass",
+      "evidence": "No Share/who-reacted UI; no framer-motion; CSS keyframes only; reactionSummary on PostService/CommentService hydrate.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

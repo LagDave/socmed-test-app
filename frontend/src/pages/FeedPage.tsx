@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
-import type { PostView } from "@/api/types";
+import type { PostView, ReactionSummary } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ReactionBar } from "@/components/ReactionBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,10 @@ export function FeedPage() {
   async function load() {
     const data = await api.get<{ posts: PostView[] }>("/api/feed");
     setPosts(data.posts);
+  }
+
+  function patchPostSummary(postId: string, reactionSummary: ReactionSummary) {
+    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, reactionSummary } : p)));
   }
 
   useEffect(() => {
@@ -89,31 +94,39 @@ export function FeedPage() {
   }
 
   return (
-    <section className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Feed</h1>
+    <section className="space-y-4">
+      <div className="px-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Feed</h1>
         <p className="text-sm text-muted-foreground">You and your mutuals.</p>
       </div>
 
-      <form onSubmit={onCompose} className="space-y-3 border border-border bg-background p-4">
+      <form onSubmit={onCompose} className="feed-card space-y-2 p-3">
         <Textarea
-          placeholder="What's happening?"
+          placeholder="What's on your mind?"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={submitOnEnter}
           required
+          className="min-h-[52px] resize-none border-0 bg-transparent px-1 py-1 text-[15px] shadow-none focus-visible:ring-0"
         />
-        <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-        {error && <p className="text-sm">{error}</p>}
-        <Button type="submit" disabled={busy}>
-          Post
-        </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+            className="h-8 max-w-xs border-0 bg-transparent px-0 py-0 shadow-none"
+          />
+          <Button type="submit" size="sm" disabled={busy}>
+            Post
+          </Button>
+        </div>
+        {error && <p className="text-sm text-muted-foreground">{error}</p>}
       </form>
 
       <ul className="space-y-4">
         {posts.map((p) => (
-          <li key={p.id} className="border-b border-border pb-4">
-            <div className="flex items-baseline justify-between gap-2">
+          <li key={p.id} className="feed-card p-5">
+            <div className="flex items-baseline justify-between gap-2 pb-3">
               <Link className="font-medium underline-offset-2 hover:underline" to={`/u/${p.author.username || p.author.id}`}>
                 {p.author.displayName}
                 {p.author.username ? ` @${p.author.username}` : ""}
@@ -133,15 +146,25 @@ export function FeedPage() {
                 )}
               </div>
             </div>
-            <Link to={`/posts/${p.id}`} className="mt-2 block whitespace-pre-wrap">
+            <Link to={`/posts/${p.id}`} className="mt-1 block whitespace-pre-wrap text-[15px] leading-relaxed">
               {p.body}
             </Link>
             {p.imageUrl && (
-              <img src={p.imageUrl} alt="" className="mt-3 max-h-96 w-full object-cover border border-border" />
+              <img src={p.imageUrl} alt="" className="mt-4 max-h-96 w-full rounded-lg object-cover" />
             )}
+            <ReactionBar
+              className="mt-4"
+              size="md"
+              targetType="post"
+              targetId={p.id}
+              summary={p.reactionSummary}
+              onSummaryChange={(reactionSummary) => patchPostSummary(p.id, reactionSummary)}
+            />
           </li>
         ))}
-        {posts.length === 0 && <p className="text-sm text-muted-foreground">No posts yet.</p>}
+        {posts.length === 0 && (
+          <li className="feed-card p-8 text-center text-sm text-muted-foreground">No posts yet.</li>
+        )}
       </ul>
 
       <ConfirmDialog

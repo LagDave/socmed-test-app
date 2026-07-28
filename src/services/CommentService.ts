@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CommentModel, type CommentRow } from "../models/CommentModel";
 import { PostModel } from "../models/PostModel";
 import { UserModel } from "../models/UserModel";
+import { ReactionModel, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { AppError } from "../utils/AppError";
 import { toPublicUser } from "../types/user";
 
@@ -19,10 +20,15 @@ export type CommentView = {
   imageUrl: string | null;
   createdAt: Date;
   author: ReturnType<typeof toPublicUser>;
+  reactionSummary: ReactionSummary;
 };
 
-async function hydrate(rows: CommentRow[]): Promise<CommentView[]> {
+async function hydrate(rows: CommentRow[], viewerId: string): Promise<CommentView[]> {
   const authors = await Promise.all(rows.map((r) => UserModel.findById(r.author_id)));
+  const summaries = await ReactionModel.summariesForComments(
+    rows.map((r) => r.id),
+    viewerId
+  );
   return rows.map((r, i) => {
     const author = authors[i];
     if (!author) throw new AppError("USER_NOT_FOUND", "Author missing.");
@@ -34,16 +40,17 @@ async function hydrate(rows: CommentRow[]): Promise<CommentView[]> {
       imageUrl: r.image_url,
       createdAt: r.created_at,
       author: toPublicUser(author),
+      reactionSummary: summaries.get(r.id) ?? emptyReactionSummary(),
     };
   });
 }
 
 export class CommentService {
-  static async list(postId: string): Promise<CommentView[]> {
+  static async list(viewerId: string, postId: string): Promise<CommentView[]> {
     const post = await PostModel.findById(postId);
     if (!post) throw new AppError("POST_NOT_FOUND", "Post not found.");
     const rows = await CommentModel.listByPost(postId);
-    return hydrate(rows);
+    return hydrate(rows, viewerId);
   }
 
   static async create(userId: string, postId: string, raw: unknown): Promise<CommentView> {
@@ -69,7 +76,7 @@ export class CommentService {
       imageUrl: input.imageUrl,
       parentId,
     });
-    return (await hydrate([row]))[0];
+    return (await hydrate([row], userId))[0];
   }
 
   static async delete(userId: string, id: string): Promise<void> {
