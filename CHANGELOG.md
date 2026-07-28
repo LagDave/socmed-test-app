@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5 — 2026-07-28
+
+### Added
+- Enter submits the Feed “What’s happening?” composer (same Shift+Enter newline + whitespace guard as comments/replies)
+- Shared `submitOnEnter` helper used by Feed and post-detail composers
+
+### Plans
+- `plans/07282026-13-enter-to-submit` — Rev 3+ (Feed scope) Completed
+
 ## 0.1.4 — 2026-07-28
 
 ### Added

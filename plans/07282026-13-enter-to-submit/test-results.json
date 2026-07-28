@@ -32,22 +32,40 @@
       ],
       "expected": "Enter submits; Shift+Enter newlines; buttons remain.",
       "status": "pass",
-      "evidence": "2026-07-28: Human verified via -d finalize (user skipped -tw). submitOnEnter on both textareas; buttons unchanged.",
+      "evidence": "2026-07-28: Human verified via -d finalize (user skipped -tw). Shared lib submitOnEnter on both textareas; buttons unchanged.",
       "notes": "",
       "waiver": ""
     },
     {
+      "id": "T3",
+      "title": "Feed What’s happening? Enter-to-post",
+      "surface": "ui",
+      "precondition": "Signed-in on Feed",
+      "steps": [
+        "Type a post and press Enter — post appears in feed",
+        "Press Shift+Enter — newline inserted, no submit",
+        "Type only spaces and press Enter or Post — no new post",
+        "Confirm Post button still works for non-empty body"
+      ],
+      "expected": "Feed compose matches comment/reply Enter behavior.",
+      "status": "pass",
+      "evidence": "2026-07-28: Human verified via -d finalize (user skipped -tw). FeedPage uses submitOnEnter + trim guard on onCompose.",
+      "notes": "Added in Rev 3 (-c).",
+      "waiver": ""
+    },
+    {
       "id": "D1",
-      "title": "Feed composer unchanged",
+      "title": "Shared submitOnEnter helper",
       "surface": "none",
       "precondition": "Code review of diff",
       "steps": [
-        "Confirm FeedPage Textarea has no Enter-to-submit handler from this plan"
+        "Confirm frontend/src/lib/submitOnEnter.ts is used by FeedPage and PostDetailPage",
+        "Confirm ui/textarea.tsx has no submit semantics"
       ],
-      "expected": "Scope limited to PostDetailPage comment/reply forms.",
+      "expected": "One shared helper; Textarea primitive unchanged.",
       "status": "pass",
-      "evidence": "Diff touches only PostDetailPage (+ plan artifacts). FeedPage has no submitOnEnter.",
-      "notes": "",
+      "evidence": "2026-07-28 Rev 3: lib/submitOnEnter.ts imported by FeedPage + PostDetailPage.",
+      "notes": "Replaced obsolete “Feed unchanged” item after scope expansion.",
       "waiver": ""
     }
   ]

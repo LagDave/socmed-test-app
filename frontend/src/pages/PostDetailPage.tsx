@@ -1,11 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
-  type KeyboardEvent,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { CommentView, PostView } from "@/api/types";
@@ -14,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { formatRelativeTime } from "@/lib/formatRelativeTime";
+import { submitOnEnter } from "@/lib/submitOnEnter";
 
 type CommentThread = { parent: CommentView; replies: CommentView[] };
 
@@ -27,13 +21,6 @@ function CommentTimestamp({ createdAt }: { createdAt: string }) {
       {formatRelativeTime(createdAt)}
     </time>
   );
-}
-
-/** Enter submits the parent form; Shift+Enter keeps a newline. IME-safe. */
-function submitOnEnter(e: KeyboardEvent<HTMLTextAreaElement>) {
-  if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing || e.keyCode === 229) return;
-  e.preventDefault();
-  e.currentTarget.form?.requestSubmit();
 }
 
 function groupComments(comments: CommentView[]): { threads: CommentThread[]; orphans: CommentView[] } {

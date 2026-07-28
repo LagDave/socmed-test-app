@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { formatRelativeTime } from "@/lib/formatRelativeTime";
+import { submitOnEnter } from "@/lib/submitOnEnter";
 
 export function FeedPage() {
   const { user, loading } = useAuth();
@@ -28,6 +29,8 @@ export function FeedPage() {
 
   async function onCompose(e: FormEvent) {
     e.preventDefault();
+    const text = body.trim();
+    if (!text) return;
     setBusy(true);
     setError(null);
     try {
@@ -36,7 +39,7 @@ export function FeedPage() {
         const up = await api.upload<{ url: string }>("/api/uploads", imageFile);
         imageUrl = up.url;
       }
-      await api.post("/api/posts", { body, imageUrl });
+      await api.post("/api/posts", { body: text, imageUrl });
       setBody("");
       setImageFile(null);
       await load();
@@ -72,6 +75,7 @@ export function FeedPage() {
           placeholder="What's happening?"
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          onKeyDown={submitOnEnter}
           required
         />
         <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />

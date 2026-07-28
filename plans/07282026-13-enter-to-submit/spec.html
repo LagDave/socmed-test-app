@@ -59,12 +59,11 @@
     <section class="spec-card" id="what">
       <h2>What</h2>
       <ul>
-        <li>On the post-detail <strong>comment</strong> and <strong>reply</strong> textareas: <strong>Enter</strong> submits the form; <strong>Shift+Enter</strong> inserts a newline.</li>
-        <li>Keep the existing Comment / Reply buttons — Enter is an additional path, not a replacement.</li>
+        <li>On the post-detail <strong>comment</strong> and <strong>reply</strong> textareas, and the Feed <strong>“What’s happening?”</strong> composer: <strong>Enter</strong> submits the form; <strong>Shift+Enter</strong> inserts a newline.</li>
+        <li>Keep the existing Comment / Reply / Post buttons — Enter is an additional path, not a replacement.</li>
         <li>If the body is blank or whitespace-only, Enter must not submit (no empty API call).</li>
-        <li>Feed post composer and other textareas are out of scope.</li>
       </ul>
-      <p><strong>Done when:</strong> Enter sends a non-empty comment/reply; Shift+Enter still multiline; buttons still work; empty Enter is a no-op; frontend typecheck/build green.</p>
+      <p><strong>Done when:</strong> Enter sends a non-empty comment/reply/feed post; Shift+Enter still multiline; buttons still work; empty Enter is a no-op; frontend typecheck/build green.</p>
     </section>
 
     <section class="spec-card" id="context">
@@ -81,17 +80,18 @@
         <div>
           <h3>Must</h3>
           <ul>
-            <li>Enter (no Shift) → submit comment form / reply form when focused in that textarea</li>
+            <li>Enter (no Shift) → submit comment / reply / feed compose form when focused in that textarea</li>
             <li>Shift+Enter → newline (default textarea behavior)</li>
             <li>Blank / whitespace-only body → do not submit (button or Enter)</li>
-            <li>Keep Comment and Reply submit buttons visible and working</li>
+            <li>Keep Comment, Reply, and Post submit buttons visible and working</li>
             <li>IME-safe: ignore keydown when <code>event.isComposing</code> / keyCode 229 so CJK input does not false-submit</li>
+            <li>Share one <code>submitOnEnter</code> helper under <code>frontend/src/lib/</code> (not baked into the Textarea primitive)</li>
           </ul>
         </div>
         <div>
           <h3>Must Not</h3>
           <ul>
-            <li>No change to Feed compose, Profile bio, or shared Textarea defaults for all pages</li>
+            <li>No change to Profile bio or other unrelated textareas</li>
             <li>No new npm dependencies</li>
             <li>No backend / API changes</li>
             <li>Do not remove the buttons</li>
@@ -100,24 +100,24 @@
       </div>
       <h3>Out Of Scope</h3>
       <ul>
-        <li>Feed “What’s happening?” Enter-to-post</li>
         <li>Mobile soft-keyboard “Send” accessory customization beyond normal Enter behavior</li>
         <li>Visible hint text (“Press Enter to send”) unless needed for clarity — optional, not required</li>
+        <li>Profile bio Enter-to-save</li>
       </ul>
       <div class="callout">
-        <strong>Decisions locked:</strong> Enter submits · Shift+Enter newline · keep buttons · comment+reply only · ignore blank/whitespace · IME-safe.
+        <strong>Decisions locked:</strong> Enter submits · Shift+Enter newline · keep buttons · comment + reply + feed compose · ignore blank/whitespace · IME-safe · shared lib helper.
       </div>
     </section>
 
     <section class="spec-card" id="risk">
       <h2>Risk</h2>
-      <p><strong>Level 1 — Suggestion.</strong> Frontend-only keyboard UX on two textareas.</p>
+      <p><strong>Level 1 — Suggestion.</strong> Frontend-only keyboard UX on comment, reply, and feed composers.</p>
       <table>
         <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
         <tbody>
           <tr>
             <td>Users who expect Enter = newline lose multiline-by-default</td>
-            <td>Comment/reply composition</td>
+            <td>Comment/reply/feed composition</td>
             <td>Document Shift+Enter; keep buttons; optional later hint</td>
           </tr>
           <tr>
@@ -128,11 +128,11 @@
           <tr>
             <td>Duplicate submit logic drifts between button and Enter</td>
             <td>Empty posts slip through one path</td>
-            <td>Single whitespace guard inside shared submit path used by both forms</td>
+            <td>Single whitespace guard inside each form’s submit path; shared <code>submitOnEnter</code> for keydown</td>
           </tr>
         </tbody>
       </table>
-      <p><strong>Consumers:</strong> <code>PostDetailPage</code> only (optional tiny local helper for keydown).</p>
+      <p><strong>Consumers:</strong> <code>PostDetailPage</code>, <code>FeedPage</code>, <code>frontend/src/lib/submitOnEnter.ts</code>.</p>
     </section>
 
     <section class="spec-card" id="tasks">
@@ -149,12 +149,22 @@
       </article>
 
       <article class="task-card" id="T2">
-        <h3>T2 — Enter submits; Shift+Enter newline</h3>
+        <h3>T2 — Enter submits; Shift+Enter newline (comment/reply)</h3>
         <dl>
-          <div><dt>Do</dt><dd>Add <code>onKeyDown</code> on comment and reply <code>Textarea</code>s: if Enter and not Shift and not composing → <code>preventDefault()</code> and <code>event.currentTarget.form?.requestSubmit()</code> (or equivalent). Extract a tiny local handler (e.g. <code>submitOnEnter</code>) used by both textareas to avoid duplication. Do not change <code>components/ui/textarea.tsx</code> globally.</dd></div>
-          <div><dt>Files</dt><dd><code>frontend/src/pages/PostDetailPage.tsx</code></dd></div>
+          <div><dt>Do</dt><dd>Add <code>onKeyDown</code> on comment and reply <code>Textarea</code>s via shared <code>submitOnEnter</code> in <code>frontend/src/lib/submitOnEnter.ts</code>. Do not change <code>components/ui/textarea.tsx</code> globally.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/lib/submitOnEnter.ts</code> (new), <code>frontend/src/pages/PostDetailPage.tsx</code></dd></div>
           <div><dt>Depends on</dt><dd>T1</dd></div>
           <div><dt>Verify</dt><dd>Enter sends reply/comment; Shift+Enter adds line; empty Enter does nothing; buttons still work</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Feed “What’s happening?” Enter-to-post</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Wire the same <code>submitOnEnter</code> on the Feed compose <code>Textarea</code>. Trim-guard <code>onCompose</code> so blank/whitespace does not post (button or Enter). Keep the Post button.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/FeedPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Enter posts non-empty body; Shift+Enter newlines; spaces-only no-op; Post button still works</dd></div>
         </dl>
       </article>
     </section>
@@ -164,11 +174,12 @@
       <ul class="checklist">
         <li><span>☑</span><span>Enter submits non-empty top-level comment</span></li>
         <li><span>☑</span><span>Enter submits non-empty reply</span></li>
-        <li><span>☑</span><span>Shift+Enter inserts newline in both textareas</span></li>
+        <li><span>☑</span><span>Enter submits non-empty feed post</span></li>
+        <li><span>☑</span><span>Shift+Enter inserts newline in comment, reply, and feed textareas</span></li>
         <li><span>☑</span><span>Blank/whitespace does not submit (Enter or button)</span></li>
-        <li><span>☑</span><span>Comment and Reply buttons still work</span></li>
+        <li><span>☑</span><span>Comment, Reply, and Post buttons still work</span></li>
         <li><span>☑</span><span>IME composing does not submit</span></li>
-        <li><span>☑</span><span>Feed composer unchanged; no new dependencies</span></li>
+        <li><span>☑</span><span>Shared <code>submitOnEnter</code> lib helper; no new dependencies</span></li>
         <li><span>☑</span><span>Frontend typecheck / build pass</span></li>
       </ul>
     </section>
@@ -192,6 +203,16 @@
             <td>2</td>
             <td>2026-07-28</td>
             <td>Finalized (<code>-d</code>): acceptance Passed via human verification; changelog 0.1.4.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-07-28</td>
+            <td><code>-c</code>: expand scope to Feed “What’s happening?” composer (same Enter / Shift+Enter / whitespace rules). Extract shared <code>lib/submitOnEnter.ts</code>; add T3; remove Feed from out-of-scope.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>2026-07-28</td>
+            <td>Finalized Rev 3 (<code>-d</code>): Feed Enter-to-post acceptance Passed via human verification; changelog 0.1.5.</td>
           </tr>
         </tbody>
       </table>
