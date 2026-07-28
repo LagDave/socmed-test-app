@@ -2,17 +2,20 @@ import { z } from "zod";
 import { CommentModel, type CommentRow } from "../models/CommentModel";
 import { PostModel } from "../models/PostModel";
 import { UserModel } from "../models/UserModel";
+import { NotificationService } from "./NotificationService";
 import { AppError } from "../utils/AppError";
 import { toPublicUser } from "../types/user";
 
 const createCommentSchema = z.object({
   body: z.string().min(1).max(2000),
   imageUrl: z.string().max(500).nullable().optional(),
+  parentId: z.string().uuid().nullable().optional(),
 });
 
 export type CommentView = {
   id: string;
   postId: string;
+  parentId: string | null;
   body: string;
   imageUrl: string | null;
   createdAt: Date;
@@ -27,6 +30,7 @@ async function hydrate(rows: CommentRow[]): Promise<CommentView[]> {
     return {
       id: r.id,
       postId: r.post_id,
+      parentId: r.parent_id,
       body: r.body,
       imageUrl: r.image_url,
       createdAt: r.created_at,
@@ -47,12 +51,45 @@ export class CommentService {
     const post = await PostModel.findById(postId);
     if (!post) throw new AppError("POST_NOT_FOUND", "Post not found.");
     const input = createCommentSchema.parse(raw);
+
+    let parentAuthorId: string | null = null;
+    if (input.parentId) {
+      const parent = await CommentModel.findById(input.parentId);
+      if (!parent || parent.post_id !== postId) {
+        throw new AppError("COMMENT_NOT_FOUND", "Parent comment not found on this post.");
+      }
+      if (parent.parent_id) {
+        throw new AppError("COMMENT_VALIDATION", "Only one reply level is allowed.");
+      }
+      parentAuthorId = parent.author_id;
+    }
+
     const row = await CommentModel.create({
       postId,
       authorId: userId,
       body: input.body,
       imageUrl: input.imageUrl,
+      parentId: input.parentId,
     });
+
+    if (input.parentId && parentAuthorId) {
+      await NotificationService.notify({
+        recipientId: parentAuthorId,
+        actorId: userId,
+        type: "comment_reply",
+        postId,
+        commentId: row.id,
+      });
+    } else {
+      await NotificationService.notify({
+        recipientId: post.author_id,
+        actorId: userId,
+        type: "comment_on_post",
+        postId,
+        commentId: row.id,
+      });
+    }
+
     return (await hydrate([row]))[0];
   }
 
