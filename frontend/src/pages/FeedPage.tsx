@@ -26,6 +26,7 @@ export function FeedPage() {
   async function load() {
     const data = await api.get<{ posts: PostView[] }>("/api/feed");
     setPosts(data.posts);
+    await api.post("/api/feed/seen").catch(() => undefined);
   }
 
   function patchPostSummary(postId: string, reactionSummary: ReactionSummary) {

@@ -16,6 +16,7 @@ export type UserRow = {
   username: string | null;
   bio: string | null;
   avatar_url: string | null;
+  feed_seen_at?: Date | null;
   created_at: Date;
   updated_at: Date;
 };

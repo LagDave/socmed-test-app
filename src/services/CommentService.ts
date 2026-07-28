@@ -3,6 +3,7 @@ import { CommentModel, type CommentRow } from "../models/CommentModel";
 import { PostModel } from "../models/PostModel";
 import { UserModel } from "../models/UserModel";
 import { ReactionModel, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
+import { NotificationService } from "./NotificationService";
 import { AppError } from "../utils/AppError";
 import { toPublicUser } from "../types/user";
 
@@ -58,7 +59,8 @@ export class CommentService {
     if (!post) throw new AppError("POST_NOT_FOUND", "Post not found.");
     const input = createCommentSchema.parse(raw);
 
-    let parentId: string | null = input.parentId ?? null;
+    const parentId: string | null = input.parentId ?? null;
+    let parentAuthorId: string | null = null;
     if (parentId) {
       const parent = await CommentModel.findById(parentId);
       if (!parent || parent.post_id !== postId) {
@@ -67,6 +69,7 @@ export class CommentService {
       if (parent.parent_id !== null) {
         throw new AppError("COMMENT_VALIDATION", "Parent must be a top-level comment on this post.");
       }
+      parentAuthorId = parent.author_id;
     }
 
     const row = await CommentModel.create({
@@ -76,6 +79,25 @@ export class CommentService {
       imageUrl: input.imageUrl,
       parentId,
     });
+
+    if (parentId && parentAuthorId) {
+      await NotificationService.notify({
+        recipientId: parentAuthorId,
+        actorId: userId,
+        type: "comment_reply",
+        postId,
+        commentId: row.id,
+      });
+    } else {
+      await NotificationService.notify({
+        recipientId: post.author_id,
+        actorId: userId,
+        type: "comment_on_post",
+        postId,
+        commentId: row.id,
+      });
+    }
+
     return (await hydrate([row], userId))[0];
   }
 
