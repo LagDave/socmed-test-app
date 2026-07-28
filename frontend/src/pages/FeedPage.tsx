@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { PostView } from "@/api/types";
@@ -19,6 +19,7 @@ export function FeedPage() {
   const [busy, setBusy] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
 
   async function load() {
     const data = await api.get<{ posts: PostView[] }>("/api/feed");
@@ -54,7 +55,8 @@ export function FeedPage() {
   }
 
   async function confirmDeletePost() {
-    if (!pendingDeleteId) return;
+    if (!pendingDeleteId || deleting || deletingRef.current) return;
+    deletingRef.current = true;
     setDeleting(true);
     setError(null);
     try {
@@ -64,6 +66,7 @@ export function FeedPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
+      deletingRef.current = false;
       setDeleting(false);
     }
   }

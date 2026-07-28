@@ -27,6 +27,11 @@ export function ConfirmDialog({
   const cancelRef = useRef<HTMLButtonElement>(null);
   const onCancelRef = useRef(onCancel);
   onCancelRef.current = onCancel;
+  const confirmLockRef = useRef(false);
+
+  useEffect(() => {
+    if (!open || !busy) confirmLockRef.current = false;
+  }, [open, busy]);
 
   useEffect(() => {
     if (!open) return;
@@ -81,7 +86,15 @@ export function ConfirmDialog({
           >
             {cancelLabel}
           </Button>
-          <Button type="button" disabled={busy} onClick={onConfirm}>
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (busy || confirmLockRef.current) return;
+              confirmLockRef.current = true;
+              onConfirm();
+            }}
+          >
             {busy ? "Deleting…" : confirmLabel}
           </Button>
         </div>

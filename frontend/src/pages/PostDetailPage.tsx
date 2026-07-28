@@ -68,6 +68,7 @@ export function PostDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { threads, orphans } = useMemo(() => groupComments(comments), [comments]);
@@ -158,7 +159,8 @@ export function PostDetailPage() {
   }
 
   async function confirmPendingDelete() {
-    if (!pendingDelete) return;
+    if (!pendingDelete || deleting || deletingRef.current) return;
+    deletingRef.current = true;
     setDeleting(true);
     setError(null);
     try {
@@ -178,6 +180,7 @@ export function PostDetailPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
+      deletingRef.current = false;
       setDeleting(false);
     }
   }
