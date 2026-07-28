@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.3 — 2026-07-28
+
+### Changed
+- Profile picture control: clickable 1×1 preview + absolute URL field; upload only fills the form until Save
+- Bottom-right toasts for copy link / picture update; scroll to top after picture save
+
+### Plans
+- `plans/07282026-16-friends-management-ui` — Continued (Rev 8–10)
+
 ## 0.1.2 — 2026-07-28
 
 ### Added

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Camera, MoreHorizontal } from "lucide-react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Camera, MoreHorizontal } from "lucide-react";
 import { api } from "@/api/client";
 import type { PublicUser } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,6 +46,14 @@ function FieldLabel({ htmlFor, children }: { htmlFor: string; children: string }
       {children}
     </label>
   );
+}
+
+function toAbsoluteUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/")) return `${window.location.origin}${trimmed}`;
+  return trimmed;
 }
 
 type ProfileMenuProps = {
@@ -162,7 +170,7 @@ export function ProfilePage() {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [editUsername, setEditUsername] = useState("");
-  const [avatarFileName, setAvatarFileName] = useState<string | null>(null);
+  const [avatarUrlInput, setAvatarUrlInput] = useState("");
 
   const isSelf = Boolean(me && profile && me.id === profile.id);
   const isPublicPreview = searchParams.get("view") === "public";
@@ -177,35 +185,48 @@ export function ProfilePage() {
         setDisplayName(d.user.displayName);
         setBio(d.user.bio || "");
         setEditUsername(d.user.username || "");
-        setAvatarFileName(null);
+        setAvatarUrlInput(toAbsoluteUrl(d.user.avatarUrl || ""));
       })
       .catch((e: Error) => setError(e.message));
   }, [username]);
 
+  useEffect(() => {
+    if (!menuNotice) return;
+    const t = window.setTimeout(() => setMenuNotice(null), 2500);
+    return () => window.clearTimeout(t);
+  }, [menuNotice]);
+
   async function onSave(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    const nextAvatarUrl = toAbsoluteUrl(avatarUrlInput) || null;
+    const avatarChanged = nextAvatarUrl !== toAbsoluteUrl(profile?.avatarUrl || "");
     try {
       const data = await api.patch<{ user: PublicUser }>("/api/me/profile", {
         displayName,
         username: editUsername,
         bio,
+        avatarUrl: nextAvatarUrl,
       });
       setProfile(data.user);
       setUser(data.user);
+      setAvatarUrlInput(toAbsoluteUrl(data.user.avatarUrl || ""));
+      if (avatarChanged) {
+        setMenuNotice("Profile picture updated");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     }
   }
 
-  async function onAvatar(file: File | null) {
+  async function onAvatarFile(file: File | null) {
     if (!file) return;
     setError(null);
-    setAvatarFileName(file.name);
     try {
-      const data = await api.upload<{ url: string; user: PublicUser }>("/api/uploads", file, "avatar");
-      setProfile(data.user);
-      setUser(data.user);
+      // Upload only — do not attach as avatar until Save
+      const data = await api.upload<{ url: string }>("/api/uploads", file);
+      setAvatarUrlInput(toAbsoluteUrl(data.url));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     }
@@ -218,7 +239,7 @@ export function ProfilePage() {
       const data = await api.patch<{ user: PublicUser }>("/api/me/profile", { avatarUrl: null });
       setProfile(data.user);
       setUser(data.user);
-      setAvatarFileName(null);
+      setAvatarUrlInput("");
       setMenuNotice("Profile picture removed");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not remove picture");
@@ -296,8 +317,8 @@ export function ProfilePage() {
           )}
         </header>
 
-        {(menuNotice || (error && !showEditor)) && (
-          <p className="text-sm text-muted-foreground">{menuNotice || error}</p>
+        {error && !showEditor && (
+          <p className="text-sm text-muted-foreground">{error}</p>
         )}
 
         {showEditor && (
@@ -346,28 +367,51 @@ export function ProfilePage() {
             </div>
 
             <div>
-              <FieldLabel htmlFor="profile-avatar">Profile Picture</FieldLabel>
-              <input
-                ref={fileInputRef}
-                id="profile-avatar"
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => void onAvatar(e.target.files?.[0] || null)}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex w-full flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-border bg-secondary/40 px-6 py-10 text-center transition-colors hover:border-foreground/30 hover:bg-secondary/70"
-              >
-                <span className="flex size-10 items-center justify-center rounded-full border border-border bg-card">
-                  <Camera className="size-5 text-muted-foreground" aria-hidden="true" />
-                </span>
-                <span className="text-sm font-semibold">Upload Profile Picture</span>
-                <span className="text-xs text-muted-foreground">
-                  {avatarFileName || "PNG or JPG · click to choose a file"}
-                </span>
-              </button>
+              <FieldLabel htmlFor="profile-avatar-url">Profile Picture</FieldLabel>
+              <div className="flex items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => void onAvatarFile(e.target.files?.[0] || null)}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="group relative size-16 shrink-0 overflow-hidden rounded-xl border border-border bg-secondary transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="Choose profile picture"
+                  title="Choose photo"
+                >
+                  {avatarUrlInput.trim() ? (
+                    <img
+                      src={avatarUrlInput.trim()}
+                      alt=""
+                      className="size-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.visibility = "hidden";
+                      }}
+                    />
+                  ) : (
+                    <span className="flex size-full items-center justify-center text-lg font-semibold text-muted-foreground">
+                      {(displayName.trim().slice(0, 1) || "?").toUpperCase()}
+                    </span>
+                  )}
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <Camera className="size-5 text-white" aria-hidden="true" />
+                  </span>
+                </button>
+                <Input
+                  id="profile-avatar-url"
+                  className="h-12 flex-1 px-4"
+                  type="url"
+                  value={avatarUrlInput}
+                  onChange={(e) => setAvatarUrlInput(e.target.value)}
+                  placeholder="https://example.com/avatar.jpg"
+                  aria-label="Profile picture URL"
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">Click the photo to upload, or paste an image URL.</p>
             </div>
 
             {error && <p className="text-sm text-muted-foreground">{error}</p>}
@@ -384,6 +428,16 @@ export function ProfilePage() {
           </p>
         )}
       </div>
+
+      {menuNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-5 right-5 z-50 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
+        >
+          {menuNotice}
+        </div>
+      )}
     </div>
   );
 }
