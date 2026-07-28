@@ -1,3 +1,10 @@
+/** Absolute local datetime for `<time title>`; empty when the instant is invalid. */
+export function formatAbsoluteTime(input: string | Date): string {
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString();
+}
+
 /**
  * Human-readable relative time for feed / comment timestamps.
  * Past times → "just now", "5 minutes ago", …; no live ticking.
@@ -14,8 +21,10 @@ export function formatRelativeTime(input: string | Date, now: Date = new Date())
   const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
   const sign = diffSec < 0 ? -1 : 1;
 
-  if (abs < 60 * 60) {
-    return rtf.format(sign * Math.max(1, Math.round(abs / 60)), "minute");
+  // Cap minutes below 60 so near-hour boundaries roll into hours (avoid "60 minutes ago").
+  const minutes = Math.round(abs / 60);
+  if (minutes < 60) {
+    return rtf.format(sign * Math.max(1, minutes), "minute");
   }
   if (abs < 60 * 60 * 24) {
     return rtf.format(sign * Math.max(1, Math.round(abs / 3600)), "hour");
