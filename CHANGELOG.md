@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.7 — 2026-07-28
+
+### Added
+- Emoji reactions (like / heart / haha / wow) on posts, comments, and replies
+- `reactions` table + PUT/DELETE APIs; `reactionSummary` embedded on feed/post/comment payloads
+- Shared `ReactionBar` (hover/press picker, CSS wiggle/pop, post vs comment sizes)
+- Bordered containers for feed posts, post detail, comments/composers, and profile header
+- Light feed canvas (`#F0F2F5`) with centered white cards (8px radius, subtle shadow) and “What's on your mind?” composer
+
+### Plans
+- `plans/07282026-15-reactions` — Completed
+
 ## 0.1.6 — 2026-07-28
 
 ### Added

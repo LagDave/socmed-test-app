@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "@/api/client";
-import type { CommentView, PostView } from "@/api/types";
+import type { CommentView, PostView, ReactionSummary } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ReactionBar } from "@/components/ReactionBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -78,6 +79,16 @@ export function PostDetailPage() {
     const c = await api.get<{ comments: CommentView[] }>(`/api/posts/${id}/comments`);
     setPost(p.post);
     setComments(c.comments);
+  }
+
+  function patchPostSummary(reactionSummary: ReactionSummary) {
+    setPost((prev) => (prev ? { ...prev, reactionSummary } : prev));
+  }
+
+  function patchCommentSummary(commentId: string, reactionSummary: ReactionSummary) {
+    setComments((prev) =>
+      prev.map((c) => (c.id === commentId ? { ...c, reactionSummary } : c))
+    );
   }
 
   useEffect(() => {
@@ -203,8 +214,8 @@ export function PostDetailPage() {
       <Link to="/" className="text-sm underline">
         ← Feed
       </Link>
-      <article className="space-y-2 border-b border-border pb-6">
-        <div className="flex items-start justify-between gap-3">
+      <article className="feed-card space-y-3 p-5">
+        <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
           <p className="font-medium">
             {post.author.displayName}
             {post.author.username ? ` @${post.author.username}` : ""}
@@ -225,13 +236,21 @@ export function PostDetailPage() {
         {post.imageUrl && (
           <img src={post.imageUrl} alt="" className="max-h-96 w-full object-cover border border-border" />
         )}
+        <ReactionBar
+          className="pt-1"
+          size="md"
+          targetType="post"
+          targetId={post.id}
+          summary={post.reactionSummary}
+          onSummaryChange={patchPostSummary}
+        />
       </article>
 
-      <div>
+      <div className="feed-card space-y-3 p-5">
         <h2 className="text-lg font-semibold">Comments</h2>
         <ul className="mt-3 space-y-3">
           {threads.map(({ parent, replies }) => (
-            <li key={parent.id} className="border-b border-border pb-3">
+            <li key={parent.id} className="rounded-lg border border-border/70 bg-canvas/60 p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
@@ -242,6 +261,16 @@ export function PostDetailPage() {
                   {parent.imageUrl && (
                     <img src={parent.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
                   )}
+                  <ReactionBar
+                    className="mt-2"
+                    size="sm"
+                    targetType="comment"
+                    targetId={parent.id}
+                    summary={parent.reactionSummary}
+                    onSummaryChange={(reactionSummary) =>
+                      patchCommentSummary(parent.id, reactionSummary)
+                    }
+                  />
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   {user?.id === parent.author.id && (
@@ -267,9 +296,9 @@ export function PostDetailPage() {
                 </div>
               </div>
               {replies.length > 0 && (
-                <ul className="mt-3 space-y-3 border-l border-border pl-6">
+                <ul className="mt-3 space-y-2 border-l border-border pl-4">
                   {replies.map((reply) => (
-                    <li key={reply.id}>
+                    <li key={reply.id} className="rounded-lg border border-border/60 bg-canvas/40 p-2.5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-baseline justify-between gap-2">
@@ -280,6 +309,16 @@ export function PostDetailPage() {
                           {reply.imageUrl && (
                             <img src={reply.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
                           )}
+                          <ReactionBar
+                            className="mt-2"
+                            size="sm"
+                            targetType="comment"
+                            targetId={reply.id}
+                            summary={reply.reactionSummary}
+                            onSummaryChange={(reactionSummary) =>
+                              patchCommentSummary(reply.id, reactionSummary)
+                            }
+                          />
                         </div>
                         {user?.id === reply.author.id && (
                           <Button
@@ -298,7 +337,7 @@ export function PostDetailPage() {
                 </ul>
               )}
               {user && replyTo?.id === parent.id && (
-                <form onSubmit={onReply} className="mt-3 space-y-3 border-l border-border pl-6">
+                <form onSubmit={onReply} className="mt-3 space-y-3 rounded-lg border border-border/70 bg-canvas/60 p-3">
                   <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
                     <span>
                       Replying to{" "}
@@ -327,7 +366,7 @@ export function PostDetailPage() {
             </li>
           ))}
           {orphans.map((orphan) => (
-            <li key={orphan.id} className="border-b border-border pb-3">
+            <li key={orphan.id} className="rounded-lg border border-border/70 bg-canvas/60 p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
@@ -338,6 +377,16 @@ export function PostDetailPage() {
                   {orphan.imageUrl && (
                     <img src={orphan.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
                   )}
+                  <ReactionBar
+                    className="mt-2"
+                    size="sm"
+                    targetType="comment"
+                    targetId={orphan.id}
+                    summary={orphan.reactionSummary}
+                    onSummaryChange={(reactionSummary) =>
+                      patchCommentSummary(orphan.id, reactionSummary)
+                    }
+                  />
                 </div>
                 {user?.id === orphan.author.id && (
                   <Button
@@ -355,21 +404,21 @@ export function PostDetailPage() {
           ))}
           {comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet.</p>}
         </ul>
-      </div>
 
-      {user && (
-        <form onSubmit={onComment} className="space-y-3">
-          <Textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={submitOnEnter}
-            placeholder="Write a comment"
-            required
-          />
-          <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-          <Button type="submit">Comment</Button>
-        </form>
-      )}
+        {user && (
+          <form onSubmit={onComment} className="mt-4 space-y-3 rounded-lg border border-border/70 bg-canvas/60 p-3">
+            <Textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={submitOnEnter}
+              placeholder="Write a comment"
+              required
+            />
+            <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
+            <Button type="submit">Comment</Button>
+          </form>
+        )}
+      </div>
 
       {error && <p className="text-sm text-muted-foreground">{error}</p>}
 

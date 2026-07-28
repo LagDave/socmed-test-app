@@ -8,9 +8,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
 
   return (
-    <div className="min-h-screen text-foreground">
-      <header className="border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
+    <div className="min-h-screen bg-canvas text-foreground">
+      <header className="sticky top-0 z-20 border-b border-border/80 bg-background/95 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-[680px] items-center justify-between px-4">
           <Link to="/" className="text-lg font-semibold tracking-tight">
             SocMed application
           </Link>
@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-8">{children}</main>
+      <main className="mx-auto max-w-[680px] px-4 py-6">{children}</main>
     </div>
   );
 }
