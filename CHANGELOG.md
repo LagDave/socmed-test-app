@@ -8,8 +8,12 @@
 - One-level comment replies on post detail
 - Notifications API (`/api/notifications`, counts, mark-read, `/api/feed/seen`)
 
+### Fixed
+- Removed empty stub migrations that reserved `comment_parent` / `reactions` version IDs (real schema stays on owning PRs)
+- Removed hard-coded Friends “Online” pip (no presence API)
+
 ### Plans
-- `plans/07282026-16-friends-management-ui` — Continued (Rev 11–15)
+- `plans/07282026-16-friends-management-ui` — Continued (Rev 11–16); PR #9 scope retitled to include notifications + feed-seen
 
 ## 0.1.3 — 2026-07-28
 

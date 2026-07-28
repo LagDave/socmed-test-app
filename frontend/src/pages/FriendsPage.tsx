@@ -16,17 +16,6 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-function OnlineDot({ isOnline }: { isOnline: boolean }) {
-  if (!isOnline) return null;
-  return (
-    <span
-      className="inline-block size-2 shrink-0 rounded-full bg-emerald-500"
-      title="Online"
-      aria-label="Online"
-    />
-  );
-}
-
 function FriendsSection({
   title,
   children,
@@ -138,9 +127,8 @@ export function FriendsPage() {
                 {mutuals.map((u) => (
                   <li
                     key={u.id}
-                    className="flex items-center gap-2 border-b border-border py-3 last:border-b-0"
+                    className="border-b border-border py-3 last:border-b-0"
                   >
-                    <OnlineDot isOnline />
                     <span>
                       {u.displayName} <span className="text-muted-foreground">@{u.username}</span>
                     </span>

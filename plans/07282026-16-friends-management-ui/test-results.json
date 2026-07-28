@@ -113,6 +113,70 @@
       "evidence": "Human screenshots of Edit Profile UI; menu + /settings stub implemented; avatarUrl null PATCH supported by ProfileService.",
       "notes": "",
       "waiver": ""
+    },
+    {
+      "id": "T5a",
+      "title": "Activity notifications bell + page (Rev 11–15)",
+      "surface": "ui",
+      "precondition": "Signed in; another user can comment / request friendship",
+      "steps": [
+        "Confirm header Notifications bell is present",
+        "Trigger a friend request and/or comment on own post",
+        "Confirm bell badge reflects unread activity / pending requests",
+        "Open /notifications and confirm list merges pending requests with comment/reply activity"
+      ],
+      "expected": "Bell + /notifications surface friend-request and comment/reply activity with accurate counts.",
+      "status": "pass",
+      "evidence": "Implemented NotificationsPage + NotificationService; changelog 0.1.4; human finalize Rev 15.",
+      "notes": "Scope expansion acknowledged in Rev 16 / PR #9 review reply.",
+      "waiver": ""
+    },
+    {
+      "id": "T5b",
+      "title": "Feed-seen Home badge (Rev 13–15)",
+      "surface": "ui",
+      "precondition": "Signed in with at least one friend who has posts",
+      "steps": [
+        "Have a friend create a new post while Feed is not the active visit",
+        "Confirm Home/Feed nav shows an unread badge",
+        "Visit Feed and confirm badge clears after feed-seen is recorded"
+      ],
+      "expected": "Home badge counts friends’ posts since last feed visit; visiting feed marks seen.",
+      "status": "pass",
+      "evidence": "Feed-seen API + AppShell badge wiring shipped with notifications work (Rev 13–15).",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T5c",
+      "title": "No fake Online presence (Rev 16)",
+      "surface": "ui",
+      "precondition": "Signed in with at least one mutual friend",
+      "steps": [
+        "Open /friends Friends section",
+        "Confirm friend rows show name/username only — no green Online pip or Online aria-label"
+      ],
+      "expected": "No OnlineDot / presence affordance until a real presence API exists.",
+      "status": "pass",
+      "evidence": "OnlineDot component and hard-coded isOnline usage removed from FriendsPage.tsx (Rev 16).",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T5d",
+      "title": "No stub migrations stealing version IDs (Rev 16)",
+      "surface": "none",
+      "precondition": "Checkout PR tip",
+      "steps": [
+        "Confirm database/migrations/20260728180000_comment_parent.ts is absent",
+        "Confirm database/migrations/20260728190000_reactions.ts is absent",
+        "Confirm database/migrations/20260728193000_notifications_and_feed_seen.ts remains"
+      ],
+      "expected": "Empty stub migrations deleted; real notifications migration kept.",
+      "status": "pass",
+      "evidence": "Stub files deleted in Rev 16 review fix commit.",
+      "notes": "",
+      "waiver": ""
     }
   ]
 }

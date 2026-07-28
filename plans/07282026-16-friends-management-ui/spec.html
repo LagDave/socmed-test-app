@@ -41,11 +41,11 @@
         <p class="eyebrow">Socmed Plan Spec · Seq 16</p>
         <span class="status-pill">Completed</span>
       </div>
-      <h1>Friends Management Dashboard UI</h1>
+        <h1>Friends UI + Activity Notifications</h1>
       <dl class="meta-grid">
         <div><dt>Status</dt><dd>Completed</dd></div>
         <div><dt>Plan Folder</dt><dd>plans/07282026-16-friends-management-ui</dd></div>
-        <div><dt>Size</dt><dd>Small (3 tasks, ~3–4 files)</dd></div>
+        <div><dt>Size</dt><dd>Medium (Friends/Profile UI + notifications/feed-seen)</dd></div>
         <div><dt>Risk</dt><dd>Level 2</dd></div>
         <div><dt>Branch</dt><dd>kylie/ui-beautification</dd></div>
         <div><dt>Depends on</dt><dd>Plan 07 (friendships) + plan 10 (theme toggle)</dd></div>
@@ -59,16 +59,27 @@
 
     <section class="spec-card" id="what">
       <h2>What</h2>
-      <p>A visual redesign of the existing Friends management surface on <code>/friends</code>: page-scoped soft canvas, centered white container card, clearer header + request form, stacked Incoming / Outgoing / Mutuals sections with dividers, and icon + microcopy empty states. Behavior and API contracts stay unchanged.</p>
+      <p>A visual redesign of the existing Friends management surface on <code>/friends</code>: page-scoped soft canvas, centered white container card, clearer header + request form, stacked Friend Request / Friends sections with dividers, and icon + microcopy empty states — plus Edit Profile UI polish, and (expanded scope) activity notifications + feed-seen unread badges.</p>
+      <p><strong>Deliverables in this plan / PR:</strong></p>
+      <ul>
+        <li><strong>Friends + Profile UI</strong> — dashboard card composition on <code>/friends</code>; Edit Profile banner/form; profile ⋯ menu; Account Settings stub at <code>/settings</code></li>
+        <li><strong>Activity notifications</strong> — migration <code>20260728193000_notifications_and_feed_seen.ts</code>; Notifications API; header bell + <code>/notifications</code> page for friend requests, comments on your posts, and replies to your comments</li>
+        <li><strong>Feed-seen badges</strong> — Home/Feed badge for friends’ new posts since last feed visit (<code>/api/feed/seen</code>)</li>
+      </ul>
       <p><strong>Done when:</strong></p>
       <ul>
         <li>Friends page shows a centered card on a soft page-local canvas (not a global body override)</li>
         <li>Heading is “Friends”; subtitle is “Requests and mutuals.”</li>
         <li>Request row has a taller Username input and a “Send Request” primary button with hover affordance</li>
-        <li>Incoming, Outgoing, and Mutual Friends are stacked sections with clear horizontal dividers</li>
+        <li>Friend Request and Friends are stacked sections with clear horizontal dividers (Outgoing removed Rev 4)</li>
         <li>Each empty section shows a muted user silhouette icon + professional microcopy (not “None”)</li>
-        <li>Existing accept / decline / cancel / send-request flows still work</li>
-        <li>Light and dark themes both look intentional on this page</li>
+        <li>Existing accept / decline / send-request flows still work</li>
+        <li>Edit Profile UI + banner ⋯ menu work as revised</li>
+        <li>Notifications bell shows accurate unread counts; <code>/notifications</code> lists friend-request + comment/reply activity</li>
+        <li>Home/Feed badge reflects friends’ posts since last feed visit; visiting feed marks seen</li>
+        <li>No fake presence / Online indicators without a presence API</li>
+        <li>No empty stub migrations stealing version IDs owned by other stacked PRs</li>
+        <li>Light and dark themes both look intentional on Friends / Profile / Notifications</li>
         <li>Frontend typecheck and build pass</li>
       </ul>
     </section>
@@ -240,6 +251,9 @@
         <li><span>☑</span><span>Feed and other routes visually unchanged</span></li>
         <li><span>☑</span><span><code>npm run typecheck</code> and <code>npm run build</code> pass in <code>frontend/</code></span></li>
         <li><span>☑</span><span>Edit Profile UI + banner ⋯ menu (Rev 5–6)</span></li>
+        <li><span>☑</span><span>Activity notifications API + bell + <code>/notifications</code> page (Rev 11–15)</span></li>
+        <li><span>☑</span><span>Feed-seen Home badge for friends’ new posts (Rev 13–15)</span></li>
+        <li><span>☑</span><span>Stub comment_parent / reactions migrations deleted; OnlineDot removed (Rev 16 / PR review)</span></li>
       </ul>
     </section>
 
@@ -322,6 +336,11 @@
             <td>Rev 15</td>
             <td>2026-07-28</td>
             <td><code>-d</code> Finalized notifications/feed badges work; changelog 0.1.4; pushed to <code>kylie/ui-beautification</code>.</td>
+          </tr>
+          <tr>
+            <td>Rev 16</td>
+            <td>2026-07-28</td>
+            <td>PR #9 review response: expand What/Done/acceptance to explicitly include activity notifications + feed-seen (honest scope with tip <code>9430851</code>+); retitle PR; <strong>delete</strong> empty stub migrations <code>20260728180000_comment_parent</code> / <code>20260728190000_reactions</code> (keep real <code>20260728193000_notifications_and_feed_seen</code>); remove hard-coded <code>OnlineDot</code> from Friends rows (no presence API). Base remains <code>main</code> this pass — restack onto <code>dev</code>/#6–#8 deferred (documented in contributor reply).</td>
           </tr>
         </tbody>
       </table>
