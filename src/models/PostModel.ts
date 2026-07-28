@@ -50,6 +50,16 @@ export class PostModel {
     return q;
   }
 
+  static async countByAuthorsSince(authorIds: string[], since: Date): Promise<number> {
+    if (authorIds.length === 0) return 0;
+    const row = await db("posts")
+      .whereIn("author_id", authorIds)
+      .andWhere("created_at", ">", since)
+      .count<{ count: string }>("id as count")
+      .first();
+    return Number(row?.count || 0);
+  }
+
   static async withTransaction<T>(fn: (trx: Knex.Transaction) => Promise<T>): Promise<T> {
     return db.transaction(fn);
   }

@@ -43,4 +43,8 @@ export class UserModel {
     const [row] = await db<UserRow>("users").where({ id }).update(patch).returning("*");
     return row;
   }
+
+  static async updateFeedSeenAt(id: string, seenAt: Date): Promise<void> {
+    await db("users").where({ id }).update({ feed_seen_at: seenAt });
+  }
 }

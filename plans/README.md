@@ -19,6 +19,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 13 | `07282026-13-enter-to-submit` | Enter submits comment/reply (Shift+Enter newline) |
 | 14 | `07282026-14-delete-buttons` | Delete own posts, comments, and replies |
 | 15 | `07282026-15-reactions` | Emoji reactions on posts, comments, and replies |
+| 16 | `07282026-16-friends-management-ui` | Friends management dashboard UI + activity notifications |
 
 ## Branch → host (hard rule)
 

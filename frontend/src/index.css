@@ -137,3 +137,12 @@ body {
 .reaction-emoji-pop {
   animation: reaction-pop 0.28s ease-out;
 }
+
+/* Soft canvas for settings-style pages (Friends, Profile) — not global body */
+.soft-page-canvas {
+  background: color-mix(in srgb, var(--muted) 88%, var(--background));
+}
+
+.dark .soft-page-canvas {
+  background: color-mix(in srgb, var(--muted) 70%, var(--background));
+}
