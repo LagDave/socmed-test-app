@@ -8,7 +8,7 @@ import { ReactionBar } from "@/components/ReactionBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { formatRelativeTime } from "@/lib/formatRelativeTime";
+import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 
 type CommentThread = { parent: CommentView; replies: CommentView[] };
@@ -22,7 +22,7 @@ function CommentTimestamp({ createdAt }: { createdAt: string }) {
     <time
       className="shrink-0 text-xs font-normal text-muted-foreground"
       dateTime={createdAt}
-      title={new Date(createdAt).toLocaleString()}
+      title={formatAbsoluteTime(createdAt) || undefined}
     >
       {formatRelativeTime(createdAt)}
     </time>
@@ -67,8 +67,11 @@ export function PostDetailPage() {
   const [replyBody, setReplyBody] = useState("");
   const [replyImageFile, setReplyImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { threads, orphans } = useMemo(() => groupComments(comments), [comments]);
@@ -100,6 +103,8 @@ export function PostDetailPage() {
     setReplyBody("");
     setReplyImageFile(null);
     setError(null);
+    busyRef.current = false;
+    setBusy(false);
     setPendingDelete(null);
     void load().catch((e: Error) => setError(e.message));
   }, [id]);
@@ -127,25 +132,34 @@ export function PostDetailPage() {
     file: File | null;
     parentId: string | null;
   }): Promise<boolean> {
-    if (!id) return false;
+    if (!id || busyRef.current) return false;
     const text = input.text.trim();
     if (!text) return false;
-    let imageUrl: string | null = null;
-    if (input.file) {
-      const up = await api.upload<{ url: string }>("/api/uploads", input.file);
-      imageUrl = up.url;
+    busyRef.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      let imageUrl: string | null = null;
+      if (input.file) {
+        const up = await api.upload<{ url: string }>("/api/uploads", input.file);
+        imageUrl = up.url;
+      }
+      await api.post(`/api/posts/${id}/comments`, {
+        body: text,
+        imageUrl,
+        parentId: input.parentId,
+      });
+      await load();
+      return true;
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
     }
-    await api.post(`/api/posts/${id}/comments`, {
-      body: text,
-      imageUrl,
-      parentId: input.parentId,
-    });
-    await load();
-    return true;
   }
 
   async function onComment(e: FormEvent) {
     e.preventDefault();
+    if (busyRef.current) return;
     try {
       const ok = await submitComment({ text: body, file: imageFile, parentId: null });
       if (ok) {
@@ -159,7 +173,7 @@ export function PostDetailPage() {
 
   async function onReply(e: FormEvent) {
     e.preventDefault();
-    if (!replyTo) return;
+    if (!replyTo || busyRef.current) return;
     try {
       const ok = await submitComment({ text: replyBody, file: replyImageFile, parentId: replyTo.id });
       if (ok) clearReply();
@@ -169,7 +183,8 @@ export function PostDetailPage() {
   }
 
   async function confirmPendingDelete() {
-    if (!pendingDelete) return;
+    if (!pendingDelete || deleting || deletingRef.current) return;
+    deletingRef.current = true;
     setDeleting(true);
     setError(null);
     try {
@@ -189,6 +204,7 @@ export function PostDetailPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
+      deletingRef.current = false;
       setDeleting(false);
     }
   }
@@ -360,7 +376,9 @@ export function PostDetailPage() {
                     accept="image/*"
                     onChange={(e) => setReplyImageFile(e.target.files?.[0] || null)}
                   />
-                  <Button type="submit">Reply</Button>
+                  <Button type="submit" disabled={busy}>
+                    Reply
+                  </Button>
                 </form>
               )}
             </li>
@@ -405,7 +423,7 @@ export function PostDetailPage() {
           {comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet.</p>}
         </ul>
 
-        {user && (
+{user && (
           <form onSubmit={onComment} className="mt-4 space-y-3 rounded-lg border border-border/70 bg-canvas/60 p-3">
             <Textarea
               value={body}
@@ -415,7 +433,9 @@ export function PostDetailPage() {
               required
             />
             <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-            <Button type="submit">Comment</Button>
+            <Button type="submit" disabled={busy}>
+              Comment
+            </Button>
           </form>
         )}
       </div>

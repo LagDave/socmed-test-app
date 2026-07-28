@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { PostView, ReactionSummary } from "@/api/types";
@@ -8,7 +8,7 @@ import { ReactionBar } from "@/components/ReactionBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { formatRelativeTime } from "@/lib/formatRelativeTime";
+import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 
 export function FeedPage() {
@@ -18,8 +18,10 @@ export function FeedPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
 
   async function load() {
     const data = await api.get<{ posts: PostView[] }>("/api/feed");
@@ -37,8 +39,10 @@ export function FeedPage() {
 
   async function onCompose(e: FormEvent) {
     e.preventDefault();
+    if (busyRef.current) return;
     const text = body.trim();
     if (!text) return;
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -54,12 +58,14 @@ export function FeedPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }
 
   async function confirmDeletePost() {
-    if (!pendingDeleteId) return;
+    if (!pendingDeleteId || deleting || deletingRef.current) return;
+    deletingRef.current = true;
     setDeleting(true);
     setError(null);
     try {
@@ -69,6 +75,7 @@ export function FeedPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
+      deletingRef.current = false;
       setDeleting(false);
     }
   }
@@ -128,7 +135,7 @@ export function FeedPage() {
                 <time
                   className="text-xs text-muted-foreground"
                   dateTime={p.createdAt}
-                  title={new Date(p.createdAt).toLocaleString()}
+                  title={formatAbsoluteTime(p.createdAt) || undefined}
                 >
                   {formatRelativeTime(p.createdAt)}
                 </time>
