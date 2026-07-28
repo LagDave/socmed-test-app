@@ -17,6 +17,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 11 | `07282026-11-comment-replies` | One-level comment replies |
 | 12 | `07282026-12-comment-timestamps` | Relative timestamps on feed, comments, replies |
 | 13 | `07282026-13-enter-to-submit` | Enter submits comment/reply (Shift+Enter newline) |
+| 14 | `07282026-14-delete-buttons` | Delete own posts, comments, and replies |
 
 ## Branch → host (hard rule)
 

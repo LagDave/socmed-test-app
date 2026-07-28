@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.6 — 2026-07-28
+
+### Added
+- Delete controls for own posts (Feed + post detail), comments, and replies
+- In-app `ConfirmDialog` modal before destructive deletes (no native browser confirm)
+
+### Plans
+- `plans/07282026-14-delete-buttons` — Completed
+
 ## 0.1.5 — 2026-07-28
 
 ### Added

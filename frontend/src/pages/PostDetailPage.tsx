@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { CommentView, PostView } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,10 @@ import { formatRelativeTime } from "@/lib/formatRelativeTime";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 
 type CommentThread = { parent: CommentView; replies: CommentView[] };
+
+type PendingDelete =
+  | { type: "post" }
+  | { type: "comment"; comment: CommentView; kind: "comment" | "reply" };
 
 function CommentTimestamp({ createdAt }: { createdAt: string }) {
   return (
@@ -51,6 +56,7 @@ function groupComments(comments: CommentView[]): { threads: CommentThread[]; orp
 
 export function PostDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [post, setPost] = useState<PostView | null>(null);
   const [comments, setComments] = useState<CommentView[]>([]);
@@ -60,6 +66,8 @@ export function PostDetailPage() {
   const [replyBody, setReplyBody] = useState("");
   const [replyImageFile, setReplyImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { threads, orphans } = useMemo(() => groupComments(comments), [comments]);
@@ -81,6 +89,7 @@ export function PostDetailPage() {
     setReplyBody("");
     setReplyImageFile(null);
     setError(null);
+    setPendingDelete(null);
     void load().catch((e: Error) => setError(e.message));
   }, [id]);
 
@@ -148,7 +157,46 @@ export function PostDetailPage() {
     }
   }
 
+  async function confirmPendingDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      if (pendingDelete.type === "post") {
+        if (!post) return;
+        await api.delete(`/api/posts/${post.id}`);
+        setPendingDelete(null);
+        navigate("/");
+        return;
+      }
+
+      const { comment } = pendingDelete;
+      await api.delete(`/api/comments/${comment.id}`);
+      if (replyTo?.id === comment.id) clearReply();
+      setPendingDelete(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (!post) return <p className="text-sm text-muted-foreground">{error || "Loading…"}</p>;
+
+  const deleteDialogTitle =
+    pendingDelete?.type === "post"
+      ? "Delete this post?"
+      : pendingDelete?.kind === "reply"
+        ? "Delete this reply?"
+        : "Delete this comment?";
+
+  const deleteDialogDescription =
+    pendingDelete?.type === "post"
+      ? "This removes the post and all of its comments."
+      : pendingDelete?.kind === "comment"
+        ? "This also removes any replies under this comment."
+        : undefined;
 
   return (
     <section className="space-y-6">
@@ -156,10 +204,23 @@ export function PostDetailPage() {
         ← Feed
       </Link>
       <article className="space-y-2 border-b border-border pb-6">
-        <p className="font-medium">
-          {post.author.displayName}
-          {post.author.username ? ` @${post.author.username}` : ""}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="font-medium">
+            {post.author.displayName}
+            {post.author.username ? ` @${post.author.username}` : ""}
+          </p>
+          {user?.id === post.author.id && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setPendingDelete({ type: "post" })}
+            >
+              Delete
+            </Button>
+          )}
+        </div>
         <p className="whitespace-pre-wrap text-lg">{post.body}</p>
         {post.imageUrl && (
           <img src={post.imageUrl} alt="" className="max-h-96 w-full object-cover border border-border" />
@@ -182,30 +243,56 @@ export function PostDetailPage() {
                     <img src={parent.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
                   )}
                 </div>
-                {user && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => startReply(parent)}
-                  >
-                    Reply
-                  </Button>
-                )}
+                <div className="flex shrink-0 items-center gap-1">
+                  {user?.id === parent.author.id && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPendingDelete({ type: "comment", comment: parent, kind: "comment" })}
+                    >
+                      Delete
+                    </Button>
+                  )}
+                  {user && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startReply(parent)}
+                    >
+                      Reply
+                    </Button>
+                  )}
+                </div>
               </div>
               {replies.length > 0 && (
                 <ul className="mt-3 space-y-3 border-l border-border pl-6">
                   {replies.map((reply) => (
                     <li key={reply.id}>
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="text-sm font-medium">{reply.author.displayName}</p>
-                        <CommentTimestamp createdAt={reply.createdAt} />
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <p className="text-sm font-medium">{reply.author.displayName}</p>
+                            <CommentTimestamp createdAt={reply.createdAt} />
+                          </div>
+                          <p className="whitespace-pre-wrap">{reply.body}</p>
+                          {reply.imageUrl && (
+                            <img src={reply.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
+                          )}
+                        </div>
+                        {user?.id === reply.author.id && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="shrink-0"
+                            onClick={() => setPendingDelete({ type: "comment", comment: reply, kind: "reply" })}
+                          >
+                            Delete
+                          </Button>
+                        )}
                       </div>
-                      <p className="whitespace-pre-wrap">{reply.body}</p>
-                      {reply.imageUrl && (
-                        <img src={reply.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
-                      )}
                     </li>
                   ))}
                 </ul>
@@ -241,14 +328,29 @@ export function PostDetailPage() {
           ))}
           {orphans.map((orphan) => (
             <li key={orphan.id} className="border-b border-border pb-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="text-sm font-medium">{orphan.author.displayName}</p>
-                <CommentTimestamp createdAt={orphan.createdAt} />
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium">{orphan.author.displayName}</p>
+                    <CommentTimestamp createdAt={orphan.createdAt} />
+                  </div>
+                  <p className="whitespace-pre-wrap">{orphan.body}</p>
+                  {orphan.imageUrl && (
+                    <img src={orphan.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
+                  )}
+                </div>
+                {user?.id === orphan.author.id && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => setPendingDelete({ type: "comment", comment: orphan, kind: "reply" })}
+                  >
+                    Delete
+                  </Button>
+                )}
               </div>
-              <p className="whitespace-pre-wrap">{orphan.body}</p>
-              {orphan.imageUrl && (
-                <img src={orphan.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
-              )}
             </li>
           ))}
           {comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet.</p>}
@@ -270,6 +372,17 @@ export function PostDetailPage() {
       )}
 
       {error && <p className="text-sm text-muted-foreground">{error}</p>}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={deleteDialogTitle}
+        description={deleteDialogDescription}
+        busy={deleting}
+        onCancel={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={() => void confirmPendingDelete()}
+      />
     </section>
   );
 }
