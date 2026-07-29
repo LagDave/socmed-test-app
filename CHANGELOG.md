@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.10 — 2026-07-29
+
+### Changed
+- Feed / post detail: comment control is an icon beside reactions (`MessageSquare`); post body no longer navigates to detail
+- Parent comments: reply trigger is an icon beside reactions; compose submit labels stay text
+
+### Plans
+- `plans/07292026-18-comment-action-icons` — Completed
+
 ## 0.1.9 — 2026-07-29
 
 ### Added
