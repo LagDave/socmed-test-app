@@ -18,6 +18,7 @@ function matchesQuery(user: PublicUser, query: string): boolean {
 export function MessagesFriendPicker({ hasConversations }: { hasConversations: boolean }) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchToggleRef = useRef<HTMLButtonElement>(null);
   const [mutuals, setMutuals] = useState<PublicUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,6 +54,7 @@ export function MessagesFriendPicker({ hasConversations }: { hasConversations: b
   function closeSearch() {
     setSearchOpen(false);
     setQuery("");
+    searchToggleRef.current?.focus();
   }
 
   function toggleSearch() {
@@ -84,17 +86,21 @@ export function MessagesFriendPicker({ hasConversations }: { hasConversations: b
     <section className="space-y-3 border-t border-border pt-4 first:border-t-0 first:pt-0">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-wide text-foreground">{title}</h2>
-        {!searchOpen && (
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            aria-label="Search friends"
-            onClick={toggleSearch}
-          >
+        <Button
+          ref={searchToggleRef}
+          type="button"
+          size="icon"
+          variant="ghost"
+          aria-expanded={searchOpen}
+          aria-label={searchOpen ? "Close search" : "Search friends"}
+          onClick={toggleSearch}
+        >
+          {searchOpen ? (
+            <X className="h-4 w-4" aria-hidden="true" />
+          ) : (
             <Search className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        )}
+          )}
+        </Button>
       </div>
 
       {searchOpen && (
@@ -113,15 +119,6 @@ export function MessagesFriendPicker({ hasConversations }: { hasConversations: b
             aria-label="Search friends"
             className="flex-1"
           />
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            aria-label="Close search"
-            onClick={closeSearch}
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </Button>
         </div>
       )}
 

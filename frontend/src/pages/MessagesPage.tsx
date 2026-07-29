@@ -191,26 +191,36 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
   useEffect(() => {
     const socket = getMessagesSocket();
-    const generation = () => generationRef.current;
+    const generation = generationRef.current;
 
-    const applyMessage = (payload: MessageEventPayload) => {
+    // Reactions/unsends only patch the affected row — no mark-read, no scroll.
+    const applyMessagePatch = (payload: MessageEventPayload) => {
       const msg = payload.message;
       if (msg.conversationId !== conversationId) return;
-      if (generation() !== generationRef.current) return;
-      stickToBottomRef.current = true;
+      if (generation !== generationRef.current) return;
       setMessages((prev) => mergeById(prev, [msg]));
+    };
+
+    // Only an inbound new message should steal scroll position and mark the thread read.
+    const applyInboundNewMessage = (payload: MessageEventPayload) => {
+      const msg = payload.message;
+      if (msg.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setMessages((prev) => mergeById(prev, [msg]));
+      if (msg.senderId === user?.id) return;
+      stickToBottomRef.current = true;
       void api.post(`/api/messages/conversations/${conversationId}/read`).catch(() => undefined);
     };
 
-    socket.on(MESSAGE_NEW, applyMessage);
-    socket.on(MESSAGE_UNSENT, applyMessage);
-    socket.on(MESSAGE_REACTION, applyMessage);
+    socket.on(MESSAGE_NEW, applyInboundNewMessage);
+    socket.on(MESSAGE_UNSENT, applyMessagePatch);
+    socket.on(MESSAGE_REACTION, applyMessagePatch);
     return () => {
-      socket.off(MESSAGE_NEW, applyMessage);
-      socket.off(MESSAGE_UNSENT, applyMessage);
-      socket.off(MESSAGE_REACTION, applyMessage);
+      socket.off(MESSAGE_NEW, applyInboundNewMessage);
+      socket.off(MESSAGE_UNSENT, applyMessagePatch);
+      socket.off(MESSAGE_REACTION, applyMessagePatch);
     };
-  }, [conversationId]);
+  }, [conversationId, user?.id]);
 
   useEffect(() => {
     if (!stickToBottomRef.current) return;
@@ -257,7 +267,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       );
       if (generation !== generationRef.current) return;
       setBody("");
-      setMessages((prev) => [...prev, data.message]);
+      setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
     } catch (err) {
@@ -284,7 +294,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       );
       if (generation !== generationRef.current) return;
       setBody("");
-      setMessages((prev) => [...prev, data.message]);
+      setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
     } catch (err) {

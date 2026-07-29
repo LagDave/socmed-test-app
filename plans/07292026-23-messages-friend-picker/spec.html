@@ -251,6 +251,11 @@ Conversations
             <td>2026-07-29</td>
             <td>Finalized (<code>-d</code>) after localhost review on <code>http://localhost:5180</code>. Acceptance Passed (A5 waived: zero-mutuals account not exercised). Changelog 0.1.12.</td>
           </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-07-30</td>
+            <td>PR #26 review fixes (Dave, reviewer turn 01). <code>ThreadView</code> REST send/upload success paths now merge via <code>mergeById</code> instead of appending, closing the duplicate-bubble defect shared with the plan-22 Socket.IO work (also fixes PR #25). Socket apply split into <code>applyInboundNewMessage</code> (mark-read + stick-to-bottom, inbound-only) and <code>applyMessagePatch</code> (reaction/unsent — patches in place, no scroll/mark-read); dead <code>generation()</code> closure replaced with a snapshot taken at effect entry, matching the poll-path pattern. <code>MessagesFriendPicker</code> search toggle is now a single persistent button with <code>aria-expanded</code> and refocuses itself on close (Esc or icon). See <code>reviews/02-07302026-contributor-reply.md</code>.</td>
+          </tr>
         </tbody>
       </table>
     </section>
