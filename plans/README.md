@@ -25,6 +25,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 19 | `07292026-19-navbar-arrangement` | Full-width navbar zones + profile dropdown |
 | 21 | `07292026-21-removed-outline-padding` | Flush soft-page-canvas (drop outer outline padding) |
 | 22 | `07292026-22-messages-websockets` | Messages live delivery via Socket.IO (REST writes stay) |
+| 23 | `07292026-23-messages-friend-picker` | Messages inbox: auto mutuals + icon-triggered friend search |
 
 ## Branch → host (hard rule)
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ImagePlus, MessageCircle, SendHorizontal } from "lucide-react";
+import { ImagePlus, SendHorizontal } from "lucide-react";
 import { api } from "@/api/client";
 import {
   CONVERSATION_UPDATED,
@@ -19,6 +19,7 @@ import type {
 } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
+import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -476,46 +477,40 @@ function InboxView() {
 
       <div className="feed-card p-5">
         {error && <p className="text-sm text-muted-foreground">{error}</p>}
+        <MessagesFriendPicker hasConversations={items.length > 0} />
         {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-            <MessageCircle
-              className="size-10 text-muted-foreground/40"
-              aria-hidden="true"
-              strokeWidth={1.25}
-            />
-            <p className="text-sm text-muted-foreground">
-              No conversations yet. Message a friend from Friends or their profile.
-            </p>
-            <Button asChild variant="outline" className="mt-2">
-              <Link to="/friends">Go to Friends</Link>
-            </Button>
-          </div>
+          <p className="pt-2 text-center text-sm text-muted-foreground">
+            No conversations yet. Pick a friend above to start chatting.
+          </p>
         ) : (
-          <ul className="divide-y divide-border">
-            {items.map((c) => (
-              <li key={c.id}>
-                <Link
-                  to={`/messages/${c.id}`}
-                  className="flex items-start justify-between gap-3 py-3 transition-colors hover:bg-accent/40"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">
-                      {c.peer.displayName}{" "}
-                      <span className="font-normal text-muted-foreground">
-                        @{c.peer.username}
+          <section className="space-y-1 border-t border-border pt-4">
+            <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
+            <ul className="divide-y divide-border">
+              {items.map((c) => (
+                <li key={c.id}>
+                  <Link
+                    to={`/messages/${c.id}`}
+                    className="flex items-start justify-between gap-3 py-3 transition-colors hover:bg-accent/40"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">
+                        {c.peer.displayName}{" "}
+                        <span className="font-normal text-muted-foreground">
+                          @{c.peer.username}
+                        </span>
+                      </p>
+                      <p className="truncate text-sm text-muted-foreground">{snippet(c)}</p>
+                    </div>
+                    {c.unreadCount > 0 && (
+                      <span className="mt-1 shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
+                        {c.unreadCount > 9 ? "9+" : c.unreadCount}
                       </span>
-                    </p>
-                    <p className="truncate text-sm text-muted-foreground">{snippet(c)}</p>
-                  </div>
-                  {c.unreadCount > 0 && (
-                    <span className="mt-1 shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
-                      {c.unreadCount > 9 ? "9+" : c.unreadCount}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </div>
     </section>

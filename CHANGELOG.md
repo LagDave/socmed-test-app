@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.13 — 2026-07-29
+
+### Added
+- Messages inbox friend picker: accepted mutuals listed automatically; tap opens/creates a 1:1 thread
+- Icon-triggered friend search (right-aligned): filter input expands on search icon tap; Esc/close collapses
+
+### Changed
+- Empty Messages state no longer dead-ends on “Go to Friends” alone; quiet Manage friends link retained
+
+### Plans
+- `plans/07292026-23-messages-friend-picker` — Completed
+
 ## 0.1.12 — 2026-07-29
 
 ### Added

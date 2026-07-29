@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Messages Friend Picker Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .layout-ascii { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; background:var(--soft); border:1px solid var(--line); border-radius:8px; padding:14px; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 23</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Messages Friend Picker — Auto Friends + Icon Search</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07292026-23-messages-friend-picker</dd></div>
+        <div><dt>Size</dt><dd>Small (3 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 — Concern</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07292026-23-messages-friend-picker</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/messages-friend-picker (from current messenger tip)</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 17 messenger · Plan 22 websockets optional (UI-only)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Opening Messages with no conversations shows a dead-end empty state (“Go to Friends”). Starting a chat requires leaving Messages entirely. Users expect to see friends on the Messages surface and start a chat without bouncing to Friends or a profile.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>On <code>/messages</code> (inbox), always show a <strong>Friends</strong> (new-message) section fed by accepted mutuals. Tap a friend → get-or-create conversation → open the thread. Filtering uses an <strong>icon search on the right</strong>: the text input is hidden until the search icon is tapped.</p>
+
+      <p><strong>Empty inbox (collapsed search):</strong></p>
+      <pre class="layout-ascii">Messages
+Chat with friends.
+
+Friends                                    [🔍]
+  Alice  @alice
+  Bob    @bob
+Manage friends →</pre>
+
+      <p><strong>Empty inbox (search open):</strong></p>
+      <pre class="layout-ascii">Messages
+Chat with friends.
+
+Friends
+[ Search friends…                              ] [✕]
+  Alice  @alice
+Manage friends →</pre>
+
+      <p><strong>Inbox with conversations:</strong></p>
+      <pre class="layout-ascii">Messages
+Chat with friends.
+
+New message                                [🔍]
+  Alice  @alice
+  Bob    @bob
+
+Conversations
+  Alice — Hey…
+  Carol — Sent a photo</pre>
+
+      <ul>
+        <li>Mutual friends list loads automatically when the Messages inbox mounts</li>
+        <li>Search icon sits on the <strong>right</strong> of the Friends / New message section header</li>
+        <li>Tap/click icon → search input appears (auto-focus); icon acts as close (✕) while open, or Esc closes</li>
+        <li>Filter is client-side over mutuals (displayName + username); mutuals-only — no stranger lookup, no send-request</li>
+        <li>Row tap uses existing <code>openConversationWithUsername</code> → navigate to <code>/messages/:id</code></li>
+        <li>Quiet “Manage friends” link (empty state and/or section footer) replaces the sole “Go to Friends” CTA</li>
+        <li>Conversation list unchanged below New message when inbox is non-empty</li>
+      </ul>
+
+      <div class="callout">
+        <strong>Done when:</strong> empty and non-empty inbox both expose mutuals; icon search expands/collapses correctly; picking a friend opens (or creates) a thread; no new backend endpoints.
+      </div>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Decisions (locked)</h2>
+      <table>
+        <thead><tr><th>Question</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Empty inbox content</td>
+            <td>Mutual friends list + icon-triggered filter</td>
+            <td>Removes bounce to Friends for starting a chat</td>
+          </tr>
+          <tr>
+            <td>Non-empty inbox</td>
+            <td>Same picker above the conversation list (“New message”)</td>
+            <td>Starting a chat must not only work when inbox is empty</td>
+          </tr>
+          <tr>
+            <td>Search affordance</td>
+            <td>Right-aligned search icon; input appears only after tap</td>
+            <td>Keeps the default view clean; filter on demand</td>
+          </tr>
+          <tr>
+            <td>Who is searchable</td>
+            <td>Accepted mutuals only (client filter)</td>
+            <td>Messenger is friends-only; requests stay on Friends</td>
+          </tr>
+          <tr>
+            <td>Backend</td>
+            <td>None — reuse <code>GET /api/friends/mutuals</code> + <code>POST /api/messages/conversations</code></td>
+            <td>APIs already exist from plan 17</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Primary file</strong> — <code>frontend/src/pages/MessagesPage.tsx</code> (<code>InboxView</code> empty state + list).</p>
+      <p><strong>Reuse</strong> — <code>openConversationWithUsername</code> in <code>frontend/src/api/messages.ts</code>; mutuals list pattern from <code>FriendsPage.tsx</code>; Lucide <code>Search</code> / <code>X</code> icons already available.</p>
+      <p><strong>Closest analog</strong> — Friends mutual rows with Message icon; this plan inverts the flow: Messages owns the friend list and opens the thread.</p>
+      <p><strong>UI language</strong> — Existing B&amp;W soft-card Messages canvas; ghost/icon buttons consistent with Friends message icon; no new brand accent.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Show mutual friends automatically on <code>/messages</code> inbox (empty and non-empty)</li>
+            <li>Search input hidden until search icon is activated</li>
+            <li>Search icon aligned to the right of the section header</li>
+            <li>Filter mutuals client-side only</li>
+            <li>Open chat via existing get-or-create conversation API</li>
+            <li>Preserve conversation list + live inbox updates (sockets/poll) behavior</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>Add friend-request / username-send UI on Messages</li>
+            <li>Add new backend routes or schema</li>
+            <li>Change thread view (<code>/messages/:id</code>) layout</li>
+            <li>Filter or hide the conversation list with the friends search (search scopes friends only)</li>
+            <li>Drive-by refactor of FriendsPage or AppShell</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Out of scope</strong> — online presence, recent-friends ranking, pagination of mutuals, message search, groups.</p>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Non-empty inbox gains a second list (friends + conversations). Mitigate with clear section titles (“New message” / “Conversations”) and keep search collapsed by default so the chrome stays light.</p>
+      <p><strong>Blast radius</strong> — <code>MessagesPage.tsx</code> inbox only; consumers of conversation APIs and thread view unchanged. Friends entry icons remain valid shortcuts.</p>
+      <p><strong>Required pushback</strong> — Do not invent a second open-conversation path; reuse <code>openConversationWithUsername</code>. Do not load all users — mutuals endpoint only.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="t1">
+        <h3>T1 — Mutuals list on Messages inbox</h3>
+        <dl>
+          <div><dt>Do</dt><dd>In <code>InboxView</code>, fetch <code>GET /api/friends/mutuals</code> on mount. Replace the dead-end empty state with a Friends section listing mutuals. When conversations exist, render the same list under a “New message” heading above the conversation list. Row click → <code>openConversationWithUsername</code> → navigate to thread. Add a quiet Manage friends link. Handle zero-mutuals copy separately from zero-conversations.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code> (optional small extract only if it stays colocated and clear)</dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>Empty inbox shows friends; tap opens thread; non-empty shows friends above conversations</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="t2">
+        <h3>T2 — Right-side icon search (expand on tap)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Section header: title left, Search icon button right. Collapsed by default — no filter input visible. On tap: show “Search friends…” input, auto-focus, swap icon to close (or second tap / Escape closes and clears query). Client-filter mutuals by displayName/username (case-insensitive). Empty filter results show a short “No matching friends” line — do not hide the conversation list.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Input absent until icon tap; filter narrows friends; Esc/close restores collapsed icon</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="t3">
+        <h3>T3 — Typecheck + acceptance artifacts</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Run frontend typecheck/lint/build for touched surface. Fill acceptance checklist statuses after behavioral verify (or leave pending for human tick).</dd></div>
+          <div><dt>Files</dt><dd><code>test-results.json</code>, <code>test.html</code>, this spec Revision Log / status</dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd>Typecheck clean for this change; acceptance items runnable</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled checked> Empty Messages inbox shows mutual friends (not only “Go to Friends”)</li>
+        <li><input type="checkbox" disabled checked> Non-empty inbox shows New message friends section above conversations</li>
+        <li><input type="checkbox" disabled checked> Search icon is right-aligned; input appears only after tap</li>
+        <li><input type="checkbox" disabled checked> Filter is mutuals-only; close/Esc collapses search</li>
+        <li><input type="checkbox" disabled checked> Tapping a friend opens/creates the 1:1 thread</li>
+        <li><input type="checkbox" disabled checked> No new API/schema; typecheck gate green for this change</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-29</td>
+            <td>Initial spec. Locked: always show mutuals on inbox; icon-triggered right search; mutuals-only filter; frontend-only. Planning branch <code>plan/07292026-23-messages-friend-picker</code>.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-29</td>
+            <td>Executed on <code>kylie/messages-friend-picker</code>. Added <code>MessagesFriendPicker</code>; wired into <code>InboxView</code>. Typecheck/lint/build green. UI acceptance A1–A5 pending human tick.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-29</td>
+            <td>Finalized (<code>-d</code>) after localhost review on <code>http://localhost:5180</code>. Acceptance Passed (A5 waived: zero-mutuals account not exercised). Changelog 0.1.12.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
