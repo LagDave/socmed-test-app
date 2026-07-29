@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Friends Messenger Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 17</p>
+        <span class="status-pill">Pending Execution</span>
+      </div>
+      <h1>Friends Messenger (1:1)</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07292026-17-friends-messenger</dd></div>
+        <div><dt>Size</dt><dd>Large (schema + API + SPA inbox/thread)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07292026-17-friends-messenger</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 07 friendships · Plan 08 uploads · Plan 16 friends UI / shell badges</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>SocMed already has mutual friendships and a friends management surface, but friends still cannot talk privately. A 1:1 messenger — inbox, thread, text, images, reactions, unsend — makes the social graph useful beyond the feed without inventing groups or a realtime infrastructure stack in the same plan.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>A friends-only <strong>1:1 messenger</strong> with a dedicated Messages surface, REST APIs, and short polling while a thread is open.</p>
+      <p><strong>Deliverables:</strong></p>
+      <ul>
+        <li><strong>Schema</strong> — <code>conversations</code> (ordered user pair), <code>messages</code> (text and/or image, soft-unsend), <code>message_reactions</code>, per-user last-read on the conversation</li>
+        <li><strong>API</strong> — list/create conversation, list/send messages, unsend own message, react/unreact, mark read, unread count</li>
+        <li><strong>SPA</strong> — <code>/messages</code> inbox + <code>/messages/:conversationId</code> thread; AppShell Messages nav icon with unread badge; icon entry points on Friends mutual rows and friend profiles</li>
+        <li><strong>Delivery model</strong> — request/response + short polling in an open thread; unread badge refresh on navigation and while Messages routes are active</li>
+      </ul>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Two accepted mutuals can open a conversation and exchange text and images</li>
+        <li>Non-friends cannot create or send into a conversation (403/deny)</li>
+        <li>Own message unsend leaves a visible “Unsent a message” placeholder for both sides</li>
+        <li>Either participant can add/change/remove a reaction from a fixed emoji set on a non-unsent message</li>
+        <li>Messages nav shows an unread badge; Notifications bell/feed is unchanged (no message rows there)</li>
+        <li>With a thread open, new messages from the peer appear without a full page reload (via poll)</li>
+        <li>Frontend typecheck/build and backend typecheck pass; acceptance checklist passes or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Thread model</td>
+            <td><strong>A — 1:1 only</strong></td>
+            <td>One conversation per accepted friend pair (canonical ordered ids). Groups deferred.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Realtime</td>
+            <td><strong>A — REST + short polling</strong></td>
+            <td>No WebSocket/SSE stack today. Poll open threads (~2–3s) and unread while on Messages routes. Live push is a later plan.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Content</td>
+            <td><strong>Text + images + reactions</strong></td>
+            <td>Reuse <code>POST /api/uploads</code> for images. Message reactions are a new table (not dependent on post-reactions PRs). Fixed emoji allow-list.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Chat chrome</td>
+            <td><strong>Unread badge yes · Unsend → “Unsent a message” · no edit / read receipts / typing</strong></td>
+            <td>Unsend is soft tombstone, not hard delete. Typing/receipts need stronger realtime semantics — defer.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Entry points</td>
+            <td><strong>A — Messages nav + icon on friend surfaces</strong></td>
+            <td>AppShell icon between Friends and Profile. Friends mutual row + other-user profile get a message <em>icon</em> (not the word “Message”), only when accepted mutual.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Friendship edge</td>
+            <td><strong>A — gate on accepted; no unfriend in this plan</strong></td>
+            <td>Send/create requires <code>accepted</code> friendship. Unfriend API stays out of scope; when it exists later, threads become read-only.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Notifications</td>
+            <td><strong>B — Messages badge only</strong></td>
+            <td>Do not add a <code>message</code> type to the Notifications bell feed. Unread lives on the Messages nav badge (+ inbox UI).</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Sizing</td>
+            <td><strong>A — single plan</strong></td>
+            <td>Schema, API, and SPA ship together for spec-code parity.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Placement:</strong> first-class <code>/messages</code> surface in AppShell — not buried inside Friends. Friends/Profile icons are shortcuts into get-or-create conversation.
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Gate</strong> — <code>FriendshipModel.findPair</code> + <code>status === "accepted"</code>, or add <code>areFriends(a,b)</code> helper used by MessageService only (do not invent a second social graph).</p>
+      <p><strong>Auth</strong> — cookie session + <code>requireAuth</code> on all message routes (same as friends/posts).</p>
+      <p><strong>Uploads</strong> — existing <code>POST /api/uploads</code> returns <code>/uploads/…</code> URL; message create accepts that URL after validation (must be same-origin upload path pattern already used by posts/avatars).</p>
+      <p><strong>Closest analogs</strong> — Comments (ordered text create + author hydrate + ownership delete) for messaging; Friends mutuals list for recipient picker / icon row; AppShell notification badge for unread badge UX (separate count endpoint).</p>
+      <p><strong>Shell</strong> — <code>frontend/src/components/AppShell.tsx</code> NavIcon pattern; add Messages with Lucide <code>MessageCircle</code> (or equivalent already available).</p>
+      <p><strong>UI language</strong> — B&amp;W tokens, soft-page canvas optional on Messages routes to match Friends/Notifications; no new brand accent.</p>
+      <p><strong>Layering</strong> — routes → controller → service → model; Zod in service; <code>ok</code>/<code>fail</code>/<code>AppError</code>; frontend via <code>api</code> client only. Follow Code Constitution.</p>
+      <p><strong>Execution note</strong> — Implement on a feature branch cut from current <code>dev</code> (or agreed integration tip), not on the planning worktree. Planning artifacts live under this folder.</p>
+    </section>
+
+    <section class="spec-card" id="data-model">
+      <h2>Data Model (sketch)</h2>
+      <table>
+        <thead><tr><th>Table</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>conversations</code></td>
+            <td><code>id</code>, <code>user_a</code>, <code>user_b</code> (canonical <code>user_a &lt; user_b</code>), unique pair, <code>created_at</code>, <code>last_message_at</code>, <code>user_a_last_read_at</code>, <code>user_b_last_read_at</code></td>
+          </tr>
+          <tr>
+            <td><code>messages</code></td>
+            <td><code>id</code>, <code>conversation_id</code>, <code>sender_id</code>, nullable <code>body</code>, nullable <code>image_url</code>, <code>unsent_at</code> nullable, <code>created_at</code>. At least one of body/image required on create. Unsent clears body/image for clients and sets <code>unsent_at</code>.</td>
+          </tr>
+          <tr>
+            <td><code>message_reactions</code></td>
+            <td><code>message_id</code>, <code>user_id</code>, <code>emoji</code>, unique <code>(message_id, user_id)</code> — one reaction per user per message (replace on change). Cascade on message delete only if hard-deleted (prefer keep rows; hide when message unsent).</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Migration timestamp must not collide with stacked PRs; propose <code>20260729140000_friends_messenger.ts</code> (adjust if taken). Scaffold notes in <code>migrations/</code>.</p>
+    </section>
+
+    <section class="spec-card" id="api">
+      <h2>API Surface (intended)</h2>
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td>GET</td><td><code>/api/messages/conversations</code></td><td>Inbox: peer preview, last message snippet, unread flag/count, sorted by <code>last_message_at</code></td></tr>
+          <tr><td>POST</td><td><code>/api/messages/conversations</code></td><td>Body <code>{ username }</code> or <code>{ userId }</code> — get-or-create 1:1 if accepted mutual; else deny</td></tr>
+          <tr><td>GET</td><td><code>/api/messages/conversations/:id</code></td><td>Thread messages (cursor/limit), include reactions summary; participant-only</td></tr>
+          <tr><td>POST</td><td><code>/api/messages/conversations/:id/messages</code></td><td>Send text and/or <code>imageUrl</code>; requires still-accepted friendship</td></tr>
+          <tr><td>DELETE</td><td><code>/api/messages/messages/:id</code></td><td>Unsend own message → tombstone “Unsent a message”</td></tr>
+          <tr><td>PUT</td><td><code>/api/messages/messages/:id/reaction</code></td><td>Set/replace emoji from allow-list</td></tr>
+          <tr><td>DELETE</td><td><code>/api/messages/messages/:id/reaction</code></td><td>Clear own reaction</td></tr>
+          <tr><td>POST</td><td><code>/api/messages/conversations/:id/read</code></td><td>Bump current user’s last-read timestamp</td></tr>
+          <tr><td>GET</td><td><code>/api/messages/unread-count</code></td><td><code>{ unread: number }</code> for AppShell badge (conversations with activity after last-read)</td></tr>
+        </tbody>
+      </table>
+      <p>Exact path names may match repo pluralization style; keep under <code>/api/messages</code> and document any rename in the Revision Log.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Accepted mutual required to create conversation and to send</li>
+            <li>Participant-only access to conversations/messages</li>
+            <li>Unsend = soft tombstone visible as “Unsent a message”</li>
+            <li>Images via existing upload pipeline (no parallel uploader)</li>
+            <li>Fixed emoji allow-list for reactions (document set in service constant)</li>
+            <li>Messages unread badge separate from Notifications counts</li>
+            <li>B&amp;W tokens; light + dark readable</li>
+            <li>Constitution layering; no business rules in React components</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No WebSockets / SSE / Socket.IO in this plan</li>
+            <li>No group chats / named rooms</li>
+            <li>No message rows in Notifications feed</li>
+            <li>No typing indicators, read receipts, or edit-message</li>
+            <li>No unfriend/block implementation in this plan</li>
+            <li>No new npm dependencies without written justification in Revision Log</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Voice/video, stickers packs, GIF search, link previews</li>
+        <li>Push notifications / email / mobile apps</li>
+        <li>Message search, pinning, forwarding, disappearing messages</li>
+        <li>Presence / online dots</li>
+        <li>Encrypting message bodies at rest beyond normal DB access control</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Greenfield messaging domain with authz bugs as the main hazard. Realtime (WS) was rejected for this plan to avoid Level 3 infra blast.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Messaging non-friends / wrong conversation</td>
+            <td>Privacy breach</td>
+            <td>Service-level <code>areFriends</code> + participant check on every write/read; tests for deny paths</td>
+          </tr>
+          <tr>
+            <td>Orphan / duplicate 1:1 conversations</td>
+            <td>Inbox chaos</td>
+            <td>Canonical ordered pair + unique constraint; get-or-create in a transaction</td>
+          </tr>
+          <tr>
+            <td>Polling load</td>
+            <td>API noise</td>
+            <td>Poll only while thread mounted; backoff when tab hidden; modest page size</td>
+          </tr>
+          <tr>
+            <td>Unsend vs reactions</td>
+            <td>Confusing UI</td>
+            <td>Unsent messages show placeholder only; reactions UI disabled/hidden on unsent</td>
+          </tr>
+          <tr>
+            <td>Nav density on mobile</td>
+            <td>Header crowding</td>
+            <td>Icon-only NavIcon (same as Friends/Bell); no text label</td>
+          </tr>
+          <tr>
+            <td>Migration ID collision with stacked PRs</td>
+            <td>Migrate failures</td>
+            <td>Verify unused timestamp before landing; never steal another PR’s version</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Required pushback:</strong> Do not expand this plan into WebSockets or group chat mid-execution. If product insists on instant delivery, open a follow-up plan rather than silently widening scope.
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Messenger schema</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add migration for <code>conversations</code>, <code>messages</code>, <code>message_reactions</code> with FKs, unique pair, indexes on <code>(conversation_id, created_at)</code> and unread helpers.</dd></div>
+          <div><dt>Files</dt><dd><code>database/migrations/…_friends_messenger.ts</code>; models under <code>src/models/</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>npm run migrate</code> clean; unique pair enforced</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Message service + HTTP API</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Implement MessageService (friendship gate, get-or-create, list/send, unsend, react, read, unread-count) + controller + <code>/api/messages</code> router mounted in <code>src/routes/index.ts</code>. Add <code>FriendshipModel.areFriends</code> (or equivalent) if missing.</dd></div>
+          <div><dt>Files</dt><dd><code>src/services/MessageService.ts</code>, <code>src/controllers/messages/*</code>, <code>src/routes/messages.ts</code>, Friendship model touch</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Two mutuals can round-trip messages via API; stranger denied; unsend returns tombstone shape</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — SPA inbox + thread + polling</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Routes <code>/messages</code> and <code>/messages/:conversationId</code>; inbox list; thread composer (text + image upload); render unsent placeholder; reaction picker; poll thread while mounted; mark read on open.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code> (and/or split Inbox/Thread components), <code>App.tsx</code>, api helpers as needed</dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>UI send/receive/image/react/unsend; peer message appears via poll without full reload</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Shell badge + entry icons</h3>
+        <dl>
+          <div><dt>Do</dt><dd>AppShell Messages NavIcon + unread from <code>/api/messages/unread-count</code> (do not fold into notifications counts). Message icon on Friends mutual rows and on other-user profile when mutual; opens get-or-create → thread.</dd></div>
+          <div><dt>Files</dt><dd><code>AppShell.tsx</code>, <code>FriendsPage.tsx</code>, <code>ProfilePage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2, T3</dd></div>
+          <div><dt>Verify</dt><dd>Badge increments on unread inbound; Notifications page has no message items; icons only for mutuals</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> Migration applied; models cover conversations, messages, reactions, last-read</li>
+        <li><input type="checkbox" disabled> All listed API endpoints behave with friendship + participant gates</li>
+        <li><input type="checkbox" disabled> Inbox + thread UI complete (text, image, react, unsend placeholder)</li>
+        <li><input type="checkbox" disabled> Polling works on open thread; unread Messages badge works; Notifications untouched</li>
+        <li><input type="checkbox" disabled> Entry icons on Friends + Profile for mutuals only</li>
+        <li><input type="checkbox" disabled> Typecheck/build green; acceptance <code>test-results.json</code> rollup Passed (or written waivers)</li>
+        <li><input type="checkbox" disabled> Spec Revision Log updated if any contract drifted during execution</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-29</td>
+            <td>Initial spec from grill: 1:1, polling, text+image+reactions, unsend placeholder, Messages badge only, no unfriend, nav + icon entry points.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
