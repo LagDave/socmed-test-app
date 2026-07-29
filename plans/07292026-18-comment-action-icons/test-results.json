@@ -1,0 +1,104 @@
+{
+  "plan": "plans/07292026-18-comment-action-icons",
+  "generatedAt": "2026-07-29",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1a",
+      "title": "Feed action row: reactions then comment icon",
+      "surface": "ui",
+      "precondition": "Signed in; Feed shows at least one post with ReactionBar",
+      "steps": [
+        "Open Feed",
+        "Under a post body, confirm ReactionBar and a comment icon sit in one horizontal row (icon to the right of the reaction control)",
+        "Confirm there is no visible “Comment” text label on that control",
+        "Confirm no comment count is shown on the icon"
+      ],
+      "expected": "Mock-matching action row: reaction control then comment icon only.",
+      "status": "pass",
+      "evidence": "Human review 2026-07-29 on localhost:5181 — action row matches mock; MessageSquare icon beside reactions.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T1b",
+      "title": "Feed comment icon opens post comments; body no longer navigates",
+      "surface": "ui",
+      "precondition": "Signed in on Feed with at least one post",
+      "steps": [
+        "Click the post body text — confirm it does not navigate to post detail",
+        "Click the comment icon beside reactions",
+        "Confirm URL is /posts/:id#comments (or lands on detail with comments in view)"
+      ],
+      "expected": "Only the comment icon enters detail/comments; body click is inert for navigation.",
+      "status": "pass",
+      "evidence": "Human review 2026-07-29 — body no longer navigates; comment icon opens detail comments.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T1c",
+      "title": "Post detail comment icon scrolls to comments",
+      "surface": "ui",
+      "precondition": "Signed in on a post detail page",
+      "steps": [
+        "Confirm post ReactionBar has a comment icon beside it",
+        "Click the comment icon",
+        "Confirm the comments section (id=comments) scrolls into view"
+      ],
+      "expected": "Detail comment icon focuses/scrolls to the comments block without leaving the page.",
+      "status": "pass",
+      "evidence": "Human review 2026-07-29 — detail comment icon scrolls to comments section.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3a",
+      "title": "Reply icon beside comment reactions",
+      "surface": "ui",
+      "precondition": "Signed in on a post with at least one top-level comment",
+      "steps": [
+        "Under a parent comment, confirm ReactionBar and a reply icon sit in one row",
+        "Confirm there is no text “Reply” button as the reply trigger",
+        "Click the reply icon",
+        "Confirm the inline reply composer opens (same as before)",
+        "Submit a reply and confirm it nests under the parent"
+      ],
+      "expected": "Reply is icon-triggered beside reactions; one-level reply flow unchanged.",
+      "status": "pass",
+      "evidence": "Human review 2026-07-29 — reply icon beside reactions; flow confirmed OK.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3b",
+      "title": "Compose submit labels stay text",
+      "surface": "ui",
+      "precondition": "Signed in on post detail",
+      "steps": [
+        "Confirm the top-level compose submit button still says “Comment”",
+        "Open a reply form and confirm its submit button still says “Reply”"
+      ],
+      "expected": "Only row affordances are icons; form submits keep text labels.",
+      "status": "pass",
+      "evidence": "Human review 2026-07-29 — compose submit labels remain text.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "No backend / dependency changes; typecheck green",
+      "surface": "none",
+      "precondition": "Execution complete on kylie/comment-action-icons",
+      "steps": [
+        "Diff confirms no database/migrations or API route changes for this feature",
+        "Run frontend typecheck/build"
+      ],
+      "expected": "Frontend-only change set; typecheck/build pass.",
+      "status": "pass",
+      "evidence": "Diff limited to FeedPage, PostDetailPage, PostActionRow (+ plan artifacts). npm run typecheck / lint / build green after npm install in exec worktree.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

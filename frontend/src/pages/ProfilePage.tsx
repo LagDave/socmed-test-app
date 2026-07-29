@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Camera, MoreHorizontal } from "lucide-react";
+import { Camera, MessageCircle, MoreHorizontal } from "lucide-react";
 import { api } from "@/api/client";
+import { openConversationWithUsername } from "@/api/messages";
 import type { PublicUser } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -161,6 +162,7 @@ function ProfileOverflowMenu({
 
 export function ProfilePage() {
   const { username } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user: me, setUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -171,6 +173,7 @@ export function ProfilePage() {
   const [bio, setBio] = useState("");
   const [editUsername, setEditUsername] = useState("");
   const [avatarUrlInput, setAvatarUrlInput] = useState("");
+  const [isMutual, setIsMutual] = useState(false);
 
   const isSelf = Boolean(me && profile && me.id === profile.id);
   const isPublicPreview = searchParams.get("view") === "public";
@@ -189,6 +192,25 @@ export function ProfilePage() {
       })
       .catch((e: Error) => setError(e.message));
   }, [username]);
+
+  useEffect(() => {
+    if (!me || !profile || me.id === profile.id) {
+      setIsMutual(false);
+      return;
+    }
+    let cancelled = false;
+    void api
+      .get<{ areFriends: boolean }>(`/api/friends/status/${profile.id}`)
+      .then((d) => {
+        if (!cancelled) setIsMutual(d.areFriends);
+      })
+      .catch(() => {
+        if (!cancelled) setIsMutual(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [me, profile]);
 
   useEffect(() => {
     if (!menuNotice) return;
@@ -267,6 +289,17 @@ export function ProfilePage() {
     }
   }
 
+  async function openMessage() {
+    if (!profile?.username) return;
+    setError(null);
+    try {
+      const id = await openConversationWithUsername(profile.username);
+      navigate(`/messages/${id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not open chat");
+    }
+  }
+
   if (!profile) {
     return <p className="text-sm text-muted-foreground">{error || "Loading…"}</p>;
   }
@@ -277,7 +310,7 @@ export function ProfilePage() {
   return (
     <div className="soft-page-canvas -mx-4 space-y-4 rounded-2xl px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-2xl space-y-4">
-        <header className="flex items-center gap-5 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_18px_rgba(0,0,0,0.05)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_6px_18px_rgba(0,0,0,0.4)]">
+        <header className="flex items-center gap-5 rounded-xl border border-border bg-card p-6 text-card-foreground soft-card-shadow">
           <ProfileAvatar displayName={profile.displayName} avatarUrl={profile.avatarUrl} />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{profile.displayName}</h1>
@@ -286,9 +319,25 @@ export function ProfilePage() {
               <p className="mt-3 max-w-prose text-sm text-foreground/90">{profile.bio}</p>
             )}
             {!isSelf && profile.username && (
-              <Button type="button" className="mt-4" onClick={() => void sendFriendRequest()}>
-                Add friend
-              </Button>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {!isMutual && (
+                  <Button type="button" onClick={() => void sendFriendRequest()}>
+                    Add friend
+                  </Button>
+                )}
+                {isMutual && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    aria-label={`Message ${profile.displayName}`}
+                    title="Message"
+                    onClick={() => void openMessage()}
+                  >
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                )}
+              </div>
             )}
             {isSelf && isPublicPreview && (
               <Button
@@ -324,7 +373,7 @@ export function ProfilePage() {
         {showEditor && (
           <form
             onSubmit={onSave}
-            className="space-y-5 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_18px_rgba(0,0,0,0.05)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_6px_18px_rgba(0,0,0,0.4)]"
+            className="space-y-5 rounded-xl border border-border bg-card p-6 text-card-foreground soft-card-shadow"
           >
             <div>
               <h2 className="text-lg font-bold tracking-tight">Edit Profile</h2>

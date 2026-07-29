@@ -4,6 +4,7 @@ import { api } from "@/api/client";
 import type { PostView, ReactionSummary } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PostActionRow } from "@/components/PostActionRow";
 import { ReactionBar } from "@/components/ReactionBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -147,20 +148,19 @@ export function FeedPage() {
                 )}
               </div>
             </div>
-            <Link to={`/posts/${p.id}`} className="mt-1 block whitespace-pre-wrap text-[15px] leading-relaxed">
-              {p.body}
-            </Link>
+            <p className="mt-1 whitespace-pre-wrap text-[15px] leading-relaxed">{p.body}</p>
             {p.imageUrl && (
               <img src={p.imageUrl} alt="" className="mt-4 max-h-96 w-full rounded-lg object-cover" />
             )}
-            <ReactionBar
-              className="mt-4"
-              size="md"
-              targetType="post"
-              targetId={p.id}
-              summary={p.reactionSummary}
-              onSummaryChange={(reactionSummary) => patchPostSummary(p.id, reactionSummary)}
-            />
+            <PostActionRow className="mt-4" size="md" commentTo={`/posts/${p.id}#comments`}>
+              <ReactionBar
+                size="md"
+                targetType="post"
+                targetId={p.id}
+                summary={p.reactionSummary}
+                onSummaryChange={(reactionSummary) => patchPostSummary(p.id, reactionSummary)}
+              />
+            </PostActionRow>
           </li>
         ))}
         {posts.length === 0 && (
