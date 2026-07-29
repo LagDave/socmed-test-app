@@ -61,7 +61,7 @@
     <section class="spec-card" id="what">
       <h2>What</h2>
       <ul>
-        <li>Replace Unicode glyphs with lucide icons for the fixed set: <code>like</code>, <code>heart</code>, <code>haha</code>, <code>wow</code>.</li>
+        <li>Render the fixed set — <code>like</code>, <code>heart</code>, <code>haha</code>, <code>wow</code> — through one shared <code>ReactionIcon</code> component instead of per-surface glyph literals.</li>
         <li><strong>Locked sticker map</strong> (Facebook-equivalent Unicode emoji — FB proprietary art cannot be copied):
           <table>
             <thead><tr><th>Key</th><th>Sticker</th><th>Label</th></tr></thead>
@@ -74,11 +74,11 @@
           </table>
         </li>
         <li>Surfaces: <code>ReactionBar</code> (Feed, post detail, comments/replies) <strong>and</strong> message reactions on <code>MessagesPage</code>.</li>
-        <li>Selected state: ring/highlight on the picker’s active option (emoji stickers are full-color; no lucide fill).</li>
+        <li>Selected state: ring/highlight on the picker’s active option (stickers are full-color, so there is no fill/tint treatment).</li>
         <li>Keep hover labels (Like / Heart / Haha / Wow), expand/hold picker UX, pop/wiggle animations, set/switch/clear API behavior, and counts for types with ≥1.</li>
         <li>API/DB enum keys and payloads unchanged — presentation-only swap.</li>
       </ul>
-      <p><strong>Done when:</strong> no Unicode reaction glyphs remain on those surfaces; icons match the map; fill marks the viewer’s reaction; set/switch/clear + counts still work on posts, comments, replies, and messages; typecheck/build green; acceptance checklist runnable.</p>
+      <p><strong>Done when:</strong> no surface renders its own reaction glyph literals — every one goes through <code>ReactionIcon</code> and the locked map above; a ring marks the viewer’s reaction; set/switch/clear + counts still work on posts, comments, replies, and messages; typecheck/build green; acceptance checklist runnable.</p>
     </section>
 
     <section class="spec-card" id="context">
@@ -101,11 +101,11 @@
           <h3>Must</h3>
           <ul>
             <li>Same four reaction keys; same set/switch/clear semantics</li>
-            <li>Lucide map locked above; reuse existing <code>lucide-react</code> — no new deps</li>
-            <li>Icons on ReactionBar trigger, expanded picker, and per-emoji counts</li>
-            <li>Icons on Messages reaction buttons and visible count summary</li>
-            <li>Viewer’s active reaction uses filled icon treatment</li>
-            <li>Each reaction type uses its locked color (Like blue, Heart red, Haha amber, Wow orange) on ReactionBar + Messages</li>
+            <li>Sticker map locked above (Unicode 👍❤️😂😮); no new dependencies</li>
+            <li>One shared source of truth: <code>lib/reactionOptions.ts</code> owns the map, <code>ReactionIcon</code> renders it</li>
+            <li>Stickers on ReactionBar trigger, expanded picker, and per-emoji counts</li>
+            <li>Stickers on Messages reaction buttons and visible count summary</li>
+            <li>Viewer’s active reaction is marked by a ring on the picker option — not by a fill or tint</li>
             <li>Keep existing labels, a11y (<code>aria-label</code> / listbox roles), hover expand + touch hold, pop animation</li>
             <li>Frontend only — no schema, routes, or API contract changes</li>
             <li>Follow Code Constitution; no business logic moved into UI</li>
@@ -115,7 +115,9 @@
           <h3>Must Not</h3>
           <ul>
             <li>No adding/removing reaction types</li>
-            <li>No colored “sticker” emoji assets or new icon packs</li>
+            <li>No new icon packs, image/SVG sticker assets, or copies of proprietary Facebook art — Unicode text glyphs only</li>
+            <li>No per-type color classes or filled/muted icon variants</li>
+            <li>No glyph literals outside <code>lib/reactionOptions.ts</code></li>
             <li>No renaming <code>ReactionEmoji</code> / DB enum / request body field <code>emoji</code></li>
             <li>No redesign of PostActionRow / comment-icon layout from Plan 18</li>
             <li>No backend / migration changes</li>
@@ -274,6 +276,11 @@
             <td>7</td>
             <td>2026-07-29</td>
             <td>Finalized (<code>-d</code>): Done checklist verified against settled Unicode stickers; acceptance updated; changelog 0.1.11; status Completed.</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>2026-07-30</td>
+            <td>Review R2 (PR #19, turn 01): Constraints and What still described the abandoned lucide/filled/per-type-color visual that Rev 5–6 and the shipped code replaced. Rewrote What + Must/Must Not to the settled state — Unicode 👍❤️😂😮 owned by <code>lib/reactionOptions.ts</code> and rendered by <code>ReactionIcon</code>, ring (not fill) for the viewer’s reaction, no per-type colors, no glyph literals outside the map. Also R4: removed the dead <code>filled</code>/<code>muted</code> props from <code>ReactionIcon</code> and made Messages surface reaction failures through the thread error banner instead of a bare <code>catch</code>. Restacked onto <code>dev</code> (R1/R3) so this plan’s delta no longer re-carries plans 17/18. No behavior change to reaction keys or API.</td>
           </tr>
         </tbody>
       </table>

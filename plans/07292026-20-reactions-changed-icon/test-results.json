@@ -1,7 +1,7 @@
 {
   "plan": "plans/07292026-20-reactions-changed-icon",
   "generatedAt": "2026-07-29",
-  "status": "Passed",
+  "status": "Pending",
   "items": [
     {
       "id": "T1a",
@@ -76,6 +76,22 @@
       "evidence": "",
       "notes": "Superseded by Rev 5–6.",
       "waiver": "Requirement withdrawn when settling on Facebook-equivalent Unicode stickers."
+    },
+    {
+      "id": "T4a",
+      "title": "Failed message reaction surfaces an error (Rev 8 / review R4)",
+      "surface": "ui",
+      "precondition": "Signed in with a conversation open; reaction endpoint made to fail (offline or blocked request)",
+      "steps": [
+        "Open a Messages thread",
+        "Go offline or block PUT /api/messages/messages/:id/reaction",
+        "Click a reaction sticker on a message"
+      ],
+      "expected": "Thread error line shows the failure message instead of the click silently doing nothing.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Added after PR #19 review R4 replaced the bare catch with onError → ThreadView setError. Needs a browser/-tw run.",
+      "waiver": ""
     }
   ]
 }

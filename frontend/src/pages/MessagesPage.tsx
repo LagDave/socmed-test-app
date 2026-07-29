@@ -38,9 +38,11 @@ function snippet(item: ConversationListItem): string {
 function MessageReactions({
   message,
   onChange,
+  onError,
 }: {
   message: MessageView;
   onChange: (next: MessageView) => void;
+  onError: (message: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   if (message.isUnsent) return null;
@@ -61,8 +63,8 @@ function MessageReactions({
         );
         onChange(data.message);
       }
-    } catch {
-      /* keep prior summary */
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Reaction failed");
     } finally {
       setBusy(false);
     }
@@ -344,7 +346,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               </div>
               {!m.isUnsent && (
                 <>
-                  <MessageReactions message={m} onChange={patchMessage} />
+                  <MessageReactions message={m} onChange={patchMessage} onError={setError} />
                   {mine && (
                     <button
                       type="button"
