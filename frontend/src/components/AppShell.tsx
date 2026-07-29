@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Bell, Home, UserRound, Users } from "lucide-react";
+import { Bell, Home, MessageCircle, UserRound, Users } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { api } from "@/api/client";
 import { Button } from "@/components/ui/button";
@@ -51,11 +51,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [notificationCount, setNotificationCount] = useState(0);
   const [feedCount, setFeedCount] = useState(0);
+  const [messagesCount, setMessagesCount] = useState(0);
 
   useEffect(() => {
     if (!user) {
       setNotificationCount(0);
       setFeedCount(0);
+      setMessagesCount(0);
       return;
     }
     let cancelled = false;
@@ -73,9 +75,31 @@ export function AppShell({ children }: { children: ReactNode }) {
           setFeedCount(0);
         }
       });
+    void api
+      .get<{ unread: number }>("/api/messages/unread-count")
+      .then((data) => {
+        if (!cancelled) setMessagesCount(data.unread);
+      })
+      .catch(() => {
+        if (!cancelled) setMessagesCount(0);
+      });
     return () => {
       cancelled = true;
     };
+  }, [user, location.pathname]);
+
+  useEffect(() => {
+    if (!user) return;
+    const onMessages = location.pathname.startsWith("/messages");
+    if (!onMessages) return;
+    const id = window.setInterval(() => {
+      if (document.hidden) return;
+      void api
+        .get<{ unread: number }>("/api/messages/unread-count")
+        .then((data) => setMessagesCount(data.unread))
+        .catch(() => undefined);
+    }, 5000);
+    return () => window.clearInterval(id);
   }, [user, location.pathname]);
 
   return (
@@ -98,6 +122,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                   to="/friends"
                   label="Friends"
                   icon={<Users className="h-4 w-4" aria-hidden="true" />}
+                />
+                <NavIcon
+                  to="/messages"
+                  label="Messages"
+                  icon={<MessageCircle className="h-4 w-4" aria-hidden="true" />}
+                  badge={messagesCount}
                 />
                 <NavIcon
                   to={`/u/${user.username || "me"}`}

@@ -54,6 +54,11 @@ export class FriendshipService {
     return users.filter(Boolean).map((u) => toPublicUser(u!));
   }
 
+  static async areFriendsWith(userId: string, otherUserId: string): Promise<{ areFriends: boolean }> {
+    if (!otherUserId) throw new AppError("FRIEND_VALIDATION", "userId is required.");
+    return { areFriends: await FriendshipModel.areFriends(userId, otherUserId) };
+  }
+
   static async inbox(userId: string) {
     const incoming = await FriendshipModel.listIncoming(userId);
     const outgoing = await FriendshipModel.listOutgoing(userId);

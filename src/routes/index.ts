@@ -6,6 +6,7 @@ import { postsRouter } from "./posts";
 import { friendsRouter } from "./friends";
 import { uploadsRouter } from "./uploads";
 import { notificationsRouter } from "./notifications";
+import { messagesRouter } from "./messages";
 
 export const apiRouter = Router();
 
@@ -16,3 +17,4 @@ apiRouter.use(postsRouter);
 apiRouter.use(friendsRouter);
 apiRouter.use(uploadsRouter);
 apiRouter.use(notificationsRouter);
+apiRouter.use(messagesRouter);

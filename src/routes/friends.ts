@@ -10,3 +10,4 @@ friendsRouter.post("/friends/:id/decline", requireAuth, FriendsController.declin
 friendsRouter.delete("/friends/:id", requireAuth, FriendsController.cancel);
 friendsRouter.get("/friends/mutuals", requireAuth, FriendsController.mutuals);
 friendsRouter.get("/friends/inbox", requireAuth, FriendsController.inbox);
+friendsRouter.get("/friends/status/:userId", requireAuth, FriendsController.status);
