@@ -22,6 +22,10 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 16 | `07282026-16-friends-management-ui` | Friends management dashboard UI + activity notifications |
 | 17 | `07292026-17-friends-messenger` | Friends-only 1:1 messenger (poll) |
 | 18 | `07292026-18-comment-action-icons` | Comment icon beside reactions; reply icon |
+<<<<<<< HEAD
+=======
+| 19 | `07292026-19-navbar-arrangement` | Full-width navbar zones + profile dropdown |
+>>>>>>> origin/kylie/navbar-arrangement
 
 ## Branch → host (hard rule)
 

@@ -3,11 +3,22 @@
 ## 0.1.10 — 2026-07-29
 
 ### Changed
+<<<<<<< HEAD
 - Feed / post detail: comment control is an icon beside reactions (`MessageSquare`); post body no longer navigates to detail
 - Parent comments: reply trigger is an icon beside reactions; compose submit labels stay text
 
 ### Plans
 - `plans/07292026-18-comment-action-icons` — Completed
+=======
+- AppShell header is full-width with three zones: brand left, Home + Friends centered, Messages · Notifications · Profile on the right
+- Signed-in theme toggle and Log out moved into a Profile dropdown (Profile · Switch mode · Log out)
+
+### Added
+- shadcn/Radix `DropdownMenu` UI primitive (`frontend/src/components/ui/dropdown-menu.tsx`)
+
+### Plans
+- `plans/07292026-19-navbar-arrangement` — Completed
+>>>>>>> origin/kylie/navbar-arrangement
 
 ## 0.1.9 — 2026-07-29
 

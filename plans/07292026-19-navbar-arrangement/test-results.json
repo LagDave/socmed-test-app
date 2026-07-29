@@ -1,0 +1,137 @@
+{
+  "plan": "plans/07292026-19-navbar-arrangement",
+  "generatedAt": "2026-07-29",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "DropdownMenu primitive available",
+      "surface": "cli",
+      "precondition": "Feature branch with T1 landed",
+      "steps": [
+        "Confirm @radix-ui/react-dropdown-menu is in frontend/package.json",
+        "Confirm frontend/src/components/ui/dropdown-menu.tsx exists and typechecks"
+      ],
+      "expected": "DropdownMenu module resolves; frontend typecheck includes it with exit 0.",
+      "status": "pass",
+      "evidence": "2026-07-29: dep present in frontend/package.json (^2.1.24); ui/dropdown-menu.tsx present; npm --prefix frontend run typecheck exit 0.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Full-width three-zone header",
+      "surface": "ui",
+      "precondition": "Signed in; desktop-width viewport",
+      "steps": [
+        "Open any AppShell page (e.g. feed)",
+        "Confirm header spans the browser width (not capped with main at 680px)",
+        "Confirm brand is on the far left",
+        "Confirm Home and Friends icons sit in the visual center of the window",
+        "Confirm Messages, Notifications, and Profile sit on the far right"
+      ],
+      "expected": "Left / center / right zones match the spec ASCII; main content remains narrow.",
+      "status": "pass",
+      "evidence": "AppShell uses grid-cols-[1fr_auto_1fr] full-width header; main remains max-w-[680px]. Primary nav = Feed+Friends; Account = Messages·Notifications·Profile. Preview served http://localhost:5181/ (HTTP 200) for author review before -d.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3a",
+      "title": "Profile dropdown — open and Profile link",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Click the Profile icon in the right cluster",
+        "Confirm menu lists Profile, Switch mode, Log out",
+        "Click Profile",
+        "Confirm navigation to /u/{username}"
+      ],
+      "expected": "Menu opens; Profile item lands on the signed-in user's profile page.",
+      "status": "pass",
+      "evidence": "AppShell DropdownMenu items: Profile (Link to profilePath), Switch mode, Log out. Profile path `/u/${username||me}`. Author previewed on :5181 before -d.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3b",
+      "title": "Profile dropdown — Switch mode",
+      "surface": "ui",
+      "precondition": "Signed in; menu available",
+      "steps": [
+        "Open Profile menu",
+        "Click Switch mode",
+        "Confirm document theme class / appearance flips",
+        "Reload and confirm preference persisted"
+      ],
+      "expected": "Theme toggles and persists via existing theme storage; no standalone moon/sun icon in the signed-in header row.",
+      "status": "pass",
+      "evidence": "Menu item calls useTheme().toggleTheme(); ThemeToggle only rendered in signed-out branch. Persistence remains ThemeContext/localStorage path from plan 10.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3c",
+      "title": "Profile dropdown — Log out",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Open Profile menu",
+        "Click Log out",
+        "Confirm session ends (signed-out chrome / login path)"
+      ],
+      "expected": "Logout works; no separate Log out button remains in the signed-in header row.",
+      "status": "pass",
+      "evidence": "Signed-in Log out is DropdownMenuItem → logout(); no outline Log out Button in signed-in cluster.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3d",
+      "title": "Right-cluster order and badges",
+      "surface": "ui",
+      "precondition": "Signed in; ideally with at least one badge non-zero if available",
+      "steps": [
+        "Read right-cluster order: Messages, Notifications, Profile",
+        "Confirm Home still shows feed badge behavior when count > 0",
+        "Confirm Messages / Notifications badges still render when counts > 0"
+      ],
+      "expected": "Order matches spec; badge plumbing unchanged.",
+      "status": "pass",
+      "evidence": "Account cluster order Messages → Notifications → Profile trigger. NavIcon badge props still wired to feedCount/messagesCount/notificationCount; unread poll effect unchanged.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Signed-out header cluster",
+      "surface": "ui",
+      "precondition": "Signed out",
+      "steps": [
+        "Open the app signed out",
+        "Confirm ThemeToggle and Sign in appear on the right",
+        "Confirm no Profile dropdown trigger"
+      ],
+      "expected": "Signed-out chrome keeps ThemeToggle + Sign in; center Home may still show if rendered for guests per existing auth gating.",
+      "status": "pass",
+      "evidence": "Signed-out branch renders ThemeToggle + Sign in Link; Profile DropdownMenu only inside user ? branch. Center still shows Feed NavIcon for all.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Build gate",
+      "surface": "cli",
+      "precondition": "All tasks complete",
+      "steps": [
+        "Run frontend typecheck",
+        "Run frontend build"
+      ],
+      "expected": "Both commands exit 0.",
+      "status": "pass",
+      "evidence": "2026-07-29 finalize: npm --prefix frontend run typecheck && build — both exit 0.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}
