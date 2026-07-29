@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.12 — 2026-07-30
+
+### Changed
+- Reaction stickers on posts, comments, replies, and messages: shared `ReactionIcon` renders Facebook-equivalent Unicode 👍❤️😂😮 (settled visual after icon experiments)
+
+### Plans
+- `plans/07292026-20-reactions-changed-icon` — Completed
+
 ## 0.1.11 — 2026-07-29
 
 ### Changed

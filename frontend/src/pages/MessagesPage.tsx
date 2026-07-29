@@ -9,17 +9,13 @@ import type {
   ReactionEmoji,
 } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ReactionIcon } from "@/components/ReactionIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { REACTION_OPTIONS } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
 
 const POLL_MS = 2500;
-const EMOJI_OPTIONS: { emoji: ReactionEmoji; glyph: string }[] = [
-  { emoji: "like", glyph: "👍" },
-  { emoji: "heart", glyph: "❤️" },
-  { emoji: "haha", glyph: "😂" },
-  { emoji: "wow", glyph: "😮" },
-];
 
 function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] {
   const map = new Map<string, MessageView>();
@@ -72,28 +68,36 @@ function MessageReactions({
     }
   }
 
-  const visible = EMOJI_OPTIONS.filter((o) => message.reactionSummary.counts[o.emoji] > 0);
+  const visible = REACTION_OPTIONS.filter((o) => message.reactionSummary.counts[o.emoji] > 0);
 
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1">
-      {EMOJI_OPTIONS.map((o) => (
-        <button
-          key={o.emoji}
-          type="button"
-          disabled={busy}
-          aria-label={`React ${o.emoji}`}
-          className={cn(
-            "rounded-md px-1.5 py-0.5 text-sm transition-colors hover:bg-accent",
-            message.reactionSummary.viewerEmoji === o.emoji && "bg-accent"
-          )}
-          onClick={() => void apply(o.emoji)}
-        >
-          {o.glyph}
-        </button>
-      ))}
+      {REACTION_OPTIONS.map((o) => {
+        const selected = message.reactionSummary.viewerEmoji === o.emoji;
+        return (
+          <button
+            key={o.emoji}
+            type="button"
+            disabled={busy}
+            aria-label={o.label}
+            className={cn(
+              "inline-flex items-center justify-center rounded-md px-1.5 py-0.5 transition-colors hover:bg-accent",
+              selected && "bg-accent"
+            )}
+            onClick={() => void apply(o.emoji)}
+          >
+            <ReactionIcon emoji={o.emoji} className="text-sm" />
+          </button>
+        );
+      })}
       {visible.length > 0 && (
-        <span className="ml-1 text-xs text-muted-foreground">
-          {visible.map((o) => `${o.glyph}${message.reactionSummary.counts[o.emoji]}`).join(" ")}
+        <span className="ml-1 inline-flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          {visible.map((o) => (
+            <span key={o.emoji} className="inline-flex items-center gap-0.5">
+              <ReactionIcon emoji={o.emoji} className="text-xs" />
+              <span>{message.reactionSummary.counts[o.emoji]}</span>
+            </span>
+          ))}
         </span>
       )}
     </div>

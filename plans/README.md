@@ -23,6 +23,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 17 | `07292026-17-friends-messenger` | Friends-only 1:1 messenger (poll) |
 | 18 | `07292026-18-comment-action-icons` | Comment icon beside reactions; reply icon |
 | 19 | `07292026-19-navbar-arrangement` | Full-width navbar zones + profile dropdown |
+| 20 | `07292026-20-reactions-changed-icon` | Reaction stickers 👍❤️😂😮 (ReactionBar + Messages) |
 | 21 | `07292026-21-removed-outline-padding` | Flush soft-page-canvas (drop outer outline padding) |
 
 ## Branch → host (hard rule)

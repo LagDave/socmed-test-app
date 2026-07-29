@@ -1,14 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/api/client";
 import type { ReactionEmoji, ReactionSummary } from "@/api/types";
+import { ReactionIcon } from "@/components/ReactionIcon";
+import { REACTION_OPTIONS, reactionOption } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
-
-const EMOJI_OPTIONS: { emoji: ReactionEmoji; glyph: string; label: string }[] = [
-  { emoji: "like", glyph: "👍", label: "Like" },
-  { emoji: "heart", glyph: "❤️", label: "Heart" },
-  { emoji: "haha", glyph: "😂", label: "Haha" },
-  { emoji: "wow", glyph: "😮", label: "Wow" },
-];
 
 const HOLD_MS = 350;
 const EXPAND_DELAY_MS = 220;
@@ -16,22 +11,22 @@ const EXPAND_DELAY_MS = 220;
 const SIZE = {
   md: {
     trigger: "h-8 w-8",
-    emoji: "text-[1.25rem]",
-    option: "h-8 w-8 text-[1.25rem]",
+    icon: "text-[1.25rem]",
+    option: "h-8 w-8",
     label: "text-[11px] -bottom-4",
     counts: "gap-2 text-xs",
-    countGlyph: "text-sm",
+    countIcon: "text-sm",
     pickerPad: "px-2.5 py-1",
     pickerGap: "gap-2",
     gap: "gap-2",
   },
   sm: {
     trigger: "h-6 w-6",
-    emoji: "text-[0.95rem]",
-    option: "h-6 w-6 text-[0.95rem]",
+    icon: "text-[0.95rem]",
+    option: "h-6 w-6",
     label: "text-[10px] -bottom-3.5",
     counts: "gap-1.5 text-[11px]",
-    countGlyph: "text-xs",
+    countIcon: "text-xs",
     pickerPad: "px-1.5 py-0.5",
     pickerGap: "gap-1.5",
     gap: "gap-1.5",
@@ -47,16 +42,6 @@ type ReactionBarProps = {
   size?: keyof typeof SIZE;
   className?: string;
 };
-
-function glyphFor(emoji: ReactionEmoji | null): string {
-  if (!emoji) return "👍";
-  return EMOJI_OPTIONS.find((o) => o.emoji === emoji)?.glyph ?? "👍";
-}
-
-function labelFor(emoji: ReactionEmoji | null): string {
-  if (!emoji) return "Like";
-  return EMOJI_OPTIONS.find((o) => o.emoji === emoji)?.label ?? "Like";
-}
 
 export function ReactionBar({
   targetType,
@@ -133,8 +118,9 @@ export function ReactionBar({
     }
   }
 
-  const visibleCounts = EMOJI_OPTIONS.filter((o) => summary.counts[o.emoji] > 0);
-  const triggerLabel = labelFor(summary.viewerEmoji);
+  const visibleCounts = REACTION_OPTIONS.filter((o) => summary.counts[o.emoji] > 0);
+  const triggerEmoji = summary.viewerEmoji;
+  const triggerLabel = reactionOption(triggerEmoji).label;
 
   const shellClass = cn(
     "inline-flex items-center rounded-full border border-border/80 bg-background",
@@ -177,12 +163,11 @@ export function ReactionBar({
             >
               <span
                 className={cn(
-                  "inline-block leading-none",
-                  s.emoji,
-                  popEmoji && popEmoji === (summary.viewerEmoji ?? "like") && "reaction-emoji-pop"
+                  "inline-flex items-center justify-center leading-none",
+                  popEmoji && popEmoji === (triggerEmoji ?? "like") && "reaction-icon-pop"
                 )}
               >
-                {glyphFor(summary.viewerEmoji)}
+                <ReactionIcon emoji={triggerEmoji} className={s.icon} />
               </span>
               <span
                 className={cn(
@@ -201,39 +186,42 @@ export function ReactionBar({
               role="listbox"
               aria-label="Choose reaction"
             >
-              {EMOJI_OPTIONS.map((opt) => (
-                <button
-                  key={opt.emoji}
-                  type="button"
-                  role="option"
-                  aria-label={opt.label}
-                  aria-selected={summary.viewerEmoji === opt.emoji}
-                  disabled={busy}
-                  className={cn(
-                    "reaction-emoji-btn group/emoji relative inline-flex shrink-0 items-center justify-center rounded-full leading-none",
-                    s.option,
-                    "hover:bg-accent",
-                    summary.viewerEmoji === opt.emoji && "ring-1 ring-foreground/30",
-                    popEmoji === opt.emoji && "reaction-emoji-pop"
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void applyEmoji(opt.emoji);
-                  }}
-                >
-                  <span>{opt.glyph}</span>
-                  <span
+              {REACTION_OPTIONS.map((opt) => {
+                const selected = summary.viewerEmoji === opt.emoji;
+                return (
+                  <button
+                    key={opt.emoji}
+                    type="button"
+                    role="option"
+                    aria-label={opt.label}
+                    aria-selected={selected}
+                    disabled={busy}
                     className={cn(
-                      "pointer-events-none absolute left-1/2 -translate-x-1/2",
-                      "whitespace-nowrap text-muted-foreground",
-                      s.label,
-                      "opacity-0 transition-opacity group-hover/emoji:opacity-100"
+                      "reaction-icon-btn group/emoji relative inline-flex shrink-0 items-center justify-center rounded-full leading-none",
+                      s.option,
+                      "hover:bg-accent",
+                      selected && "ring-1 ring-foreground/30",
+                      popEmoji === opt.emoji && "reaction-icon-pop"
                     )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void applyEmoji(opt.emoji);
+                    }}
                   >
-                    {opt.label}
-                  </span>
-                </button>
-              ))}
+                    <ReactionIcon emoji={opt.emoji} className={s.icon} />
+                    <span
+                      className={cn(
+                        "pointer-events-none absolute left-1/2 -translate-x-1/2",
+                        "whitespace-nowrap text-muted-foreground",
+                        s.label,
+                        "opacity-0 transition-opacity group-hover/emoji:opacity-100"
+                      )}
+                    >
+                      {opt.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -243,9 +231,7 @@ export function ReactionBar({
         <div className={cn("flex flex-wrap items-center text-muted-foreground", s.counts)}>
           {visibleCounts.map((opt) => (
             <span key={opt.emoji} className="inline-flex items-center gap-1">
-              <span aria-hidden className={cn("leading-none", s.countGlyph)}>
-                {opt.glyph}
-              </span>
+              <ReactionIcon emoji={opt.emoji} className={s.countIcon} />
               <span>{summary.counts[opt.emoji]}</span>
             </span>
           ))}
