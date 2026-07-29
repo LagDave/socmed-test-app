@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Bell, Home, MessageCircle, UserRound, Users } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { api } from "@/api/client";
+import { getMessagesSocket, MESSAGES_UNREAD, type UnreadPayload } from "@/api/socket";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useMessagesSocketConnection } from "@/hooks/useMessagesSocket";
 import { cn } from "@/lib/utils";
 
 function NavIcon({
@@ -58,6 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const { toggleTheme } = useTheme();
   const location = useLocation();
+  const socketConnected = useMessagesSocketConnection();
   const [notificationCount, setNotificationCount] = useState(0);
   const [feedCount, setFeedCount] = useState(0);
   const [messagesCount, setMessagesCount] = useState(0);
@@ -107,6 +110,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
+    const socket = getMessagesSocket();
+    const onUnread = (payload: UnreadPayload) => {
+      if (typeof payload.unread === "number") setMessagesCount(payload.unread);
+    };
+    socket.on(MESSAGES_UNREAD, onUnread);
+    return () => {
+      socket.off(MESSAGES_UNREAD, onUnread);
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || socketConnected) return;
     const onMessages = location.pathname.startsWith("/messages");
     if (!onMessages) return;
     const id = window.setInterval(() => {
@@ -117,7 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         .catch(() => undefined);
     }, 5000);
     return () => window.clearInterval(id);
-  }, [user, location.pathname]);
+  }, [user, location.pathname, socketConnected]);
 
   return (
     <div className="min-h-screen bg-canvas text-foreground">

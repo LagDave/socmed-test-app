@@ -12,6 +12,16 @@ import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
 import { isUniqueViolation } from "../utils/dbErrors";
 import { toPublicUser } from "../types/user";
+import { MessageRealtime } from "../realtime/MessageRealtime";
+import { logger } from "../logger";
+
+async function publishRealtime(work: () => Promise<void>): Promise<void> {
+  try {
+    await work();
+  } catch (err) {
+    logger.error({ err }, "Message realtime publish failed");
+  }
+}
 
 const MESSAGE_PAGE_SIZE = 50;
 const UPLOAD_PATH_RE = /^\/uploads\/[A-Za-z0-9._-]+$/;
@@ -200,7 +210,9 @@ export class MessageService {
       imageUrl,
     });
     await ConversationModel.touchLastMessage(conversationId, row.created_at);
-    return toMessageView(row, emptyReactionSummary());
+    const view = toMessageView(row, emptyReactionSummary());
+    await publishRealtime(() => MessageRealtime.messageCreated(conversation, view));
+    return view;
   }
 
   static async unsend(userId: string, messageId: string): Promise<MessageView> {
@@ -220,7 +232,9 @@ export class MessageService {
 
     const row = await MessageModel.markUnsent(messageId, userId);
     if (!row) throw new AppError("MESSAGE_NOT_FOUND", "Message not found or already unsent.");
-    return toMessageView(row, emptyReactionSummary());
+    const view = toMessageView(row, emptyReactionSummary());
+    await publishRealtime(() => MessageRealtime.messageUnsent(conversation, view));
+    return view;
   }
 
   static async setReaction(
@@ -228,24 +242,32 @@ export class MessageService {
     messageId: string,
     raw: unknown
   ): Promise<MessageView> {
-    const { message } = await this.requireMessageAccess(userId, messageId);
+    const { message, conversation } = await this.requireMessageAccess(userId, messageId);
     if (message.unsent_at) {
       throw new AppError("MESSAGE_VALIDATION", "Cannot react to an unsent message.");
     }
     const input = reactionSchema.parse(raw);
     await MessageReactionModel.upsert(userId, messageId, input.emoji);
-    const summaries = await MessageReactionModel.summariesForMessages([messageId], userId);
-    return toMessageView(message, summaries.get(messageId) ?? emptyReactionSummary());
+    const targets = await this.reactionViewsForParticipants(conversation, message);
+    const viewerView =
+      targets.find((t) => t.userId === userId)?.message ??
+      toMessageView(message, emptyReactionSummary());
+    await publishRealtime(() => MessageRealtime.messageReaction(targets));
+    return viewerView;
   }
 
   static async clearReaction(userId: string, messageId: string): Promise<MessageView> {
-    const { message } = await this.requireMessageAccess(userId, messageId);
+    const { message, conversation } = await this.requireMessageAccess(userId, messageId);
     if (message.unsent_at) {
       throw new AppError("MESSAGE_VALIDATION", "Cannot react to an unsent message.");
     }
     await MessageReactionModel.delete(userId, messageId);
-    const summaries = await MessageReactionModel.summariesForMessages([messageId], userId);
-    return toMessageView(message, summaries.get(messageId) ?? emptyReactionSummary());
+    const targets = await this.reactionViewsForParticipants(conversation, message);
+    const viewerView =
+      targets.find((t) => t.userId === userId)?.message ??
+      toMessageView(message, emptyReactionSummary());
+    await publishRealtime(() => MessageRealtime.messageReaction(targets));
+    return viewerView;
   }
 
   static async markRead(userId: string, conversationId: string): Promise<{ ok: true }> {
@@ -253,6 +275,7 @@ export class MessageService {
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
     assertParticipant(conversation, userId);
     await ConversationModel.markRead(conversationId, userId, new Date());
+    await publishRealtime(() => MessageRealtime.conversationRead(conversation, userId));
     return { ok: true };
   }
 
@@ -268,6 +291,22 @@ export class MessageService {
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
     assertParticipant(conversation, userId);
     return { message, conversation };
+  }
+
+  private static async reactionViewsForParticipants(
+    conversation: ConversationRow,
+    message: MessageRow
+  ): Promise<Array<{ userId: string; message: MessageView }>> {
+    const userIds = [conversation.user_a, conversation.user_b];
+    return Promise.all(
+      userIds.map(async (uid) => {
+        const summaries = await MessageReactionModel.summariesForMessages([message.id], uid);
+        return {
+          userId: uid,
+          message: toMessageView(message, summaries.get(message.id) ?? emptyReactionSummary()),
+        };
+      })
+    );
   }
 
   private static inboxRowToListItem(row: ConversationInboxRow): ConversationListItem {
