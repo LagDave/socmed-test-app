@@ -41,3 +41,29 @@ export type CommentView = {
   author: PublicUser;
   reactionSummary: ReactionSummary;
 };
+
+export type MessageView = {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  body: string | null;
+  imageUrl: string | null;
+  isUnsent: boolean;
+  createdAt: string;
+  reactionSummary: ReactionSummary;
+};
+
+export type ConversationListItem = {
+  id: string;
+  peer: PublicUser;
+  lastMessage: {
+    id: string;
+    body: string | null;
+    imageUrl: string | null;
+    isUnsent: boolean;
+    senderId: string;
+    createdAt: string;
+  } | null;
+  unreadCount: number;
+  lastMessageAt: string | null;
+};

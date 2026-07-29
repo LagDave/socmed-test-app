@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.9 — 2026-07-29
+
+### Added
+- Friends-only 1:1 messenger: conversations, messages (text + images), reactions, soft unsend (“Unsent a message”)
+- Messages API under `/api/messages` with unread count; SPA inbox/thread at `/messages` with short polling
+- AppShell Messages nav badge (separate from Notifications); message icons on Friends mutuals and mutual profiles
+
+### Plans
+- `plans/07292026-17-friends-messenger` — Completed
+
 ## 0.1.8 — 2026-07-28
 
 ### Added

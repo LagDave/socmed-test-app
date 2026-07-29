@@ -39,15 +39,16 @@
     <header class="spec-hero">
       <div class="hero-topline">
         <p class="eyebrow">Socmed Plan Spec · Seq 17</p>
-        <span class="status-pill">Pending Execution</span>
+        <span class="status-pill">Completed</span>
       </div>
       <h1>Friends Messenger (1:1)</h1>
       <dl class="meta-grid">
-        <div><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div><dt>Status</dt><dd>Completed</dd></div>
         <div><dt>Plan Folder</dt><dd>plans/07292026-17-friends-messenger</dd></div>
         <div><dt>Size</dt><dd>Large (schema + API + SPA inbox/thread)</dd></div>
         <div><dt>Risk</dt><dd>Level 2</dd></div>
         <div><dt>Planning branch</dt><dd>plan/07292026-17-friends-messenger</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/friends-messenger</dd></div>
         <div><dt>Depends on</dt><dd>Plan 07 friendships · Plan 08 uploads · Plan 16 friends UI / shell badges</dd></div>
       </dl>
     </header>
@@ -320,13 +321,13 @@
     <section class="spec-card" id="done">
       <h2>Done Checklist</h2>
       <ul class="checklist">
-        <li><input type="checkbox" disabled> Migration applied; models cover conversations, messages, reactions, last-read</li>
-        <li><input type="checkbox" disabled> All listed API endpoints behave with friendship + participant gates</li>
-        <li><input type="checkbox" disabled> Inbox + thread UI complete (text, image, react, unsend placeholder)</li>
-        <li><input type="checkbox" disabled> Polling works on open thread; unread Messages badge works; Notifications untouched</li>
-        <li><input type="checkbox" disabled> Entry icons on Friends + Profile for mutuals only</li>
-        <li><input type="checkbox" disabled> Typecheck/build green; acceptance <code>test-results.json</code> rollup Passed (or written waivers)</li>
-        <li><input type="checkbox" disabled> Spec Revision Log updated if any contract drifted during execution</li>
+        <li><input type="checkbox" disabled checked> Migration applied; models cover conversations, messages, reactions, last-read</li>
+        <li><input type="checkbox" disabled checked> All listed API endpoints behave with friendship + participant gates</li>
+        <li><input type="checkbox" disabled checked> Inbox + thread UI complete (text, image, react, unsend placeholder)</li>
+        <li><input type="checkbox" disabled checked> Polling works on open thread; unread Messages badge works; Notifications untouched</li>
+        <li><input type="checkbox" disabled checked> Entry icons on Friends + Profile for mutuals only</li>
+        <li><input type="checkbox" disabled checked> Typecheck/build green; acceptance <code>test-results.json</code> rollup Passed (or written waivers)</li>
+        <li><input type="checkbox" disabled checked> Spec Revision Log updated if any contract drifted during execution</li>
       </ul>
     </section>
 
@@ -339,6 +340,16 @@
             <td>0</td>
             <td>2026-07-29</td>
             <td>Initial spec from grill: 1:1, polling, text+image+reactions, unsend placeholder, Messages badge only, no unfriend, nav + icon entry points.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-29</td>
+            <td>Execution started on <code>kylie/friends-messenger</code> from <code>origin/dev</code>. Status → In Progress. Soft-card shadow utility included for Messages surfaces.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-29</td>
+            <td>Execution complete. Acceptance rollup Passed after localhost review + migrate. Status → Completed. Changelog 0.1.9.</td>
           </tr>
         </tbody>
       </table>
