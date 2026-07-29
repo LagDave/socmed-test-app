@@ -21,6 +21,8 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 15 | `07282026-15-reactions` | Emoji reactions on posts, comments, and replies |
 | 16 | `07282026-16-friends-management-ui` | Friends management dashboard UI + activity notifications |
 | 17 | `07292026-17-friends-messenger` | Friends-only 1:1 messenger (poll) |
+| 18 | `07292026-18-comment-action-icons` | Comment icon beside reactions; reply icon |
+| 19 | `07292026-19-navbar-arrangement` | Full-width navbar zones + profile dropdown |
 
 ## Branch → host (hard rule)
 

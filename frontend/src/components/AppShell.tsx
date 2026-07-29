@@ -3,8 +3,16 @@ import { Bell, Home, MessageCircle, UserRound, Users } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { api } from "@/api/client";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 
 function NavIcon({
@@ -48,10 +56,14 @@ function NavIcon({
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
+  const { toggleTheme } = useTheme();
   const location = useLocation();
   const [notificationCount, setNotificationCount] = useState(0);
   const [feedCount, setFeedCount] = useState(0);
   const [messagesCount, setMessagesCount] = useState(0);
+
+  const profilePath = user ? `/u/${user.username || "me"}` : "/login";
+  const isProfileActive = Boolean(user && location.pathname.startsWith(profilePath));
 
   useEffect(() => {
     if (!user) {
@@ -105,11 +117,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-canvas text-foreground">
       <header className="sticky top-0 z-20 border-b border-border/80 bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[680px] items-center justify-between gap-3 px-4">
-          <Link to="/" className="truncate text-lg font-semibold tracking-tight">
-            SocMed application
-          </Link>
-          <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Main">
+        <div className="grid h-14 w-full grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 sm:gap-3">
+          <div className="min-w-0 justify-self-start">
+            <Link to="/" className="truncate text-lg font-semibold tracking-tight">
+              SocMed application
+            </Link>
+          </div>
+
+          <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Primary">
             <NavIcon
               to="/"
               label="Feed"
@@ -117,12 +132,17 @@ export function AppShell({ children }: { children: ReactNode }) {
               badge={feedCount}
             />
             {user && (
+              <NavIcon
+                to="/friends"
+                label="Friends"
+                icon={<Users className="h-4 w-4" aria-hidden="true" />}
+              />
+            )}
+          </nav>
+
+          <div className="flex items-center justify-end gap-1 sm:gap-1.5" aria-label="Account">
+            {user ? (
               <>
-                <NavIcon
-                  to="/friends"
-                  label="Friends"
-                  icon={<Users className="h-4 w-4" aria-hidden="true" />}
-                />
                 <NavIcon
                   to="/messages"
                   label="Messages"
@@ -130,23 +150,50 @@ export function AppShell({ children }: { children: ReactNode }) {
                   badge={messagesCount}
                 />
                 <NavIcon
-                  to={`/u/${user.username || "me"}`}
-                  label="Profile"
-                  icon={<UserRound className="h-4 w-4" aria-hidden="true" />}
-                />
-                <NavIcon
                   to="/notifications"
                   label="Notifications"
                   icon={<Bell className="h-4 w-4" aria-hidden="true" />}
                   badge={notificationCount}
                 />
-                <ThemeToggle />
-                <Button size="sm" variant="outline" className="ml-1" onClick={() => void logout()}>
-                  Log out
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-9 w-9 text-muted-foreground",
+                        isProfileActive && "bg-accent text-foreground"
+                      )}
+                      aria-label="Profile menu"
+                      title="Profile menu"
+                    >
+                      <UserRound className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link to={profilePath}>Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        toggleTheme();
+                      }}
+                    >
+                      Switch mode
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        void logout();
+                      }}
+                    >
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
-            )}
-            {!user && (
+            ) : (
               <>
                 <ThemeToggle />
                 <Button asChild variant="outline" size="sm" className="ml-1">
@@ -154,7 +201,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Button>
               </>
             )}
-          </nav>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-[680px] px-4 py-6">{children}</main>
