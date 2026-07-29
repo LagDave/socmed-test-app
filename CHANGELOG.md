@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.11 — 2026-07-29
+
+### Changed
+- Friends, Profile, Notifications, Messages, and Account Settings use Feed’s clear layout (title on page background + `feed-card` stacks)
+- Removed the gray `soft-page-canvas` outer plate and unused soft-page CSS
+
+### Plans
+- `plans/07292026-21-removed-outline-padding` — Completed
+
 ## 0.1.10 — 2026-07-29
 
 ### Changed

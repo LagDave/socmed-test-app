@@ -279,7 +279,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   }
 
   return (
-    <div className="flex min-h-[70vh] flex-col rounded-2xl border border-border bg-card soft-card-shadow">
+    <div className="feed-card flex min-h-[70vh] flex-col">
       <header className="flex items-center gap-3 border-b border-border px-4 py-3">
         <Button type="button" variant="ghost" size="sm" onClick={() => navigate("/messages")}>
           Back
@@ -406,12 +406,13 @@ function InboxView() {
   }, []);
 
   return (
-    <div className="soft-page-canvas -mx-4 rounded-2xl px-4 py-6 sm:px-6">
-      <div className="mx-auto max-w-2xl space-y-4 rounded-2xl border border-border bg-card p-6 soft-card-shadow">
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Chat with friends.</p>
-        </header>
+    <section className="space-y-4">
+      <div className="px-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Messages</h1>
+        <p className="text-sm text-muted-foreground">Chat with friends.</p>
+      </div>
+
+      <div className="feed-card p-5">
         {error && <p className="text-sm text-muted-foreground">{error}</p>}
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
@@ -455,20 +456,14 @@ function InboxView() {
           </ul>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 
 export function MessagesPage() {
   const { conversationId } = useParams();
   if (conversationId) {
-    return (
-      <div className="soft-page-canvas -mx-4 rounded-2xl px-4 py-6 sm:px-6">
-        <div className="mx-auto max-w-2xl">
-          <ThreadView conversationId={conversationId} />
-        </div>
-      </div>
-    );
+    return <ThreadView conversationId={conversationId} />;
   }
   return <InboxView />;
 }

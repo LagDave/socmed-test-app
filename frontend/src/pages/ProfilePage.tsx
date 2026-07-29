@@ -308,12 +308,11 @@ export function ProfilePage() {
   const profilePath = profile.username ? `/u/${profile.username}` : "/u/me";
 
   return (
-    <div className="soft-page-canvas -mx-4 space-y-4 rounded-2xl px-4 py-6 sm:px-6">
-      <div className="mx-auto max-w-2xl space-y-4">
-        <header className="flex items-center gap-5 rounded-xl border border-border bg-card p-6 text-card-foreground soft-card-shadow">
+    <section className="space-y-4">
+        <header className="feed-card flex items-center gap-5 p-5 text-card-foreground">
           <ProfileAvatar displayName={profile.displayName} avatarUrl={profile.avatarUrl} />
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{profile.displayName}</h1>
+            <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">{profile.displayName}</h1>
             <p className="mt-0.5 truncate text-sm font-normal text-muted-foreground">{handle}</p>
             {(profile.bio && !showEditor) && (
               <p className="mt-3 max-w-prose text-sm text-foreground/90">{profile.bio}</p>
@@ -367,13 +366,13 @@ export function ProfilePage() {
         </header>
 
         {error && !showEditor && (
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="px-1 text-sm text-muted-foreground">{error}</p>
         )}
 
         {showEditor && (
           <form
             onSubmit={onSave}
-            className="space-y-5 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_18px_rgba(0,0,0,0.05)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_6px_18px_rgba(0,0,0,0.4)]"
+            className="feed-card space-y-5 p-5 text-card-foreground"
           >
             <div>
               <h2 className="text-lg font-bold tracking-tight">Edit Profile</h2>
@@ -472,11 +471,10 @@ export function ProfilePage() {
         )}
 
         {isSelf && isPublicPreview && (
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="px-1 text-center text-sm text-muted-foreground">
             Public preview · <Link className="underline underline-offset-2" to={profilePath}>Open shareable URL</Link>
           </p>
         )}
-      </div>
 
       {menuNotice && (
         <div
@@ -487,6 +485,6 @@ export function ProfilePage() {
           {menuNotice}
         </div>
       )}
-    </div>
+    </section>
   );
 }

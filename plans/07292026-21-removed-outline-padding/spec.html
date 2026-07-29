@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Remove Soft-Page Outline Padding Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .layout-ascii { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; background:var(--soft); border:1px solid var(--line); border-radius:8px; padding:14px; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 21</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Remove Soft-Page Outline Padding</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07292026-21-removed-outline-padding</dd></div>
+        <div><dt>Size</dt><dd>Small (3 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07292026-21-removed-outline-padding</dd></div>
+        <div><dt>Execution branch</dt><dd>Kylie/removed-outline-padding</dd></div>
+        <div><dt>Depends on</dt><dd>kylie/navbar-arrangement (soft-page-canvas pages + messenger)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Friends, Profile, Notifications, and Messages wrap their content in a nested shell: an outer <code>soft-page-canvas</code> plate with <code>px-4 py-6 sm:px-6</code>, then an inner bordered card. That outer padding reads as a dead “outline” gutter between the soft plate and the card. It adds visual noise without aiding hierarchy.</p>
+      <pre class="layout-ascii">BEFORE                          AFTER
+┌─ soft-page-canvas ──────┐     ┌─ soft-page-canvas ──────┐
+│  pad                     │     │┌─ card (flush) ────────┐│
+│  ┌─ card ─────────────┐  │     ││ content               ││
+│  │ content            │  │     │└───────────────────────┘│
+│  └────────────────────┘  │     └─────────────────────────┘
+└──────────────────────────┘</pre>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Strip the outer padding classes from every in-scope <code>soft-page-canvas</code> wrapper so the inner card(s) sit <strong>flush</strong> against the soft plate edges. Keep the soft canvas background, <code>-mx-4</code> bleed, and rounded plate. Do not remove the soft-page-canvas pattern itself.</p>
+      <p><strong>In scope pages:</strong> Friends · Profile · Notifications · Messages (inbox + thread) · Account Settings (same pattern; included for consistency).</p>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>No visible padded gutter between soft-page-canvas and inner card on those pages</li>
+        <li>Soft plate + inner card borders/radius still present</li>
+        <li>Feed and other non-canvas pages unchanged</li>
+        <li>Frontend typecheck/build pass; acceptance checklist passes or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Execution base</td>
+            <td><strong>A — Reset <code>Kylie/removed-outline-padding</code> onto <code>kylie/navbar-arrangement</code></strong></td>
+            <td>Current tip of the execution branch is old <code>dev</code> without soft-page-canvas / Messages / Notifications. Navbar tip is the correct parent.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Account Settings</td>
+            <td><strong>A — Include</strong></td>
+            <td>Same wrapper bug; one-line fix; avoids leaving one settings-style page with the old gutter.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Fix approach</td>
+            <td><strong>A — Drop outer padding only</strong></td>
+            <td>Matches the screenshot complaint (gap), keeps the soft plate. Do not delete <code>soft-page-canvas</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Pattern today</strong> — outer wrapper class string includes <code>soft-page-canvas -mx-4 rounded-2xl px-4 py-6 sm:px-6</code> (Profile also has <code>space-y-4</code> on the outer). Inner cards use <code>border border-border bg-card</code> + their own padding.</p>
+      <p><strong>CSS</strong> — <code>frontend/src/index.css</code> defines <code>.soft-page-canvas</code> / <code>.dark .soft-page-canvas</code> (background only). No change required unless a shared utility is introduced; prefer editing the page class strings for this small pass.</p>
+      <p><strong>Touch list (verified on navbar tip):</strong></p>
+      <table>
+        <thead><tr><th>File</th><th>Occurrences</th></tr></thead>
+        <tbody>
+          <tr><td><code>frontend/src/pages/FriendsPage.tsx</code></td><td>1</td></tr>
+          <tr><td><code>frontend/src/pages/ProfilePage.tsx</code></td><td>1</td></tr>
+          <tr><td><code>frontend/src/pages/NotificationsPage.tsx</code></td><td>1</td></tr>
+          <tr><td><code>frontend/src/pages/MessagesPage.tsx</code></td><td>2 (InboxView + thread wrapper)</td></tr>
+          <tr><td><code>frontend/src/pages/AccountSettingsPage.tsx</code></td><td>1</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Closest analog</strong> — no shared page-frame component exists; each page copies the same class string. Keep that pattern; do not invent a new layout primitive in this plan.</p>
+      <p><strong>Blast radius</strong> — visual only on the listed pages. AppShell <code>main</code> (<code>px-4 py-6</code>) stays. Feed/PostDetail/Login unchanged.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Before any app edits: reset execution branch onto <code>kylie/navbar-arrangement</code> (Decision 1A)</li>
+            <li>Remove <code>px-4 py-6 sm:px-6</code> from every in-scope soft-page-canvas wrapper</li>
+            <li>Preserve <code>soft-page-canvas</code>, <code>-mx-4</code>, <code>rounded-2xl</code>, and Profile’s outer <code>space-y-4</code></li>
+            <li>Preserve inner card padding (<code>p-6</code> etc.) — that is content padding, not the outline gutter</li>
+            <li>Index this plan in <code>plans/README.md</code> as seq 21</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>Delete or restyle <code>.soft-page-canvas</code> in CSS for unrelated pages</li>
+            <li>Change AppShell header / main padding</li>
+            <li>Change routes, APIs, or messenger behavior</li>
+            <li>Mix drive-by refactors (extract shared layout, rename classes globally, etc.)</li>
+            <li>Execute against the pre-reset old <code>dev</code> tip of the branch</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Out of scope</h3>
+          <ul>
+            <li>Feed / Post detail / auth pages</li>
+            <li>Redesigning card radius, shadows, or soft-canvas color</li>
+            <li>Mobile hamburger / new layout system</li>
+            <li>Backend / migrations</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Wrong git base would produce an empty or conflicting change; multi-card pages will look tighter after flush edges.</p>
+      <table>
+        <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Execution branch tip lacks the target UI</td>
+            <td>T0 hard gate: reset <code>Kylie/removed-outline-padding</code> to <code>kylie/navbar-arrangement</code> before editing. Confirm <code>soft-page-canvas</code> exists via search.</td>
+          </tr>
+          <tr>
+            <td>Flush edges look cramped on multi-card pages (Profile, Notifications, Account Settings)</td>
+            <td>Keep inner card padding and inter-card <code>space-y-*</code>. Spot-check dark mode. Do not reintroduce outer padding.</td>
+          </tr>
+          <tr>
+            <td>Miss one of two Messages wrappers</td>
+            <td>Explicit task covers both InboxView and conversationId wrapper (lines currently ~409 and ~466).</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Required pushback:</strong> Do not “fix” padding on the old branch tip that lacks these pages. Do not remove <code>soft-page-canvas</code> entirely (Decision 3A locked).
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="t0">
+        <h3>T0 — Reset execution branch onto navbar tip</h3>
+        <p><strong>Do:</strong> Point <code>Kylie/removed-outline-padding</code> at <code>kylie/navbar-arrangement</code> (hard reset or recreate). Verify working tree contains the soft-page-canvas pages listed in Context. Bring plan artifacts into the execution worktree/checkout as needed for parity.</p>
+        <p><strong>Files:</strong> git only (no app code)</p>
+        <p><strong>Depends on:</strong> —</p>
+        <p><strong>Verify:</strong> <code>rg soft-page-canvas frontend/src/pages</code> returns Friends, Profile, Notifications, Messages (×2), AccountSettings.</p>
+      </article>
+
+      <article class="task-card" id="t1">
+        <h3>T1 — Strip outer padding on Friends / Profile / Notifications / Account Settings</h3>
+        <p><strong>Do:</strong> On each page’s outer soft-page-canvas div, remove <code>px-4 py-6 sm:px-6</code>. Leave all other classes intact (including Profile’s <code>space-y-4</code>).</p>
+        <p><strong>Files:</strong> <code>FriendsPage.tsx</code>, <code>ProfilePage.tsx</code>, <code>NotificationsPage.tsx</code>, <code>AccountSettingsPage.tsx</code></p>
+        <p><strong>Depends on:</strong> T0</p>
+        <p><strong>Verify:</strong> Class strings no longer contain those padding utilities; soft-page-canvas + rounded + -mx-4 remain.</p>
+      </article>
+
+      <article class="task-card" id="t2">
+        <h3>T2 — Strip outer padding on Messages (inbox + thread)</h3>
+        <p><strong>Do:</strong> Same padding removal on both soft-page-canvas wrappers in <code>MessagesPage.tsx</code> (inbox list and conversation wrapper).</p>
+        <p><strong>Files:</strong> <code>frontend/src/pages/MessagesPage.tsx</code></p>
+        <p><strong>Depends on:</strong> T0 (can parallel T1)</p>
+        <p><strong>Verify:</strong> Both wrappers updated; ThreadView behavior unchanged.</p>
+      </article>
+
+      <article class="task-card" id="t3">
+        <h3>T3 — Plan index + acceptance scaffold check</h3>
+        <p><strong>Do:</strong> Add seq 21 to <code>plans/README.md</code>. Confirm acceptance artifacts exist beside this spec. Run frontend typecheck/build after T1–T2.</p>
+        <p><strong>Files:</strong> <code>plans/README.md</code>, this plan folder’s acceptance files (already scaffolded)</p>
+        <p><strong>Depends on:</strong> T1, T2</p>
+        <p><strong>Verify:</strong> README lists plan 21; typecheck/build exit 0.</p>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" checked disabled> Execution branch reset onto <code>kylie/navbar-arrangement</code></li>
+        <li><input type="checkbox" checked disabled> Gray soft-page-canvas outer plate removed; Feed-style title + <code>feed-card</code> layout on Friends, Profile, Notifications, Messages, Account Settings</li>
+        <li><input type="checkbox" checked disabled> AppShell main keeps Feed breathing room (<code>px-4 py-6</code>)</li>
+        <li><input type="checkbox" checked disabled> Unused soft-page CSS deleted</li>
+        <li><input type="checkbox" checked disabled> Frontend typecheck + build clean</li>
+        <li><input type="checkbox" checked disabled> Acceptance <code>test-results.json</code> rollup Passed</li>
+        <li><input type="checkbox" checked disabled> Spec status Completed; README seq 21 indexed; changelog 0.1.11</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-29</td>
+            <td>Initial spec. Locked: reset onto navbar tip (1A), include Account Settings (2A), drop outer padding only (3A).</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-29</td>
+            <td>Executed on <code>Kylie/removed-outline-padding</code> (reset from <code>kylie/navbar-arrangement</code>): stripped <code>px-4 py-6 sm:px-6</code> from soft-page-canvas wrappers on Friends, Profile, Notifications, Account Settings, Messages (inbox + thread). Indexed seq 21 in <code>plans/README.md</code>. Frontend typecheck/build clean. UI acceptance still pending.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-29</td>
+            <td><code>-c</code>: Remove AppShell <code>main</code> outer padding (<code>px-4 py-6</code>) for all pages. Drop soft-page <code>-mx-4 rounded-2xl</code> bleed/plate radius (no longer needed; was fighting main padding). Soft-page-canvas background retained. Inner card padding unchanged.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-07-29</td>
+            <td><code>-c</code>: Match Feed “clear” layout — remove gray <code>soft-page-canvas</code> outer plate entirely; use title-outside + <code>feed-card</code> stacks on Friends, Profile, Notifications, Messages, Account Settings. Restore AppShell <code>px-4 py-6</code>. Delete unused soft-page CSS.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>2026-07-29</td>
+            <td>Finalized (<code>-d</code>): acceptance rollup Passed; Done checklist verified; changelog 0.1.11; status Completed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
