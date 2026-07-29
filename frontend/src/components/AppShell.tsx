@@ -63,7 +63,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [messagesCount, setMessagesCount] = useState(0);
 
   const profilePath = user ? `/u/${user.username || "me"}` : "/login";
-  const isProfileActive = Boolean(user && location.pathname.startsWith(profilePath));
+  // Exact segment match — startsWith("/u/alice") false-positives on "/u/alice2"
+  const isProfileActive = Boolean(
+    user &&
+      (location.pathname === profilePath ||
+        location.pathname.startsWith(`${profilePath}/`))
+  );
 
   useEffect(() => {
     if (!user) {
