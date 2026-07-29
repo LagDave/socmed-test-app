@@ -62,7 +62,7 @@ export function FriendsPage() {
 
   return (
     <div className="soft-page-canvas -mx-4 rounded-2xl px-4 py-6 sm:px-6">
-      <div className="mx-auto max-w-2xl space-y-6 rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.45)]">
+      <div className="mx-auto max-w-2xl space-y-6 rounded-2xl border border-border bg-card p-6 text-card-foreground soft-card-shadow">
         <header>
           <h1 className="text-3xl font-bold tracking-tight">Friends</h1>
           <p className="mt-1 text-sm text-muted-foreground">Requests and mutuals.</p>
