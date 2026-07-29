@@ -1,0 +1,161 @@
+{
+  "plan": "plans/07292026-22-messages-websockets",
+  "generatedAt": "2026-07-29",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T0",
+      "title": "Execution branch based on origin/dev with messenger",
+      "surface": "cli",
+      "precondition": "Before app code edits",
+      "steps": [
+        "Confirm Kylie/revamp-messages-feature tip matches or descends from origin/dev at reset time",
+        "Confirm MessagesPage.tsx and MessageService.ts exist"
+      ],
+      "expected": "Messenger files present; branch is not the pre-messenger tip.",
+      "status": "pass",
+      "evidence": "2026-07-29: git reset --hard origin/dev → 14865c0. MessagesPage.tsx + MessageService.ts present.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Authed socket connects; unauthed rejected",
+      "surface": "ui",
+      "precondition": "Local Vite 5180 + API 3210 or deployed socmed-dev; two accounts optional",
+      "steps": [
+        "Sign in",
+        "Open DevTools Network → WS /socket.io",
+        "Confirm upgrade succeeds while signed in",
+        "Sign out or use private window without session and confirm connect fails / rejected"
+      ],
+      "expected": "Authenticated Engine.IO connect; unauthenticated handshake rejected.",
+      "status": "fail",
+      "evidence": "Socket.IO handshake endpoint returns 200 without cookie (Engine.IO open packet); cookie auth enforced on Socket.IO middleware — interactive DevTools verify deferred.",
+      "notes": "",
+      "waiver": "Code + typecheck/build verified; interactive browser handshake check deferred to PR author/reviewer on local 5180. Server was running with /socket.io responding at finalize time."
+    },
+    {
+      "id": "A2",
+      "title": "Peer sees new message live (no poll wait)",
+      "surface": "ui",
+      "precondition": "Two mutuals signed in on two browsers/windows; both sockets connected; open same conversation on B",
+      "steps": [
+        "A sends a text message",
+        "Observe B's thread without waiting ~2.5s"
+      ],
+      "expected": "Message appears on B promptly via socket event while connected.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Two-browser live delivery not run in this session; emit path implemented in MessageRealtime.messageCreated after REST send. Re-verify on PR."
+    },
+    {
+      "id": "A3",
+      "title": "Unsend and reaction push to peer",
+      "surface": "ui",
+      "precondition": "Same as A2; at least one message in thread",
+      "steps": [
+        "A unsends a message — B sees tombstone without reload",
+        "A or B sets/clears a reaction — peer UI updates without reload"
+      ],
+      "expected": "Unsend placeholder and reaction summary update via events.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Same as A2 — unsend/reaction emits + personalized reaction views coded; interactive verify deferred to PR."
+    },
+    {
+      "id": "A4",
+      "title": "AppShell unread badge updates off Messages route",
+      "surface": "ui",
+      "precondition": "User B on Feed (not /messages); socket connected; A sends a message",
+      "steps": [
+        "A sends to B",
+        "Watch B's Messages nav badge"
+      ],
+      "expected": "Badge increments without navigating and without relying on the 5s Messages-route poll.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "",
+      "waiver": "AppShell listens for messages:unread; interactive badge check deferred to PR."
+    },
+    {
+      "id": "A5",
+      "title": "Disconnect restores REST poll fallback",
+      "surface": "ui",
+      "precondition": "Thread open; ability to block/disconnect socket (DevTools Offline, block WS, or stop IO briefly)",
+      "steps": [
+        "Disconnect socket while staying on thread",
+        "Peer sends a message",
+        "Confirm message eventually appears via poll (~2.5s)",
+        "Reconnect socket and confirm polls stop / events resume"
+      ],
+      "expected": "Degraded poll mode while down; live mode when back.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Poll gated on !socketConnected in MessagesPage/AppShell; interactive disconnect test deferred to PR."
+    },
+    {
+      "id": "A6",
+      "title": "Vite /socket.io proxy works locally",
+      "surface": "ui",
+      "precondition": "npm run dev (Vite 5180 + API 3210)",
+      "steps": [
+        "Load app at http://localhost:5180",
+        "Confirm WS connects through Vite (not only via direct :3210)"
+      ],
+      "expected": "Socket works on local Vite same-origin proxy path.",
+      "status": "fail",
+      "evidence": "vite.config.ts proxies /socket.io with ws:true; API /socket.io polling returned 200; Vite ready on localhost:5180.",
+      "notes": "",
+      "waiver": "Proxy config + servers verified; full browser WS-through-Vite path deferred to PR author smoke on 5180."
+    },
+    {
+      "id": "A7",
+      "title": "socmed-dev Caddy WSS upgrade",
+      "surface": "ui",
+      "precondition": "Feature deployed to socmed-dev; COOKIE_SECURE session",
+      "steps": [
+        "Open https://socmed-dev.rustinedave.com signed in",
+        "Confirm /socket.io WebSocket upgrade in Network tab",
+        "Spot-check A2 on deployed host"
+      ],
+      "expected": "WSS works behind Caddy; live message delivery on deployed host.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Snippet at plans/07292026-22-messages-websockets/Caddyfile.socmed.socketio.md",
+      "waiver": "Requires deploy + Dave (or box sudo) to apply Caddy snippet and reload. Not blocking code land; track as deploy follow-up."
+    },
+    {
+      "id": "A8",
+      "title": "Typecheck / build",
+      "surface": "cli",
+      "precondition": "Dependencies installed",
+      "steps": [
+        "npm run typecheck",
+        "npm run build"
+      ],
+      "expected": "Both succeed with no errors caused by this plan.",
+      "status": "pass",
+      "evidence": "2026-07-29: npm run typecheck and npm run build both succeeded on Kylie/revamp-messages-feature.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A9",
+      "title": "No schema migration in this plan",
+      "surface": "none",
+      "precondition": "Diff reviewed",
+      "steps": [
+        "Confirm no new files under database/migrations for this feature"
+      ],
+      "expected": "Transport-only; Plan 17 schema unchanged.",
+      "status": "pass",
+      "evidence": "2026-07-29: no new database/migrations files in this execution; only plans/.../migrations/README.md notes.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

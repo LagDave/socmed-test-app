@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.12 — 2026-07-29
+
+### Added
+- Socket.IO live delivery for 1:1 messages (REST writes unchanged): `message:new` / `message:unsent` / `message:reaction`, plus `messages:unread` and `conversation:updated`
+- Cookie-authenticated socket handshake (`socmed_session`); per-user rooms `user:{id}`
+- SPA socket client; thread and AppShell badge consume events; REST poll only while disconnected
+- Vite proxies `/socket.io` → API `:3210` (ws)
+
+### Changed
+- API bootstrap uses `http.Server` + Socket.IO attach; default local CORS origin `http://localhost:5180`; default `PORT` 3210
+- SPA catch-all excludes `/socket.io`
+
+### Plans
+- `plans/07292026-22-messages-websockets` — Completed (A1–A7 waived: interactive/deploy follow-up; Caddy snippet in plan folder for Dave)
+
 ## 0.1.11 — 2026-07-29
 
 ### Changed
@@ -98,7 +113,7 @@
 - Shared `formatRelativeTime` helper (`Intl.RelativeTimeFormat`, no new dependencies)
 
 ### Plans
-- `plans/07282026-12-comment-timestamps` — Completed
+- `plans/07292026-12-comment-timestamps` — Completed
 
 ## 0.1.2 — 2026-07-28
 

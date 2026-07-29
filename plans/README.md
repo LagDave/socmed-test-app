@@ -24,6 +24,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 18 | `07292026-18-comment-action-icons` | Comment icon beside reactions; reply icon |
 | 19 | `07292026-19-navbar-arrangement` | Full-width navbar zones + profile dropdown |
 | 21 | `07292026-21-removed-outline-padding` | Flush soft-page-canvas (drop outer outline padding) |
+| 22 | `07292026-22-messages-websockets` | Messages live delivery via Socket.IO (REST writes stay) |
 
 ## Branch → host (hard rule)
 

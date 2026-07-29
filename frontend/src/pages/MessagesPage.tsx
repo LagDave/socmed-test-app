@@ -2,6 +2,15 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ImagePlus, MessageCircle, SendHorizontal } from "lucide-react";
 import { api } from "@/api/client";
+import {
+  CONVERSATION_UPDATED,
+  MESSAGE_NEW,
+  MESSAGE_REACTION,
+  MESSAGE_UNSENT,
+  getMessagesSocket,
+  type ConversationUpdatedPayload,
+  type MessageEventPayload,
+} from "@/api/socket";
 import type {
   ConversationListItem,
   MessageView,
@@ -9,6 +18,7 @@ import type {
   ReactionEmoji,
 } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSocketConnected } from "@/hooks/useMessagesSocket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -103,6 +113,7 @@ function MessageReactions({
 function ThreadView({ conversationId }: { conversationId: string }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const socketConnected = useSocketConnected();
   const [peer, setPeer] = useState<PublicUser | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -152,6 +163,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   }, [conversationId]);
 
   useEffect(() => {
+    if (socketConnected) return;
     const id = window.setInterval(() => {
       if (document.hidden) return;
       const generation = generationRef.current;
@@ -174,6 +186,29 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       })();
     }, POLL_MS);
     return () => window.clearInterval(id);
+  }, [conversationId, socketConnected]);
+
+  useEffect(() => {
+    const socket = getMessagesSocket();
+    const generation = () => generationRef.current;
+
+    const applyMessage = (payload: MessageEventPayload) => {
+      const msg = payload.message;
+      if (msg.conversationId !== conversationId) return;
+      if (generation() !== generationRef.current) return;
+      stickToBottomRef.current = true;
+      setMessages((prev) => mergeById(prev, [msg]));
+      void api.post(`/api/messages/conversations/${conversationId}/read`).catch(() => undefined);
+    };
+
+    socket.on(MESSAGE_NEW, applyMessage);
+    socket.on(MESSAGE_UNSENT, applyMessage);
+    socket.on(MESSAGE_REACTION, applyMessage);
+    return () => {
+      socket.off(MESSAGE_NEW, applyMessage);
+      socket.off(MESSAGE_UNSENT, applyMessage);
+      socket.off(MESSAGE_REACTION, applyMessage);
+    };
   }, [conversationId]);
 
   useEffect(() => {
@@ -398,11 +433,38 @@ function InboxView() {
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  async function reloadInbox() {
+    try {
+      const d = await api.get<{ conversations: ConversationListItem[] }>(
+        "/api/messages/conversations"
+      );
+      setItems(d.conversations);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load conversations");
+    }
+  }
+
   useEffect(() => {
-    void api
-      .get<{ conversations: ConversationListItem[] }>("/api/messages/conversations")
-      .then((d) => setItems(d.conversations))
-      .catch((e: Error) => setError(e.message));
+    void reloadInbox();
+  }, []);
+
+  useEffect(() => {
+    const socket = getMessagesSocket();
+    const onUpdated = (_payload: ConversationUpdatedPayload) => {
+      void reloadInbox();
+    };
+    const onMessage = (_payload: MessageEventPayload) => {
+      void reloadInbox();
+    };
+    socket.on(CONVERSATION_UPDATED, onUpdated);
+    socket.on(MESSAGE_NEW, onMessage);
+    socket.on(MESSAGE_UNSENT, onMessage);
+    return () => {
+      socket.off(CONVERSATION_UPDATED, onUpdated);
+      socket.off(MESSAGE_NEW, onMessage);
+      socket.off(MESSAGE_UNSENT, onMessage);
+    };
   }, []);
 
   return (
