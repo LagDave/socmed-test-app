@@ -21,6 +21,15 @@ const EMOJI_OPTIONS: { emoji: ReactionEmoji; glyph: string }[] = [
   { emoji: "wow", glyph: "😮" },
 ];
 
+function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] {
+  const map = new Map<string, MessageView>();
+  for (const m of prev) map.set(m.id, m);
+  for (const m of incoming) map.set(m.id, m);
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+}
+
 function snippet(item: ConversationListItem): string {
   const last = item.lastMessage;
   if (!last) return "No messages yet";
@@ -96,94 +105,171 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const navigate = useNavigate();
   const [peer, setPeer] = useState<PublicUser | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  async function load() {
-    const data = await api.get<{
-      conversationId: string;
-      peer: PublicUser;
-      messages: MessageView[];
-    }>(`/api/messages/conversations/${conversationId}`);
-    setPeer(data.peer);
-    setMessages(data.messages);
-    await api.post(`/api/messages/conversations/${conversationId}/read`);
-  }
+  const generationRef = useRef(0);
+  const stickToBottomRef = useRef(true);
 
   useEffect(() => {
-    let cancelled = false;
-    void load()
-      .catch((e: Error) => {
-        if (!cancelled) setError(e.message);
-      });
+    generationRef.current += 1;
+    const generation = generationRef.current;
+    stickToBottomRef.current = true;
+    setPeer(null);
+    setMessages([]);
+    setHasMore(false);
+    setError(null);
+    setBody("");
+
+    async function loadInitial() {
+      try {
+        const data = await api.get<{
+          conversationId: string;
+          peer: PublicUser;
+          messages: MessageView[];
+          hasMore: boolean;
+        }>(`/api/messages/conversations/${conversationId}`);
+        if (generation !== generationRef.current) return;
+        setPeer(data.peer);
+        setMessages(data.messages);
+        setHasMore(Boolean(data.hasMore));
+        if (generation !== generationRef.current) return;
+        await api.post(`/api/messages/conversations/${conversationId}/read`);
+      } catch (e) {
+        if (generation !== generationRef.current) return;
+        setError(e instanceof Error ? e.message : "Failed to load conversation");
+      }
+    }
+
+    void loadInitial();
     return () => {
-      cancelled = true;
+      generationRef.current += 1;
     };
   }, [conversationId]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
       if (document.hidden) return;
-      void load().catch(() => undefined);
+      const generation = generationRef.current;
+      void (async () => {
+        try {
+          const data = await api.get<{
+            conversationId: string;
+            peer: PublicUser;
+            messages: MessageView[];
+            hasMore: boolean;
+          }>(`/api/messages/conversations/${conversationId}`);
+          if (generation !== generationRef.current) return;
+          setPeer(data.peer);
+          setMessages((prev) => mergeById(prev, data.messages));
+          if (generation !== generationRef.current) return;
+          await api.post(`/api/messages/conversations/${conversationId}/read`);
+        } catch {
+          /* poll failures are non-fatal */
+        }
+      })();
     }, POLL_MS);
     return () => window.clearInterval(id);
   }, [conversationId]);
 
   useEffect(() => {
+    if (!stickToBottomRef.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  async function loadEarlier() {
+    if (loadingEarlier || !hasMore || messages.length === 0) return;
+    const oldestId = messages[0]?.id;
+    if (!oldestId) return;
+    const generation = generationRef.current;
+    setLoadingEarlier(true);
+    stickToBottomRef.current = false;
+    try {
+      const data = await api.get<{
+        conversationId: string;
+        peer: PublicUser;
+        messages: MessageView[];
+        hasMore: boolean;
+      }>(`/api/messages/conversations/${conversationId}?before=${encodeURIComponent(oldestId)}`);
+      if (generation !== generationRef.current) return;
+      setMessages((prev) => mergeById(data.messages, prev));
+      setHasMore(Boolean(data.hasMore));
+    } catch (e) {
+      if (generation !== generationRef.current) return;
+      setError(e instanceof Error ? e.message : "Failed to load earlier messages");
+    } finally {
+      if (generation === generationRef.current) setLoadingEarlier(false);
+    }
+  }
 
   async function onSend(e: FormEvent) {
     e.preventDefault();
     const text = body.trim();
     if (!text || sending) return;
+    const generation = generationRef.current;
     setSending(true);
     setError(null);
+    stickToBottomRef.current = true;
     try {
       const data = await api.post<{ message: MessageView }>(
         `/api/messages/conversations/${conversationId}/messages`,
         { body: text }
       );
+      if (generation !== generationRef.current) return;
       setBody("");
       setMessages((prev) => [...prev, data.message]);
+      if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
     } catch (err) {
+      if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Send failed");
     } finally {
-      setSending(false);
+      if (generation === generationRef.current) setSending(false);
     }
   }
 
   async function onImage(file: File | null) {
     if (!file || sending) return;
+    const generation = generationRef.current;
     setSending(true);
     setError(null);
+    stickToBottomRef.current = true;
     try {
       const uploaded = await api.upload<{ url: string }>("/api/uploads", file);
+      if (generation !== generationRef.current) return;
       const caption = body.trim() || undefined;
       const data = await api.post<{ message: MessageView }>(
         `/api/messages/conversations/${conversationId}/messages`,
         { body: caption, imageUrl: uploaded.url }
       );
+      if (generation !== generationRef.current) return;
       setBody("");
       setMessages((prev) => [...prev, data.message]);
+      if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
     } catch (err) {
+      if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
-      setSending(false);
-      if (fileRef.current) fileRef.current.value = "";
+      if (generation === generationRef.current) {
+        setSending(false);
+        if (fileRef.current) fileRef.current.value = "";
+      }
     }
   }
 
   async function onUnsend(id: string) {
+    const generation = generationRef.current;
     try {
       const data = await api.delete<{ message: MessageView }>(`/api/messages/messages/${id}`);
+      if (generation !== generationRef.current) return;
       setMessages((prev) => prev.map((m) => (m.id === id ? data.message : m)));
     } catch (err) {
+      if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Unsend failed");
     }
   }
@@ -207,6 +293,19 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       </header>
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        {hasMore && (
+          <div className="flex justify-center pb-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={loadingEarlier}
+              onClick={() => void loadEarlier()}
+            >
+              {loadingEarlier ? "Loading…" : "Load earlier messages"}
+            </Button>
+          </div>
+        )}
         {messages.map((m) => {
           const mine = m.senderId === user?.id;
           return (

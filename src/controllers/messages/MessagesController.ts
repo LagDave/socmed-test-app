@@ -29,8 +29,11 @@ export class MessagesController {
 
   static async openConversation(req: AuthedRequest, res: Response): Promise<Response> {
     try {
-      const conversation = await MessageService.openConversation(req.userId!, req.body);
-      return ok(res, { conversation }, 201);
+      const { conversation, created } = await MessageService.openConversation(
+        req.userId!,
+        req.body
+      );
+      return ok(res, { conversation }, created ? 201 : 200);
     } catch (err) {
       return handle(res, err);
     }

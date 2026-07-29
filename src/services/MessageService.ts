@@ -1,11 +1,16 @@
 import { z } from "zod";
-import { ConversationModel, type ConversationRow } from "../models/ConversationModel";
+import {
+  ConversationModel,
+  type ConversationInboxRow,
+  type ConversationRow,
+} from "../models/ConversationModel";
 import { FriendshipModel } from "../models/FriendshipModel";
 import { MessageModel, type MessageRow } from "../models/MessageModel";
 import { MessageReactionModel } from "../models/MessageReactionModel";
 import { REACTION_EMOJIS, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
+import { isUniqueViolation } from "../utils/dbErrors";
 import { toPublicUser } from "../types/user";
 
 const MESSAGE_PAGE_SIZE = 50;
@@ -97,7 +102,10 @@ function toMessageView(row: MessageRow, reactionSummary: ReactionSummary): Messa
 }
 
 export class MessageService {
-  static async openConversation(userId: string, raw: unknown): Promise<ConversationListItem> {
+  static async openConversation(
+    userId: string,
+    raw: unknown
+  ): Promise<{ conversation: ConversationListItem; created: boolean }> {
     const input = openConversationSchema.parse(raw);
     let other = input.userId ? await UserModel.findById(input.userId) : undefined;
     if (!other && input.username) {
@@ -112,27 +120,35 @@ export class MessageService {
     }
 
     let conversation = await ConversationModel.findPair(userId, other.id);
+    let created = false;
     if (!conversation) {
       try {
         conversation = await ConversationModel.createPair(userId, other.id);
-      } catch {
+        created = true;
+      } catch (err) {
+        if (!isUniqueViolation(err)) throw err;
         conversation = await ConversationModel.findPair(userId, other.id);
         if (!conversation) throw new AppError("MESSAGE_CONFLICT", "Could not open conversation.");
       }
     }
-    return this.toListItem(conversation, userId);
+    return { conversation: await this.toListItem(conversation, userId), created };
   }
 
   static async listConversations(userId: string): Promise<ConversationListItem[]> {
-    const rows = await ConversationModel.listForUser(userId);
-    return Promise.all(rows.map((row) => this.toListItem(row, userId)));
+    const rows = await ConversationModel.listInboxForUser(userId);
+    return rows.map((row) => this.inboxRowToListItem(row));
   }
 
   static async listMessages(
     userId: string,
     conversationId: string,
     before?: string
-  ): Promise<{ conversationId: string; peer: ReturnType<typeof toPublicUser>; messages: MessageView[] }> {
+  ): Promise<{
+    conversationId: string;
+    peer: ReturnType<typeof toPublicUser>;
+    messages: MessageView[];
+    hasMore: boolean;
+  }> {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
     assertParticipant(conversation, userId);
@@ -155,6 +171,7 @@ export class MessageService {
       messages: rows.map((r) =>
         toMessageView(r, summaries.get(r.id) ?? emptyReactionSummary())
       ),
+      hasMore: rows.length >= MESSAGE_PAGE_SIZE,
     };
   }
 
@@ -211,14 +228,13 @@ export class MessageService {
     messageId: string,
     raw: unknown
   ): Promise<MessageView> {
-    const { message, conversation } = await this.requireMessageAccess(userId, messageId);
+    const { message } = await this.requireMessageAccess(userId, messageId);
     if (message.unsent_at) {
       throw new AppError("MESSAGE_VALIDATION", "Cannot react to an unsent message.");
     }
     const input = reactionSchema.parse(raw);
     await MessageReactionModel.upsert(userId, messageId, input.emoji);
     const summaries = await MessageReactionModel.summariesForMessages([messageId], userId);
-    void conversation;
     return toMessageView(message, summaries.get(messageId) ?? emptyReactionSummary());
   }
 
@@ -241,16 +257,7 @@ export class MessageService {
   }
 
   static async unreadCount(userId: string): Promise<{ unread: number }> {
-    const rows = await ConversationModel.listForUser(userId);
-    let unread = 0;
-    for (const row of rows) {
-      const count = await MessageModel.countUnreadInConversation(
-        row.id,
-        userId,
-        lastReadAt(row, userId)
-      );
-      if (count > 0) unread += 1;
-    }
+    const unread = await ConversationModel.countUnreadConversations(userId);
     return { unread };
   }
 
@@ -261,6 +268,26 @@ export class MessageService {
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
     assertParticipant(conversation, userId);
     return { message, conversation };
+  }
+
+  private static inboxRowToListItem(row: ConversationInboxRow): ConversationListItem {
+    const latest = row.lastMessage;
+    return {
+      id: row.id,
+      peer: toPublicUser(row.peer),
+      lastMessage: latest
+        ? {
+            id: latest.id,
+            body: latest.unsent_at ? null : latest.body,
+            imageUrl: latest.unsent_at ? null : latest.image_url,
+            isUnsent: Boolean(latest.unsent_at),
+            senderId: latest.sender_id,
+            createdAt: latest.created_at,
+          }
+        : null,
+      unreadCount: row.unreadCount,
+      lastMessageAt: row.last_message_at,
+    };
   }
 
   private static async toListItem(

@@ -57,6 +57,15 @@ export class FriendsController {
     }
   }
 
+  static async status(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await FriendshipService.areFriendsWith(req.userId!, String(req.params.userId));
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
   static async inbox(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const data = await FriendshipService.inbox(req.userId!);

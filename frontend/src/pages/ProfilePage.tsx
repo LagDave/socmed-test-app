@@ -200,9 +200,9 @@ export function ProfilePage() {
     }
     let cancelled = false;
     void api
-      .get<{ users: PublicUser[] }>("/api/friends/mutuals")
+      .get<{ areFriends: boolean }>(`/api/friends/status/${profile.id}`)
       .then((d) => {
-        if (!cancelled) setIsMutual(d.users.some((u) => u.id === profile.id));
+        if (!cancelled) setIsMutual(d.areFriends);
       })
       .catch(() => {
         if (!cancelled) setIsMutual(false);
