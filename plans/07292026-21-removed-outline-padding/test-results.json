@@ -1,0 +1,128 @@
+{
+  "plan": "plans/07292026-21-removed-outline-padding",
+  "generatedAt": "2026-07-29",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T0",
+      "title": "Execution branch based on navbar tip",
+      "surface": "cli",
+      "precondition": "About to execute or mid-execution",
+      "steps": [
+        "Confirm Kylie/removed-outline-padding contains soft-page / target pages",
+        "Confirm tip started from kylie/navbar-arrangement"
+      ],
+      "expected": "Branch based on navbar tip with Friends/Profile/Notifications/Messages/AccountSettings present.",
+      "status": "pass",
+      "evidence": "2026-07-29: git reset --hard kylie/navbar-arrangement (d6c1380).",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Friends — Feed-clear layout",
+      "surface": "ui",
+      "precondition": "Signed in; http://localhost:5180/",
+      "steps": [
+        "Open /friends",
+        "Confirm no gray soft-page outer plate; title on canvas; feed-card sections"
+      ],
+      "expected": "Matches Feed clear style — cards on page background.",
+      "status": "pass",
+      "evidence": "2026-07-29: Author reviewed on localhost:5180 after Rev 3; soft-page-canvas removed; feed-card layout.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Profile — Feed-clear layout",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Open own profile",
+        "Confirm feed-card header/editor on page background; no soft-page plate"
+      ],
+      "expected": "No gray outer container.",
+      "status": "pass",
+      "evidence": "2026-07-29: Author reviewed on localhost after Rev 3.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Notifications — Feed-clear layout",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Open /notifications",
+        "Confirm title outside + feed-card list; no soft-page plate"
+      ],
+      "expected": "No gray outer container.",
+      "status": "pass",
+      "evidence": "2026-07-29: Author reviewed on localhost after Rev 3.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Messages inbox + thread — Feed-clear layout",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Open /messages",
+        "Open a thread if available",
+        "Confirm feed-card surfaces; no soft-page plate"
+      ],
+      "expected": "Inbox and thread match clear Feed-style chrome.",
+      "status": "pass",
+      "evidence": "2026-07-29: Author reviewed on localhost after Rev 3; ThreadView uses feed-card.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Account Settings — Feed-clear layout",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Open Account Settings",
+        "Confirm title + feed-card blocks; no soft-page plate"
+      ],
+      "expected": "Same clear treatment.",
+      "status": "pass",
+      "evidence": "2026-07-29: Code + author review path; feed-card SettingsBlocks.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Feed unchanged as reference",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Open feed",
+        "Confirm Feed still uses title + feed-card pattern; AppShell header intact"
+      ],
+      "expected": "Feed remains the visual reference; AppShell px-4 py-6 restored.",
+      "status": "pass",
+      "evidence": "FeedPage untouched for layout; AppShell main mx-auto w-full max-w-[680px] px-4 py-6.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "B1",
+      "title": "Frontend typecheck + build",
+      "surface": "cli",
+      "precondition": "Final code landed",
+      "steps": [
+        "npm --prefix frontend run typecheck",
+        "npm --prefix frontend run build"
+      ],
+      "expected": "Both exit 0.",
+      "status": "pass",
+      "evidence": "2026-07-29 finalize: typecheck exit 0; vite build exit 0.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

@@ -26,7 +26,7 @@ function FriendsSection({
   children: ReactNode;
 }) {
   return (
-    <section className="border-t border-border pt-6 first:border-t-0 first:pt-0">
+    <section>
       <h2 className="text-sm font-semibold tracking-wide text-foreground">{title}</h2>
       <div className="mt-3">{children}</div>
     </section>
@@ -75,94 +75,94 @@ export function FriendsPage() {
   }
 
   return (
-    <div className="soft-page-canvas -mx-4 rounded-2xl px-4 py-6 sm:px-6">
-      <div className="mx-auto max-w-2xl space-y-6 rounded-2xl border border-border bg-card p-6 text-card-foreground soft-card-shadow">
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight">Friends</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Requests and mutuals.</p>
-        </header>
-
-        <form onSubmit={onRequest} className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-          <Input
-            className="h-12 flex-1 text-base"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            aria-label="Username"
-          />
-          <Button type="submit" size="lg" className="h-12 shrink-0 px-6">
-            Send Request
-          </Button>
-        </form>
-        {error && <p className="text-sm text-muted-foreground">{error}</p>}
-
-        <div className="space-y-6">
-          <FriendsSection title="Friend Request">
-            {incoming.length === 0 ? (
-              <EmptyState message="No pending requests" />
-            ) : (
-              <ul className="space-y-1">
-                {incoming.map((i) => (
-                  <li
-                    key={i.id}
-                    className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-3 last:border-b-0"
-                  >
-                    <span>
-                      {i.user.displayName}{" "}
-                      <span className="text-muted-foreground">@{i.user.username}</span>
-                    </span>
-                    <span className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => void api.post(`/api/friends/${i.id}/accept`).then(load)}
-                      >
-                        Confirm
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void api.post(`/api/friends/${i.id}/decline`).then(load)}
-                      >
-                        Decline
-                      </Button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </FriendsSection>
-
-          <FriendsSection title="Friends">
-            {mutuals.length === 0 ? (
-              <EmptyState message="Your friends will appear here" />
-            ) : (
-              <ul className="space-y-1">
-                {mutuals.map((u) => (
-                  <li
-                    key={u.id}
-                    className="flex items-center justify-between gap-2 border-b border-border py-3 last:border-b-0"
-                  >
-                    <span>
-                      {u.displayName} <span className="text-muted-foreground">@{u.username}</span>
-                    </span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      aria-label={`Message ${u.displayName}`}
-                      title="Message"
-                      onClick={() => void openMessage(u.username)}
-                    >
-                      <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </FriendsSection>
-        </div>
+    <section className="space-y-4">
+      <div className="px-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Friends</h1>
+        <p className="text-sm text-muted-foreground">Requests and mutuals.</p>
       </div>
-    </div>
+
+      <form onSubmit={onRequest} className="feed-card flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
+        <Input
+          className="h-12 flex-1 text-base"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+          aria-label="Username"
+        />
+        <Button type="submit" size="lg" className="h-12 shrink-0 px-6">
+          Send Request
+        </Button>
+      </form>
+      {error && <p className="px-1 text-sm text-muted-foreground">{error}</p>}
+
+      <div className="feed-card p-5">
+        <FriendsSection title="Friend Request">
+          {incoming.length === 0 ? (
+            <EmptyState message="No pending requests" />
+          ) : (
+            <ul className="space-y-1">
+              {incoming.map((i) => (
+                <li
+                  key={i.id}
+                  className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-3 last:border-b-0"
+                >
+                  <span>
+                    {i.user.displayName}{" "}
+                    <span className="text-muted-foreground">@{i.user.username}</span>
+                  </span>
+                  <span className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => void api.post(`/api/friends/${i.id}/accept`).then(load)}
+                    >
+                      Confirm
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void api.post(`/api/friends/${i.id}/decline`).then(load)}
+                    >
+                      Decline
+                    </Button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </FriendsSection>
+      </div>
+
+      <div className="feed-card p-5">
+        <FriendsSection title="Friends">
+          {mutuals.length === 0 ? (
+            <EmptyState message="Your friends will appear here" />
+          ) : (
+            <ul className="space-y-1">
+              {mutuals.map((u) => (
+                <li
+                  key={u.id}
+                  className="flex items-center justify-between gap-2 border-b border-border py-3 last:border-b-0"
+                >
+                  <span>
+                    {u.displayName} <span className="text-muted-foreground">@{u.username}</span>
+                  </span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    aria-label={`Message ${u.displayName}`}
+                    title="Message"
+                    onClick={() => void openMessage(u.username)}
+                  >
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </FriendsSection>
+      </div>
+    </section>
   );
 }
