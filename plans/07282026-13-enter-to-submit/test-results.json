@@ -1,0 +1,72 @@
+{
+  "plan": "plans/07282026-13-enter-to-submit",
+  "generatedAt": "2026-07-28",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Whitespace guard on submit",
+      "surface": "ui",
+      "precondition": "Signed-in on post detail",
+      "steps": [
+        "Type only spaces in comment box",
+        "Press Comment button and/or Enter",
+        "Confirm no new comment appears"
+      ],
+      "expected": "Blank/whitespace does not create a comment or reply.",
+      "status": "pass",
+      "evidence": "2026-07-28: Human verified via -d finalize (user skipped -tw). submitComment trims and returns false on empty body.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Enter submits comment and reply",
+      "surface": "ui",
+      "precondition": "Signed-in; post with reply support",
+      "steps": [
+        "Type a comment and press Enter — comment appears",
+        "Click Reply, type a reply, press Enter — reply appears under parent",
+        "In either box, press Shift+Enter — newline inserted, no submit",
+        "Confirm Comment/Reply buttons still submit when clicked"
+      ],
+      "expected": "Enter submits; Shift+Enter newlines; buttons remain.",
+      "status": "pass",
+      "evidence": "2026-07-28: Human verified via -d finalize (user skipped -tw). Shared lib submitOnEnter on both textareas; buttons unchanged.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Feed What’s happening? Enter-to-post",
+      "surface": "ui",
+      "precondition": "Signed-in on Feed",
+      "steps": [
+        "Type a post and press Enter — post appears in feed",
+        "Press Shift+Enter — newline inserted, no submit",
+        "Type only spaces and press Enter or Post — no new post",
+        "Confirm Post button still works for non-empty body"
+      ],
+      "expected": "Feed compose matches comment/reply Enter behavior.",
+      "status": "pass",
+      "evidence": "2026-07-28: Human verified via -d finalize (user skipped -tw). FeedPage uses submitOnEnter + trim guard on onCompose.",
+      "notes": "Added in Rev 3 (-c).",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Shared submitOnEnter helper",
+      "surface": "none",
+      "precondition": "Code review of diff",
+      "steps": [
+        "Confirm frontend/src/lib/submitOnEnter.ts is used by FeedPage and PostDetailPage",
+        "Confirm ui/textarea.tsx has no submit semantics"
+      ],
+      "expected": "One shared helper; Textarea primitive unchanged.",
+      "status": "pass",
+      "evidence": "2026-07-28 Rev 3: lib/submitOnEnter.ts imported by FeedPage + PostDetailPage.",
+      "notes": "Replaced obsolete “Feed unchanged” item after scope expansion.",
+      "waiver": ""
+    }
+  ]
+}

@@ -15,20 +15,29 @@ export type ApiError = {
   error: { code: string; message: string; details: unknown };
 };
 
+export type ReactionEmoji = "like" | "heart" | "haha" | "wow";
+
+export type ReactionSummary = {
+  counts: Record<ReactionEmoji, number>;
+  viewerEmoji: ReactionEmoji | null;
+};
+
 export type PostView = {
   id: string;
   body: string;
   imageUrl: string | null;
   createdAt: string;
   author: PublicUser;
+  reactionSummary: ReactionSummary;
 };
 
 export type CommentView = {
   id: string;
   postId: string;
-  parentId?: string | null;
+  parentId: string | null;
   body: string;
   imageUrl: string | null;
   createdAt: string;
   author: PublicUser;
+  reactionSummary: ReactionSummary;
 };

@@ -18,7 +18,7 @@ function handle(res: Response, err: unknown): Response {
 export class CommentsController {
   static async list(req: AuthedRequest, res: Response): Promise<Response> {
     try {
-      const comments = await CommentService.list(String(req.params.postId));
+      const comments = await CommentService.list(req.userId!, String(req.params.postId));
       return ok(res, { comments });
     } catch (err) {
       return handle(res, err);
