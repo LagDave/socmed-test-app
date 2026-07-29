@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 function SettingsBlock({ title, body }: { title: string; body: string }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-6 text-card-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_18px_rgba(0,0,0,0.05)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_6px_18px_rgba(0,0,0,0.4)]">
+    <section className="rounded-xl border border-border bg-card p-6 text-card-foreground soft-card-shadow">
       <h2 className="text-base font-bold tracking-tight">{title}</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
     </section>
@@ -16,7 +16,7 @@ export function AccountSettingsPage() {
   return (
     <div className="soft-page-canvas -mx-4 rounded-2xl px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-2xl space-y-4">
-        <header className="rounded-xl border border-border bg-card p-6 text-card-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_6px_18px_rgba(0,0,0,0.05)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_6px_18px_rgba(0,0,0,0.4)]">
+        <header className="rounded-xl border border-border bg-card p-6 text-card-foreground soft-card-shadow">
           <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Privacy, security, and general account configuration.
