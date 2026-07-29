@@ -1,4 +1,10 @@
-import type { ReactNode } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { Link } from "react-router-dom";
 import { MessageSquare, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +14,11 @@ const SIZE = {
   md: { btn: "h-8 w-8", icon: "h-4 w-4" },
   sm: { btn: "h-6 w-6", icon: "h-3.5 w-3.5" },
 } as const;
+
+type ReactionBarChildProps = {
+  actions?: ReactNode;
+  className?: string;
+};
 
 type PostActionRowProps = {
   children: ReactNode;
@@ -29,27 +40,35 @@ export function PostActionRow({
   const s = SIZE[size];
   const icon = <MessageSquare className={s.icon} aria-hidden="true" />;
 
+  const commentControl = commentTo ? (
+    <Button asChild variant="ghost" size="icon" className={s.btn}>
+      <Link to={commentTo} aria-label="Comments">
+        {icon}
+      </Link>
+    </Button>
+  ) : (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className={s.btn}
+      aria-label="Comments"
+      onClick={onCommentClick}
+    >
+      {icon}
+    </Button>
+  );
+
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      {children}
-      {commentTo ? (
-        <Button asChild variant="ghost" size="icon" className={s.btn}>
-          <Link to={commentTo} aria-label="Comments">
-            {icon}
-          </Link>
-        </Button>
-      ) : (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className={s.btn}
-          aria-label="Comments"
-          onClick={onCommentClick}
-        >
-          {icon}
-        </Button>
-      )}
+    <div className={cn("w-full", className)}>
+      {Children.map(children, (child) => {
+        if (!isValidElement(child)) return child;
+        const el = child as ReactElement<ReactionBarChildProps>;
+        return cloneElement(el, {
+          actions: commentControl,
+          className: cn(el.props.className, "w-full"),
+        });
+      })}
     </div>
   );
 }

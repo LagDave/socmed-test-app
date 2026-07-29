@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.13 — 2026-07-30
+
+### Changed
+- Post / comment reaction row: react + comment/reply on the left; right-side clustered reaction stickers with a single total count
+
+### Plans
+- `plans/07292026-24-reaction-summary-layout` — Completed
+
 ## 0.1.12 — 2026-07-30
 
 ### Changed

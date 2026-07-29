@@ -25,6 +25,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 19 | `07292026-19-navbar-arrangement` | Full-width navbar zones + profile dropdown |
 | 20 | `07292026-20-reactions-changed-icon` | Reaction stickers 👍❤️😂😮 (ReactionBar + Messages) |
 | 21 | `07292026-21-removed-outline-padding` | Flush soft-page-canvas (drop outer outline padding) |
+| 24 | `07292026-24-reaction-summary-layout` | Reaction summary right-aligned cluster + total count |
 
 ## Branch → host (hard rule)
 
