@@ -63,4 +63,10 @@ export class FriendshipModel {
       .andWhere((q) => q.where({ user_a: userId }).orWhere({ user_b: userId }));
     return rows.map((r) => (r.user_a === userId ? r.user_b : r.user_a));
   }
+
+  static async areFriends(userId: string, otherId: string): Promise<boolean> {
+    if (userId === otherId) return false;
+    const row = await this.findPair(userId, otherId);
+    return row?.status === "accepted";
+  }
 }

@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { MessageCircle, User } from "lucide-react";
 import { api } from "@/api/client";
 import type { PublicUser } from "@/api/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { openConversationWithUsername } from "@/api/messages";
 
 type InboxItem = { id: string; status: string; user: PublicUser };
 
@@ -32,6 +34,7 @@ function FriendsSection({
 }
 
 export function FriendsPage() {
+  const navigate = useNavigate();
   const [incoming, setIncoming] = useState<InboxItem[]>([]);
   const [mutuals, setMutuals] = useState<PublicUser[]>([]);
   const [username, setUsername] = useState("");
@@ -60,9 +63,20 @@ export function FriendsPage() {
     }
   }
 
+  async function openMessage(peerUsername: string | null) {
+    if (!peerUsername) return;
+    setError(null);
+    try {
+      const id = await openConversationWithUsername(peerUsername);
+      navigate(`/messages/${id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not open chat");
+    }
+  }
+
   return (
     <div className="soft-page-canvas -mx-4 rounded-2xl px-4 py-6 sm:px-6">
-      <div className="mx-auto max-w-2xl space-y-6 rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_8px_24px_rgba(0,0,0,0.45)]">
+      <div className="mx-auto max-w-2xl space-y-6 rounded-2xl border border-border bg-card p-6 text-card-foreground soft-card-shadow">
         <header>
           <h1 className="text-3xl font-bold tracking-tight">Friends</h1>
           <p className="mt-1 text-sm text-muted-foreground">Requests and mutuals.</p>
@@ -127,11 +141,21 @@ export function FriendsPage() {
                 {mutuals.map((u) => (
                   <li
                     key={u.id}
-                    className="border-b border-border py-3 last:border-b-0"
+                    className="flex items-center justify-between gap-2 border-b border-border py-3 last:border-b-0"
                   >
                     <span>
                       {u.displayName} <span className="text-muted-foreground">@{u.username}</span>
                     </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      aria-label={`Message ${u.displayName}`}
+                      title="Message"
+                      onClick={() => void openMessage(u.username)}
+                    >
+                      <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                    </Button>
                   </li>
                 ))}
               </ul>

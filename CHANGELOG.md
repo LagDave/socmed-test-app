@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.1.10 — 2026-07-29
+
+### Changed
+- Feed / post detail: comment control is an icon beside reactions (`MessageSquare`); post body no longer navigates to detail
+- Parent comments: reply trigger is an icon beside reactions; compose submit labels stay text
+- AppShell header is full-width with three zones: brand left, Home + Friends centered, Messages · Notifications · Profile on the right
+- Signed-in theme toggle and Log out moved into a Profile dropdown (Profile · Switch mode · Log out)
+
+### Added
+- shadcn/Radix `DropdownMenu` UI primitive (`frontend/src/components/ui/dropdown-menu.tsx`)
+
+### Plans
+- `plans/07292026-18-comment-action-icons` — Completed
+- `plans/07292026-19-navbar-arrangement` — Completed
+
+## 0.1.9 — 2026-07-29
+
+### Added
+- Friends-only 1:1 messenger: conversations, messages (text + images), reactions, soft unsend (“Unsent a message”)
+- Messages API under `/api/messages` with unread count; SPA inbox/thread at `/messages` with short polling
+- AppShell Messages nav badge (separate from Notifications); message icons on Friends mutuals and mutual profiles
+
+### Plans
+- `plans/07292026-17-friends-messenger` — Completed
+
 ## 0.1.8 — 2026-07-28
 
 ### Added

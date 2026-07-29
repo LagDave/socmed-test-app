@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "@/api/client";
 import type { CommentView, PostView, ReactionSummary } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PostActionRow, ReplyActionButton } from "@/components/PostActionRow";
 import { ReactionBar } from "@/components/ReactionBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,6 +58,7 @@ function groupComments(comments: CommentView[]): { threads: CommentThread[]; orp
 
 export function PostDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [post, setPost] = useState<PostView | null>(null);
@@ -73,6 +75,7 @@ export function PostDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const commentsSectionRef = useRef<HTMLDivElement>(null);
 
   const { threads, orphans } = useMemo(() => groupComments(comments), [comments]);
 
@@ -114,6 +117,15 @@ export function PostDetailPage() {
     replyTextareaRef.current?.focus();
     replyTextareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [replyTo]);
+
+  useEffect(() => {
+    if (!post || location.hash !== "#comments") return;
+    commentsSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [post, location.hash]);
+
+  function scrollToComments() {
+    commentsSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
 
   function clearReply() {
     setReplyTo(null);
@@ -252,17 +264,18 @@ export function PostDetailPage() {
         {post.imageUrl && (
           <img src={post.imageUrl} alt="" className="max-h-96 w-full object-cover border border-border" />
         )}
-        <ReactionBar
-          className="pt-1"
-          size="md"
-          targetType="post"
-          targetId={post.id}
-          summary={post.reactionSummary}
-          onSummaryChange={patchPostSummary}
-        />
+        <PostActionRow className="pt-1" size="md" onCommentClick={scrollToComments}>
+          <ReactionBar
+            size="md"
+            targetType="post"
+            targetId={post.id}
+            summary={post.reactionSummary}
+            onSummaryChange={patchPostSummary}
+          />
+        </PostActionRow>
       </article>
 
-      <div className="feed-card space-y-3 p-5">
+      <div id="comments" ref={commentsSectionRef} className="feed-card space-y-3 p-5">
         <h2 className="text-lg font-semibold">Comments</h2>
         <ul className="mt-3 space-y-3">
           {threads.map(({ parent, replies }) => (
@@ -277,39 +290,30 @@ export function PostDetailPage() {
                   {parent.imageUrl && (
                     <img src={parent.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
                   )}
-                  <ReactionBar
-                    className="mt-2"
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <ReactionBar
+                      size="sm"
+                      targetType="comment"
+                      targetId={parent.id}
+                      summary={parent.reactionSummary}
+                      onSummaryChange={(reactionSummary) =>
+                        patchCommentSummary(parent.id, reactionSummary)
+                      }
+                    />
+                    {user && <ReplyActionButton onClick={() => startReply(parent)} />}
+                  </div>
+                </div>
+                {user?.id === parent.author.id && (
+                  <Button
+                    type="button"
+                    variant="ghost"
                     size="sm"
-                    targetType="comment"
-                    targetId={parent.id}
-                    summary={parent.reactionSummary}
-                    onSummaryChange={(reactionSummary) =>
-                      patchCommentSummary(parent.id, reactionSummary)
-                    }
-                  />
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  {user?.id === parent.author.id && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setPendingDelete({ type: "comment", comment: parent, kind: "comment" })}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                  {user && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => startReply(parent)}
-                    >
-                      Reply
-                    </Button>
-                  )}
-                </div>
+                    className="shrink-0"
+                    onClick={() => setPendingDelete({ type: "comment", comment: parent, kind: "comment" })}
+                  >
+                    Delete
+                  </Button>
+                )}
               </div>
               {replies.length > 0 && (
                 <ul className="mt-3 space-y-2 border-l border-border pl-4">

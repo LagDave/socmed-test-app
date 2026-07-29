@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Navbar Arrangement Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .mock { margin-top:14px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--soft); }
+    .mock img { display:block; width:100%; height:auto; }
+    .mock figcaption { padding:10px 12px; font-size:0.85rem; color:var(--muted); }
+    .layout-ascii { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; background:var(--soft); border:1px solid var(--line); border-radius:8px; padding:14px; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 19</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Navbar Arrangement — Full-Width Zones + Profile Menu</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07292026-19-navbar-arrangement</dd></div>
+        <div><dt>Size</dt><dd>Small (4 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07292026-19-navbar-arrangement</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/navbar-arrangement</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 10 theme toggle · Plan 16/17 shell badges (Messages, Notifications, Feed)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>The signed-in header is a single right-hand icon cluster inside the same <code>max-w-[680px]</code> column as the feed. Brand, primary destinations, messaging, notifications, theme, and logout all compete in one cramped row. Users want a clearer chrome: primary browse links centered, account/actions on the right, and theme + logout tucked behind a profile menu.</p>
+      <figure class="mock">
+        <img src="./mock-current-navbar.png" alt="Current cramped header: brand left, all icons and Log out clustered on the right inside the narrow content column">
+        <figcaption>Current header (before) — everything shares the narrow content column.</figcaption>
+      </figure>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Rearrange <code>AppShell</code> into a <strong>full-width sticky header</strong> with three inline zones, and replace the standalone theme toggle + Log out button (when signed in) with a <strong>Profile dropdown</strong>.</p>
+      <p><strong>Target layout (signed in):</strong></p>
+      <pre class="layout-ascii">|←—————————————— browser window ——————————————→|
+[ SocMed application ]   [ Home  Friends ]   [ Messages  Notifications  Profile ▾ ]
+|                        page content (still max-w 680)                          |</pre>
+      <p><strong>Profile dropdown items (top → bottom):</strong></p>
+      <ol>
+        <li><strong>Profile</strong> — navigates to <code>/u/{username}</code></li>
+        <li><strong>Switch mode</strong> — toggles light ↔ dark (same behavior as today’s <code>ThemeToggle</code>)</li>
+        <li><strong>Log out</strong> — calls existing <code>logout()</code></li>
+      </ol>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Header bar spans the viewport; page <code>main</code> stays <code>max-w-[680px]</code></li>
+        <li>Signed-in center shows Home + Friends only (Home keeps feed badge)</li>
+        <li>Signed-in right shows Messages · Notifications · Profile trigger (badges unchanged)</li>
+        <li>Profile icon opens a dropdown; no standalone theme icon or Log out button in the header row</li>
+        <li>Signed-out right still shows ThemeToggle + Sign in (unchanged pattern)</li>
+        <li>Frontend typecheck/build pass; acceptance checklist passes or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Header width</td>
+            <td><strong>A — Full-width three-zone chrome</strong></td>
+            <td>True viewport centering for Home/Friends; brand far left; actions far right. Content column stays narrow.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Profile access</td>
+            <td><strong>A — Dropdown includes Profile link</strong></td>
+            <td>Profile icon becomes the menu trigger; menu items: Profile · Switch mode · Log out. Preserves one-hop profile navigation.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Menu primitive</td>
+            <td><strong>A — shadcn / Radix DropdownMenu</strong></td>
+            <td>First menu in the app; proper keyboard + focus management. Adds <code>@radix-ui/react-dropdown-menu</code>.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Right-cluster order</td>
+            <td><strong>Messages · Notifications · Profile</strong></td>
+            <td>Matches the requested order; Profile is last as the account menu.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Signed-out header</td>
+            <td><strong>ThemeToggle + Sign in on the right</strong></td>
+            <td>No profile menu when logged out; keep discoverable theme control.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Primary file</strong> — <code>frontend/src/components/AppShell.tsx</code>. Sticky header + <code>NavIcon</code> helper; authenticated block currently renders Feed · Friends · Messages · Profile · Notifications · <code>ThemeToggle</code> · Log out inside <code>max-w-[680px]</code>.</p>
+      <p><strong>Theme</strong> — <code>frontend/src/components/ThemeToggle.tsx</code> + <code>ThemeContext</code>. Menu item should call the same <code>toggleTheme</code> / labels; do not invent a second theme path. Prefer adapting <code>ThemeToggle</code> (e.g. optional render-as menu item) or a thin wrapper used only inside the dropdown — one behavior, two surfaces.</p>
+      <p><strong>UI kit today</strong> — <code>button</code>, <code>input</code>, <code>textarea</code> only. No dropdown yet. Closest analog for a new primitive: existing shadcn-style <code>frontend/src/components/ui/button.tsx</code> (CVA + Radix Slot).</p>
+      <p><strong>Consumers</strong> — <code>App.tsx</code> wraps all authenticated/app routes in <code>AppShell</code>. Blast radius is every page chrome, not page bodies.</p>
+      <p><strong>Labels</strong> — Keep accessible names: Home/Feed (existing <code>aria-label="Feed"</code> on Home is fine — do not rename routes). User-facing request said “home page / friends page”; icons stay icon-only with <code>aria-label</code> / <code>title</code>.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Full-width header; three zones on one row (inline)</li>
+            <li>Center: Home + Friends only when signed in</li>
+            <li>Right: Messages · Notifications · Profile dropdown when signed in</li>
+            <li>Dropdown: Profile · Switch mode · Log out</li>
+            <li>Preserve unread/feed/notification badges and polling behavior</li>
+            <li>Keyboard: open/close menu, Escape, focus return to trigger</li>
+            <li>Update <code>plans/README.md</code> with seq 19</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>Change routes, APIs, or badge count endpoints</li>
+            <li>Widen <code>main</code> content beyond existing max-width</li>
+            <li>Leave a duplicate theme toggle or Log out in the signed-in header row</li>
+            <li>Build a one-off non-Radix menu when Decision 3 locked A</li>
+            <li>Mix drive-by refactors outside the shell/menu surface</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Out of scope</h3>
+          <ul>
+            <li>Mobile hamburger / bottom tab bar</li>
+            <li>Avatar photo in the profile trigger (keep UserRound icon)</li>
+            <li>Notification dropdown panel (bell still navigates to <code>/notifications</code>)</li>
+            <li>Renaming the product title string</li>
+            <li>Backend / migrations</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Global chrome change + first dropdown dependency.</p>
+      <table>
+        <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Absolute centering overlaps brand or right cluster on narrow viewports</td>
+            <td>Use a CSS grid <code>1fr auto 1fr</code> (or equivalent) with side zones; allow center to shrink/wrap with gap; spot-check ~375px width. Do not introduce a hamburger in this plan.</td>
+          </tr>
+          <tr>
+            <td>Profile path regresses (was a direct <code>NavLink</code>)</td>
+            <td>First dropdown item is an explicit Profile link to the same URL; acceptance covers click-through.</td>
+          </tr>
+          <tr>
+            <td>New Radix dependency drift / inconsistent styling</td>
+            <td>Add via shadcn-style <code>ui/dropdown-menu.tsx</code> matching existing token/button patterns; no parallel menu APIs.</td>
+          </tr>
+          <tr>
+            <td>Theme toggle behavior forks</td>
+            <td>Reuse <code>useTheme</code> / existing persistence; menu item must flip <code>html.dark</code> + <code>localStorage</code> like today’s button.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Required pushback:</strong> Do not keep the header at <code>max-w-[680px]</code> and call Home/Friends “centered” — that was rejected (Decision 1A). Do not ship Profile-as-menu without a Profile menu item (Decision 2A).
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="t1">
+        <h3>T1 — Add DropdownMenu UI primitive</h3>
+        <p><strong>Do:</strong> Add shadcn-style <code>frontend/src/components/ui/dropdown-menu.tsx</code> backed by <code>@radix-ui/react-dropdown-menu</code>. Wire package dependency in <code>frontend/package.json</code> (and lockfile). Match existing B&amp;W token styling (border, popover surface, focus ring).</p>
+        <p><strong>Files:</strong> <code>frontend/src/components/ui/dropdown-menu.tsx</code> (new), <code>frontend/package.json</code>, lockfile</p>
+        <p><strong>Depends on:</strong> —</p>
+        <p><strong>Verify:</strong> Module typechecks; exports Trigger / Content / Item (names per shadcn convention) usable from AppShell.</p>
+      </article>
+
+      <article class="task-card" id="t2">
+        <h3>T2 — Full-width three-zone AppShell header</h3>
+        <p><strong>Do:</strong> Lift the header inner container off the content max-width. Implement left (brand) · center (Home, Friends when signed in) · right (auth-dependent cluster). Keep <code>main</code> at <code>max-w-[680px]</code>. Preserve <code>NavIcon</code>, badges, and message unread polling.</p>
+        <p><strong>Files:</strong> <code>frontend/src/components/AppShell.tsx</code></p>
+        <p><strong>Depends on:</strong> — (can parallel with T1)</p>
+        <p><strong>Verify:</strong> At desktop width, Home/Friends sit in the visual center of the viewport; brand left; right cluster right-aligned.</p>
+      </article>
+
+      <article class="task-card" id="t3">
+        <h3>T3 — Profile dropdown (Profile · Switch mode · Log out)</h3>
+        <p><strong>Do:</strong> Replace signed-in Profile <code>NavIcon</code> + standalone <code>ThemeToggle</code> + Log out button with a Profile icon trigger opening the dropdown. Items per Decision 2. Reuse theme toggle behavior (adapt <code>ThemeToggle</code> or shared hook usage). Right order: Messages · Notifications · Profile trigger.</p>
+        <p><strong>Files:</strong> <code>frontend/src/components/AppShell.tsx</code>, optionally <code>frontend/src/components/ThemeToggle.tsx</code></p>
+        <p><strong>Depends on:</strong> T1, T2</p>
+        <p><strong>Verify:</strong> Menu opens/closes; Profile navigates; Switch mode flips theme + persistence; Log out signs out; no duplicate theme/logout controls in the signed-in row.</p>
+      </article>
+
+      <article class="task-card" id="t4">
+        <h3>T4 — Signed-out cluster + plan index</h3>
+        <p><strong>Do:</strong> Confirm signed-out right cluster remains ThemeToggle + Sign in. Index this plan in <code>plans/README.md</code> as seq 19.</p>
+        <p><strong>Files:</strong> <code>frontend/src/components/AppShell.tsx</code>, <code>plans/README.md</code></p>
+        <p><strong>Depends on:</strong> T3</p>
+        <p><strong>Verify:</strong> Signed-out header still offers theme + sign-in; README lists plan 19.</p>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" checked disabled> Full-width header with left / center / right zones</li>
+        <li><input type="checkbox" checked disabled> Signed-in center = Home + Friends; right = Messages · Notifications · Profile menu</li>
+        <li><input type="checkbox" checked disabled> Profile dropdown contains Profile, Switch mode, Log out — and works</li>
+        <li><input type="checkbox" checked disabled> Signed-in row has no standalone theme icon or Log out button</li>
+        <li><input type="checkbox" checked disabled> Badges + unread polling unchanged</li>
+        <li><input type="checkbox" checked disabled> Signed-out: ThemeToggle + Sign in on the right</li>
+        <li><input type="checkbox" checked disabled> Frontend typecheck + build clean</li>
+        <li><input type="checkbox" checked disabled> Acceptance <code>test-results.json</code> rollup Passed (or written waivers)</li>
+        <li><input type="checkbox" checked disabled> Spec status updated; README seq 19 indexed</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-29</td>
+            <td>Initial spec. Locked: full-width zones (1A), Profile menu with Profile/Switch mode/Log out (2A), Radix DropdownMenu (3A).</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-29</td>
+            <td>Executed on <code>kylie/navbar-arrangement</code>: added <code>ui/dropdown-menu.tsx</code> + <code>@radix-ui/react-dropdown-menu</code>; rewrote <code>AppShell</code> to full-width three-zone header with Profile dropdown. Frontend typecheck/lint/build clean. Acceptance checklist still pending.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-29</td>
+            <td>Finalized (<code>-d</code>): acceptance rollup Passed; Done checklist verified; changelog 0.1.10; status Completed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
