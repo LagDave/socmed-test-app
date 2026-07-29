@@ -190,12 +190,12 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
   useEffect(() => {
     const socket = getMessagesSocket();
-    const generation = () => generationRef.current;
+    const generation = generationRef.current;
 
     const applyMessage = (payload: MessageEventPayload) => {
       const msg = payload.message;
       if (msg.conversationId !== conversationId) return;
-      if (generation() !== generationRef.current) return;
+      if (generation !== generationRef.current) return;
       stickToBottomRef.current = true;
       setMessages((prev) => mergeById(prev, [msg]));
       void api.post(`/api/messages/conversations/${conversationId}/read`).catch(() => undefined);
@@ -256,7 +256,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       );
       if (generation !== generationRef.current) return;
       setBody("");
-      setMessages((prev) => [...prev, data.message]);
+      setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
     } catch (err) {
@@ -283,7 +283,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       );
       if (generation !== generationRef.current) return;
       setBody("");
-      setMessages((prev) => [...prev, data.message]);
+      setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
     } catch (err) {
