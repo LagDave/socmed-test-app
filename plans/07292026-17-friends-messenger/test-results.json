@@ -1,0 +1,185 @@
+{
+  "plan": "plans/07292026-17-friends-messenger",
+  "generatedAt": "2026-07-29",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1a",
+      "title": "Messenger migration applies cleanly",
+      "surface": "cli",
+      "precondition": "Dev DB available; feature branch with migration present",
+      "steps": [
+        "Run npm run migrate",
+        "Confirm conversations, messages, and message_reactions tables exist",
+        "Confirm unique constraint on conversation user pair"
+      ],
+      "expected": "Migrate succeeds with no version collision; schema matches spec.",
+      "status": "pass",
+      "evidence": "npm run migrate on kylie/friends-messenger worktree 2026-07-29: Batch 5 run: 1 migrations (20260729140000_friends_messenger).",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2a",
+      "title": "Friends can get-or-create and exchange text",
+      "surface": "api",
+      "precondition": "Two accepted mutual accounts A and B",
+      "steps": [
+        "As A, POST create/get conversation with B",
+        "As A, send a text message",
+        "As B, list conversation messages and see A's message"
+      ],
+      "expected": "Round-trip text works; conversation is unique per pair.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (messenger worktree) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2b",
+      "title": "Non-friends cannot message",
+      "surface": "api",
+      "precondition": "Accounts C and D are not accepted mutuals",
+      "steps": [
+        "As C, attempt POST conversation targeting D",
+        "If a conversation somehow exists, attempt send"
+      ],
+      "expected": "Create/send denied (forbidden/conflict per AppError mapping).",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (messenger worktree) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2c",
+      "title": "Image message via existing uploads",
+      "surface": "api",
+      "precondition": "Mutual pair; can POST /api/uploads",
+      "steps": [
+        "Upload an image",
+        "Send message with imageUrl (optional caption)",
+        "Peer lists thread and receives image URL"
+      ],
+      "expected": "Image message persists and is visible to peer; no parallel uploader.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (messenger worktree) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2d",
+      "title": "Unsend shows Unsent a message",
+      "surface": "api",
+      "precondition": "A sent a message to B",
+      "steps": [
+        "As A, DELETE/unsend own message",
+        "As A and B, fetch thread"
+      ],
+      "expected": "Message appears as unsent tombstone; body/image not returned; copy implies Unsent a message.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (messenger worktree) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2e",
+      "title": "Reactions set replace and clear",
+      "surface": "api",
+      "precondition": "Non-unsent message in mutual thread",
+      "steps": [
+        "As B, PUT reaction emoji from allow-list",
+        "As B, PUT a different emoji",
+        "As B, DELETE reaction",
+        "Attempt react on an unsent message"
+      ],
+      "expected": "One reaction per user; replace works; clear works; unsent rejects or no-ops per service rules.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (messenger worktree) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3a",
+      "title": "Inbox and thread UI",
+      "surface": "ui",
+      "precondition": "Signed in as A with at least one conversation",
+      "steps": [
+        "Open /messages and see inbox",
+        "Open a thread",
+        "Send text and confirm it appears",
+        "Attach/send an image",
+        "Unsend a message and see Unsent a message",
+        "Add a reaction"
+      ],
+      "expected": "Full messenger chrome works on light theme; B&W tokens only.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (messenger worktree) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T3b",
+      "title": "Open-thread polling picks up peer messages",
+      "surface": "ui",
+      "precondition": "A has thread open; B can send from another session/browser",
+      "steps": [
+        "Keep A's thread open without manual refresh",
+        "As B, send a message",
+        "Wait up to a few poll intervals"
+      ],
+      "expected": "A sees B's message without a full page reload.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (messenger worktree) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4a",
+      "title": "Messages nav badge; Notifications untouched",
+      "surface": "ui",
+      "precondition": "B sends A a message while A is elsewhere",
+      "steps": [
+        "As A, observe Messages nav badge / unread",
+        "Open /notifications and confirm no message activity rows"
+      ],
+      "expected": "Unread appears on Messages; Notifications feed has no DM items.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (messenger worktree) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4b",
+      "title": "Message icons on Friends and Profile",
+      "surface": "ui",
+      "precondition": "A and B are mutuals; A also has a non-friend profile to view",
+      "steps": [
+        "On /friends, confirm message icon on mutual row (not the word Message)",
+        "Click icon \u2192 lands in thread with that friend",
+        "On mutual profile, same icon works",
+        "On non-mutual profile, icon absent"
+      ],
+      "expected": "Icon-only entry points only for accepted mutuals.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (messenger worktree) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4c",
+      "title": "Dark mode Messages spot-check",
+      "surface": "ui",
+      "precondition": "Theme toggle available",
+      "steps": [
+        "Switch to dark mode on /messages and a thread",
+        "Confirm readable contrast for bubbles/list/composer",
+        "Switch back to light"
+      ],
+      "expected": "Messages surfaces remain intentional in dark mode.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (messenger worktree) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

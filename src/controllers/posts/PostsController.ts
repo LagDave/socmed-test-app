@@ -27,7 +27,7 @@ export class PostsController {
 
   static async get(req: AuthedRequest, res: Response): Promise<Response> {
     try {
-      const post = await PostService.get(String(req.params.id));
+      const post = await PostService.get(req.userId!, String(req.params.id));
       return ok(res, { post });
     } catch (err) {
       return handle(res, err);

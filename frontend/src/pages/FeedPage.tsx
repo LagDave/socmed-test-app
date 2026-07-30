@@ -1,11 +1,16 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
-import type { PostView } from "@/api/types";
+import type { PostView, ReactionSummary } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PostActionRow } from "@/components/PostActionRow";
+import { ReactionBar } from "@/components/ReactionBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
+import { submitOnEnter } from "@/lib/submitOnEnter";
 
 export function FeedPage() {
   const { user, loading } = useAuth();
@@ -14,10 +19,19 @@ export function FeedPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
 
   async function load() {
     const data = await api.get<{ posts: PostView[] }>("/api/feed");
     setPosts(data.posts);
+    await api.post("/api/feed/seen").catch(() => undefined);
+  }
+
+  function patchPostSummary(postId: string, reactionSummary: ReactionSummary) {
+    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, reactionSummary } : p)));
   }
 
   useEffect(() => {
@@ -27,6 +41,10 @@ export function FeedPage() {
 
   async function onCompose(e: FormEvent) {
     e.preventDefault();
+    if (busyRef.current) return;
+    const text = body.trim();
+    if (!text) return;
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -35,14 +53,32 @@ export function FeedPage() {
         const up = await api.upload<{ url: string }>("/api/uploads", imageFile);
         imageUrl = up.url;
       }
-      await api.post("/api/posts", { body, imageUrl });
+      await api.post("/api/posts", { body: text, imageUrl });
       setBody("");
       setImageFile(null);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
+      busyRef.current = false;
       setBusy(false);
+    }
+  }
+
+  async function confirmDeletePost() {
+    if (!pendingDeleteId || deleting || deletingRef.current) return;
+    deletingRef.current = true;
+    setDeleting(true);
+    setError(null);
+    try {
+      await api.delete(`/api/posts/${pendingDeleteId}`);
+      setPendingDeleteId(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      deletingRef.current = false;
+      setDeleting(false);
     }
   }
 
@@ -60,46 +96,88 @@ export function FeedPage() {
   }
 
   return (
-    <section className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Feed</h1>
+    <section className="space-y-4">
+      <div className="px-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Feed</h1>
         <p className="text-sm text-muted-foreground">You and your mutuals.</p>
       </div>
 
-      <form onSubmit={onCompose} className="space-y-3 border border-border bg-background p-4">
+      <form onSubmit={onCompose} className="feed-card space-y-2 p-3">
         <Textarea
-          placeholder="What's happening?"
+          placeholder="What's on your mind?"
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          onKeyDown={submitOnEnter}
           required
+          className="min-h-[52px] resize-none border-0 bg-transparent px-1 py-1 text-[15px] shadow-none focus-visible:ring-0"
         />
-        <Input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
-        {error && <p className="text-sm">{error}</p>}
-        <Button type="submit" disabled={busy}>
-          Post
-        </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+            className="h-8 max-w-xs border-0 bg-transparent px-0 py-0 shadow-none"
+          />
+          <Button type="submit" size="sm" disabled={busy}>
+            Post
+          </Button>
+        </div>
+        {error && <p className="text-sm text-muted-foreground">{error}</p>}
       </form>
 
       <ul className="space-y-4">
         {posts.map((p) => (
-          <li key={p.id} className="border-b border-border pb-4">
-            <div className="flex items-baseline justify-between gap-2">
+          <li key={p.id} className="feed-card p-5">
+            <div className="flex items-baseline justify-between gap-2 pb-3">
               <Link className="font-medium underline-offset-2 hover:underline" to={`/u/${p.author.username || p.author.id}`}>
                 {p.author.displayName}
                 {p.author.username ? ` @${p.author.username}` : ""}
               </Link>
-              <time className="text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleString()}</time>
+              <div className="flex shrink-0 items-center gap-2">
+                <time
+                  className="text-xs text-muted-foreground"
+                  dateTime={p.createdAt}
+                  title={formatAbsoluteTime(p.createdAt) || undefined}
+                >
+                  {formatRelativeTime(p.createdAt)}
+                </time>
+                {user.id === p.author.id && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setPendingDeleteId(p.id)}>
+                    Delete
+                  </Button>
+                )}
+              </div>
             </div>
-            <Link to={`/posts/${p.id}`} className="mt-2 block whitespace-pre-wrap">
-              {p.body}
-            </Link>
+            <p className="mt-1 whitespace-pre-wrap text-[15px] leading-relaxed">{p.body}</p>
             {p.imageUrl && (
-              <img src={p.imageUrl} alt="" className="mt-3 max-h-96 w-full object-cover border border-border" />
+              <img src={p.imageUrl} alt="" className="mt-4 max-h-96 w-full rounded-lg object-cover" />
             )}
+            <PostActionRow className="mt-4" size="md" commentTo={`/posts/${p.id}#comments`}>
+              <ReactionBar
+                size="md"
+                targetType="post"
+                targetId={p.id}
+                summary={p.reactionSummary}
+                onSummaryChange={(reactionSummary) => patchPostSummary(p.id, reactionSummary)}
+              />
+            </PostActionRow>
           </li>
         ))}
-        {posts.length === 0 && <p className="text-sm text-muted-foreground">No posts yet.</p>}
+        {posts.length === 0 && (
+          <li className="feed-card p-8 text-center text-sm text-muted-foreground">No posts yet.</li>
+        )}
       </ul>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete this post?"
+        description="This removes the post and all of its comments."
+        busy={deleting}
+        onCancel={() => {
+          if (!deleting) setPendingDeleteId(null);
+        }}
+        onConfirm={() => void confirmDeletePost()}
+      />
     </section>
   );
 }

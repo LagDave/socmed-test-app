@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comment / Reply Action Icons Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .mock { margin-top:14px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--soft); max-width:420px; }
+    .mock img { display:block; width:100%; height:auto; }
+    .mock figcaption { padding:10px 12px; font-size:0.85rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 18</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Comment Beside Reactions — Icon Entry + Reply Icon</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07292026-18-comment-action-icons</dd></div>
+        <div><dt>Size</dt><dd>Small (3 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07292026-18-comment-action-icons</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/comment-action-icons (from kylie/friends-messenger tip)</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 15 reactions (ReactionBar) · Plans 11–14 comment/reply UI</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 15 put reactions under the post but deferred “Comment beside reaction.” Today the only feed path into comments is clicking the post body. Users want a Facebook-style action row: react and open comments side-by-side, with icons instead of the words “Comment” / “Reply.”</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li>On <strong>Feed</strong> and <strong>post detail</strong>, place a <strong>comment icon</strong> immediately beside the post <code>ReactionBar</code> (same horizontal action row as the mock: reaction control → comment icon).</li>
+        <li><strong>No visible “Comment” word</strong> for that affordance — lucide <code>MessageCircle</code> with <code>aria-label="Comments"</code> (or equivalent). No comment count in this plan (mock is icon-only).</li>
+        <li><strong>Flip entry:</strong> clicking the comment icon navigates to <code>/posts/:id#comments</code> (same destination/process as today’s post-body link). Post body and image are <strong>no longer links</strong> to detail.</li>
+        <li>On post detail, the same comment icon beside post reactions scrolls to the comments section (<code>#comments</code>).</li>
+        <li>Under each <strong>parent comment</strong>, rearrange the action row to <code>ReactionBar | Reply icon</code>. Replace the text “Reply” button with lucide <code>Reply</code> (or <code>CornerDownRight</code>) + <code>aria-label="Reply"</code>. Reply flow unchanged (one-level, inline composer, same submit API).</li>
+        <li>Keep compose <strong>submit</strong> button labels as text (“Comment” / “Reply”).</li>
+      </ul>
+      <p><strong>Done when:</strong> Feed and detail show reaction + comment icon side-by-side; comment icon opens/scrolls to comments; post body is not the detail entry; parent comments use a reply icon beside reactions; reply still works; typecheck/build green; acceptance checklist runnable.</p>
+
+      <figure class="mock">
+        <img src="mock-action-row.png" alt="Mock: reaction thumbs-up beside a black oval placeholder for the comment icon under the post body">
+        <figcaption>Locked layout: reaction control, then comment icon (oval = placeholder). No count, no “Comment” label.</figcaption>
+      </figure>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today (kylie/friends-messenger tip):</strong></p>
+      <ul>
+        <li><code>FeedPage</code> — post body is <code>&lt;Link to={`/posts/${p.id}`}&gt;</code>; <code>ReactionBar</code> sits alone under the post; no comment control.</li>
+        <li><code>PostDetailPage</code> — <code>ReactionBar</code> under post; “Comments” heading + threads; text ghost <strong>Reply</strong> beside Delete; bottom form submit “Comment”; reply form submit “Reply”.</li>
+        <li><code>ReactionBar</code> — self-contained flex row (trigger + counts). Action-row sibling must wrap <code>ReactionBar</code> + icon in a shared flex container — do not fork reaction logic into pages.</li>
+        <li>Icons already in app via <code>lucide-react</code> (<code>MessageCircle</code> used on Friends / Messages / Profile). Pattern: ghost icon button, <code>h-4 w-4</code>, <code>aria-label</code> (see <code>ThemeToggle</code> / Friends rows).</li>
+      </ul>
+      <p><strong>Closest analogs:</strong></p>
+      <ul>
+        <li>Layout target → user mock <code>mock-action-row.png</code></li>
+        <li>Icon button chrome → <code>ThemeToggle</code> / Friends <code>MessageCircle</code> ghost buttons</li>
+        <li>Optional thin wrapper → new <code>PostActionRow.tsx</code> only if it avoids duplicating Feed + detail markup; otherwise inline flex next to existing <code>ReactionBar</code> is fine</li>
+      </ul>
+      <p><strong>Plan 15 deferred this explicitly</strong> (“No moving Comment into the reaction row”) — this plan is that follow-up.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Action row under post (Feed + detail): <code>ReactionBar</code> then comment icon, left-aligned, matching mock spacing</li>
+            <li>Comment affordance is an icon only (no “Comment” text label on the control)</li>
+            <li>Feed comment icon → <code>/posts/:id#comments</code>; detail comment icon → scroll/focus comments section with <code>id="comments"</code></li>
+            <li>Remove post-body (and image) navigation to detail on Feed — flip entry to the icon</li>
+            <li>Parent-comment row: reactions + reply icon; remove text “Reply” button; <code>startReply</code> behavior unchanged</li>
+            <li>Keep Delete placement usable (icon row must not bury Delete); Delete may stay as text ghost near author chrome</li>
+            <li>Reuse lucide; no new npm deps</li>
+            <li>Frontend only — no schema, routes, or <code>commentCount</code> API</li>
+            <li>Follow Code Constitution; no business logic in UI beyond existing page patterns</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No comment count badge in this plan</li>
+            <li>No changing reaction picker / emoji set / ReactionBar API contract beyond accepting a sibling in a flex row</li>
+            <li>No nested replies beyond existing one-level model</li>
+            <li>No icon-only submit buttons on compose forms</li>
+            <li>No inline expand of comments on the Feed (still full detail page)</li>
+            <li>No backend / migration changes</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Comment counts on feed payloads</li>
+        <li>Share button / who-reacted</li>
+        <li>Redesigning comment card chrome beyond the action-row rearrange</li>
+        <li>Messenger / friends surfaces</li>
+      </ul>
+      <div class="callout">
+        <strong>Decisions locked:</strong> mock layout (reaction → comment icon) · icon-only, no count · flip feed entry off post body onto comment icon → <code>/posts/:id#comments</code> · detail icon scrolls to <code>#comments</code> · reply text → reply icon beside comment reactions · compose submit labels stay text · frontend-only · base = <code>kylie/friends-messenger</code> tip · exec branch <code>kylie/comment-action-icons</code>.
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Removing body-click navigation changes a learned path; icon must be obvious and labeled for a11y. ReactionBar hover/expand must not fight the adjacent icon click target.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Users still try to click post body to open comments</td>
+            <td>Feed discoverability</td>
+            <td>Intentional flip per product ask; comment icon always visible beside reactions; <code>aria-label</code></td>
+          </tr>
+          <tr>
+            <td>Icon click vs ReactionBar expand overlap</td>
+            <td>Mis-taps on Feed / detail</td>
+            <td>Separate controls in a flex row with gap; comment control is a <code>Link</code>/<code>button</code>, not inside ReactionBar</td>
+          </tr>
+          <tr>
+            <td>Hash scroll misses comments block</td>
+            <td>Detail lands mid-page wrong</td>
+            <td>Stable <code>id="comments"</code> on the comments card; on mount, scrollIntoView if hash present</td>
+          </tr>
+          <tr>
+            <td>Reply icon less discoverable than text</td>
+            <td>Comment threads</td>
+            <td>Same lucide size as peers; <code>aria-label="Reply"</code>; keep beside reactions where eyes already go</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Consumers / blast radius:</strong> <code>FeedPage</code>, <code>PostDetailPage</code>, possibly a thin new action-row wrapper. <code>ReactionBar</code> behavior unchanged. APIs untouched.</p>
+      <p><strong>Required pushback (honored):</strong> Do not sneak in comment counts or backend work in this plan — mock is icon-only.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Post action row: ReactionBar + comment icon (Feed + detail)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Wrap each post’s <code>ReactionBar</code> in a horizontal flex action row with a comment icon control to its right (lucide <code>MessageCircle</code>, ghost/icon sizing aligned with ReactionBar <code>md</code> trigger height).
+            <strong>Feed:</strong> icon is a <code>Link</code> to <code>/posts/${id}#comments</code>. Remove the post-body <code>Link</code> (body becomes plain text; image stays non-navigating).
+            <strong>Detail:</strong> icon is a button/anchor that scrolls to <code>#comments</code>. Add <code>id="comments"</code> on the comments section container.
+            No “Comment” text on the control; no count.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/FeedPage.tsx</code>, <code>frontend/src/pages/PostDetailPage.tsx</code>; optional <code>frontend/src/components/PostActionRow.tsx</code> if shared markup helps</dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>Mock-matching row on Feed + detail; Feed icon opens detail comments; body click no longer navigates; detail icon scrolls to comments</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Hash landing + comments section id</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            On <code>PostDetailPage</code>, when location hash is <code>#comments</code> (including after Feed navigation), after post/comments load, scroll the comments section into view (<code>scrollIntoView</code> or equivalent). Ensure the section has a stable <code>id="comments"</code>. Do not break existing reply auto-focus/scroll when starting a reply.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/PostDetailPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Opening <code>/posts/:id#comments</code> from Feed lands the comments block in view</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Reply icon beside comment reactions</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            For each parent comment (signed-in), rearrange so the action row under the comment body is <code>ReactionBar size="sm"</code> then a reply <strong>icon</strong> button (lucide <code>Reply</code> or <code>CornerDownRight</code>, <code>aria-label="Reply"</code>) that calls existing <code>startReply(parent)</code>.
+            Remove the text “Reply” ghost button from the top-right action cluster. Leave Delete as text ghost where it is today (or adjacent without colliding with the reaction row).
+            Reply composer + submit label “Reply” + cancel copy unchanged. No reply icon on replies (still one-level only).
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/PostDetailPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Reply icon sits beside comment reactions; click opens the same inline reply form; nesting and submit still work; no text “Reply” trigger</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>Feed post action row matches mock: reactions then comment icon</span></li>
+        <li><span>☑</span><span>Post detail post action row has the same comment icon beside reactions</span></li>
+        <li><span>☑</span><span>Comment control is icon-only (no “Comment” label, no count)</span></li>
+        <li><span>☑</span><span>Feed post body/image no longer navigate to detail</span></li>
+        <li><span>☑</span><span>Feed comment icon navigates to <code>/posts/:id#comments</code></span></li>
+        <li><span>☑</span><span>Detail comment icon / hash lands on the comments section</span></li>
+        <li><span>☑</span><span>Parent comments show reply icon beside reactions; text Reply trigger removed</span></li>
+        <li><span>☑</span><span>Reply flow still works (compose, submit, one-level nesting)</span></li>
+        <li><span>☑</span><span>Compose submit buttons still say Comment / Reply</span></li>
+        <li><span>☑</span><span>No backend/migration/dependency changes</span></li>
+        <li><span>☑</span><span>Frontend typecheck / build pass</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-29</td>
+            <td>Initial spec after grill + mock: action row = ReactionBar + comment icon; flip feed entry off body onto icon → <code>#comments</code>; reply text → icon beside comment reactions; no count; frontend-only; base friends-messenger tip.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-29</td>
+            <td>Executed: <code>PostActionRow</code> / <code>ReplyActionButton</code>; Feed body link removed; comment icon → <code>/posts/:id#comments</code>; detail scrolls to <code>id="comments"</code>; reply icon beside comment reactions. Acceptance UI items pending human / <code>-tw</code>.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-29</td>
+            <td>Quickfix: comment control uses lucide <code>MessageSquare</code> so it differs from nav Messages <code>MessageCircle</code>.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-07-29</td>
+            <td>Finalized (-d): changelog 0.1.10; acceptance Passed via human review on localhost:5181; preview-only vite port overrides not committed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

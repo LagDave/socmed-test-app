@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Post / Comment / Reply Reactions Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:840px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 15</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Emoji Reactions on Posts, Comments, and Replies</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07282026-15-reactions</dd></div>
+        <div><dt>Size</dt><dd>Medium (4 tasks, full-stack)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Branch</dt><dd>kylie/reactions (rebase onto kylie/delete-button tip before -x)</dd></div>
+        <div><dt>Depends on</dt><dd>Plans 11–14 (replies + timestamps + enter-to-submit + delete UI tip)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Users can create and discuss posts but have no lightweight way to react. Plan 05 deferred likes/reactions. A small emoji reaction bar (Facebook-style) under posts and under comments/replies closes that gap without building a full engagement system.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li>Add reactions to <strong>posts</strong>, <strong>comments</strong>, and <strong>replies</strong> (replies are comments with <code>parent_id</code>).</li>
+        <li>Fixed set of four: <code>like</code> 👍, <code>heart</code> ❤️, <code>haha</code> 😂, <code>wow</code> 😮.</li>
+        <li><strong>One reaction per user per target</strong>: picking another emoji replaces; picking the same again removes.</li>
+        <li>UI: default control shows the <strong>emoji only</strong> (larger); the name/label appears on hover. Hover (desktop) or press/hold (touch) expands the other three <strong>inline</strong>. Hovering an emoji plays a CSS bounce/wiggle; selecting applies it with a short pop.</li>
+        <li>After reacting: trigger shows <strong>your</strong> emoji; nearby show <strong>per-emoji counts</strong> for types with ≥1 (hide zeros).</li>
+        <li>Placement: reaction control in an <strong>action row below the post</strong> on Feed and post detail. Same compact control under each comment/reply on detail.</li>
+        <li>Persist in Postgres; mutate via auth APIs; embed summary on feed/post/comment payloads so the UI does not N+1.</li>
+      </ul>
+      <p><strong>Done when:</strong> signed-in users can set/switch/clear reactions on posts, comments, and replies; counts + viewer emoji render; picker UX matches above; typecheck/build green; acceptance checklist runnable.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today (after rebase onto delete-button tip):</strong></p>
+      <ul>
+        <li>No likes/reactions schema, API, or UI anywhere.</li>
+        <li>Posts + threaded comments/replies + delete + timestamps on <code>FeedPage</code> / <code>PostDetailPage</code>.</li>
+        <li>API style: <code>requireAuth</code>, Zod validation, <code>ok</code>/<code>fail</code> envelope, Model → Service → Controller → routes under <code>/api</code>.</li>
+        <li>Frontend: Tailwind + CVA <code>Button</code>, <code>api</code> client with cookies, local state + reload after mutate. Almost no animation beyond <code>transition-colors</code>.</li>
+        <li>Closest UI analogs: ghost <code>sm</code> row actions (Reply/Delete); <code>ThemeToggle</code> for compact icon control.</li>
+      </ul>
+      <p><strong>Closest new-file analogs:</strong></p>
+      <ul>
+        <li>Migration enum pattern → <code>database/migrations/20260727170000_friendships.ts</code></li>
+        <li>Model/Service/Controller → existing Post/Comment/Friendship stack</li>
+        <li>Shared UI control → new <code>frontend/src/components/ReactionBar.tsx</code> (local CSS keyframes in component or <code>index.css</code>)</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>One reaction per user per post or comment (unique constraint)</li>
+            <li>Exact emoji set: like / heart / haha / wow (DB enum + Zod)</li>
+            <li>Replies use comment reaction APIs (<code>comment_id</code>)</li>
+            <li>Action row <strong>below the post</strong> on Feed + detail; under each comment/reply on detail</li>
+            <li>Default visible control = Like; expand inline on hover / press</li>
+            <li>CSS-only emoji motion (hover wiggle + select pop); no new animation libraries</li>
+            <li>Show viewer emoji on trigger + non-zero per-emoji counts</li>
+            <li>Embed <code>reactionSummary</code> on PostView / CommentView list+get payloads (batched; no N+1)</li>
+            <li>Auth required; any signed-in user who can see the content may react</li>
+            <li>Before execution: rebase/merge <code>kylie/reactions</code> onto <code>kylie/delete-button</code> tip</li>
+            <li>Follow Code Constitution layering (Model / Service / Controller; no business logic in UI)</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No multi-emoji-from-same-user on one target</li>
+            <li>No free-text / custom emoji</li>
+            <li>No framer-motion or new npm deps for animation</li>
+            <li>No who-reacted list / modal</li>
+            <li>No notifications, realtime/websockets, or reaction analytics</li>
+            <li>No Share button; no moving Comment into the reaction row (later plans)</li>
+            <li>No reactions on profiles / friend requests</li>
+            <li>Do not invent a parallel API client pattern — use existing <code>api.*</code></li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Share-post button and Comment-beside-reaction layout redesign</li>
+        <li>Optimistic UI beyond light local update + rollback-on-error (reload-after-success is acceptable if simpler)</li>
+        <li>Admin moderation of reactions</li>
+        <li>Reaction edit history</li>
+      </ul>
+      <div class="callout">
+        <strong>Decisions locked:</strong> rebase onto delete-button tip · one reaction per user (A) · four fixed emojis · Like trigger + hover/press inline picker + CSS motion · counts + viewer emoji (5A) · below-post action row + under comments/replies · persistence via <code>reactions</code> table + upsert/delete routes + embedded summary · share/comment relocation / who-reacted / notifications out of scope.
+      </div>
+    </section>
+
+    <section class="spec-card" id="persistence">
+      <h2>Persistence &amp; API (decision for #8)</h2>
+      <p><strong>Recommendation locked:</strong> explicit FKs (not polymorphic string targets), upsert + delete routes nested under posts/comments, summaries hydrated into existing views.</p>
+
+      <h3>Table <code>reactions</code></h3>
+      <table>
+        <thead><tr><th>Column</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>uuid PK, <code>gen_random_uuid()</code></td></tr>
+          <tr><td><code>user_id</code></td><td>→ <code>users.id</code> CASCADE, not null</td></tr>
+          <tr><td><code>post_id</code></td><td>nullable → <code>posts.id</code> CASCADE</td></tr>
+          <tr><td><code>comment_id</code></td><td>nullable → <code>comments.id</code> CASCADE</td></tr>
+          <tr><td><code>emoji</code></td><td>native enum <code>reaction_emoji</code>: <code>like | heart | haha | wow</code></td></tr>
+          <tr><td>timestamps</td><td><code>created_at</code> / <code>updated_at</code></td></tr>
+        </tbody>
+      </table>
+      <ul>
+        <li>CHECK: exactly one of <code>post_id</code> / <code>comment_id</code> is non-null.</li>
+        <li>Partial unique indexes: one row per <code>(user_id, post_id)</code> where post set; one per <code>(user_id, comment_id)</code> where comment set.</li>
+        <li>Indexes on <code>post_id</code> and <code>comment_id</code> for count aggregation.</li>
+      </ul>
+
+      <h3>HTTP</h3>
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td>PUT</td><td><code>/api/posts/:id/reactions</code></td><td><code>{ "emoji": "like"|"heart"|"haha"|"wow" }</code></td><td>Upsert viewer reaction on post</td></tr>
+          <tr><td>DELETE</td><td><code>/api/posts/:id/reactions</code></td><td>—</td><td>Remove viewer reaction on post</td></tr>
+          <tr><td>PUT</td><td><code>/api/comments/:id/reactions</code></td><td>same</td><td>Upsert on comment/reply</td></tr>
+          <tr><td>DELETE</td><td><code>/api/comments/:id/reactions</code></td><td>—</td><td>Remove on comment/reply</td></tr>
+        </tbody>
+      </table>
+      <p>Responses return updated <code>reactionSummary</code> for that target (so the client can patch local state without a full reload). 404 if post/comment missing. Validation errors use existing fail codes style.</p>
+
+      <h3>Embedded summary on reads</h3>
+      <p>Extend <code>PostView</code> and <code>CommentView</code>:</p>
+      <pre style="background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:0.9rem;">{
+reactionSummary: {
+  counts: { like: number; heart: number; haha: number; wow: number };
+  viewerEmoji: "like" | "heart" | "haha" | "wow" | null;
+}</pre>
+      <p>Hydrate in Service layer with <strong>batched</strong> queries keyed by post/comment IDs when building feed, post get, and comment list. Do not query per row in a loop.</p>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> New schema + hot path on feed hydration; touch/hover picker UX can feel flaky; branch rebase is a prerequisite.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>N+1 reaction queries on feed/comments</td>
+            <td>Feed + post detail latency</td>
+            <td>Batch aggregate by IDs in Service hydrate; verify with a multi-post feed</td>
+          </tr>
+          <tr>
+            <td>Hover-only picker breaks on mobile</td>
+            <td>Touch users cannot pick non-Like</td>
+            <td>Press/hold (or first press expands) opens strip; click-outside / blur collapses</td>
+          </tr>
+          <tr>
+            <td>Executing on tip without replies</td>
+            <td>Cannot react to replies; fights plan 11–14</td>
+            <td>Hard gate: rebase <code>kylie/reactions</code> onto <code>kylie/delete-button</code> before any app code</td>
+          </tr>
+          <tr>
+            <td>Orphan / double reactions</td>
+            <td>Corrupt counts</td>
+            <td>CHECK + partial uniques; CASCADE on post/comment delete</td>
+          </tr>
+          <tr>
+            <td>Business logic in pages</td>
+            <td>Constitution drift</td>
+            <td>ReactionBar presents; API/service owns rules; pages only wire props</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Consumers / blast radius:</strong> <code>PostService</code> / <code>CommentService</code> views, <code>posts</code> routes, <code>FeedPage</code>, <code>PostDetailPage</code>, frontend <code>api/types.ts</code>. Friends / auth / uploads untouched.</p>
+      <p><strong>Required pushback (honored):</strong> no Share button, no Comment-row redesign, no who-reacted, no animation library, no multi-react-per-user.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T0">
+        <h3>T0 — Branch base onto delete-button tip</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            On <code>kylie/reactions</code>, rebase (preferred) or merge onto <code>kylie/delete-button</code> so replies, timestamps, enter-to-submit, and delete UI are present. Resolve conflicts without dropping those features. Confirm <code>parent_id</code> migration and Reply/Delete UI exist before T1.
+          </dd></div>
+          <div><dt>Files</dt><dd>git only (no feature code)</dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>Post detail shows replies + delete; <code>comments.parent_id</code> migration present in tree</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Migration + ReactionModel</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add Knex migration creating <code>reaction_emoji</code> enum and <code>reactions</code> table per Persistence section (CHECK, partial uniques, FKs, indexes).
+            Add <code>ReactionModel</code> with upsert (insert-on-conflict-update emoji), deleteOwned, and batch helpers to load counts + viewer emoji for a set of post IDs / comment IDs.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>database/migrations/…_reactions.ts</code>, <code>src/models/ReactionModel.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T0</dd></div>
+          <div><dt>Verify</dt><dd>Migration up/down clean; model methods cover upsert, delete, batch summary</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — ReactionService + routes + embed on Post/Comment views</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add <code>ReactionService</code> (validate emoji with Zod; ensure post/comment exists; upsert/remove; return <code>reactionSummary</code>).
+            Wire routes on posts router: PUT/DELETE post reactions and comment reactions (all <code>requireAuth</code>).
+            Extend <code>PostView</code> / <code>CommentView</code> and hydrate paths in <code>PostService</code> / <code>CommentService</code> with batched summaries for the requesting user.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>src/services/ReactionService.ts</code>, <code>src/controllers/…/ReactionsController.ts</code> (or colocated), <code>src/routes/posts.ts</code>, <code>src/services/PostService.ts</code>, <code>src/services/CommentService.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>PUT sets/switches; DELETE clears; feed/get/comments include summary; missing target → 404; invalid emoji → validation fail</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — ReactionBar UI + wire Feed / post detail</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Build shared <code>ReactionBar</code>: collapsed Like trigger; expand inline on hover/press; CSS keyframe wiggle on emoji hover + pop on select; render non-zero counts; reflect <code>viewerEmoji</code> on trigger.
+            Same emoji again → DELETE; different → PUT. Place <strong>below the post</strong> on <code>FeedPage</code> and <code>PostDetailPage</code>; under each comment and reply on detail.
+            Update <code>frontend/src/api/types.ts</code>. Match ghost/sm visual language; no Share / Comment relocation.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ReactionBar.tsx</code>, <code>frontend/src/pages/FeedPage.tsx</code>, <code>frontend/src/pages/PostDetailPage.tsx</code>, <code>frontend/src/api/types.ts</code>, optional CSS in <code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Picker UX works mouse + touch path; counts update; viewer emoji shows; comments/replies reactable; no new deps</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span><code>kylie/reactions</code> includes delete-button tip features (replies + delete)</span></li>
+        <li><span>☑</span><span><code>reactions</code> migration with enum, CHECK, partial uniques, CASCADE</span></li>
+        <li><span>☑</span><span>PUT/DELETE reaction routes for posts and comments work under auth</span></li>
+        <li><span>☑</span><span>PostView / CommentView include batched <code>reactionSummary</code></span></li>
+        <li><span>☑</span><span>ReactionBar below posts (Feed + detail) and under comments/replies</span></li>
+        <li><span>☑</span><span>One reaction per user; switch replaces; same emoji clears</span></li>
+        <li><span>☑</span><span>Like-only default; hover/press expands inline strip; CSS emoji motion</span></li>
+        <li><span>☑</span><span>Viewer emoji + non-zero counts visible</span></li>
+        <li><span>☑</span><span>No Share / Comment-row move / who-reacted / new animation deps</span></li>
+        <li><span>☑</span><span>Backend + frontend typecheck / build pass</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-28</td>
+            <td>Initial spec after grill: rebase onto delete-button; one reaction/user; four emojis; Like + hover/press picker + CSS motion; counts + viewer emoji; below-post row + under comments/replies; reactions table with post_id/comment_id FKs; PUT/DELETE routes; embedded summary; share/comment redesign / who-reacted / notifications out of scope.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-28</td>
+            <td>Executed T0–T3: merged delete-button tip; reactions migration + model/service/controller/routes; embedded reactionSummary on Post/Comment views; ReactionBar on Feed + post detail (posts, comments, replies); CSS wiggle/pop. Typecheck/build green. Acceptance pending human / <code>-tw</code>.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-28</td>
+            <td>Continue: reaction trigger is emoji-only by default (name/label appears on hover); enlarged emoji size (~1.75rem / 44px hit target) for trigger and picker strip.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-07-28</td>
+            <td>Continue: reactions sit in their own bordered pill container; post size stays larger (<code>size="md"</code>); comment/reply reactions use smaller <code>size="sm"</code>.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>2026-07-28</td>
+            <td>Continue: bordered containers for feed posts, post detail author/body, comments section + comment/reply rows + composers, and profile header; slimmed reaction pill (less padding/shadow, smaller hit targets) so it is less chunky next to the new layout.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>2026-07-28</td>
+            <td>Continue: increase spacing between reaction emojis in the picker strip (less compact).</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>2026-07-28</td>
+            <td>Finalized (<code>-d</code>): acceptance checklist Passed; changelog/package 0.1.7; status Completed.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>2026-07-28</td>
+            <td>Continue (post-finalize trial): light canvas <code>#F0F2F5</code>, centered white feed cards (8px radius + subtle shadow), composer placeholder “What&apos;s on your mind?”.</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>2026-07-28</td>
+            <td>Finalized again (<code>-d</code>): commit + push + PR for reactions + feed canvas polish.</td>
+          </tr>
+
+
+
+
+
+
+
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

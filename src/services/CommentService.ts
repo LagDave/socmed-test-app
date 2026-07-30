@@ -2,6 +2,8 @@ import { z } from "zod";
 import { CommentModel, type CommentRow } from "../models/CommentModel";
 import { PostModel } from "../models/PostModel";
 import { UserModel } from "../models/UserModel";
+import { ReactionModel, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
+import { NotificationService } from "./NotificationService";
 import { AppError } from "../utils/AppError";
 import { toPublicUser } from "../types/user";
 
@@ -19,10 +21,15 @@ export type CommentView = {
   imageUrl: string | null;
   createdAt: Date;
   author: ReturnType<typeof toPublicUser>;
+  reactionSummary: ReactionSummary;
 };
 
-async function hydrate(rows: CommentRow[]): Promise<CommentView[]> {
+async function hydrate(rows: CommentRow[], viewerId: string): Promise<CommentView[]> {
   const authors = await Promise.all(rows.map((r) => UserModel.findById(r.author_id)));
+  const summaries = await ReactionModel.summariesForComments(
+    rows.map((r) => r.id),
+    viewerId
+  );
   return rows.map((r, i) => {
     const author = authors[i];
     if (!author) throw new AppError("USER_NOT_FOUND", "Author missing.");
@@ -34,16 +41,17 @@ async function hydrate(rows: CommentRow[]): Promise<CommentView[]> {
       imageUrl: r.image_url,
       createdAt: r.created_at,
       author: toPublicUser(author),
+      reactionSummary: summaries.get(r.id) ?? emptyReactionSummary(),
     };
   });
 }
 
 export class CommentService {
-  static async list(postId: string): Promise<CommentView[]> {
+  static async list(viewerId: string, postId: string): Promise<CommentView[]> {
     const post = await PostModel.findById(postId);
     if (!post) throw new AppError("POST_NOT_FOUND", "Post not found.");
     const rows = await CommentModel.listByPost(postId);
-    return hydrate(rows);
+    return hydrate(rows, viewerId);
   }
 
   static async create(userId: string, postId: string, raw: unknown): Promise<CommentView> {
@@ -51,7 +59,8 @@ export class CommentService {
     if (!post) throw new AppError("POST_NOT_FOUND", "Post not found.");
     const input = createCommentSchema.parse(raw);
 
-    let parentId: string | null = input.parentId ?? null;
+    const parentId: string | null = input.parentId ?? null;
+    let parentAuthorId: string | null = null;
     if (parentId) {
       const parent = await CommentModel.findById(parentId);
       if (!parent || parent.post_id !== postId) {
@@ -60,6 +69,7 @@ export class CommentService {
       if (parent.parent_id !== null) {
         throw new AppError("COMMENT_VALIDATION", "Parent must be a top-level comment on this post.");
       }
+      parentAuthorId = parent.author_id;
     }
 
     const row = await CommentModel.create({
@@ -69,7 +79,26 @@ export class CommentService {
       imageUrl: input.imageUrl,
       parentId,
     });
-    return (await hydrate([row]))[0];
+
+    if (parentId && parentAuthorId) {
+      await NotificationService.notify({
+        recipientId: parentAuthorId,
+        actorId: userId,
+        type: "comment_reply",
+        postId,
+        commentId: row.id,
+      });
+    } else {
+      await NotificationService.notify({
+        recipientId: post.author_id,
+        actorId: userId,
+        type: "comment_on_post",
+        postId,
+        commentId: row.id,
+      });
+    }
+
+    return (await hydrate([row], userId))[0];
   }
 
   static async delete(userId: string, id: string): Promise<void> {

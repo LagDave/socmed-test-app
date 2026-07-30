@@ -2,6 +2,7 @@ import { FriendshipModel } from "../models/FriendshipModel";
 import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
 import { toPublicUser, type PublicUser } from "../types/user";
+import { NotificationService } from "./NotificationService";
 
 export class FriendshipService {
   static async request(userId: string, targetUsername: string) {
@@ -15,6 +16,12 @@ export class FriendshipService {
       await FriendshipModel.deleteById(existing.id);
     }
     const row = await FriendshipModel.createPending(userId, target.id);
+    await NotificationService.notify({
+      recipientId: target.id,
+      actorId: userId,
+      type: "friend_request",
+      friendshipId: row.id,
+    });
     return { id: row.id, status: row.status, user: toPublicUser(target) };
   }
 
@@ -45,6 +52,11 @@ export class FriendshipService {
     const ids = await FriendshipModel.listAcceptedMutualIds(userId);
     const users = await Promise.all(ids.map((id) => UserModel.findById(id)));
     return users.filter(Boolean).map((u) => toPublicUser(u!));
+  }
+
+  static async areFriendsWith(userId: string, otherUserId: string): Promise<{ areFriends: boolean }> {
+    if (!otherUserId) throw new AppError("FRIEND_VALIDATION", "userId is required.");
+    return { areFriends: await FriendshipModel.areFriends(userId, otherUserId) };
   }
 
   static async inbox(userId: string) {

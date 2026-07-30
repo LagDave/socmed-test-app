@@ -11,3 +11,4 @@ uploads/*
 .pm2/
 coverage/
 .npm-cache/
+.worktrees/

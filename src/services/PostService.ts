@@ -2,6 +2,7 @@ import { z } from "zod";
 import { PostModel, type PostRow } from "../models/PostModel";
 import { FriendshipModel } from "../models/FriendshipModel";
 import { UserModel } from "../models/UserModel";
+import { ReactionModel, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { AppError } from "../utils/AppError";
 import { toPublicUser } from "../types/user";
 
@@ -16,10 +17,15 @@ export type PostView = {
   imageUrl: string | null;
   createdAt: Date;
   author: ReturnType<typeof toPublicUser>;
+  reactionSummary: ReactionSummary;
 };
 
-async function hydrate(posts: PostRow[]): Promise<PostView[]> {
+async function hydrate(posts: PostRow[], viewerId: string): Promise<PostView[]> {
   const authors = await Promise.all(posts.map((p) => UserModel.findById(p.author_id)));
+  const summaries = await ReactionModel.summariesForPosts(
+    posts.map((p) => p.id),
+    viewerId
+  );
   return posts.map((p, i) => {
     const author = authors[i];
     if (!author) throw new AppError("USER_NOT_FOUND", "Author missing.");
@@ -29,6 +35,7 @@ async function hydrate(posts: PostRow[]): Promise<PostView[]> {
       imageUrl: p.image_url,
       createdAt: p.created_at,
       author: toPublicUser(author),
+      reactionSummary: summaries.get(p.id) ?? emptyReactionSummary(),
     };
   });
 }
@@ -41,13 +48,13 @@ export class PostService {
       body: input.body,
       imageUrl: input.imageUrl,
     });
-    return (await hydrate([row]))[0];
+    return (await hydrate([row], userId))[0];
   }
 
-  static async get(id: string): Promise<PostView> {
+  static async get(viewerId: string, id: string): Promise<PostView> {
     const row = await PostModel.findById(id);
     if (!row) throw new AppError("POST_NOT_FOUND", "Post not found.");
-    return (await hydrate([row]))[0];
+    return (await hydrate([row], viewerId))[0];
   }
 
   static async delete(userId: string, id: string): Promise<void> {
@@ -59,6 +66,6 @@ export class PostService {
     const mutualIds = await FriendshipModel.listAcceptedMutualIds(userId);
     const authorIds = [userId, ...mutualIds];
     const rows = await PostModel.listFeed({ authorIds, limit, before });
-    return hydrate(rows);
+    return hydrate(rows, userId);
   }
 }

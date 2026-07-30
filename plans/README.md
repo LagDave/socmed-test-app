@@ -15,6 +15,15 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 09 | `07272026-09-socmed-deploy-caddy` | Deploy wiring; leave DNS |
 | 10 | `07282026-10-header-theme-toggle` | Header light/dark toggle |
 | 11 | `07282026-11-comment-replies` | One-level comment replies |
+| 12 | `07282026-12-comment-timestamps` | Relative timestamps on feed, comments, replies |
+| 13 | `07282026-13-enter-to-submit` | Enter submits comment/reply (Shift+Enter newline) |
+| 14 | `07282026-14-delete-buttons` | Delete own posts, comments, and replies |
+| 15 | `07282026-15-reactions` | Emoji reactions on posts, comments, and replies |
+| 16 | `07282026-16-friends-management-ui` | Friends management dashboard UI + activity notifications |
+| 17 | `07292026-17-friends-messenger` | Friends-only 1:1 messenger (poll) |
+| 18 | `07292026-18-comment-action-icons` | Comment icon beside reactions; reply icon |
+| 19 | `07292026-19-navbar-arrangement` | Full-width navbar zones + profile dropdown |
+| 21 | `07292026-21-removed-outline-padding` | Flush soft-page-canvas (drop outer outline padding) |
 
 ## Branch → host (hard rule)
 
