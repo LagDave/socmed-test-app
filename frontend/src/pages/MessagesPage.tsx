@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ImagePlus, MessageCircle, SendHorizontal } from "lucide-react";
+import { ImagePlus, SendHorizontal } from "lucide-react";
 import { api } from "@/api/client";
+import {
+  CONVERSATION_UPDATED,
+  MESSAGE_NEW,
+  MESSAGE_REACTION,
+  MESSAGE_UNSENT,
+  getMessagesSocket,
+  type ConversationUpdatedPayload,
+  type MessageEventPayload,
+} from "@/api/socket";
 import type {
   ConversationListItem,
   MessageView,
@@ -9,17 +18,15 @@ import type {
   ReactionEmoji,
 } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ReactionIcon } from "@/components/ReactionIcon";
+import { useSocketConnected } from "@/hooks/useMessagesSocket";
+import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { REACTION_OPTIONS } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
 
 const POLL_MS = 2500;
-const EMOJI_OPTIONS: { emoji: ReactionEmoji; glyph: string }[] = [
-  { emoji: "like", glyph: "👍" },
-  { emoji: "heart", glyph: "❤️" },
-  { emoji: "haha", glyph: "😂" },
-  { emoji: "wow", glyph: "😮" },
-];
 
 function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] {
   const map = new Map<string, MessageView>();
@@ -42,9 +49,11 @@ function snippet(item: ConversationListItem): string {
 function MessageReactions({
   message,
   onChange,
+  onError,
 }: {
   message: MessageView;
   onChange: (next: MessageView) => void;
+  onError: (message: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   if (message.isUnsent) return null;
@@ -65,35 +74,43 @@ function MessageReactions({
         );
         onChange(data.message);
       }
-    } catch {
-      /* keep prior summary */
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Reaction failed");
     } finally {
       setBusy(false);
     }
   }
 
-  const visible = EMOJI_OPTIONS.filter((o) => message.reactionSummary.counts[o.emoji] > 0);
+  const visible = REACTION_OPTIONS.filter((o) => message.reactionSummary.counts[o.emoji] > 0);
 
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1">
-      {EMOJI_OPTIONS.map((o) => (
-        <button
-          key={o.emoji}
-          type="button"
-          disabled={busy}
-          aria-label={`React ${o.emoji}`}
-          className={cn(
-            "rounded-md px-1.5 py-0.5 text-sm transition-colors hover:bg-accent",
-            message.reactionSummary.viewerEmoji === o.emoji && "bg-accent"
-          )}
-          onClick={() => void apply(o.emoji)}
-        >
-          {o.glyph}
-        </button>
-      ))}
+      {REACTION_OPTIONS.map((o) => {
+        const selected = message.reactionSummary.viewerEmoji === o.emoji;
+        return (
+          <button
+            key={o.emoji}
+            type="button"
+            disabled={busy}
+            aria-label={o.label}
+            className={cn(
+              "inline-flex items-center justify-center rounded-md px-1.5 py-0.5 transition-colors hover:bg-accent",
+              selected && "bg-accent"
+            )}
+            onClick={() => void apply(o.emoji)}
+          >
+            <ReactionIcon emoji={o.emoji} className="text-sm" />
+          </button>
+        );
+      })}
       {visible.length > 0 && (
-        <span className="ml-1 text-xs text-muted-foreground">
-          {visible.map((o) => `${o.glyph}${message.reactionSummary.counts[o.emoji]}`).join(" ")}
+        <span className="ml-1 inline-flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          {visible.map((o) => (
+            <span key={o.emoji} className="inline-flex items-center gap-0.5">
+              <ReactionIcon emoji={o.emoji} className="text-xs" />
+              <span>{message.reactionSummary.counts[o.emoji]}</span>
+            </span>
+          ))}
         </span>
       )}
     </div>
@@ -103,6 +120,7 @@ function MessageReactions({
 function ThreadView({ conversationId }: { conversationId: string }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const socketConnected = useSocketConnected();
   const [peer, setPeer] = useState<PublicUser | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -152,6 +170,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   }, [conversationId]);
 
   useEffect(() => {
+    if (socketConnected) return;
     const id = window.setInterval(() => {
       if (document.hidden) return;
       const generation = generationRef.current;
@@ -174,7 +193,40 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       })();
     }, POLL_MS);
     return () => window.clearInterval(id);
-  }, [conversationId]);
+  }, [conversationId, socketConnected]);
+
+  useEffect(() => {
+    const socket = getMessagesSocket();
+    const generation = generationRef.current;
+
+    // Reactions/unsends only patch the affected row — no mark-read, no scroll.
+    const applyMessagePatch = (payload: MessageEventPayload) => {
+      const msg = payload.message;
+      if (msg.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setMessages((prev) => mergeById(prev, [msg]));
+    };
+
+    // Only an inbound new message should steal scroll position and mark the thread read.
+    const applyInboundNewMessage = (payload: MessageEventPayload) => {
+      const msg = payload.message;
+      if (msg.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setMessages((prev) => mergeById(prev, [msg]));
+      if (msg.senderId === user?.id) return;
+      stickToBottomRef.current = true;
+      void api.post(`/api/messages/conversations/${conversationId}/read`).catch(() => undefined);
+    };
+
+    socket.on(MESSAGE_NEW, applyInboundNewMessage);
+    socket.on(MESSAGE_UNSENT, applyMessagePatch);
+    socket.on(MESSAGE_REACTION, applyMessagePatch);
+    return () => {
+      socket.off(MESSAGE_NEW, applyInboundNewMessage);
+      socket.off(MESSAGE_UNSENT, applyMessagePatch);
+      socket.off(MESSAGE_REACTION, applyMessagePatch);
+    };
+  }, [conversationId, user?.id]);
 
   useEffect(() => {
     if (!stickToBottomRef.current) return;
@@ -221,7 +273,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       );
       if (generation !== generationRef.current) return;
       setBody("");
-      setMessages((prev) => [...prev, data.message]);
+      setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
     } catch (err) {
@@ -248,7 +300,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       );
       if (generation !== generationRef.current) return;
       setBody("");
-      setMessages((prev) => [...prev, data.message]);
+      setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
     } catch (err) {
@@ -340,7 +392,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               </div>
               {!m.isUnsent && (
                 <>
-                  <MessageReactions message={m} onChange={patchMessage} />
+                  <MessageReactions message={m} onChange={patchMessage} onError={setError} />
                   {mine && (
                     <button
                       type="button"
@@ -398,11 +450,38 @@ function InboxView() {
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  async function reloadInbox() {
+    try {
+      const d = await api.get<{ conversations: ConversationListItem[] }>(
+        "/api/messages/conversations"
+      );
+      setItems(d.conversations);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load conversations");
+    }
+  }
+
   useEffect(() => {
-    void api
-      .get<{ conversations: ConversationListItem[] }>("/api/messages/conversations")
-      .then((d) => setItems(d.conversations))
-      .catch((e: Error) => setError(e.message));
+    void reloadInbox();
+  }, []);
+
+  useEffect(() => {
+    const socket = getMessagesSocket();
+    const onUpdated = (_payload: ConversationUpdatedPayload) => {
+      void reloadInbox();
+    };
+    const onMessage = (_payload: MessageEventPayload) => {
+      void reloadInbox();
+    };
+    socket.on(CONVERSATION_UPDATED, onUpdated);
+    socket.on(MESSAGE_NEW, onMessage);
+    socket.on(MESSAGE_UNSENT, onMessage);
+    return () => {
+      socket.off(CONVERSATION_UPDATED, onUpdated);
+      socket.off(MESSAGE_NEW, onMessage);
+      socket.off(MESSAGE_UNSENT, onMessage);
+    };
   }, []);
 
   return (
@@ -414,46 +493,40 @@ function InboxView() {
 
       <div className="feed-card p-5">
         {error && <p className="text-sm text-muted-foreground">{error}</p>}
+        <MessagesFriendPicker hasConversations={items.length > 0} />
         {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-            <MessageCircle
-              className="size-10 text-muted-foreground/40"
-              aria-hidden="true"
-              strokeWidth={1.25}
-            />
-            <p className="text-sm text-muted-foreground">
-              No conversations yet. Message a friend from Friends or their profile.
-            </p>
-            <Button asChild variant="outline" className="mt-2">
-              <Link to="/friends">Go to Friends</Link>
-            </Button>
-          </div>
+          <p className="pt-2 text-center text-sm text-muted-foreground">
+            No conversations yet. Pick a friend above to start chatting.
+          </p>
         ) : (
-          <ul className="divide-y divide-border">
-            {items.map((c) => (
-              <li key={c.id}>
-                <Link
-                  to={`/messages/${c.id}`}
-                  className="flex items-start justify-between gap-3 py-3 transition-colors hover:bg-accent/40"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">
-                      {c.peer.displayName}{" "}
-                      <span className="font-normal text-muted-foreground">
-                        @{c.peer.username}
+          <section className="space-y-1 border-t border-border pt-4">
+            <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
+            <ul className="divide-y divide-border">
+              {items.map((c) => (
+                <li key={c.id}>
+                  <Link
+                    to={`/messages/${c.id}`}
+                    className="flex items-start justify-between gap-3 py-3 transition-colors hover:bg-accent/40"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">
+                        {c.peer.displayName}{" "}
+                        <span className="font-normal text-muted-foreground">
+                          @{c.peer.username}
+                        </span>
+                      </p>
+                      <p className="truncate text-sm text-muted-foreground">{snippet(c)}</p>
+                    </div>
+                    {c.unreadCount > 0 && (
+                      <span className="mt-1 shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
+                        {c.unreadCount > 9 ? "9+" : c.unreadCount}
                       </span>
-                    </p>
-                    <p className="truncate text-sm text-muted-foreground">{snippet(c)}</p>
-                  </div>
-                  {c.unreadCount > 0 && (
-                    <span className="mt-1 shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
-                      {c.unreadCount > 9 ? "9+" : c.unreadCount}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </div>
     </section>

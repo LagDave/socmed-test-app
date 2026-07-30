@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Messages WebSockets Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:920px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 22</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Messages → WebSockets (live delivery)</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07292026-22-messages-websockets</dd></div>
+        <div><dt>Size</dt><dd>Large (server IO + emits + SPA client + edge/dev proxy)</dd></div>
+        <div><dt>Risk</dt><dd>Level 3 (mitigations locked in planning)</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07292026-22-messages-websockets</dd></div>
+        <div><dt>Execution branch</dt><dd>Kylie/revamp-messages-feature (reset onto origin/dev)</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 17 friends-messenger (on origin/dev)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 17 shipped a friends-only 1:1 messenger on <strong>REST + short polling</strong> (thread ~2.5s, Messages unread ~5s while on <code>/messages*</code>). That was an explicit deferral of realtime so the domain could land without inventing infra in the same plan.</p>
+      <p>Polling works, but peers still wait up to a poll interval, the open thread keeps hammering the API, and the inbox/badge stay dull when the user is elsewhere. Live push is now the follow-up that plan required.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Revamp message <strong>delivery</strong> to Socket.IO push while keeping Plan 17’s REST mutations, schema, authz, and SPA surfaces.</p>
+      <p><strong>Deliverables:</strong></p>
+      <ul>
+        <li><strong>Server</strong> — Attach Socket.IO to the existing HTTP server (same PM2 process). Auth handshake via <code>socmed_session</code> cookie. Join each socket to <code>user:{userId}</code>.</li>
+        <li><strong>Emits</strong> — After successful REST mutations, fan out: <code>message:new</code>, <code>message:unsent</code>, <code>message:reaction</code>, plus unread/inbox bump events so AppShell badge and inbox can update without polling.</li>
+        <li><strong>SPA</strong> — Shared socket client (<code>withCredentials</code>). Thread + badge consume events while connected; restore existing REST poll intervals only while disconnected.</li>
+        <li><strong>Dev/edge</strong> — Vite proxy <code>/socket.io</code> → API <code>:3210</code>. Patch SocMed Caddy with an explicit <code>/socket.io*</code> handle if needed (defaults already upgrade WebSockets).</li>
+      </ul>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Two mutuals in separate browsers: send/unsend/react appear on the peer without waiting for the 2.5s poll while sockets are connected</li>
+        <li>AppShell Messages badge updates from events without the 5s poll while connected (including when not on <code>/messages*</code>)</li>
+        <li>Disconnecting the socket re-enables poll fallback; reconnect disables it again</li>
+        <li>Unauthenticated socket handshake is rejected; non-participants never receive another pair’s events</li>
+        <li>No schema migration; REST contracts unchanged</li>
+        <li>Typecheck/build green; acceptance rollup Passed or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Mutation path</td>
+            <td><strong>A — REST writes; WS push only</strong></td>
+            <td>One validation/auth/error contract; image upload already REST; no dual write APIs.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Library</td>
+            <td><strong>A — Socket.IO</strong> (<code>socket.io</code> + <code>socket.io-client</code>)</td>
+            <td>Rooms, reconnect, cookie middleware without DIY. New deps justified here.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Event scope v1</td>
+            <td><strong>A —</strong> <code>message:new</code> · <code>message:unsent</code> · <code>message:reaction</code> · unread/inbox bump</td>
+            <td>Enough to retire poll pain. Typing/presence deferred.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Polling</td>
+            <td><strong>A —</strong> No poll while connected; REST poll only as disconnect fallback</td>
+            <td>Avoids always-on dual traffic and hard-cut silence on drop.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Targeting</td>
+            <td><strong>A —</strong> per-user room <code>user:{id}</code> only</td>
+            <td>Covers open thread + AppShell badge off-thread. No groups yet.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Schema</td>
+            <td><strong>A —</strong> no migrations</td>
+            <td>Transport revamp; Plan 17 schema sufficient.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Execution branch</td>
+            <td><strong>A —</strong> reset <code>Kylie/revamp-messages-feature</code> onto <code>origin/dev</code> before <code>-x</code></td>
+            <td>Current tip predates messenger; <code>origin/dev</code> has Plan 17.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Server facts (Dave — locked, not re-grilled)</h3>
+      <table>
+        <thead><tr><th>Fact</th><th>Implication</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Prod same-origin: Caddy → single Node (<code>:3200</code> / <code>:3201</code>); SPA+API+uploads one process</td>
+            <td>Socket URL same-origin in prod; no CDN split</td>
+          </tr>
+          <tr>
+            <td>Local: Vite <strong>5180</strong> + API <strong>3210</strong>; Vite proxies <code>/api</code> + <code>/uploads</code></td>
+            <td>Must add <code>/socket.io</code> proxy; do not document 5173/3201 as local defaults</td>
+          </tr>
+          <tr>
+            <td>PM2 fork, <code>instances=1</code> per env; not cluster / multi-host</td>
+            <td>No Redis adapter in this plan</td>
+          </tr>
+          <tr>
+            <td>Caddy SocMed blocks are bare <code>encode gzip</code> + <code>reverse_proxy</code>; patchable</td>
+            <td>Default WS upgrade exists; add explicit <code>/socket.io*</code> handle if edge cases appear</td>
+          </tr>
+          <tr>
+            <td><code>COOKIE_SECURE=true</code>; <code>CORS_ORIGIN</code> = matching HTTPS host; cookie <code>socmed_session</code> <code>sameSite:lax</code></td>
+            <td>Handshake reuses cookie; no separate WS token</td>
+          </tr>
+          <tr>
+            <td><code>/socket.io</code> free on SocMed (SPA catch-all today); Signals realtime is other host/port</td>
+            <td>Default Engine.IO path; attach IO before Express SPA fallback can swallow upgrades</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant files (baseline on origin/dev)</h3>
+      <ul>
+        <li><code>src/index.ts</code> — <code>createApp()</code> + <code>app.listen</code> (must become <code>http.Server</code> + Socket.IO attach)</li>
+        <li><code>src/app.ts</code> — Express, CORS, cookie parser, SPA catch-all (IO must not be defeated by HTML fallback)</li>
+        <li><code>src/middleware/requireAuth.ts</code> — <code>socmed_session</code> / <code>SessionModel.findValidByToken</code> (reuse in IO middleware)</li>
+        <li><code>src/services/MessageService.ts</code> — <code>send</code> / <code>unsend</code> / <code>setReaction</code> / <code>clearReaction</code> / <code>markRead</code> / <code>unreadCount</code> (emit after success)</li>
+        <li><code>src/controllers/messages/MessagesController.ts</code>, <code>src/routes/messages.ts</code> — REST stays</li>
+        <li><code>frontend/src/pages/MessagesPage.tsx</code> — <code>POLL_MS = 2500</code> thread poll</li>
+        <li><code>frontend/src/components/AppShell.tsx</code> — path-change unread fetch + 5s interval on <code>/messages*</code></li>
+        <li><code>frontend/vite.config.ts</code> — proxy <code>/api</code>, <code>/uploads</code> only today</li>
+        <li><code>scripts/deploy.sh</code> — PM2 single app; Caddy lives on box at <code>/etc/caddy/Caddyfile</code></li>
+      </ul>
+      <h3>Closest analogs</h3>
+      <ul>
+        <li><strong>Follow:</strong> Plan 17 layering (routes → controller → service → model); friendship/participant gates; merge-by-id + generation guards on the thread; Messages badge separate from Notifications.</li>
+        <li><strong>Do not copy:</strong> Signals minds SSE / socket.io on <code>dev-asia.getalloro.com</code> — different app. Edge lesson only: explicit realtime path handles help.</li>
+        <li><strong>New module home:</strong> prefer <code>src/realtime/</code> (e.g. <code>io.ts</code> + thin emit helpers) rather than stuffing IO into <code>app.ts</code>. Frontend: small client module under <code>frontend/src/lib/</code> or <code>frontend/src/api/</code> — pick one home and stay consistent with existing <code>api/</code> fetch helpers.</li>
+      </ul>
+      <h3>Event contract (v1)</h3>
+      <table>
+        <thead><tr><th>Event</th><th>When</th><th>Recipients</th><th>Payload (intent)</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>message:new</code></td>
+            <td>After <code>MessageService.send</code></td>
+            <td>Both participants’ <code>user:{id}</code> rooms</td>
+            <td>Message view matching REST send/list shape</td>
+          </tr>
+          <tr>
+            <td><code>message:unsent</code></td>
+            <td>After <code>unsend</code></td>
+            <td>Both participants</td>
+            <td>Tombstone message view</td>
+          </tr>
+          <tr>
+            <td><code>message:reaction</code></td>
+            <td>After set/clear reaction</td>
+            <td>Both participants</td>
+            <td>Updated message view (with reaction summary)</td>
+          </tr>
+          <tr>
+            <td><code>messages:unread</code> (name may be <code>conversation:updated</code> + unread — pick one, document in Rev Log if renamed)</td>
+            <td>After send / markRead (and any mutation that changes unread or inbox peek)</td>
+            <td>Affected user(s)</td>
+            <td>At least <code>{ unread }</code>; optionally enough for inbox row refresh (conversation id + last message peek)</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Client must ignore events for conversations it cannot access; server must only emit to the two participant user rooms (never broadcast).</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>REST remains source of truth for create/read/unsend/react/mark-read</li>
+            <li>Socket.IO on the existing HTTP server; default path <code>/socket.io</code></li>
+            <li>Auth via <code>socmed_session</code> cookie on handshake; reject if invalid/expired</li>
+            <li>Join <code>user:{userId}</code> on connect; emit only to participant rooms</li>
+            <li>While socket connected: disable thread 2.5s poll and AppShell 5s unread poll</li>
+            <li>While disconnected: restore those polls (same intervals / hidden-tab skip as today)</li>
+            <li>Vite proxy <code>/socket.io</code> → <code>http://127.0.0.1:3210</code></li>
+            <li>Constitution layering: no business rules in React; no DB in socket handlers beyond session lookup</li>
+            <li>Justify new npm deps in Revision Log</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No schema migrations in this plan</li>
+            <li>No Redis / multi-instance adapter</li>
+            <li>No typing, presence, read receipts, edit-message</li>
+            <li>No group chats / conversation rooms requirement</li>
+            <li>No moving send/read onto socket events</li>
+            <li>No separate WS auth token</li>
+            <li>No folding DMs into Notifications bell</li>
+            <li>No always-on dual poll+WS when connected</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out of scope</h3>
+      <ul>
+        <li>Push/email notifications, mobile apps</li>
+        <li>Horizontal scale / sticky sessions / Redis adapter</li>
+        <li>Reworking Plan 17 UX beyond delivery wiring</li>
+        <li>Signals app or shared realtime bus with Signals</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 3 — Structural Risk</strong> (first SocMed realtime surface). Mitigations below were locked with product + Dave before the spec; execution may proceed under these constraints — do not widen mid-flight.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Leaking events to wrong user</td>
+            <td>Privacy breach</td>
+            <td>Emit only to the two participant <code>user:{id}</code> rooms after service-level authz already passed; never <code>io.emit</code> global</td>
+          </tr>
+          <tr>
+            <td>SPA catch-all swallows <code>/socket.io</code></td>
+            <td>Silent connect failure</td>
+            <td>Attach Engine.IO to HTTP server before listen; verify upgrade is not handled by Express HTML fallback</td>
+          </tr>
+          <tr>
+            <td>Local Vite missing proxy</td>
+            <td>“Works in prod build only”</td>
+            <td>Add <code>/socket.io</code> proxy beside <code>/api</code>/<code>/uploads</code>; acceptance on Vite 5180</td>
+          </tr>
+          <tr>
+            <td>Caddy buffering / upgrade edge case</td>
+            <td>Prod-only breakage</td>
+            <td>Plan includes optional explicit <code>/socket.io*</code> handle; acceptance on <code>socmed-dev</code> after deploy</td>
+          </tr>
+          <tr>
+            <td>Dual delivery races (poll + event)</td>
+            <td>Dupes / flicker</td>
+            <td>Connected ⇒ polls off; merge-by-id remains for safety</td>
+          </tr>
+          <tr>
+            <td>Stale feature branch without messenger</td>
+            <td>Re-implementing Plan 17 by accident</td>
+            <td>Hard gate T0: reset execution branch onto <code>origin/dev</code> before any app edits</td>
+          </tr>
+          <tr>
+            <td>New dependencies</td>
+            <td>Supply chain / bundle size</td>
+            <td>Only <code>socket.io</code> + <code>socket.io-client</code>; document in Rev Log; no extra realtime libs</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Required pushback:</strong> Do not add typing/presence, Redis, or socket-based sends in this execution. If product wants those, open a follow-up plan. Do not execute on a tip that lacks Plan 17 messenger files.
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T0">
+        <h3>T0 — Reset execution branch onto origin/dev</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Reset <code>Kylie/revamp-messages-feature</code> to <code>origin/dev</code> (or equivalent hard reset after backup). Confirm messenger files exist before any feature commits.</dd></div>
+          <div><dt>Files</dt><dd>git only — no app code</dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code> and <code>src/services/MessageService.ts</code> present; tip equals/descendant of current <code>origin/dev</code> at reset time</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Socket.IO server bootstrap + cookie auth + user rooms</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>socket.io</code>. Refactor <code>src/index.ts</code> to create an <code>http.Server</code>, attach Socket.IO at <code>/socket.io</code>, authenticate handshake with <code>socmed_session</code> via <code>SessionModel</code>, join <code>user:{userId}</code>, expose a small emit helper module under <code>src/realtime/</code>. Mirror CORS credentials for local Vite origin if required by Socket.IO config.</dd></div>
+          <div><dt>Files</dt><dd><code>src/index.ts</code>, new <code>src/realtime/*</code>, <code>package.json</code> / lockfile; possibly light touch to <code>src/app.ts</code> only if unavoidable</dd></div>
+          <div><dt>Depends on</dt><dd>T0</dd></div>
+          <div><dt>Verify</dt><dd>Authed browser connects; unauthed rejected; socket joins expected room (log or test harness)</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Emit after MessageService mutations</h3>
+        <dl>
+          <div><dt>Do</dt><dd>After successful <code>send</code>, <code>unsend</code>, <code>setReaction</code>, <code>clearReaction</code>, and unread-affecting paths (<code>markRead</code> / send), emit the locked events to both participants’ user rooms. Payloads align with existing REST message/unread shapes. Controllers stay thin — emits live in/beside the service layer via realtime helpers.</dd></div>
+          <div><dt>Files</dt><dd><code>src/services/MessageService.ts</code>, <code>src/realtime/*</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Second connected user receives events on peer send/unsend/react without polling</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — SPA socket client + poll fallback</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>socket.io-client</code>. Shared client with credentials. Wire <code>MessagesPage</code> to apply <code>message:*</code> events (reuse merge-by-id). Wire <code>AppShell</code> badge to unread events. Disable 2.5s / 5s polls while connected; re-enable on disconnect. Path-change initial unread fetch may remain.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/package.json</code>, new client module, <code>MessagesPage.tsx</code>, <code>AppShell.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Two-browser live update; kill socket → polls resume; reconnect → polls stop and events work again</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Vite proxy + Caddy hardening</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Proxy <code>/socket.io</code> from Vite <code>5180</code> → <code>127.0.0.1:3210</code>. Update SocMed Caddy site blocks with an explicit <code>/socket.io*</code> reverse_proxy handle (same upstream) unless verified unnecessary — prefer shipping the explicit handle for clarity matching Signals-plan lessons. Document any box-side edit in Rev Log / deploy notes.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/vite.config.ts</code>; Caddyfile on server (and a plan-local copy under this folder if useful for review); README port notes if still wrong</dd></div>
+          <div><dt>Depends on</dt><dd>T1 (can parallelize with T2/T3 after T1 exists)</dd></div>
+          <div><dt>Verify</dt><dd>Local Vite connect works; after deploy to socmed-dev, WSS upgrade succeeds (DevTools Network)</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled checked> T0: execution branch based on <code>origin/dev</code> with messenger present</li>
+        <li><input type="checkbox" disabled checked> Socket.IO attached; cookie auth; <code>user:{id}</code> rooms</li>
+        <li><input type="checkbox" disabled checked> Emits for new / unsent / reaction / unread-inbox bump after REST success</li>
+        <li><input type="checkbox" disabled checked> SPA consumes events; polls only as disconnect fallback</li>
+        <li><input type="checkbox" disabled checked> Vite <code>/socket.io</code> proxy; Caddy SocMed path handled <em>(snippet in plan folder; live box apply = deploy follow-up / A7 waiver)</em></li>
+        <li><input type="checkbox" disabled checked> No migrations; REST contracts unchanged</li>
+        <li><input type="checkbox" disabled checked> Typecheck/build green; acceptance <code>test-results.json</code> rollup Passed (or written waivers)</li>
+        <li><input type="checkbox" disabled checked> Revision Log updated for any contract drift (event names, Caddy diff, deps)</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-29</td>
+            <td>Initial spec. Grill lock 1A–7A. Server facts from Dave (same-origin, PM2×1, cookie secure, local 5180/3210, <code>/socket.io</code> free). New deps: <code>socket.io</code> + <code>socket.io-client</code> only. Follow-up to Plan 17 polling deferral.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-29</td>
+            <td>Execution started: reset <code>Kylie/revamp-messages-feature</code> → <code>origin/dev</code> (14865c0). Implemented Socket.IO attach, MessageRealtime emits (personalized reaction views), SPA client + poll fallback, Vite <code>/socket.io</code> proxy, SPA catch-all excludes socket path, default CORS/PORT aligned to 5180/3210. Event name <code>messages:unread</code> + <code>conversation:updated</code> locked as shipped.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-29</td>
+            <td>Finalized (<code>-d</code>): acceptance A1–A7 waived with written reasons (interactive/deploy deferred to PR + Dave Caddy); A8/A9/T0 pass. Changelog 0.1.11. Status → Completed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

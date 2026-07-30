@@ -1,0 +1,106 @@
+{
+  "plan": "plans/07292026-23-messages-friend-picker",
+  "generatedAt": "2026-07-29",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T0",
+      "title": "Typecheck / lint / build for friend picker",
+      "surface": "cli",
+      "precondition": "Execution worktree with deps installed",
+      "steps": [
+        "npm run typecheck",
+        "npm --prefix frontend run lint",
+        "npm --prefix frontend run build"
+      ],
+      "expected": "All three exit 0 for this change.",
+      "status": "pass",
+      "evidence": "2026-07-29: typecheck, oxlint (pre-existing warnings only), vite build exit 0 on kylie/messages-friend-picker.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Empty inbox shows mutual friends",
+      "surface": "ui",
+      "precondition": "Signed-in user with ≥1 mutual friend and zero conversations",
+      "steps": [
+        "Open /messages",
+        "Confirm Friends section lists mutuals",
+        "Confirm dead-end-only empty state is gone (no sole Go to Friends CTA)"
+      ],
+      "expected": "Mutual friends visible without leaving Messages; quiet Manage friends link ok.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (kylie/messages-friend-picker) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Tap friend opens or creates thread",
+      "surface": "ui",
+      "precondition": "A1; mutual friend Alice",
+      "steps": [
+        "Tap Alice in the Friends / New message list",
+        "Observe navigation to /messages/:conversationId"
+      ],
+      "expected": "Thread opens for that peer (get-or-create).",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (kylie/messages-friend-picker) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Icon search expands and filters mutuals",
+      "surface": "ui",
+      "precondition": "≥2 mutuals on /messages",
+      "steps": [
+        "Confirm no search input visible initially",
+        "Tap the right-side search icon",
+        "Confirm Search friends input appears and focuses",
+        "Type a substring that matches one friend",
+        "Confirm list narrows",
+        "Press Escape or tap close",
+        "Confirm input collapses and full list returns"
+      ],
+      "expected": "Collapsed by default; expand on icon; client filter; collapse restores list.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (kylie/messages-friend-picker) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Non-empty inbox keeps New message above conversations",
+      "surface": "ui",
+      "precondition": "User with ≥1 conversation and ≥1 mutual",
+      "steps": [
+        "Open /messages",
+        "Confirm New message / friends section above Conversations list",
+        "Confirm conversation rows still work",
+        "Confirm friends search does not hide conversations"
+      ],
+      "expected": "Both sections present; search scopes friends only.",
+      "status": "pass",
+      "evidence": "User requested --done after localhost review on http://localhost:5180 (kylie/messages-friend-picker) 2026-07-29.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Zero mutuals empty copy",
+      "surface": "ui",
+      "precondition": "Signed-in user with zero mutual friends (conversations optional)",
+      "steps": [
+        "Open /messages",
+        "Confirm friends section shows empty-mutuals copy and Manage friends path"
+      ],
+      "expected": "No crash; clear guidance to Friends; not the old conversation-only empty CTA alone.",
+      "status": "pass",
+      "evidence": "Empty-mutuals branch in MessagesFriendPicker (Manage friends CTA). Full zero-mutuals account not exercised in session.",
+      "notes": "",
+      "waiver": "Covered by implementation + user --done after localhost review with mutuals present; dedicated zero-mutuals account not available."
+    }
+  ]
+}

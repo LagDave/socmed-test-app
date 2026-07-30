@@ -6,6 +6,7 @@ export type PostRow = {
   author_id: string;
   body: string;
   image_url: string | null;
+  shared_from_post_id: string | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -15,12 +16,14 @@ export class PostModel {
     authorId: string;
     body: string;
     imageUrl?: string | null;
+    sharedFromPostId?: string | null;
   }): Promise<PostRow> {
     const [row] = await db<PostRow>("posts")
       .insert({
         author_id: input.authorId,
         body: input.body,
         image_url: input.imageUrl ?? null,
+        shared_from_post_id: input.sharedFromPostId ?? null,
       })
       .returning("*");
     return row;
@@ -28,6 +31,11 @@ export class PostModel {
 
   static async findById(id: string): Promise<PostRow | undefined> {
     return db<PostRow>("posts").where({ id }).first();
+  }
+
+  static async findByIds(ids: string[]): Promise<PostRow[]> {
+    if (ids.length === 0) return [];
+    return db<PostRow>("posts").whereIn("id", ids);
   }
 
   static async deleteOwned(id: string, authorId: string): Promise<number> {

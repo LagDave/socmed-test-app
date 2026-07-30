@@ -6,10 +6,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PostActionRow, ReplyActionButton } from "@/components/PostActionRow";
 import { ReactionBar } from "@/components/ReactionBar";
+import { SharedPostEmbed } from "@/components/SharedPostEmbed";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
+import { canSharePost, shareAttributionLabel } from "@/lib/sharePost";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 
 type CommentThread = { parent: CommentView; replies: CommentView[] };
@@ -71,6 +73,9 @@ export function PostDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const shareBusyRef = useRef(false);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
@@ -106,8 +111,11 @@ export function PostDetailPage() {
     setReplyBody("");
     setReplyImageFile(null);
     setError(null);
+    setShareNotice(null);
     busyRef.current = false;
     setBusy(false);
+    shareBusyRef.current = false;
+    setShareBusy(false);
     setPendingDelete(null);
     void load().catch((e: Error) => setError(e.message));
   }, [id]);
@@ -194,6 +202,23 @@ export function PostDetailPage() {
     }
   }
 
+  async function onShare() {
+    if (!post || shareBusyRef.current) return;
+    shareBusyRef.current = true;
+    setShareBusy(true);
+    setError(null);
+    setShareNotice(null);
+    try {
+      await api.post(`/api/posts/${post.id}/share`);
+      setShareNotice("Shared to your feed.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to share");
+    } finally {
+      shareBusyRef.current = false;
+      setShareBusy(false);
+    }
+  }
+
   async function confirmPendingDelete() {
     if (!pendingDelete || deleting || deletingRef.current) return;
     deletingRef.current = true;
@@ -237,6 +262,9 @@ export function PostDetailPage() {
         ? "This also removes any replies under this comment."
         : undefined;
 
+  const attribution = shareAttributionLabel(user?.id, post);
+  const isShare = Boolean(post.sharedFromPostId);
+
   return (
     <section className="space-y-6">
       <Link to="/" className="text-sm underline">
@@ -244,10 +272,14 @@ export function PostDetailPage() {
       </Link>
       <article className="feed-card space-y-3 p-5">
         <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
-          <p className="font-medium">
-            {post.author.displayName}
-            {post.author.username ? ` @${post.author.username}` : ""}
-          </p>
+          {attribution ? (
+            <p className="font-medium">{attribution}</p>
+          ) : (
+            <p className="font-medium">
+              {post.author.displayName}
+              {post.author.username ? ` @${post.author.username}` : ""}
+            </p>
+          )}
           {user?.id === post.author.id && (
             <Button
               type="button"
@@ -260,11 +292,26 @@ export function PostDetailPage() {
             </Button>
           )}
         </div>
-        <p className="whitespace-pre-wrap text-lg">{post.body}</p>
-        {post.imageUrl && (
-          <img src={post.imageUrl} alt="" className="max-h-96 w-full object-cover border border-border" />
+        {isShare ? (
+          <SharedPostEmbed
+            sharedFrom={post.sharedFrom}
+            className="rounded-lg border border-border/70 bg-canvas/50 px-3 py-3"
+          />
+        ) : (
+          <>
+            <p className="whitespace-pre-wrap text-lg">{post.body}</p>
+            {post.imageUrl && (
+              <img src={post.imageUrl} alt="" className="max-h-96 w-full object-cover border border-border" />
+            )}
+          </>
         )}
-        <PostActionRow className="pt-1" size="md" onCommentClick={scrollToComments}>
+        <PostActionRow
+          className="pt-1"
+          size="md"
+          onCommentClick={scrollToComments}
+          onShare={user && canSharePost(user.id, post) ? () => void onShare() : undefined}
+          shareBusy={shareBusy}
+        >
           <ReactionBar
             size="md"
             targetType="post"
@@ -273,6 +320,7 @@ export function PostDetailPage() {
             onSummaryChange={patchPostSummary}
           />
         </PostActionRow>
+        {shareNotice && <p className="text-sm text-muted-foreground">{shareNotice}</p>}
       </article>
 
       <div id="comments" ref={commentsSectionRef} className="feed-card space-y-3 p-5">
@@ -290,18 +338,19 @@ export function PostDetailPage() {
                   {parent.imageUrl && (
                     <img src={parent.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
                   )}
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <ReactionBar
-                      size="sm"
-                      targetType="comment"
-                      targetId={parent.id}
-                      summary={parent.reactionSummary}
-                      onSummaryChange={(reactionSummary) =>
-                        patchCommentSummary(parent.id, reactionSummary)
-                      }
-                    />
-                    {user && <ReplyActionButton onClick={() => startReply(parent)} />}
-                  </div>
+                  <ReactionBar
+                    className="mt-2"
+                    size="sm"
+                    targetType="comment"
+                    targetId={parent.id}
+                    summary={parent.reactionSummary}
+                    onSummaryChange={(reactionSummary) =>
+                      patchCommentSummary(parent.id, reactionSummary)
+                    }
+                    actions={
+                      user ? <ReplyActionButton onClick={() => startReply(parent)} /> : undefined
+                    }
+                  />
                 </div>
                 {user?.id === parent.author.id && (
                   <Button
@@ -427,7 +476,7 @@ export function PostDetailPage() {
           {comments.length === 0 && <p className="text-sm text-muted-foreground">No comments yet.</p>}
         </ul>
 
-{user && (
+        {user && (
           <form onSubmit={onComment} className="mt-4 space-y-3 rounded-lg border border-border/70 bg-canvas/60 p-3">
             <Textarea
               value={body}
