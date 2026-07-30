@@ -68,4 +68,18 @@ export class PostService {
     const rows = await PostModel.listFeed({ authorIds, limit, before });
     return hydrate(rows, userId);
   }
+
+  static async listByUsername(
+    viewerId: string,
+    username: string,
+    limit = 30,
+    before?: Date
+  ): Promise<PostView[]> {
+    const author = await UserModel.findByUsername(username);
+    if (!author || !author.username) {
+      throw new AppError("USER_NOT_FOUND", "User not found.");
+    }
+    const rows = await PostModel.listFeed({ authorIds: [author.id], limit, before });
+    return hydrate(rows, viewerId);
+  }
 }

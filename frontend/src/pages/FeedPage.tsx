@@ -4,12 +4,10 @@ import { api } from "@/api/client";
 import type { PostView, ReactionSummary } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { PostActionRow } from "@/components/PostActionRow";
-import { ReactionBar } from "@/components/ReactionBar";
+import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 
 export function FeedPage() {
@@ -127,41 +125,13 @@ export function FeedPage() {
 
       <ul className="space-y-4">
         {posts.map((p) => (
-          <li key={p.id} className="feed-card p-5">
-            <div className="flex items-baseline justify-between gap-2 pb-3">
-              <Link className="font-medium underline-offset-2 hover:underline" to={`/u/${p.author.username || p.author.id}`}>
-                {p.author.displayName}
-                {p.author.username ? ` @${p.author.username}` : ""}
-              </Link>
-              <div className="flex shrink-0 items-center gap-2">
-                <time
-                  className="text-xs text-muted-foreground"
-                  dateTime={p.createdAt}
-                  title={formatAbsoluteTime(p.createdAt) || undefined}
-                >
-                  {formatRelativeTime(p.createdAt)}
-                </time>
-                {user.id === p.author.id && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setPendingDeleteId(p.id)}>
-                    Delete
-                  </Button>
-                )}
-              </div>
-            </div>
-            <p className="mt-1 whitespace-pre-wrap text-[15px] leading-relaxed">{p.body}</p>
-            {p.imageUrl && (
-              <img src={p.imageUrl} alt="" className="mt-4 max-h-96 w-full rounded-lg object-cover" />
-            )}
-            <PostActionRow className="mt-4" size="md" commentTo={`/posts/${p.id}#comments`}>
-              <ReactionBar
-                size="md"
-                targetType="post"
-                targetId={p.id}
-                summary={p.reactionSummary}
-                onSummaryChange={(reactionSummary) => patchPostSummary(p.id, reactionSummary)}
-              />
-            </PostActionRow>
-          </li>
+          <PostCard
+            key={p.id}
+            post={p}
+            viewerId={user.id}
+            onDeleteRequest={setPendingDeleteId}
+            onReactionChange={patchPostSummary}
+          />
         ))}
         {posts.length === 0 && (
           <li className="feed-card p-8 text-center text-sm text-muted-foreground">No posts yet.</li>

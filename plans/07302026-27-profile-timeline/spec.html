@@ -39,11 +39,11 @@
     <header class="spec-hero">
       <div class="hero-topline">
         <p class="eyebrow">Socmed Plan Spec · Seq 27</p>
-        <span class="status-pill">Pending Execution</span>
+        <span class="status-pill">In Progress</span>
       </div>
       <h1>Profile Timeline + Edit-in-Menu</h1>
       <dl class="meta-grid">
-        <div><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div><dt>Status</dt><dd>In Progress</dd></div>
         <div><dt>Plan Folder</dt><dd>plans/07302026-27-profile-timeline</dd></div>
         <div><dt>Size</dt><dd>Medium (Profile UI refactor + posts API + timeline)</dd></div>
         <div><dt>Risk</dt><dd>Level 2</dd></div>
@@ -83,33 +83,43 @@
         <tbody>
           <tr>
             <td>Edit Profile UX</td>
-            <td><strong>Modal dialog from ⋯ menu</strong></td>
-            <td>Keeps timeline visible underneath; matches <code>ConfirmDialog</code> overlay pattern already in repo. Inline toggle would still consume vertical space.</td>
+            <td><strong>Modal from horizontal ⋯ ellipsis menu (Grill 1A)</strong></td>
+            <td>"Edit Profile" is a ⋯ menu item — not inline on the page. Clicking it opens a modal containing Full Name, Username, <strong>and Bio</strong>. Timeline stays visible when modal is closed.</td>
           </tr>
           <tr>
-            <td>Edit fields</td>
-            <td><strong>Full Name, Username, Bio only</strong></td>
-            <td>User asked to remove profile-picture editing entirely. PATCH still accepts <code>avatarUrl</code> server-side but UI does not expose it.</td>
+            <td>Avatar editing</td>
+            <td><strong>Remove all UI (Grill 2A)</strong></td>
+            <td>No upload, URL field, camera control, or "Remove Profile Picture" menu item. Existing stored avatars still display read-only in header.</td>
           </tr>
           <tr>
-            <td>Avatar display</td>
-            <td><strong>Read-only in header</strong></td>
-            <td>Existing stored avatars still render; no new way to set/change/remove from profile UI.</td>
+            <td>Post visibility</td>
+            <td><strong>All posts, any logged-in viewer (Grill 3A)</strong></td>
+            <td>Facebook-style wall; broader than mutual-only home feed. Accepted Level 2 risk.</td>
           </tr>
           <tr>
-            <td>Timeline scope</td>
-            <td><strong>All posts by profile owner</strong></td>
-            <td>Facebook-style wall: every post that user authored appears on their profile, regardless of feed mutual filter.</td>
-          </tr>
-          <tr>
-            <td>Timeline visibility</td>
-            <td><strong>Any logged-in viewer</strong></td>
-            <td>Consistent with current profile read API (<code>requireAuth</code> only). Non-mutuals can see posts on profile even if those posts don't appear in their home feed.</td>
+            <td>Timeline on others' profiles</td>
+            <td><strong>Yes (Grill 4A — confirmed)</strong></td>
+            <td>Any <code>/u/:username</code> shows that user's post timeline below header.</td>
           </tr>
           <tr>
             <td>Compose on profile</td>
-            <td><strong>Out of scope</strong></td>
-            <td>Users continue composing on Feed; new posts appear on profile timeline via shared author filter.</td>
+            <td><strong>Feed only (Grill 5A — confirmed)</strong></td>
+            <td>No "What's on your mind?" on profile; posts from Feed appear on timeline.</td>
+          </tr>
+          <tr>
+            <td>Bio in header</td>
+            <td><strong>Show when set (Grill 6A — confirmed)</strong></td>
+            <td>Bio renders under name/@handle in header card when populated; hidden when empty. Editable only inside Edit Profile modal from ⋯.</td>
+          </tr>
+          <tr>
+            <td>Empty timeline</td>
+            <td><strong>"No posts yet." card (Grill 7A — confirmed)</strong></td>
+            <td>Single feed-card empty state below header.</td>
+          </tr>
+          <tr>
+            <td>Edit fields in modal</td>
+            <td><strong>Full Name, Username, Bio</strong></td>
+            <td>Bio is not on the main page — only inside the Edit Profile modal opened from ⋯. PATCH still accepts <code>avatarUrl</code> server-side but UI does not expose it.</td>
           </tr>
           <tr>
             <td>Post card implementation</td>
@@ -282,6 +292,8 @@
     <section class="spec-card" id="revision-log">
       <h2>Revision Log</h2>
       <p><strong>Rev 1 — 2026-07-30:</strong> Initial spec. Locked modal-based Edit Profile, removed avatar editing UI, Facebook-style profile timeline with new <code>GET /api/users/:username/posts</code>, PostCard extraction, execution on <code>kylie/profile-timeline-2</code>.</p>
+      <p><strong>Rev 2 — 2026-07-30 (Grill):</strong> Human confirmed <strong>1A</strong> Edit Profile + Bio inside modal opened from horizontal ⋯ ellipsis (not on main page); <strong>2A</strong> remove all avatar editing UI (display-only existing avatars); <strong>3A</strong> all profile posts visible to any logged-in viewer. Defaults accepted for unanswered items: <strong>4A</strong> timeline on others' profiles, <strong>5A</strong> compose on Feed only, <strong>6A</strong> bio in header when set, <strong>7A</strong> "No posts yet." empty state.</p>
+      <p><strong>Rev 3 — 2026-07-30 (Grill complete):</strong> Human explicitly confirmed <strong>4A</strong>, <strong>5A</strong>, <strong>7A</strong>; after expanded explanation chose <strong>6A</strong> — bio displays under name/@handle in header when set, empty when not, edit only via ⋯ → Edit Profile modal. All seven grill items locked; ready for execution.</p>
     </section>
   </main>
 </body>
