@@ -1,0 +1,20 @@
+---
+description: Git branch and PR target policy — all merges default to dev
+alwaysApply: true
+---
+
+# Git branch policy
+
+## Default merge target: `dev`
+
+- All feature work, fixes, squash merges, and batch landings merge into **`dev`** unless the human explicitly says otherwise.
+- **`main`** is production (`socmed.rustinedave.com`). Only promote when asked: open **`dev` → `main`**, or use the `promote-to-main` label on an intentional exception.
+- When creating branches, branch from **`dev`** (or the active feature branch the human named).
+- When opening or editing PRs (`gh pr create`, `gh pr edit`), set **`--base dev`** unless the user explicitly requests `main`.
+- Never squash-merge a feature branch directly into `main` by default — that bypasses staging on `dev`.
+
+## Agent checklist before any merge or PR
+
+1. Confirm base branch is `dev` (or user explicitly named `main` for a release).
+2. If the user says "merge" or "squash" without a target, assume **`dev`**.
+3. Flag any instruction that would land feature work on `main` unless it is clearly a production promotion.
