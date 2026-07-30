@@ -5,41 +5,10 @@ import { api } from "@/api/client";
 import { openConversationWithUsername } from "@/api/messages";
 import type { PublicUser } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-function ProfileAvatar({
-  displayName,
-  avatarUrl,
-  size = "lg",
-}: {
-  displayName: string;
-  avatarUrl: string | null;
-  size?: "lg" | "md";
-}) {
-  const dim = size === "lg" ? "h-24 w-24 text-3xl" : "h-16 w-16 text-xl";
-  const letter = displayName.trim().slice(0, 1).toUpperCase() || "?";
-
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt=""
-        className={`${dim} shrink-0 rounded-full border border-border object-cover shadow-sm`}
-      />
-    );
-  }
-
-  return (
-    <div
-      className={`${dim} flex shrink-0 items-center justify-center rounded-full border border-border bg-secondary font-semibold text-foreground shadow-sm`}
-      aria-hidden="true"
-    >
-      {letter}
-    </div>
-  );
-}
 
 function FieldLabel({ htmlFor, children }: { htmlFor: string; children: string }) {
   return (

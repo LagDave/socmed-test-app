@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.14 — 2026-07-30
+
+### Changed
+- Feed composer: Facebook-style single row with profile avatar, “What’s on your mind?”, and Post (header removed; no file picker)
+- Feed post cards: author avatar beside name; tighter layout; soft divider above react/comment; more space under the composer
+- Shared `ProfileAvatar` component (`sm` / `md` / `lg`) used by Profile and Feed
+
+### Plans
+- `plans/07302026-25-feed-composer-avatar` — Completed
+
 ## 0.1.13 — 2026-07-29
 
 ### Added
