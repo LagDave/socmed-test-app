@@ -5,41 +5,10 @@ import { api } from "@/api/client";
 import { openConversationWithUsername } from "@/api/messages";
 import type { PublicUser } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-function ProfileAvatar({
-  displayName,
-  avatarUrl,
-  size = "lg",
-}: {
-  displayName: string;
-  avatarUrl: string | null;
-  size?: "lg" | "md";
-}) {
-  const dim = size === "lg" ? "h-24 w-24 text-3xl" : "h-16 w-16 text-xl";
-  const letter = displayName.trim().slice(0, 1).toUpperCase() || "?";
-
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt=""
-        className={`${dim} shrink-0 rounded-full border border-border object-cover shadow-sm`}
-      />
-    );
-  }
-
-  return (
-    <div
-      className={`${dim} flex shrink-0 items-center justify-center rounded-full border border-border bg-secondary font-semibold text-foreground shadow-sm`}
-      aria-hidden="true"
-    >
-      {letter}
-    </div>
-  );
-}
 
 function FieldLabel({ htmlFor, children }: { htmlFor: string; children: string }) {
   return (
@@ -308,12 +277,11 @@ export function ProfilePage() {
   const profilePath = profile.username ? `/u/${profile.username}` : "/u/me";
 
   return (
-    <div className="soft-page-canvas -mx-4 space-y-4 rounded-2xl px-4 py-6 sm:px-6">
-      <div className="mx-auto max-w-2xl space-y-4">
-        <header className="flex items-center gap-5 rounded-xl border border-border bg-card p-6 text-card-foreground soft-card-shadow">
+    <section className="space-y-4">
+        <header className="feed-card flex items-center gap-5 p-5 text-card-foreground">
           <ProfileAvatar displayName={profile.displayName} avatarUrl={profile.avatarUrl} />
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{profile.displayName}</h1>
+            <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">{profile.displayName}</h1>
             <p className="mt-0.5 truncate text-sm font-normal text-muted-foreground">{handle}</p>
             {(profile.bio && !showEditor) && (
               <p className="mt-3 max-w-prose text-sm text-foreground/90">{profile.bio}</p>
@@ -367,13 +335,13 @@ export function ProfilePage() {
         </header>
 
         {error && !showEditor && (
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="px-1 text-sm text-muted-foreground">{error}</p>
         )}
 
         {showEditor && (
           <form
             onSubmit={onSave}
-            className="space-y-5 rounded-xl border border-border bg-card p-6 text-card-foreground soft-card-shadow"
+            className="feed-card space-y-5 p-5 text-card-foreground"
           >
             <div>
               <h2 className="text-lg font-bold tracking-tight">Edit Profile</h2>
@@ -472,11 +440,10 @@ export function ProfilePage() {
         )}
 
         {isSelf && isPublicPreview && (
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="px-1 text-center text-sm text-muted-foreground">
             Public preview · <Link className="underline underline-offset-2" to={profilePath}>Open shareable URL</Link>
           </p>
         )}
-      </div>
 
       {menuNotice && (
         <div
@@ -487,6 +454,6 @@ export function ProfilePage() {
           {menuNotice}
         </div>
       )}
-    </div>
+    </section>
   );
 }

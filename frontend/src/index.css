@@ -129,29 +129,11 @@ body {
   }
 }
 
-.reaction-emoji-btn:hover,
-.reaction-emoji-btn:focus-visible {
+.reaction-icon-btn:hover,
+.reaction-icon-btn:focus-visible {
   animation: reaction-wiggle 0.55s ease-in-out;
 }
 
-.reaction-emoji-pop {
+.reaction-icon-pop {
   animation: reaction-pop 0.28s ease-out;
-}
-
-/* Soft canvas for settings-style pages (Friends, Profile) — not global body */
-.soft-page-canvas {
-  background: color-mix(in srgb, var(--muted) 88%, var(--background));
-}
-
-.dark .soft-page-canvas {
-  background: color-mix(in srgb, var(--muted) 70%, var(--background));
-}
-
-/* Barely-there elevation for soft-page cards — border does most of the work */
-.soft-card-shadow {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-
-.dark .soft-card-shadow {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }

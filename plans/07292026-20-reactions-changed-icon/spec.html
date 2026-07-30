@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reaction Emoji → Icons Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 20</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Reaction Glyphs → Lucide Icons</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07292026-20-reactions-changed-icon</dd></div>
+        <div><dt>Size</dt><dd>Small (2 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07292026-20-reactions-changed-icon</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/reactions-changed-icon (reset onto kylie/comment-action-icons tip before -x)</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 15 reactions · Plan 17 messenger · Plan 18 comment-action-icons</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 15 shipped Facebook-style reactions using Unicode emoji glyphs (👍 ❤️ 😂 😮). The rest of the chrome (theme, nav, comment/reply) already uses lucide icons. Users want the <strong>same four reactions and behavior</strong>, rendered as icons instead of emoji so the UI feels consistent.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li>Render the fixed set — <code>like</code>, <code>heart</code>, <code>haha</code>, <code>wow</code> — through one shared <code>ReactionIcon</code> component instead of per-surface glyph literals.</li>
+        <li><strong>Locked sticker map</strong> (Facebook-equivalent Unicode emoji — FB proprietary art cannot be copied):
+          <table>
+            <thead><tr><th>Key</th><th>Sticker</th><th>Label</th></tr></thead>
+            <tbody>
+              <tr><td><code>like</code></td><td>👍</td><td>Like</td></tr>
+              <tr><td><code>heart</code></td><td>❤️</td><td>Heart</td></tr>
+              <tr><td><code>haha</code></td><td>😂</td><td>Haha</td></tr>
+              <tr><td><code>wow</code></td><td>😮</td><td>Wow</td></tr>
+            </tbody>
+          </table>
+        </li>
+        <li>Surfaces: <code>ReactionBar</code> (Feed, post detail, comments/replies) <strong>and</strong> message reactions on <code>MessagesPage</code>.</li>
+        <li>Selected state: ring/highlight on the picker’s active option (stickers are full-color, so there is no fill/tint treatment).</li>
+        <li>Keep hover labels (Like / Heart / Haha / Wow), expand/hold picker UX, pop/wiggle animations, set/switch/clear API behavior, and counts for types with ≥1.</li>
+        <li>API/DB enum keys and payloads unchanged — presentation-only swap.</li>
+      </ul>
+      <p><strong>Done when:</strong> no surface renders its own reaction glyph literals — every one goes through <code>ReactionIcon</code> and the locked map above; a ring marks the viewer’s reaction; set/switch/clear + counts still work on posts, comments, replies, and messages; typecheck/build green; acceptance checklist runnable.</p>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today (on <code>kylie/comment-action-icons</code> tip — required exec base):</strong></p>
+      <ul>
+        <li><code>frontend/src/components/ReactionBar.tsx</code> — <code>EMOJI_OPTIONS</code> with <code>glyph</code> strings; trigger, picker options, and count chips all render those glyphs. CSS classes <code>reaction-emoji-btn</code> / <code>reaction-emoji-pop</code> in <code>index.css</code>.</li>
+        <li><code>frontend/src/pages/MessagesPage.tsx</code> — local <code>EMOJI_OPTIONS</code> + <code>MessageReactions</code> also render glyphs for picker buttons and count text.</li>
+        <li>Icons already via <code>lucide-react</code> (<code>ThemeToggle</code>, <code>PostActionRow</code>, AppShell). Pattern: <code>h-4 w-4</code> (md) / slightly smaller for sm; <code>aria-label</code> on controls.</li>
+        <li>Backend reaction keys stay <code>like | heart | haha | wow</code> — do not rename types or routes.</li>
+      </ul>
+      <p><strong>Closest analogs:</strong> Plan 18 icon buttons beside reactions; <code>ThemeToggle</code> for compact lucide controls.</p>
+      <p><strong>Branch note (#4 from grill):</strong> Primary checkout branch <code>kylie/reactions-changed-icon</code> currently points at an older tip that <em>does not include</em> ReactionBar. Before <code>-x</code>, reset that branch onto <code>kylie/comment-action-icons</code> (<code>13ab6d3</code> or newer tip) so there is reaction UI to convert. Planning artifacts stay on <code>plan/07292026-20-reactions-changed-icon</code>.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Same four reaction keys; same set/switch/clear semantics</li>
+            <li>Sticker map locked above (Unicode 👍❤️😂😮); no new dependencies</li>
+            <li>One shared source of truth: <code>lib/reactionOptions.ts</code> owns the map, <code>ReactionIcon</code> renders it</li>
+            <li>Stickers on ReactionBar trigger, expanded picker, and per-emoji counts</li>
+            <li>Stickers on Messages reaction buttons and visible count summary</li>
+            <li>Viewer’s active reaction is marked by a ring on the picker option — not by a fill or tint</li>
+            <li>Keep existing labels, a11y (<code>aria-label</code> / listbox roles), hover expand + touch hold, pop animation</li>
+            <li>Frontend only — no schema, routes, or API contract changes</li>
+            <li>Follow Code Constitution; no business logic moved into UI</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No adding/removing reaction types</li>
+            <li>No new icon packs, image/SVG sticker assets, or copies of proprietary Facebook art — Unicode text glyphs only</li>
+            <li>No per-type color classes or filled/muted icon variants</li>
+            <li>No glyph literals outside <code>lib/reactionOptions.ts</code></li>
+            <li>No renaming <code>ReactionEmoji</code> / DB enum / request body field <code>emoji</code></li>
+            <li>No redesign of PostActionRow / comment-icon layout from Plan 18</li>
+            <li>No backend / migration changes</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Who-reacted lists, custom SVG faces for “wow”</li>
+        <li>Navbar / shell work (Plan 19)</li>
+      </ul>
+      <div class="callout">
+        <strong>Decisions locked:</strong> Facebook-equivalent Unicode stickers 👍 / ❤️ / 😂 / 😮 on ReactionBar + Messages · same set/switch/clear behavior · frontend-only · <strong>settled visual</strong> (no further glyph/icon experiments unless a new continue).
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Icons are less “emoji-native” than glyphs (especially <code>SmilePlus</code> for wow). Fill treatment must stay readable in light and dark themes. Dual glyph maps (ReactionBar + Messages) can drift if not updated together.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Executing on the wrong branch tip (no ReactionBar)</td>
+            <td>Wasted / conflicting work</td>
+            <td>Hard gate: reset exec branch onto <code>kylie/comment-action-icons</code> before any file edits</td>
+          </tr>
+          <tr>
+            <td>Messages still show emoji while feed shows icons</td>
+            <td>Inconsistent product language</td>
+            <td>Both surfaces in scope; shared icon map or duplicate the locked table in both files in the same PR</td>
+          </tr>
+          <tr>
+            <td>Filled icons hard to see in dark mode</td>
+            <td>Selection affordance</td>
+            <td>Use <code>fill-current</code> with existing foreground/accent; keep ring/highlight where ReactionBar already marks selected options</td>
+          </tr>
+          <tr>
+            <td><code>SmilePlus</code> not an obvious “wow”</td>
+            <td>Picker clarity</td>
+            <td>Keep hover label “Wow”; accept closest lucide stand-in (locked in grill)</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Consumers / blast radius:</strong> <code>ReactionBar</code> (Feed, PostDetail comments/replies), <code>MessagesPage</code> <code>MessageReactions</code>, reaction CSS class names (may rename emoji-* → reaction-* for honesty; optional). APIs untouched.</p>
+      <p><strong>Required pushback:</strong> Do not invent a fifth reaction or pull in a new icon library for a better “wow” face in this plan.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T0">
+        <h3>T0 — Reset execution branch onto comment-action-icons tip</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Before any app edits: ensure <code>kylie/reactions-changed-icon</code> points at <code>kylie/comment-action-icons</code> tip (hard reset if the branch still sits on the old main merge). Confirm <code>ReactionBar.tsx</code> and Messages reaction UI exist in the working tree. Planning worktree stays separate.
+          </dd></div>
+          <div><dt>Files</dt><dd>git only — no app files</dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>frontend/src/components/ReactionBar.tsx</code> present; branch contains Plan 18 comment icons</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — ReactionBar: glyphs → lucide icons + fill on viewer reaction</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            In <code>ReactionBar.tsx</code>, replace <code>glyph</code> strings with lucide components per the locked map. Render icons on the collapsed trigger, expanded picker options, and count chips. When <code>summary.viewerEmoji</code> matches (or default like on empty trigger if that’s current behavior), apply filled icon styling. Preserve size tokens (md/sm), hover labels, expand/hold, busy/disabled, pop animation (class names may stay or be renamed to drop “emoji” — cosmetic). Optionally tighten CSS selectors in <code>index.css</code> if class names change.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ReactionBar.tsx</code>; possibly <code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>T0</dd></div>
+          <div><dt>Verify</dt><dd>No Unicode reaction glyphs in ReactionBar; icons match map; fill on viewer reaction; set/switch/clear still works on post + comment</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Messages reactions: same icon map + fill</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Update <code>MessageReactions</code> / local <code>EMOJI_OPTIONS</code> in <code>MessagesPage.tsx</code> to the same lucide map. Picker buttons and count summary use icons (not glyph concatenation). Filled icon when <code>viewerEmoji</code> matches. Prefer sharing the four-icon map with ReactionBar if a tiny shared module avoids drift; otherwise duplicate the locked table once in this file.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code>; optional shared helper under <code>frontend/src/components/</code> or <code>frontend/src/lib/</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1 (share map if extracted during T1)</dd></div>
+          <div><dt>Verify</dt><dd>Messages reaction UI shows icons only; behavior unchanged; matches ReactionBar map</dd></div>
+        </dl>
+      </article>
+      <article class="task-card" id="T3">
+        <h3>T3 — Per-reaction type colors</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Extend the shared reaction options with a locked color per type (Like blue, Heart red, Haha amber, Wow orange). Apply via <code>ReactionIcon</code> on ReactionBar trigger (when viewer has reacted), picker options, count chips, and Messages picker/counts. Default unreacted trigger stays muted. Keep fill for the viewer’s reaction.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/lib/reactionOptions.ts</code>, <code>frontend/src/components/ReactionIcon.tsx</code>, callers in <code>ReactionBar.tsx</code> / <code>MessagesPage.tsx</code> as needed</dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd>Heart reaction shows red (not black/gray); other types match the locked colors on feed + messages</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>Exec branch reset/ff onto <code>kylie/comment-action-icons</code> tip before edits</span></li>
+        <li><span>☑</span><span>Shared <code>reactionOptions</code> + <code>ReactionIcon</code> render Facebook-equivalent Unicode stickers 👍❤️😂😮</span></li>
+        <li><span>☑</span><span>ReactionBar (Feed, detail, comments/replies) uses the shared stickers</span></li>
+        <li><span>☑</span><span>Messages reactions use the same stickers</span></li>
+        <li><span>☑</span><span>Set / switch / clear still works</span></li>
+        <li><span>☑</span><span>Hover labels and picker UX preserved</span></li>
+        <li><span>☑</span><span>No backend / migration / new dependency changes</span></li>
+        <li><span>☑</span><span>Frontend typecheck / build pass</span></li>
+        <li><span>☑</span><span>Human confirmed settled visual (Rev 6)</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-29</td>
+            <td>Initial spec after grill (all recommendations): ReactionBar + Messages → lucide icons; filled active state; exec base = reset onto comment-action-icons tip; frontend-only.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-29</td>
+            <td>Executed on <code>kylie/reactions-changed-icon</code> (ff onto comment-action-icons tip). Shared <code>lib/reactionOptions.ts</code> + <code>ReactionIcon</code>; ReactionBar + Messages use lucide map with fill-current for viewer reaction; CSS classes renamed emoji→icon. Typecheck/lint clean. Acceptance still pending human/-tw.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-29</td>
+            <td>Continue: color icons by reaction name/type (Like blue, Heart red, Haha amber, Wow orange) on ReactionBar + Messages; T3 added.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-07-29</td>
+            <td>Executed T3: <code>colorClass</code> on reaction options; <code>ReactionIcon</code> applies type color (muted only for unreacted trigger). Typecheck green.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>2026-07-29</td>
+            <td>Continue: replace lucide Laugh/SmilePlus with custom <code>HahaFace</code> / <code>WowFace</code> SVGs so haha/wow read as real faces (SmilePlus looked like “add”).</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>2026-07-29</td>
+            <td>Continue: Facebook-like stickers — switch all four reactions to Unicode 👍❤️😂😮 (closest public equivalent; FB art not copyable). Removed custom face SVGs / lucide reaction glyphs. Shared <code>ReactionIcon</code> renders emoji.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>2026-07-29</td>
+            <td>Human confirmed: keep Unicode 👍❤️😂😮 as the final reaction visual for this plan.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>2026-07-29</td>
+            <td>Finalized (<code>-d</code>): Done checklist verified against settled Unicode stickers; acceptance updated; changelog 0.1.11; status Completed.</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>2026-07-30</td>
+            <td>Review R2 (PR #19, turn 01): Constraints and What still described the abandoned lucide/filled/per-type-color visual that Rev 5–6 and the shipped code replaced. Rewrote What + Must/Must Not to the settled state — Unicode 👍❤️😂😮 owned by <code>lib/reactionOptions.ts</code> and rendered by <code>ReactionIcon</code>, ring (not fill) for the viewer’s reaction, no per-type colors, no glyph literals outside the map. Also R4: removed the dead <code>filled</code>/<code>muted</code> props from <code>ReactionIcon</code> and made Messages surface reaction failures through the thread error banner instead of a bare <code>catch</code>. Restacked onto <code>dev</code> (R1/R3) so this plan’s delta no longer re-carries plans 17/18. No behavior change to reaction keys or API.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

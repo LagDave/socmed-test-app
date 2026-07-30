@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.1.15 — 2026-07-30
+
+Squashed batch: PRs #19, #26, #27, #28.
+
+### Added
+- Reaction stickers 👍❤️😂😮 via shared `ReactionIcon` / `reactionOptions`; right-aligned reaction cluster with total count
+- Socket.IO live message delivery (`message:new` / `message:unsent` / `message:reaction`, unread + conversation events)
+- Messages inbox friend picker with icon-triggered search
+- Facebook-style feed composer (`ProfileAvatar` + single-row mind/Post)
+- Facebook-style post share (`POST /api/posts/:id/share`, nested embed, `shared_from_post_id`)
+
+### Changed
+- `PostActionRow`: comment + share in ReactionBar left slot; share handler on friends' originals only
+- Messages: REST poll fallback when socket disconnected; mergeById on send/receive paths
+
+### Plans
+- `plans/07292026-20-reactions-changed-icon` — Completed
+- `plans/07292026-24-reaction-summary-layout` — Completed
+- `plans/07292026-22-messages-websockets` — Completed (interactive/deploy waivers)
+- `plans/07292026-23-messages-friend-picker` — Completed
+- `plans/07302026-25-feed-composer-avatar` — Completed
+- `plans/07302026-26-share-button` — Completed
+
+
+## 0.1.11 — 2026-07-29
+
+### Changed
+- Friends, Profile, Notifications, Messages, and Account Settings use Feed’s clear layout (title on page background + `feed-card` stacks)
+- Removed the gray `soft-page-canvas` outer plate and unused soft-page CSS
+
+### Plans
+- `plans/07292026-21-removed-outline-padding` — Completed
+
 ## 0.1.10 — 2026-07-29
 
 ### Changed
@@ -89,7 +122,7 @@
 - Shared `formatRelativeTime` helper (`Intl.RelativeTimeFormat`, no new dependencies)
 
 ### Plans
-- `plans/07282026-12-comment-timestamps` — Completed
+- `plans/07292026-12-comment-timestamps` — Completed
 
 ## 0.1.2 — 2026-07-28
 

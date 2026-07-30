@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reaction Summary Layout Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    figure.mock { margin:16px 0 0; padding:12px; border:1px dashed var(--line); border-radius:8px; background:var(--soft); }
+    figure.mock img { display:block; max-width:100%; height:auto; }
+    figcaption { margin-top:8px; color:var(--muted); font-size:0.85rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.92rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 24</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Reaction Summary — Right Cluster + Total</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07292026-24-reaction-summary-layout</dd></div>
+        <div><dt>Size</dt><dd>Small (2 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07292026-24-reaction-summary-layout</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/reactions-changed-icon tip (or successor that already has ReactionBar + PostActionRow + Unicode stickers)</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 15 reactions · Plan 18 comment-action-icons · Plan 20 reaction stickers</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>After Plan 18, the action row reads <code>[react trigger] [per-type count chips] [comment]</code>. The count chips sit between the react control and the comment icon, crowding the left and leaving empty space on the right. Users want a Facebook-style split: action controls on the left, reaction presence summarized on the right.</p>
+      <figure class="mock">
+        <img src="before-inline-count.png" alt="Before: circular heart reaction button, then heart+1 count chip, then comment icon, all left-aligned">
+        <figcaption>Before (locked pain): count chip wedged between react trigger and comment icon.</figcaption>
+      </figure>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li>Action row layout becomes:</li>
+      </ul>
+      <pre class="wire">[ react trigger ] [ comment / reply ]  …………  [ ❤️ 👍 ]  3</pre>
+      <ul>
+        <li><strong>Left:</strong> reaction trigger (picker UX unchanged) immediately followed by the existing comment icon (posts) or reply icon (parent comments).</li>
+        <li><strong>Right:</strong> when total reactions &gt; 0, show a <strong>cluster</strong> of distinct reaction stickers that have count ≥ 1 (no per-type numbers), then a single <strong>total</strong> count beside the cluster.</li>
+        <li>Cluster order follows <code>REACTION_OPTIONS</code> (like → heart → haha → wow), skipping zeros. Tight adjacency is required; slight negative-margin overlap is allowed if it stays readable.</li>
+        <li>Surfaces: Feed posts, post-detail posts, parent comments, replies — all via <code>ReactionBar</code>.</li>
+        <li>Hide the right summary entirely when total is 0.</li>
+        <li>Set / switch / clear, hover labels, expand/hold picker, stickers, and API payloads unchanged.</li>
+      </ul>
+      <p><strong>Done when:</strong> posts and comments/replies show left controls + right clustered icons with one total; comment/reply icons sit beside the trigger (not after counts); no per-type count chips remain on ReactionBar; typecheck/build green; acceptance checklist runnable.</p>
+      <div class="callout">
+        <strong>Grill locked (1A / 2A / 3A / 4A):</strong> full-width <code>justify-between</code> · total count (not per-type) · ReactionBar on posts + comments/replies · Messages out of scope.
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today (on <code>kylie/reactions-changed-icon</code> / plan tip <code>ef44831</code>):</strong></p>
+      <ul>
+        <li><code>frontend/src/components/ReactionBar.tsx</code> — root is inline flex; after the trigger it maps <code>visibleCounts</code> as <code>[icon][n]</code> chips per emoji with count &gt; 0.</li>
+        <li><code>frontend/src/components/PostActionRow.tsx</code> — <code>flex</code> row: <code>{children}</code> (ReactionBar) then comment icon. Not full-width; no right slot.</li>
+        <li><code>FeedPage</code> / post-level <code>PostDetailPage</code> — <code>PostActionRow</code> wraps <code>ReactionBar</code>.</li>
+        <li>Comment / reply rows on <code>PostDetailPage</code> — ad-hoc <code>flex</code> with <code>ReactionBar</code> then <code>ReplyActionButton</code> (parents) or ReactionBar alone (replies).</li>
+        <li><code>ReactionSummary</code> already has <code>counts: Record&lt;ReactionEmoji, number&gt;</code> — total is a client sum; no API change.</li>
+        <li>Stickers via <code>ReactionIcon</code> + <code>REACTION_OPTIONS</code> (Plan 20).</li>
+      </ul>
+      <p><strong>Closest analog:</strong> Facebook post footer (actions left, reaction stack + total right). Composition fix belongs in <code>ReactionBar</code> + thin updates to <code>PostActionRow</code> / comment flex wrappers — do not fork count logic into pages.</p>
+      <p><strong>Recommended composition (implementation hint, not a second pattern):</strong> give <code>ReactionBar</code> an optional <code>actions?: ReactNode</code> slot rendered immediately after the trigger on the left; make the bar <code>w-full</code> with <code>justify-between</code>; right side = cluster + total. Then <code>PostActionRow</code> passes the comment control as <code>actions</code> (or composes equivalently) instead of placing comment after the entire ReactionBar. Parent comments pass <code>ReplyActionButton</code> the same way.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Left group: react trigger + comment (posts) or reply (parent comments); replies may have trigger-only left group</li>
+            <li>Right group: clustered stickers for types with count ≥ 1 + single total; hidden when total is 0</li>
+            <li>Row stretches to content width (<code>w-full</code> / <code>justify-between</code>) so the summary sits at the far right of the post/comment card</li>
+            <li>Preserve picker UX, stickers, a11y labels on the trigger, set/switch/clear</li>
+            <li>Summary has accessible text (e.g. <code>aria-label</code> with total and which types)</li>
+            <li>Frontend only — no schema, routes, or payload changes</li>
+            <li>Follow Code Constitution; no business logic in UI beyond summing existing <code>counts</code></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No per-type numeric chips on ReactionBar</li>
+            <li>No moving comment/reply icons to the right of the summary</li>
+            <li>No Messages / messenger reaction layout changes</li>
+            <li>No new reaction types, deps, or sticker redesign</li>
+            <li>No backend / migration changes</li>
+            <li>No who-reacted popover</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Messages reaction chips (Plan 17 / 20 surfaces stay as-is)</li>
+        <li>Clicking the cluster to list reactors</li>
+        <li>Navbar / shell work</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Composition change: today comment is a sibling <em>after</em> ReactionBar (which includes counts). Naïvely right-aligning counts inside ReactionBar without relocating comment yields <code>[trigger …… cluster][comment]</code> — wrong. Must recompose so comment/reply stay in the left group.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Comment icon ends up after the right summary</td>
+            <td>Feed + post detail action rows</td>
+            <td>Use <code>actions</code> slot (or equivalent) so comment/reply are left of the spacer; verify PostActionRow + comment rows in T1/T2</td>
+          </tr>
+          <tr>
+            <td>Narrow cards wrap awkwardly</td>
+            <td>sm comment/reply rows</td>
+            <td>Keep flex-wrap; summary may drop below left controls on very small widths — acceptable if left group stays intact</td>
+          </tr>
+          <tr>
+            <td>Total vs per-type mismatch with user mental model</td>
+            <td>Multi-emoji posts</td>
+            <td>Locked 2A; cluster shows which types exist; one number is total. Document in acceptance</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Consumers / blast radius:</strong> <code>ReactionBar</code>, <code>PostActionRow</code>, <code>FeedPage</code>, <code>PostDetailPage</code> (post + comment + reply rows). Messages untouched. APIs untouched.</p>
+      <p><strong>Required pushback:</strong> Do not keep per-type counts “just in case” beside the cluster — that reverts the grill. Do not change Messages in this plan.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — ReactionBar: left trigger + actions; right cluster + total</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Refactor <code>ReactionBar</code> to a full-width row with <code>justify-between</code>. Left: trigger (existing expand/hold/picker) plus optional <code>actions?: ReactNode</code> immediately after the trigger. Right: if <code>total = sum(counts) &gt; 0</code>, render clustered <code>ReactionIcon</code>s for types with count ≥ 1 (order = <code>REACTION_OPTIONS</code>) and a single muted total number beside the cluster. Remove per-type <code>[icon][n]</code> chips. Add a concise <code>aria-label</code> on the summary (total + type labels). Preserve md/sm size tokens, busy/disabled, pop animation, stickers.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ReactionBar.tsx</code>; possibly tiny CSS in <code>frontend/src/index.css</code> if cluster overlap needs a class</dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>With reactions present, icons cluster on the right with one total; zero reactions hides summary; picker still works</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Wire PostActionRow + comment/reply rows through <code>actions</code></h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Update <code>PostActionRow</code> so the comment control is passed into ReactionBar’s left <code>actions</code> (or compose the same left/right structure without leaving comment as a sibling after the whole bar). Update <code>FeedPage</code> and post-level <code>PostDetailPage</code> usage accordingly. On parent comments, pass <code>ReplyActionButton</code> as <code>actions</code>; replies keep trigger-only left group. Confirm Delete placement unchanged. No Messages edits.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/PostActionRow.tsx</code>; <code>frontend/src/pages/FeedPage.tsx</code>; <code>frontend/src/pages/PostDetailPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Visual order is <code>[react][comment|reply] …… [cluster][total]</code> on posts and comments; typecheck/lint clean</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>ReactionBar left = trigger + optional actions; right = cluster + total (hidden at 0)</span></li>
+        <li><span>☑</span><span>No per-type numeric chips on ReactionBar</span></li>
+        <li><span>☑</span><span>Feed + post detail: comment icon sits beside trigger, summary flush right</span></li>
+        <li><span>☑</span><span>Parent comments: reply icon beside trigger; replies: trigger + optional right summary</span></li>
+        <li><span>☑</span><span>Set / switch / clear and picker UX unchanged</span></li>
+        <li><span>☑</span><span>Messages reaction UI untouched</span></li>
+        <li><span>☑</span><span>No backend / migration / new dependency changes</span></li>
+        <li><span>☑</span><span>Frontend typecheck / build pass</span></li>
+        <li><span>☑</span><span>Acceptance checklist recorded</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-29</td>
+            <td>Initial spec after grill 1A/2A/3A/4A: full-width justify-between; left trigger+comment/reply; right clustered stickers + single total; ReactionBar on posts/comments/replies; Messages out of scope; frontend-only.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-29</td>
+            <td>Executed on <code>kylie/reactions-changed-icon</code>: ReactionBar full-width left trigger+actions / right cluster+total; PostActionRow injects comment via actions; parent comments pass ReplyActionButton as actions. Frontend typecheck green. Acceptance pending human visual check on localhost.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-30</td>
+            <td>Continue: bump left collapsed trigger emoji slightly (md <code>1.25rem→1.4rem</code>, sm <code>0.95rem→1.1rem</code>) via dedicated <code>triggerIcon</code> size; picker options unchanged.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-07-30</td>
+            <td>Continue: another small bump on left trigger emoji (md <code>1.4rem→1.55rem</code>, sm <code>1.1rem→1.2rem</code>).</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>2026-07-30</td>
+            <td>Continue: left trigger felt unchanged because font-size nudges were clipped by a fixed <code>h-8 w-8</code> button. Enlarged trigger button + emoji together (md <code>h-10</code> / <code>1.875rem</code>, sm <code>h-8</code> / <code>1.35rem</code>) so the size change is visible.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>2026-07-30</td>
+            <td>Continue: human clarified target is the <strong>right</strong> summary cluster, not the left trigger. Reverted left trigger to original md <code>h-8</code> / <code>1.25rem</code> (sm <code>h-6</code> / <code>0.95rem</code>). Enlarged right cluster icons (md <code>text-sm→1.25rem</code>, sm <code>text-xs→1.05rem</code>) and bumped summary text a step.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>2026-07-30</td>
+            <td>Continue: nudge right cluster icons slightly smaller (md <code>1.25rem→1.1rem</code>, sm <code>1.05rem→0.95rem</code>).</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>2026-07-30</td>
+            <td>Finalized (<code>-d</code>): Done checklist verified; acceptance Passed; changelog 0.1.12; status Completed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

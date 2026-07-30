@@ -1,0 +1,99 @@
+{
+  "plan": "plans/07302026-25-feed-composer-avatar",
+  "generatedAt": "2026-07-30",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A0",
+      "title": "Execution branch on modern Feed tip",
+      "surface": "cli",
+      "precondition": "About to execute or mid-execution",
+      "steps": [
+        "Confirm kylie/feed-profile HEAD equals kylie/messages-friend-picker tip (or documented successor)",
+        "Confirm FeedPage has feed-card and What's on your mind? placeholder"
+      ],
+      "expected": "rg matches feed-card and What's on your mind? in frontend/src/pages/FeedPage.tsx; branch is not ancient main 7ebfbd4.",
+      "status": "pass",
+      "evidence": "2026-07-30: git reset --hard kylie/messages-friend-picker → HEAD 2bec1d0. FeedPage retains feed-card + What's on your mind?.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Feed header removed",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Open / (Feed)",
+        "Look at the top of the main content above the composer"
+      ],
+      "expected": "No “Feed” page title and no “You and your mutuals.” subtitle. Composer is the first signed-in content block.",
+      "status": "pass",
+      "evidence": "2026-07-30 session: user screenshots show composer as first signed-in block; no Feed/subtitle header. Code has no header block.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Inline avatar + mind prompt",
+      "surface": "ui",
+      "precondition": "Signed in; preferably with a profile photo set",
+      "steps": [
+        "Open Feed",
+        "Inspect the composer top row",
+        "Confirm placeholder text"
+      ],
+      "expected": "Mini circular avatar on the left; “What’s on your mind?” field inline to its right in the same row.",
+      "status": "pass",
+      "evidence": "2026-07-30 session screenshots: avatar + What's on your mind? inline; user confirmed “okay good” after Rev 8/9 polish.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Post inline on composer row",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Open Feed",
+        "Inspect the composer card"
+      ],
+      "expected": "One row: avatar | What’s on your mind? | Post on the right. No horizontal divider line under the text field; no second action row.",
+      "status": "pass",
+      "evidence": "2026-07-30 session screenshots: Post co-located on composer row; no divider; no Choose File.",
+      "notes": "Rev 3.",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Avatar reflects profile + links home",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "If you have an avatarUrl, confirm the circle shows that image; else confirm letter fallback",
+        "Click the mini circle"
+      ],
+      "expected": "Navigates to own profile (/u/{username} or /u/me). Photo matches Profile page avatar source.",
+      "status": "pass",
+      "evidence": "2026-07-30 session screenshots show profile photo in composer/post avatars. Code: Link to /u/{username||me} wrapping ProfileAvatar(user).",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Compose still works",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Type a short post in the composer",
+        "Click Post (or Enter-to-submit if enabled)",
+        "Confirm the post appears in the feed list"
+      ],
+      "expected": "Post creates successfully; composer clears.",
+      "status": "pass",
+      "evidence": "2026-07-30 session: user created/viewed posts during iteration (e.g. “test”, timestamps “3 minutes ago”); onCompose preserved; typecheck/build green.",
+      "notes": "Rev 2: no image attach from Feed composer.",
+      "waiver": ""
+    }
+  ]
+}
