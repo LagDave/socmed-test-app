@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profile Timeline Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:840px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 27</p>
+        <span class="status-pill">Pending Execution</span>
+      </div>
+      <h1>Profile Timeline + Edit-in-Menu</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07302026-27-profile-timeline</dd></div>
+        <div><dt>Size</dt><dd>Medium (Profile UI refactor + posts API + timeline)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Branch</dt><dd>kylie/profile-timeline-2</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 04 (profiles) + Plan 05 (posts/feed)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>The profile page today is dominated by an always-visible Edit Profile form (Full Name, Username, Bio, Profile Picture upload/URL). That leaves no room for a Facebook-style profile timeline where a user's posts appear on their profile. Editing should be secondary — reachable from the ⋯ menu — so the main profile surface can show posts.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Restructure <code>/u/:username</code> so the default view is <strong>profile header + post timeline</strong>. Move Edit Profile (Full Name, Username, Bio) behind the horizontal ⋯ menu. Remove all profile-picture editing UI. Add a backend endpoint and frontend timeline that lists posts authored by the profile user.</p>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Own profile default view shows header card + post timeline — no always-visible edit form</li>
+        <li>⋯ menu includes <strong>Edit Profile</strong>; choosing it opens a modal with Full Name, Username, Bio, and Save</li>
+        <li>Profile picture upload, URL input, camera control, and "Remove Profile Picture" menu item are gone</li>
+        <li>Header avatar remains display-only (existing <code>avatarUrl</code> or initial fallback)</li>
+        <li>Bio displays in the header on public/read views; editable inside the Edit Profile modal on own profile</li>
+        <li><code>GET /api/users/:username/posts</code> returns that user's posts (newest first, limit 30)</li>
+        <li>Timeline reuses Feed post-card UX: timestamp, body, image, reactions, comment link, delete on own posts</li>
+        <li>Other users' profiles show their timeline below the header (same card pattern)</li>
+        <li>Existing ⋯ items remain: View Profile, Account Settings, Copy Profile Link</li>
+        <li><code>?view=public</code> preview still works; edit modal not shown in public preview</li>
+        <li>Frontend typecheck/build pass; backend typecheck/tests pass for new endpoint</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Edit Profile UX</td>
+            <td><strong>Modal dialog from ⋯ menu</strong></td>
+            <td>Keeps timeline visible underneath; matches <code>ConfirmDialog</code> overlay pattern already in repo. Inline toggle would still consume vertical space.</td>
+          </tr>
+          <tr>
+            <td>Edit fields</td>
+            <td><strong>Full Name, Username, Bio only</strong></td>
+            <td>User asked to remove profile-picture editing entirely. PATCH still accepts <code>avatarUrl</code> server-side but UI does not expose it.</td>
+          </tr>
+          <tr>
+            <td>Avatar display</td>
+            <td><strong>Read-only in header</strong></td>
+            <td>Existing stored avatars still render; no new way to set/change/remove from profile UI.</td>
+          </tr>
+          <tr>
+            <td>Timeline scope</td>
+            <td><strong>All posts by profile owner</strong></td>
+            <td>Facebook-style wall: every post that user authored appears on their profile, regardless of feed mutual filter.</td>
+          </tr>
+          <tr>
+            <td>Timeline visibility</td>
+            <td><strong>Any logged-in viewer</strong></td>
+            <td>Consistent with current profile read API (<code>requireAuth</code> only). Non-mutuals can see posts on profile even if those posts don't appear in their home feed.</td>
+          </tr>
+          <tr>
+            <td>Compose on profile</td>
+            <td><strong>Out of scope</strong></td>
+            <td>Users continue composing on Feed; new posts appear on profile timeline via shared author filter.</td>
+          </tr>
+          <tr>
+            <td>Post card implementation</td>
+            <td><strong>Extract shared <code>PostCard</code> component</strong></td>
+            <td>Feed and Profile timelines share identical markup today; extract once to avoid drift (§2.1 one responsibility).</td>
+          </tr>
+          <tr>
+            <td>API route</td>
+            <td><strong><code>GET /api/users/:username/posts</code></strong></td>
+            <td>Nested under existing users router; resolves username → user id → <code>PostModel.listFeed({ authorIds: [id] })</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Pushback acknowledged (Level 2):</strong> Showing all of a user's posts to any logged-in viewer is broader than the mutual-only home feed. Acceptable for v1 Facebook-style profiles; revisit with privacy settings if product needs mutual-only walls later.
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Profile page today</strong> — <code>frontend/src/pages/ProfilePage.tsx</code> (~490 lines): monolithic page with <code>ProfileOverflowMenu</code> (custom dropdown), always-visible edit form when <code>isSelf &amp;&amp; !isPublicPreview</code>, avatar file upload + URL field, and no posts list.</p>
+      <p><strong>Feed analog</strong> — <code>frontend/src/pages/FeedPage.tsx</code> loads <code>GET /api/feed</code>, renders <code>feed-card</code> post list with <code>ReactionBar</code>, <code>PostActionRow</code>, delete via <code>ConfirmDialog</code>.</p>
+      <p><strong>Backend</strong> — <code>PostModel.listFeed({ authorIds })</code> already filters by author. <code>PostService.feed</code> combines self + mutuals; new <code>PostService.listByUsername</code> (or similar) scopes to one author. <code>ProfileService</code> / <code>UserModel</code> resolve username.</p>
+      <p><strong>Routes</strong> — <code>src/routes/users.ts</code> owns profile reads; add posts sub-route before or after existing <code>/users/:username</code> (order matters — mount <code>/users/:username/posts</code> explicitly).</p>
+      <p><strong>Modal pattern</strong> — <code>frontend/src/components/ConfirmDialog.tsx</code> for overlay, focus trap, Escape dismiss. New <code>EditProfileDialog</code> follows same shell; form inside.</p>
+      <p><strong>Menu pattern</strong> — Extend existing <code>ProfileOverflowMenu</code> in place; add "Edit Profile" as first item.</p>
+      <p><strong>Execution branch</strong> — <code>kylie/profile-timeline-2</code> (planning on <code>plan/07302026-27-profile-timeline</code> worktree).</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Preserve existing profile PATCH behavior for name/username/bio</li>
+            <li>Keep B&amp;W tokens and <code>feed-card</code> styling</li>
+            <li>Follow controller → service → model layering on new endpoint</li>
+            <li>Route all frontend API calls through <code>api/client</code></li>
+            <li>Support light and dark themes on modal + timeline</li>
+            <li>Return 404 when username not found on posts endpoint</li>
+            <li>Delete button only when viewer is post author (same as Feed)</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No profile-picture upload, URL field, or remove-picture action in UI</li>
+            <li>No new npm dependencies</li>
+            <li>No database migration (posts table already exists)</li>
+            <li>No compose/post form on profile page in this plan</li>
+            <li>No pagination/infinite scroll beyond feed's limit-30 pattern</li>
+            <li>No privacy-settings or mutual-only profile walls</li>
+            <li>No drive-by restyles of Feed, Friends, or Messages</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Profile cover photo / banner</li>
+        <li>Pinning or filtering posts on profile</li>
+        <li>Activity log (likes/comments tab)</li>
+        <li>Avatar upload elsewhere (Settings stub remains unchanged)</li>
+        <li>Realtime timeline updates / websockets</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Profile posts visible to all logged-in users may surprise users accustomed to mutual-only feed. Avatar removal without replacement UI leaves stale avatars until a future settings surface.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Post visibility broader than feed</td>
+            <td>Any viewer on <code>/u/:username</code></td>
+            <td>Document in spec; defer privacy toggles. Same auth gate as profile read today.</td>
+          </tr>
+          <tr>
+            <td>Route ordering conflict</td>
+            <td><code>/users/:username</code> vs <code>/users/:username/posts</code></td>
+            <td>Register posts route explicitly in <code>users.ts</code>; verify with integration test or manual curl.</td>
+          </tr>
+          <tr>
+            <td>ProfilePage growth</td>
+            <td>Maintainability</td>
+            <td>Extract <code>EditProfileDialog</code> + <code>PostCard</code>; keep page as orchestrator.</td>
+          </tr>
+          <tr>
+            <td>Duplicate post-list logic</td>
+            <td>Feed + Profile drift</td>
+            <td>Shared <code>PostCard</code> component used by both pages.</td>
+          </tr>
+          <tr>
+            <td>Modal a11y regression</td>
+            <td>Edit Profile dialog</td>
+            <td>Mirror ConfirmDialog: focus trap, Escape, aria-labelledby, body scroll lock.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Blast radius:</strong> <code>ProfilePage.tsx</code>, new/updated components, <code>FeedPage.tsx</code> (PostCard extraction), <code>users.ts</code> routes, <code>ProfileController</code> or new controller method, <code>PostService</code>, frontend <code>api/types</code> if needed.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Backend: profile posts endpoint</h3>
+        <p><strong>Do:</strong> Add <code>GET /api/users/:username/posts</code>. Resolve username via <code>UserModel</code>; 404 if missing. Query <code>PostModel.listFeed({ authorIds: [userId], limit: 30, before? })</code>; hydrate with existing <code>PostService</code> helper. Optional <code>?before=</code> cursor same as feed.</p>
+        <p><strong>Files:</strong></p>
+        <ul>
+          <li><code>src/routes/users.ts</code></li>
+          <li><code>src/controllers/users/ProfileController.ts</code> (or <code>PostsController</code> if cleaner)</li>
+          <li><code>src/services/PostService.ts</code></li>
+        </ul>
+        <p><strong>Depends on:</strong> —</p>
+        <p><strong>Verify:</strong> <code>curl -H "Authorization: Bearer …" /api/users/Kylie/posts</code> returns <code>{ posts: PostView[] }</code>; unknown username → 404.</p>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Extract PostCard component</h3>
+        <p><strong>Do:</strong> Move feed post list item markup from <code>FeedPage.tsx</code> into <code>frontend/src/components/PostCard.tsx</code>. Props: <code>post</code>, <code>viewerId</code>, <code>onDeleteRequest</code>, <code>onReactionChange</code>. Update FeedPage to map posts through PostCard.</p>
+        <p><strong>Files:</strong></p>
+        <ul>
+          <li><code>frontend/src/components/PostCard.tsx</code> (new)</li>
+          <li><code>frontend/src/pages/FeedPage.tsx</code></li>
+        </ul>
+        <p><strong>Depends on:</strong> —</p>
+        <p><strong>Verify:</strong> Feed looks and behaves identically after extraction.</p>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — EditProfileDialog + menu wiring</h3>
+        <p><strong>Do:</strong> Create modal with Full Name, Username, Bio fields and Save (PATCH <code>/api/me/profile</code>). Add "Edit Profile" to <code>ProfileOverflowMenu</code>. Remove always-visible edit form, avatar upload block, <code>onAvatarFile</code>, <code>removeAvatar</code>, file input ref, Camera import, and "Remove Profile Picture" menu item. Keep bio in header when <code>!showEditor</code> / public preview.</p>
+        <p><strong>Files:</strong></p>
+        <ul>
+          <li><code>frontend/src/components/EditProfileDialog.tsx</code> (new)</li>
+          <li><code>frontend/src/pages/ProfilePage.tsx</code></li>
+        </ul>
+        <p><strong>Depends on:</strong> —</p>
+        <p><strong>Verify:</strong> Own profile shows header + timeline only; ⋯ → Edit Profile opens modal with all three fields; Save updates header and closes modal.</p>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Profile timeline UI</h3>
+        <p><strong>Do:</strong> Fetch <code>GET /api/users/:username/posts</code> when profile loads. Render <code>PostCard</code> list below header. Wire delete confirm dialog (reuse ConfirmDialog). Empty state: "No posts yet." Hide timeline section errors gracefully.</p>
+        <p><strong>Files:</strong></p>
+        <ul>
+          <li><code>frontend/src/pages/ProfilePage.tsx</code></li>
+        </ul>
+        <p><strong>Depends on:</strong> T1, T2, T3</p>
+        <p><strong>Verify:</strong> Posts created on Feed appear on own profile; visiting another user's profile shows their posts; delete works on own posts only.</p>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><span>☐</span> T1 — Backend endpoint returns hydrated posts for valid username</li>
+        <li><span>☐</span> T2 — PostCard extracted; Feed unchanged visually</li>
+        <li><span>☐</span> T3 — Edit Profile in ⋯ modal; no avatar editing UI</li>
+        <li><span>☐</span> T4 — Profile timeline renders below header for self and others</li>
+        <li><span>☐</span> Acceptance checklist in <code>test-results.json</code> passes</li>
+        <li><span>☐</span> <code>npm --prefix frontend run typecheck</code> exit 0</li>
+        <li><span>☐</span> <code>npm --prefix frontend run build</code> exit 0</li>
+        <li><span>☐</span> Backend typecheck/tests pass for touched files</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <p><strong>Rev 1 — 2026-07-30:</strong> Initial spec. Locked modal-based Edit Profile, removed avatar editing UI, Facebook-style profile timeline with new <code>GET /api/users/:username/posts</code>, PostCard extraction, execution on <code>kylie/profile-timeline-2</code>.</p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,156 @@
+{
+  "plan": "plans/07302026-27-profile-timeline",
+  "generatedAt": "2026-07-30",
+  "status": "Not Run",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Own profile — no always-visible edit form",
+      "surface": "ui",
+      "precondition": "Signed in; dev server running",
+      "steps": [
+        "Open own profile (/u/me or /u/{username})",
+        "Confirm page shows header card + post timeline area",
+        "Confirm Edit Profile form is NOT visible by default"
+      ],
+      "expected": "Main profile surface is header + timeline; no inline edit card.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Edit Profile via ellipsis modal",
+      "surface": "ui",
+      "precondition": "Signed in on own profile",
+      "steps": [
+        "Click horizontal ellipsis (⋯) on profile header",
+        "Click Edit Profile",
+        "Confirm modal shows Full Name, Username, Bio fields",
+        "Change bio text and click Save",
+        "Confirm modal closes and bio appears in header"
+      ],
+      "expected": "Edit Profile opens modal with all three fields; save persists and updates header.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "No profile picture editing UI",
+      "surface": "ui",
+      "precondition": "Signed in on own profile",
+      "steps": [
+        "Open Edit Profile modal from ⋯ menu",
+        "Confirm no camera button, file upload, or avatar URL field",
+        "Open ⋯ menu and confirm Remove Profile Picture is absent"
+      ],
+      "expected": "All avatar editing controls removed from profile UI.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Profile timeline shows own posts",
+      "surface": "ui",
+      "precondition": "Signed in; user has at least one post on Feed",
+      "steps": [
+        "Create a post on Feed",
+        "Navigate to own profile",
+        "Confirm the post appears in timeline below header",
+        "Confirm reactions and comment link work"
+      ],
+      "expected": "User's posts appear on profile in feed-card style.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Other user's profile timeline",
+      "surface": "ui",
+      "precondition": "Signed in; another user with posts exists",
+      "steps": [
+        "Visit another user's profile (/u/{their-username})",
+        "Confirm their posts appear below header",
+        "Confirm no Edit Profile option in ⋯ (not own profile)",
+        "Confirm no Delete on their posts"
+      ],
+      "expected": "Other profiles show read-only timeline; no edit/delete affordances for viewer.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Delete own post from profile timeline",
+      "surface": "ui",
+      "precondition": "Signed in; own profile has a post",
+      "steps": [
+        "On own profile, click Delete on a timeline post",
+        "Confirm delete dialog appears",
+        "Confirm deletion removes post from profile timeline"
+      ],
+      "expected": "Delete flow matches Feed behavior.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A7",
+      "title": "Public preview still works",
+      "surface": "ui",
+      "precondition": "Signed in on own profile",
+      "steps": [
+        "Open ⋯ → View Profile",
+        "Confirm read-only header with bio visible",
+        "Confirm Edit Profile modal is not accessible",
+        "Click Back to edit and return to normal view"
+      ],
+      "expected": "?view=public preview unchanged except edit form no longer inline.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A8",
+      "title": "Profile posts API",
+      "surface": "api",
+      "precondition": "Backend running; valid auth token",
+      "steps": [
+        "GET /api/users/{username}/posts with Authorization header",
+        "Confirm 200 and posts array",
+        "GET /api/users/nonexistent-user/posts",
+        "Confirm 404"
+      ],
+      "expected": "API returns hydrated posts for valid user; 404 for unknown username.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "B1",
+      "title": "Frontend typecheck + build",
+      "surface": "cli",
+      "precondition": "Final code landed",
+      "steps": [
+        "npm --prefix frontend run typecheck",
+        "npm --prefix frontend run build"
+      ],
+      "expected": "Both exit 0.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}
