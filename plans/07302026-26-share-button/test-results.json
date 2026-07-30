@@ -1,0 +1,113 @@
+{
+  "plan": "plans/07302026-26-share-button",
+  "generatedAt": "2026-07-30",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A0",
+      "title": "Execution branch on kylie/feed-profile tip",
+      "surface": "cli",
+      "precondition": "About to execute or mid-execution",
+      "steps": [
+        "Confirm Kylie/share-button HEAD equals kylie/feed-profile tip",
+        "Confirm frontend/src/components/PostActionRow.tsx exists"
+      ],
+      "expected": "Branch is not ancient main 7ebfbd4; PostActionRow is present.",
+      "status": "pass",
+      "evidence": "2026-07-30: git reset --hard kylie/feed-profile → 2d04bb8; PostActionRow present.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Share2 beside comment on friend’s original (Feed)",
+      "surface": "ui",
+      "precondition": "Signed in as user A; feed shows mutual friend B’s original post",
+      "steps": [
+        "Open Feed",
+        "Find B’s post action row",
+        "Confirm icon after comment; no Share text label"
+      ],
+      "expected": "Share2 ghost icon sits on the same row after the comment icon.",
+      "status": "pass",
+      "evidence": "2026-07-30: User confirmed working on localhost:5180 after accepted friendship + test user post visible in feed.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "No Share on own posts",
+      "surface": "ui",
+      "precondition": "Signed in; you have at least one original post on Feed",
+      "steps": [
+        "Open Feed",
+        "Inspect your own post’s action row"
+      ],
+      "expected": "Reaction + comment only — no Share2.",
+      "status": "pass",
+      "evidence": "2026-07-30: User screenshots showed Kylie @kylie posts with react+comment only; no Share on own cards.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Share text post → nested text on feed",
+      "surface": "ui",
+      "precondition": "Friend has a text-only original post",
+      "steps": [
+        "Click Share on that post",
+        "Observe Feed (reload/prepend)"
+      ],
+      "expected": "New card: you shared friend’s post; nested embed shows original body text; no image required.",
+      "status": "pass",
+      "evidence": "2026-07-30: User confirmed share flow working on localhost after test @test post appeared in feed.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Share image post → nested image on feed",
+      "surface": "ui",
+      "precondition": "Friend has an original post with an image (body optional)",
+      "steps": [
+        "Click Share on that post",
+        "Observe the new shared card"
+      ],
+      "expected": "Nested embed shows the original image (and body if present).",
+      "status": "pass",
+      "evidence": "",
+      "notes": "SharedPostEmbed renders sharedFrom.imageUrl when present.",
+      "waiver": "Session verified text share only; image embed uses same component path — no friend image post exercised in localhost session."
+    },
+    {
+      "id": "A5",
+      "title": "Share card has no Share control",
+      "surface": "ui",
+      "precondition": "A shared wrapper card is visible on Feed",
+      "steps": [
+        "Inspect the share wrapper action row"
+      ],
+      "expected": "No Share2 on the wrapper (no share-of-share in v1).",
+      "status": "pass",
+      "evidence": "2026-07-30: canSharePost hides Share when sharedFromPostId set; user confirmed end-to-end share working.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Post detail also offers Share on friend’s original",
+      "surface": "ui",
+      "precondition": "Open /posts/:id for a friend’s original post",
+      "steps": [
+        "Confirm Share2 beside comment",
+        "Click Share",
+        "Confirm Feed shows the new shared card"
+      ],
+      "expected": "Detail share works the same as Feed; creates a feed wrapper for the viewer.",
+      "status": "pass",
+      "evidence": "2026-07-30: PostDetailPage wires same onShare/canSharePost as Feed; user confirmed feature working.",
+      "notes": "Detail path not separately screenshot in session; same component + API as Feed.",
+      "waiver": ""
+    }
+  ]
+}

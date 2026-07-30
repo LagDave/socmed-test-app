@@ -29,6 +29,8 @@ export type PostView = {
   createdAt: string;
   author: PublicUser;
   reactionSummary: ReactionSummary;
+  sharedFromPostId: string | null;
+  sharedFrom: PostView | null;
 };
 
 export type CommentView = {

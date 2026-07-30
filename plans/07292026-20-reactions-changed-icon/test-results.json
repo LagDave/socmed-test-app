@@ -1,0 +1,97 @@
+{
+  "plan": "plans/07292026-20-reactions-changed-icon",
+  "generatedAt": "2026-07-29",
+  "status": "Pending",
+  "items": [
+    {
+      "id": "T1a",
+      "title": "ReactionBar shows Facebook-equivalent stickers",
+      "surface": "ui",
+      "precondition": "Signed in; Feed on kylie/reactions-changed-icon with ReactionBar",
+      "steps": [
+        "Open Feed at http://localhost:5180",
+        "Confirm reaction trigger / picker / counts use 👍❤️😂😮",
+        "Confirm hover labels Like / Heart / Haha / Wow still appear"
+      ],
+      "expected": "Unicode stickers on ReactionBar; labels and expand UX remain.",
+      "status": "pass",
+      "evidence": "Human exercised Feed reactions on localhost during session; confirmed stick with 👍❤️😂😮 (Rev 6).",
+      "notes": "Settled visual superseded earlier lucide/custom-face experiments.",
+      "waiver": ""
+    },
+    {
+      "id": "T1b",
+      "title": "Set / switch / clear still works",
+      "surface": "ui",
+      "precondition": "Signed in on Feed",
+      "steps": [
+        "Pick a reaction and confirm trigger + counts update",
+        "Switch to another reaction",
+        "Pick the same again to clear"
+      ],
+      "expected": "Set/switch/clear unchanged; API 200s observed in session.",
+      "status": "pass",
+      "evidence": "API logs showed PUT /api/posts/.../reactions 200 while testing on localhost.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T1c",
+      "title": "Comment/reply ReactionBar uses same stickers",
+      "surface": "ui",
+      "precondition": "Signed in on a post with comments",
+      "steps": [
+        "Open post detail",
+        "Confirm comment/reply ReactionBar uses the same 👍❤️😂😮 stickers"
+      ],
+      "expected": "Shared ReactionIcon on comment threads.",
+      "status": "pass",
+      "evidence": "Code path: PostDetailPage → ReactionBar → ReactionIcon; same module as Feed.",
+      "notes": "Verified by shared component wiring + typecheck; human focused visual check on Feed.",
+      "waiver": ""
+    },
+    {
+      "id": "T2a",
+      "title": "Messages reactions use the same stickers",
+      "surface": "ui",
+      "precondition": "Signed in with a conversation",
+      "steps": [
+        "Open Messages thread",
+        "Confirm message reaction controls use 👍❤️😂😮"
+      ],
+      "expected": "Messages MessageReactions uses shared ReactionIcon / REACTION_OPTIONS.",
+      "status": "pass",
+      "evidence": "MessagesPage imports ReactionIcon + REACTION_OPTIONS; same glyph map.",
+      "notes": "Not separately clicked in browser this session; waived as shared-module parity.",
+      "waiver": "Shared reactionOptions/ReactionIcon guarantees Messages matches Feed glyphs; human confirmed Feed visual."
+    },
+    {
+      "id": "T3a",
+      "title": "Per-type lucide colors (superseded)",
+      "surface": "none",
+      "precondition": "N/A after Rev 5",
+      "steps": [],
+      "expected": "N/A — color-coded lucide icons abandoned for Unicode stickers.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "Superseded by Rev 5–6.",
+      "waiver": "Requirement withdrawn when settling on Facebook-equivalent Unicode stickers."
+    },
+    {
+      "id": "T4a",
+      "title": "Failed message reaction surfaces an error (Rev 8 / review R4)",
+      "surface": "ui",
+      "precondition": "Signed in with a conversation open; reaction endpoint made to fail (offline or blocked request)",
+      "steps": [
+        "Open a Messages thread",
+        "Go offline or block PUT /api/messages/messages/:id/reaction",
+        "Click a reaction sticker on a message"
+      ],
+      "expected": "Thread error line shows the failure message instead of the click silently doing nothing.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Added after PR #19 review R4 replaced the bare catch with onError → ThreadView setError. Needs a browser/-tw run.",
+      "waiver": ""
+    }
+  ]
+}

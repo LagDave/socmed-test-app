@@ -129,11 +129,11 @@ body {
   }
 }
 
-.reaction-emoji-btn:hover,
-.reaction-emoji-btn:focus-visible {
+.reaction-icon-btn:hover,
+.reaction-icon-btn:focus-visible {
   animation: reaction-wiggle 0.55s ease-in-out;
 }
 
-.reaction-emoji-pop {
+.reaction-icon-pop {
   animation: reaction-pop 0.28s ease-out;
 }

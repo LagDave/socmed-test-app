@@ -23,7 +23,13 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 17 | `07292026-17-friends-messenger` | Friends-only 1:1 messenger (poll) |
 | 18 | `07292026-18-comment-action-icons` | Comment icon beside reactions; reply icon |
 | 19 | `07292026-19-navbar-arrangement` | Full-width navbar zones + profile dropdown |
+| 20 | `07292026-20-reactions-changed-icon` | Reaction stickers 👍❤️😂😮 (ReactionBar + Messages) |
 | 21 | `07292026-21-removed-outline-padding` | Flush soft-page-canvas (drop outer outline padding) |
+| 22 | `07292026-22-messages-websockets` | Messages live delivery via Socket.IO (REST writes stay) |
+| 23 | `07292026-23-messages-friend-picker` | Messages inbox: auto mutuals + icon-triggered friend search |
+| 24 | `07292026-24-reaction-summary-layout` | Reaction summary right-aligned cluster + total count |
+| 25 | `07302026-25-feed-composer-avatar` | Facebook-style feed composer + shared ProfileAvatar |
+| 26 | `07302026-26-share-button` | Facebook-style share button for friends' posts |
 
 ## Branch → host (hard rule)
 
