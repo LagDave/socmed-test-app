@@ -1,0 +1,104 @@
+{
+  "plan": "plans/07292026-24-reaction-summary-layout",
+  "generatedAt": "2026-07-30",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1a",
+      "title": "Post action row: controls left, cluster + total right",
+      "surface": "ui",
+      "precondition": "Signed in; Feed with a post that has at least one reaction",
+      "steps": [
+        "Open Feed",
+        "Locate a post with reactions",
+        "Confirm left group is react trigger then comment icon",
+        "Confirm right side shows clustered reaction sticker(s) and one total number"
+      ],
+      "expected": "[react][comment] …… [cluster][total]; no count chip between react and comment.",
+      "status": "pass",
+      "evidence": "Human reviewed Feed on http://localhost:5180 during execution/continue; confirmed right-side cluster + total layout.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T1b",
+      "title": "Multiple reaction types cluster with a single total",
+      "surface": "ui",
+      "precondition": "A post (or comment) has two or more different reaction types",
+      "steps": [
+        "Open that post/detail",
+        "Confirm each present type shows as an icon in the right cluster",
+        "Confirm only one number appears — the sum of all reactions",
+        "Confirm no per-type numbers appear"
+      ],
+      "expected": "Cluster of distinct stickers + one total; no ❤️2 👍1 style chips.",
+      "status": "pass",
+      "evidence": "Human tuned right-cluster emoji size on localhost with multi-type summaries visible.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T1c",
+      "title": "Zero reactions hides the right summary",
+      "surface": "ui",
+      "precondition": "Signed in; a post with no reactions (or clear your only reaction)",
+      "steps": [
+        "View a post with total reactions = 0",
+        "Confirm the right cluster/total is not shown",
+        "Confirm react trigger + comment icon remain on the left"
+      ],
+      "expected": "No empty cluster or \"0\" on the right when total is 0.",
+      "status": "pass",
+      "evidence": "Code: ReactionBar renders summary only when totalCount > 0; human exercised feed with reacted and unreacted posts.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2a",
+      "title": "Comment / reply rows match the same layout",
+      "surface": "ui",
+      "precondition": "Signed in on a post with comments; at least one reacted comment",
+      "steps": [
+        "Open post detail",
+        "On a parent comment with reactions: confirm [react][reply] …… [cluster][total]",
+        "On a reply with reactions: confirm [react] …… [cluster][total]"
+      ],
+      "expected": "Same ReactionBar layout rules on comment threads.",
+      "status": "pass",
+      "evidence": "PostDetailPage wires ReplyActionButton as ReactionBar actions; replies use ReactionBar alone — same component as Feed.",
+      "notes": "Human visual focus was Feed; comment/reply parity via shared ReactionBar.",
+      "waiver": ""
+    },
+    {
+      "id": "T2b",
+      "title": "Set / switch / clear still works",
+      "surface": "ui",
+      "precondition": "Signed in on Feed",
+      "steps": [
+        "Add a reaction — right summary appears/updates",
+        "Switch to another reaction — cluster/total update",
+        "Clear the reaction — if total hits 0, summary hides"
+      ],
+      "expected": "Picker UX and API behavior unchanged; layout updates with summary.",
+      "status": "pass",
+      "evidence": "API mutation path unchanged; human interacted with reactions on localhost while sizing the right cluster.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T2c",
+      "title": "Messages reactions unchanged",
+      "surface": "ui",
+      "precondition": "Signed in with a conversation",
+      "steps": [
+        "Open Messages",
+        "Confirm message reaction UI still shows prior layout (not this plan’s right-cluster row)"
+      ],
+      "expected": "Messages reaction chips not redesigned by this plan.",
+      "status": "pass",
+      "evidence": "git diff: MessagesPage.tsx not modified in this plan.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Share Button — Facebook-style Reshare Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:920px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.92rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 26</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Share Button — Facebook-style Reshare</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07302026-26-share-button</dd></div>
+        <div><dt>Size</dt><dd>Medium (6 tasks, FE + BE + migration)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07302026-26-share-button</dd></div>
+        <div><dt>Execution branch</dt><dd>Kylie/share-button (reset onto kylie/feed-profile tip)</dd></div>
+        <div><dt>Depends on</dt><dd>PostActionRow + modern Feed (kylie/feed-profile @ 2d04bb8+)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Feed and post detail already have react + comment icons on one action row. There is no way to amplify a friend’s post onto your own feed. When you’re proud of a friend’s text or photo post, Facebook-style reshare is the missing control — one icon, same row, content-aware embed (text and/or image from the original).</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li>Add a lucide <code>Share2</code> icon button beside the comment icon on <code>PostActionRow</code> (Feed + Post detail).</li>
+        <li>Share is Facebook-style <strong>reshare to your feed</strong>: creates a new post authored by you that references the friend’s original post.</li>
+        <li>Share appears only on <strong>other people’s original posts</strong> (not your own; not on share-wrapper posts).</li>
+        <li>Shared feed card shows attribution + nested original (body and/or image as the original has).</li>
+        <li>One-click share — no commentary modal in this plan.</li>
+      </ul>
+      <pre class="wire">Action row (friend’s original post):
+[ ReactionBar ] [ Comment ] [ Share2 ]
+
+Shared card on your feed:
+┌─ feed-card ─────────────────────────────────────────┐
+│  (you)  You shared Alex’s post            · 2m      │
+│  ┌─ nested original ──────────────────────────────┐ │
+│  │  (Alex)  Alex @alex                            │ │
+│  │  original body text…                           │ │
+│  │  [optional image]                              │ │
+│  └────────────────────────────────────────────────┘ │
+│  ─────────────────────────────────────────────────  │
+│  [ ReactionBar ] [ Comment ]          ← no Share    │
+└─────────────────────────────────────────────────────┘</pre>
+      <p><strong>Done when:</strong> Share2 sits beside comment on friends’ originals; one click creates a feed item with nested text/image embed; own posts and share wrappers hide Share; migrate + typecheck/build green; acceptance Passed.</p>
+      <div class="callout">
+        <strong>Grill locked:</strong>
+        1B Facebook-style reshare · friends’ posts only (proud-of) · Feed + Post detail · Share2 icon · reset <code>Kylie/share-button</code> onto <code>kylie/feed-profile</code> before edits.
+        <br><br>
+        <strong>Secondary locks (planner):</strong>
+        reference via <code>shared_from_post_id</code> (not content copy) · one-click / no commentary · hide Share on own posts and on share wrappers · allow multiple shares of the same original · <code>POST /api/posts/:id/share</code> · original deleted → nested “Original post unavailable.”
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today (on <code>kylie/feed-profile</code> tip <code>2d04bb8</code> — planning base):</strong></p>
+      <ul>
+        <li><code>frontend/src/components/PostActionRow.tsx</code> — flex row: <code>children</code> (ReactionBar) + MessageSquare comment control. Natural home for Share2 after comment.</li>
+        <li><code>FeedPage</code> / <code>PostDetailPage</code> both wrap <code>ReactionBar</code> in <code>PostActionRow</code>.</li>
+        <li><code>posts</code> table: <code>id, author_id, body, image_url, timestamps</code> — no share column. Create schema requires <code>body.min(1)</code>.</li>
+        <li><code>FriendshipModel.areFriends</code> exists for mutual-accepted checks.</li>
+        <li>Feed already lists self + mutuals; “friend’s post” ≈ <code>author.id !== viewer.id</code> among feed items that are not share wrappers.</li>
+      </ul>
+      <p><strong>Execution precondition (required):</strong> <code>Kylie/share-button</code> was created from ancient <code>main</code> (<code>7ebfbd4</code>) and does <em>not</em> contain PostActionRow / modern Feed. Before any app edits, hard-reset onto <code>kylie/feed-profile</code> tip so the action row exists.</p>
+      <p><strong>Closest analog:</strong> comment icon in <code>PostActionRow</code> (icon ghost button + aria-label); nested content pattern ≈ existing post body + optional <code>imageUrl</code> block; FK-nullable parent pattern ≈ <code>comments.parent_id</code>.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Share2 icon only — no “Share” text label</li>
+            <li>Same action row, immediately after the comment control</li>
+            <li>Show Share only when viewer ≠ post author AND post is not itself a share (<code>sharedFromPostId == null</code>)</li>
+            <li>Persist shares with <code>posts.shared_from_post_id</code> → <code>posts(id)</code>, <code>ON DELETE SET NULL</code></li>
+            <li>Share wrapper may have empty <code>body</code> and null <code>image_url</code>; content comes from the nested original</li>
+            <li>Hydrate <code>sharedFrom: PostView | null</code> on PostView (null if original gone)</li>
+            <li>Nested embed renders original author + body and/or image</li>
+            <li>Backend rejects sharing own post and sharing a share-wrapper; require mutual friendship with original author</li>
+            <li>Preserve existing compose / reactions / comments behavior</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No Web Share API / OS sheet / copy-link as the primary action</li>
+            <li>No commentary / “Say something about this” modal (v1)</li>
+            <li>No deep-copy of body/image into the wrapper row as the source of truth</li>
+            <li>No Share button on own posts or on share cards</li>
+            <li>No share-of-share chains in v1 (hide control on wrappers)</li>
+            <li>No new npm dependencies</li>
+            <li>No DM / Messages forwarding path</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Optional share commentary / quote-share UI</li>
+        <li>Notifications to the original author</li>
+        <li>Share counts / “N shares”</li>
+        <li>Unshare (delete own share is enough via existing Delete)</li>
+        <li>Profile timeline reshare chrome beyond whatever feed cards already appear if profile lists posts later</li>
+        <li>Privacy beyond mutual-friends feed visibility</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Primary hazards: executing on ancient tip; empty-body validation interacting with normal compose; N+1 when hydrating nested originals; share button leaking onto own posts.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Wrong branch tip — no PostActionRow</td>
+            <td>Entire execution</td>
+            <td>T0: reset <code>Kylie/share-button</code> onto <code>kylie/feed-profile</code>; verify PostActionRow + feed-card</td>
+          </tr>
+          <tr>
+            <td>Empty body breaks create-post validation</td>
+            <td>PostService create + share</td>
+            <td>Share path separate from compose schema; allow empty body only when <code>shared_from_post_id</code> set; leave normal create <code>body.min(1)</code></td>
+          </tr>
+          <tr>
+            <td>N+1 author/original loads on feed</td>
+            <td>Feed hydrate</td>
+            <td>Batch-load shared originals by id set; reuse existing author hydrate patterns</td>
+          </tr>
+          <tr>
+            <td>Orphaned embed after original delete</td>
+            <td>Shared cards</td>
+            <td><code>ON DELETE SET NULL</code>; UI copy “Original post unavailable.”</td>
+          </tr>
+          <tr>
+            <td>Share own post / share a share</td>
+            <td>API + UI</td>
+            <td>UI hides control; service returns FORBIDDEN / VALIDATION with clear codes</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Consumers / blast radius:</strong> <code>posts</code> schema; <code>PostModel</code> / <code>PostService</code> / <code>PostsController</code> / <code>posts</code> routes; FE <code>PostView</code>; <code>PostActionRow</code>; <code>FeedPage</code>; <code>PostDetailPage</code>. Reactions/comments remain on the wrapper post id (not the nested original).</p>
+      <p><strong>Required pushback:</strong> Do not ship OS share sheet instead of reshare. Do not copy body/image into the wrapper as the only representation. Do not execute on pre-reset ancient <code>main</code>.</p>
+    </section>
+
+    <section class="spec-card" id="data">
+      <h2>Data &amp; API</h2>
+      <h3>Migration</h3>
+      <ul>
+        <li>Add nullable <code>shared_from_post_id uuid</code> on <code>posts</code>, FK → <code>posts(id)</code> <code>ON DELETE SET NULL</code>, index on <code>shared_from_post_id</code>.</li>
+        <li>Idempotent <code>hasColumn</code> guard (match recent migration style).</li>
+        <li>Scaffold notes live in <code>migrations/README.md</code>; real Knex file under <code>database/migrations/</code> at execute time.</li>
+      </ul>
+      <h3>PostView (BE + FE)</h3>
+      <ul>
+        <li>Add <code>sharedFromPostId: string | null</code>.</li>
+        <li>Add <code>sharedFrom: PostView | null</code> — nested original without further nesting required in v1 (<code>sharedFrom.sharedFrom</code> may be null/omitted; do not recursively embed chains).</li>
+      </ul>
+      <h3>Route</h3>
+      <ul>
+        <li><code>POST /api/posts/:id/share</code> (auth) → creates wrapper post for <code>req.userId</code>, returns <code>{ post }</code> 201.</li>
+        <li>Rules: original exists; original has no <code>shared_from_post_id</code>; author ≠ viewer; <code>FriendshipModel.areFriends(viewer, author)</code>; wrapper <code>body ''</code>, <code>image_url null</code>.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T0">
+        <h3>T0 — Reset execution branch onto kylie/feed-profile</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            On <code>Kylie/share-button</code>, hard-reset to <code>kylie/feed-profile</code> tip (currently <code>2d04bb8</code> or tip at execute time). Confirm <code>PostActionRow.tsx</code> exists and Feed uses it. No feature edits in this task.
+          </dd></div>
+          <div><dt>Files</dt><dd>git only</dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>test -f frontend/src/components/PostActionRow.tsx</code>; HEAD equals feed-profile tip; not <code>7ebfbd4</code></dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Migration: <code>posts.shared_from_post_id</code></h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add Knex migration adding nullable <code>shared_from_post_id</code> FK to <code>posts(id)</code> with <code>ON DELETE SET NULL</code> and an index. Use <code>hasColumn</code> idempotency. Document filename in plan <code>migrations/README.md</code>.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>database/migrations/YYYYMMDDHHMMSS_post_shares.ts</code>; <code>plans/07302026-26-share-button/migrations/README.md</code></dd></div>
+          <div><dt>Depends on</dt><dd>T0</dd></div>
+          <div><dt>Verify</dt><dd><code>npm run migrate</code> succeeds; column present</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Backend share service + route</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Extend <code>PostModel</code> / <code>PostRow</code> for <code>shared_from_post_id</code>. Implement <code>PostService.share(viewerId, postId)</code> with the locked rules. Hydrate feed/get to include <code>sharedFromPostId</code> + nested <code>sharedFrom</code> (batch originals). Wire <code>POST /api/posts/:id/share</code> on <code>PostsController</code> + routes. Keep normal <code>create</code> body validation unchanged.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>src/models/PostModel.ts</code>; <code>src/services/PostService.ts</code>; <code>src/controllers/posts/PostsController.ts</code>; <code>src/routes/posts.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Share friend original → 201; share own / share-wrapper / non-friend → error; feed JSON includes nested original for wrappers</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — FE types + PostActionRow Share2</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Extend FE <code>PostView</code> with <code>sharedFromPostId</code> / <code>sharedFrom</code>. Add optional <code>onShare</code> (and busy/disabled as needed) to <code>PostActionRow</code>; render lucide <code>Share2</code> ghost icon button after comment when <code>onShare</code> provided; <code>aria-label="Share"</code>; same size tokens as comment.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/api/types.ts</code>; <code>frontend/src/components/PostActionRow.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2 (types can start in parallel after T0, but wire against final API shape)</dd></div>
+          <div><dt>Verify</dt><dd>Icon-only control; no “Share” text; sizes match comment</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Feed + Post detail: wire share + nested embed</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            On Feed and Post detail: pass <code>onShare</code> only for other users’ original posts. Call <code>POST /api/posts/:id/share</code>; on Feed success reload or prepend; on Detail success stay (optional muted confirmation). Render share wrappers with attribution line (“{You|Name} shared {Friend}’s post”) and nested original body/image (or unavailable state). Do not show Share on wrappers. Prefer a tiny shared presentational helper if Feed + detail would otherwise duplicate nested markup.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/FeedPage.tsx</code>; <code>frontend/src/pages/PostDetailPage.tsx</code>; optional <code>frontend/src/components/SharedPostEmbed.tsx</code> (or equivalent)</dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>Friend text post → share → feed shows nested text; friend image post → nested image; own post has no Share; share card has no Share</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — Acceptance artifacts + build gate</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Ensure <code>test-results.json</code> / <code>test.html</code> match Done criteria. Run typecheck/lint/build; fix regressions from this change.
+          </dd></div>
+          <div><dt>Files</dt><dd>plan acceptance files; any fix files from gate</dd></div>
+          <div><dt>Depends on</dt><dd>T4</dd></div>
+          <div><dt>Verify</dt><dd>Frontend + backend typecheck clean; acceptance items pending human / <code>-tw</code></dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span><code>Kylie/share-button</code> based on <code>kylie/feed-profile</code> tip (T0)</span></li>
+        <li><span>☑</span><span>Migration adds <code>shared_from_post_id</code> with SET NULL delete behavior</span></li>
+        <li><span>☑</span><span><code>POST /api/posts/:id/share</code> creates Facebook-style wrapper for mutual friends’ originals only</span></li>
+        <li><span>☑</span><span>Share2 icon beside comment on Feed + Post detail (friends’ originals only)</span></li>
+        <li><span>☑</span><span>Shared cards show attribution + nested text and/or image (or unavailable)</span></li>
+        <li><span>☑</span><span>No Share on own posts or share wrappers; no commentary modal</span></li>
+        <li><span>☑</span><span>Typecheck/build pass; acceptance checklist passes or waived in writing</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="acceptance">
+      <h2>Acceptance</h2>
+      <p>Runnable checklist: <code>test-results.json</code> + <code>test.html</code> in this folder. Surfaces are UI + CLI precondition.</p>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>07302026</td>
+            <td>Initial spec after grill: 1B Facebook-style · friends-only · Feed+detail · Share2 · reset onto kylie/feed-profile. Secondary locks: shared_from_post_id reference, one-click, no share-of-share UI, POST /api/posts/:id/share.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>07302026</td>
+            <td>Executed T0–T5 on Kylie/share-button (reset to kylie/feed-profile 2d04bb8). Migration 20260730180000_post_shares; PostService.share + POST /api/posts/:id/share; Share2 in PostActionRow; SharedPostEmbed + Feed/detail wiring. Typecheck/build green. UI acceptance A1–A6 pending human / -tw.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>07302026</td>
+            <td>Finalize (-d): acceptance A0–A6 Passed (A4 image share waived — same embed path as text); user confirmed working on localhost:5180; status Completed; changelog 0.1.15.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
