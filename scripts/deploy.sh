@@ -31,11 +31,12 @@ if [[ -z "${TOKEN}" ]]; then
 fi
 
 SSH_TARGET="${DEPLOY_SSH_TARGET:-alloro-asia}"
+CLONE_BRANCH="${DEPLOY_GIT_REF:-$BRANCH}"
 
 ssh "$SSH_TARGET" "set -euo pipefail
 source /home/ubuntu/.nvm/nvm.sh
 rm -rf ${DIR}.tmp
-sudo -u ubuntu git clone --branch ${BRANCH} --single-branch https://x-access-token:${TOKEN}@github.com/LagDave/socmed-test-app.git ${DIR}.tmp
+sudo -u ubuntu git clone --branch ${CLONE_BRANCH} --single-branch https://x-access-token:${TOKEN}@github.com/LagDave/socmed-test-app.git ${DIR}.tmp
 mkdir -p ${DIR}/uploads
 rsync -a --delete --exclude '/uploads/' ${DIR}.tmp/ ${DIR}/
 rm -rf ${DIR}.tmp
