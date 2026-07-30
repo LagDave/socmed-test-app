@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { MessageSquare, Reply } from "lucide-react";
+import { MessageSquare, Reply, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,9 @@ type PostActionRowProps = {
   commentTo?: string;
   /** Detail: scroll / focus comments. */
   onCommentClick?: () => void;
+  /** Friends' original posts only — omit to hide Share. */
+  onShare?: () => void;
+  shareBusy?: boolean;
 };
 
 export function PostActionRow({
@@ -25,9 +28,11 @@ export function PostActionRow({
   className,
   commentTo,
   onCommentClick,
+  onShare,
+  shareBusy = false,
 }: PostActionRowProps) {
   const s = SIZE[size];
-  const icon = <MessageSquare className={s.icon} aria-hidden="true" />;
+  const commentIcon = <MessageSquare className={s.icon} aria-hidden="true" />;
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
@@ -35,7 +40,7 @@ export function PostActionRow({
       {commentTo ? (
         <Button asChild variant="ghost" size="icon" className={s.btn}>
           <Link to={commentTo} aria-label="Comments">
-            {icon}
+            {commentIcon}
           </Link>
         </Button>
       ) : (
@@ -47,9 +52,22 @@ export function PostActionRow({
           aria-label="Comments"
           onClick={onCommentClick}
         >
-          {icon}
+          {commentIcon}
         </Button>
       )}
+      {onShare ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={s.btn}
+          aria-label="Share"
+          disabled={shareBusy}
+          onClick={onShare}
+        >
+          <Share2 className={s.icon} aria-hidden="true" />
+        </Button>
+      ) : null}
     </div>
   );
 }

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.15 — 2026-07-30
+
+### Added
+- Facebook-style post share: Share2 icon beside comment on friends’ original posts (Feed + post detail)
+- `POST /api/posts/:id/share` creates a feed wrapper referencing the original via `shared_from_post_id`
+- Shared feed cards with attribution line and nested original text/image embed
+
+### Changed
+- `PostActionRow` accepts optional share handler; `PostView` includes `sharedFromPostId` / `sharedFrom`
+
+### Plans
+- `plans/07302026-26-share-button` — Completed
+
 ## 0.1.14 — 2026-07-30
 
 ### Changed
