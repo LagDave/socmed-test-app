@@ -290,18 +290,19 @@ export function PostDetailPage() {
                   {parent.imageUrl && (
                     <img src={parent.imageUrl} alt="" className="mt-2 max-h-64 border border-border" />
                   )}
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <ReactionBar
-                      size="sm"
-                      targetType="comment"
-                      targetId={parent.id}
-                      summary={parent.reactionSummary}
-                      onSummaryChange={(reactionSummary) =>
-                        patchCommentSummary(parent.id, reactionSummary)
-                      }
-                    />
-                    {user && <ReplyActionButton onClick={() => startReply(parent)} />}
-                  </div>
+                  <ReactionBar
+                    className="mt-2"
+                    size="sm"
+                    targetType="comment"
+                    targetId={parent.id}
+                    summary={parent.reactionSummary}
+                    onSummaryChange={(reactionSummary) =>
+                      patchCommentSummary(parent.id, reactionSummary)
+                    }
+                    actions={
+                      user ? <ReplyActionButton onClick={() => startReply(parent)} /> : undefined
+                    }
+                  />
                 </div>
                 {user?.id === parent.author.id && (
                   <Button
