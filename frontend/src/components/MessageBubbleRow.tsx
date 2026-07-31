@@ -85,7 +85,10 @@ export function MessageBubbleRow({
                     <img
                       src={message.imageUrl}
                       alt=""
-                      className="mb-2 max-h-72 w-full rounded-lg object-cover"
+                      className={cn(
+                        "block max-h-48 max-w-[220px] rounded-lg object-contain",
+                        message.body && "mb-2"
+                      )}
                     />
                   )}
                   {message.body && (
