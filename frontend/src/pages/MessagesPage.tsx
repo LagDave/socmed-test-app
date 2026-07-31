@@ -537,7 +537,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               value={body}
               onChange={(e) => setBody(e.target.value)}
               onKeyDown={submitOnEnter}
-              placeholder="Message — try love, congrats, or wow for effects"
+              placeholder="Type a message"
               aria-label="Message"
               rows={1}
               disabled={sending}
