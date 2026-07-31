@@ -8,39 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { PostCard } from "@/components/PostCard";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
-
-function ProfileAvatar({
-  displayName,
-  avatarUrl,
-  size = "lg",
-}: {
-  displayName: string;
-  avatarUrl: string | null;
-  size?: "lg" | "md";
-}) {
-  const dim = size === "lg" ? "h-24 w-24 text-3xl" : "h-16 w-16 text-xl";
-  const letter = displayName.trim().slice(0, 1).toUpperCase() || "?";
-
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt=""
-        className={`${dim} shrink-0 rounded-full border border-border object-cover shadow-sm`}
-      />
-    );
-  }
-
-  return (
-    <div
-      className={`${dim} flex shrink-0 items-center justify-center rounded-full border border-border bg-secondary font-semibold text-foreground shadow-sm`}
-      aria-hidden="true"
-    >
-      {letter}
-    </div>
-  );
-}
 
 type ProfileMenuProps = {
   showEditProfile: boolean;
@@ -166,6 +135,8 @@ export function ProfilePage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
+  const [sharingPostId, setSharingPostId] = useState<string | null>(null);
+  const sharingRef = useRef(false);
 
   const isSelf = Boolean(me && profile && me.id === profile.id);
   const isPublicPreview = searchParams.get("view") === "public";
@@ -319,6 +290,22 @@ export function ProfilePage() {
     }
   }
 
+  async function onShare(postId: string) {
+    if (sharingRef.current) return;
+    sharingRef.current = true;
+    setSharingPostId(postId);
+    setPostsError(null);
+    try {
+      await api.post(`/api/posts/${postId}/share`);
+      await reloadPosts();
+    } catch (err) {
+      setPostsError(err instanceof Error ? err.message : "Failed to share");
+    } finally {
+      sharingRef.current = false;
+      setSharingPostId(null);
+    }
+  }
+
   if (!profile) {
     return <p className="text-sm text-muted-foreground">{error || "Loading…"}</p>;
   }
@@ -396,10 +383,12 @@ export function ProfilePage() {
             viewerId={me?.id ?? ""}
             onDeleteRequest={setPendingDeleteId}
             onReactionChange={patchPostSummary}
+            onShareRequest={me ? (postId) => void onShare(postId) : undefined}
+            sharingPostId={sharingPostId}
           />
         ))}
         {posts.length === 0 && !postsError && (
-          <li className="feed-card p-8 text-center text-sm text-muted-foreground">No posts yet.</li>
+          <li className="feed-card px-3 py-6 text-center text-sm text-muted-foreground">No posts yet.</li>
         )}
       </ul>
 

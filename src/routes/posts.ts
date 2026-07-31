@@ -8,6 +8,7 @@ export const postsRouter = Router();
 
 postsRouter.get("/feed", requireAuth, PostsController.feed);
 postsRouter.post("/posts", requireAuth, PostsController.create);
+postsRouter.post("/posts/:id/share", requireAuth, PostsController.share);
 postsRouter.get("/posts/:id", requireAuth, PostsController.get);
 postsRouter.delete("/posts/:id", requireAuth, PostsController.remove);
 

@@ -1,0 +1,40 @@
+name: PR base branch guard
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  enforce-dev-default:
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Block accidental merges into main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+
+          # Release promotion: dev → main is the only standing exception without a label.
+          if [ "$HEAD_REF" = "dev" ]; then
+            echo "Release promotion PR (dev → main) — allowed."
+            exit 0
+          fi
+
+          labels="$(gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json labels -q '.labels[].name')"
+          if echo "$labels" | grep -qx 'promote-to-main'; then
+            echo "PR targets main with promote-to-main label — allowed."
+            exit 0
+          fi
+
+          echo "::error::Pull requests must target \`dev\` by default."
+          echo "::error::Feature work, squash merges, and batch landings belong on \`dev\` → socmed-dev.rustinedave.com."
+          echo "::error::To merge into \`main\` (production), either:"
+          echo "::error::  • open dev → main when promoting a release, or"
+          echo "::error::  • add the \`promote-to-main\` label for an explicit, reviewed exception."
+          exit 1

@@ -5,19 +5,20 @@ import type { PostView, ReactionSummary } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PostCard } from "@/components/PostCard";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 
 export function FeedPage() {
   const { user, loading } = useAuth();
   const [posts, setPosts] = useState<PostView[]>([]);
   const [body, setBody] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+  const [sharingPostId, setSharingPostId] = useState<string | null>(null);
+  const sharingRef = useRef(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
@@ -46,20 +47,30 @@ export function FeedPage() {
     setBusy(true);
     setError(null);
     try {
-      let imageUrl: string | null = null;
-      if (imageFile) {
-        const up = await api.upload<{ url: string }>("/api/uploads", imageFile);
-        imageUrl = up.url;
-      }
-      await api.post("/api/posts", { body: text, imageUrl });
+      await api.post("/api/posts", { body: text, imageUrl: null });
       setBody("");
-      setImageFile(null);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
       busyRef.current = false;
       setBusy(false);
+    }
+  }
+
+  async function onShare(postId: string) {
+    if (sharingRef.current) return;
+    sharingRef.current = true;
+    setSharingPostId(postId);
+    setError(null);
+    try {
+      await api.post(`/api/posts/${postId}/share`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to share");
+    } finally {
+      sharingRef.current = false;
+      setSharingPostId(null);
     }
   }
 
@@ -94,33 +105,30 @@ export function FeedPage() {
   }
 
   return (
-    <section className="space-y-4">
-      <div className="px-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Feed</h1>
-        <p className="text-sm text-muted-foreground">You and your mutuals.</p>
-      </div>
-
-      <form onSubmit={onCompose} className="feed-card space-y-2 p-3">
-        <Textarea
-          placeholder="What's on your mind?"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={submitOnEnter}
-          required
-          className="min-h-[52px] resize-none border-0 bg-transparent px-1 py-1 text-[15px] shadow-none focus-visible:ring-0"
-        />
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-            className="h-8 max-w-xs border-0 bg-transparent px-0 py-0 shadow-none"
+    <section className="space-y-6">
+      <form onSubmit={onCompose} className="feed-card px-3 py-2">
+        <div className="flex items-center gap-3">
+          <Link
+            to={`/u/${user.username || "me"}`}
+            className="shrink-0"
+            aria-label="Your profile"
+          >
+            <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
+          </Link>
+          <Textarea
+            placeholder="What's on your mind?"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={submitOnEnter}
+            required
+            rows={1}
+            className="h-10 min-h-10 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[15px] leading-6 shadow-none focus-visible:ring-0"
           />
-          <Button type="submit" size="sm" disabled={busy}>
+          <Button type="submit" size="sm" className="shrink-0" disabled={busy}>
             Post
           </Button>
         </div>
-        {error && <p className="text-sm text-muted-foreground">{error}</p>}
+        {error && <p className="mt-2 text-sm text-muted-foreground">{error}</p>}
       </form>
 
       <ul className="space-y-4">
@@ -131,10 +139,12 @@ export function FeedPage() {
             viewerId={user.id}
             onDeleteRequest={setPendingDeleteId}
             onReactionChange={patchPostSummary}
+            onShareRequest={(postId) => void onShare(postId)}
+            sharingPostId={sharingPostId}
           />
         ))}
         {posts.length === 0 && (
-          <li className="feed-card p-8 text-center text-sm text-muted-foreground">No posts yet.</li>
+          <li className="feed-card px-3 py-6 text-center text-sm text-muted-foreground">No posts yet.</li>
         )}
       </ul>
 

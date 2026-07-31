@@ -1,6 +1,6 @@
 {
   "name": "socmed-test-app",
-  "version": "0.1.11",
+  "version": "0.1.15",
   "private": true,
   "description": "Basic social media platform — auth, posts, comments, friends",
   "scripts": {
@@ -27,6 +27,7 @@
     "pg": "^8.16.0",
     "pino": "^9.7.0",
     "pino-http": "^10.4.0",
+    "socket.io": "^4.8.3",
     "uuid": "^11.1.0",
     "zod": "^3.25.67"
   },
