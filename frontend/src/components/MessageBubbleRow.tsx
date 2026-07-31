@@ -19,6 +19,64 @@ import {
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { cn } from "@/lib/utils";
 
+function MessageHoverActions({
+  message,
+  mine,
+  reactionsOpen,
+  onReactionsOpenChange,
+  onReply,
+  onReactionChange,
+  onError,
+}: {
+  message: MessageView;
+  mine: boolean;
+  reactionsOpen: boolean;
+  onReactionsOpenChange: (open: boolean) => void;
+  onReply: (message: MessageView) => void;
+  onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
+  onError: (message: string) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative flex shrink-0 items-center gap-0.5 self-center opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100",
+        mine && "flex-row-reverse"
+      )}
+    >
+      <button
+        type="button"
+        aria-label="Reply to message"
+        className="flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-background text-muted-foreground shadow-sm hover:text-foreground"
+        onClick={() => onReply(message)}
+      >
+        <Reply className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        aria-label="React to message"
+        aria-expanded={reactionsOpen}
+        className="flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm"
+        onClick={() => onReactionsOpenChange(!reactionsOpen)}
+      >
+        {message.reactionSummary.viewerEmoji ? (
+          <ReactionIcon emoji={message.reactionSummary.viewerEmoji} className="text-sm" />
+        ) : (
+          <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+        )}
+      </button>
+      <MessageReactionPicker
+        messageId={message.id}
+        summary={message.reactionSummary}
+        onSummaryChange={(summary) => onReactionChange(message.id, summary)}
+        onError={onError}
+        open={reactionsOpen}
+        onOpenChange={onReactionsOpenChange}
+        className={mine ? "right-0" : "left-0"}
+      />
+    </div>
+  );
+}
+
 export function MessageBubbleRow({
   message,
   mine,
@@ -62,82 +120,34 @@ export function MessageBubbleRow({
         )}
       >
         <div className={cn("flex min-w-0 flex-col gap-0.5", mine ? "items-end" : "items-start")}>
-          <div className="relative">
-            <div
-              className={cn(
-                "rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
-                message.isUnsent
-                  ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
-                  : mine
-                    ? "bg-foreground text-background"
-                    : "bg-secondary text-foreground"
-              )}
-            >
-              {message.isUnsent ? (
-                "Unsent a message"
-              ) : (
-                <>
-                  {message.replyTo && (
-                    <MessageQuoteStrip replyTo={message.replyTo} mine={mine} />
-                  )}
-                  {message.imageUrl && (
-                    <img
-                      src={message.imageUrl}
-                      alt=""
-                      className="mb-2 max-h-72 w-full rounded-lg object-cover"
-                    />
-                  )}
-                  {message.body}
-                </>
-              )}
-            </div>
-
-            {!message.isUnsent && (
+          <div
+            className={cn(
+              "rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
+              message.isUnsent
+                ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
+                : mine
+                  ? "bg-foreground text-background"
+                  : "bg-secondary text-foreground"
+            )}
+          >
+            {message.isUnsent ? (
+              "Unsent a message"
+            ) : (
               <>
-                <div
-                  className={cn(
-                    "absolute top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100",
-                    mine ? "-left-[4.25rem]" : "-right-[4.25rem]"
-                  )}
-                >
-                  <button
-                    type="button"
-                    aria-label="Reply to message"
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm"
-                    onClick={() => onReply(message)}
-                  >
-                    <Reply className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="React to message"
-                    aria-expanded={reactionsOpen}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm"
-                    onClick={() => setReactionsOpen((open) => !open)}
-                  >
-                    {message.reactionSummary.viewerEmoji ? (
-                      <ReactionIcon emoji={message.reactionSummary.viewerEmoji} className="text-sm" />
-                    ) : (
-                      <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                    )}
-                  </button>
-                </div>
-                <MessageReactionPicker
-                  messageId={message.id}
-                  summary={message.reactionSummary}
-                  onSummaryChange={(summary) => onReactionChange(message.id, summary)}
-                  onError={onError}
-                  open={reactionsOpen}
-                  onOpenChange={setReactionsOpen}
-                  className={mine ? "right-0" : "left-0"}
-                />
+                {message.replyTo && <MessageQuoteStrip replyTo={message.replyTo} mine={mine} />}
+                {message.imageUrl && (
+                  <img
+                    src={message.imageUrl}
+                    alt=""
+                    className="mb-2 max-h-72 w-full rounded-lg object-cover"
+                  />
+                )}
+                {message.body}
               </>
             )}
           </div>
 
-          {!message.isUnsent && (
-            <MessageReactionSummary summary={message.reactionSummary} />
-          )}
+          {!message.isUnsent && <MessageReactionSummary summary={message.reactionSummary} />}
 
           {showMeta && (
             <time
@@ -150,6 +160,18 @@ export function MessageBubbleRow({
           )}
         </div>
 
+        {!message.isUnsent && (
+          <MessageHoverActions
+            message={message}
+            mine={mine}
+            reactionsOpen={reactionsOpen}
+            onReactionsOpenChange={setReactionsOpen}
+            onReply={onReply}
+            onReactionChange={onReactionChange}
+            onError={onError}
+          />
+        )}
+
         {mine && !message.isUnsent && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -157,7 +179,7 @@ export function MessageBubbleRow({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/message:opacity-100 focus:opacity-100 data-[state=open]:opacity-100"
+                className="h-7 w-7 shrink-0 self-center text-muted-foreground opacity-0 transition-opacity group-hover/message:opacity-100 focus:opacity-100 data-[state=open]:opacity-100"
                 aria-label="Message options"
               >
                 <MoreVertical className="h-4 w-4" aria-hidden="true" />
