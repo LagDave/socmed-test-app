@@ -1,77 +1,58 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "@/api/client";
-import type { PostView, ReactionSummary } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { PostActionRow } from "@/components/PostActionRow";
-import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { ReactionBar } from "@/components/ReactionBar";
-import { SharedPostEmbed } from "@/components/SharedPostEmbed";
+import { FeedComposer } from "@/components/FeedComposer";
+import { FeedEmptyState, FeedPostSkeleton } from "@/components/FeedEmptyState";
+import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
-import { canSharePost, shareAttributionLabel } from "@/lib/sharePost";
-import { submitOnEnter } from "@/lib/submitOnEnter";
+import { useFeedPosts } from "@/hooks/useFeedPosts";
+import { api } from "@/api/client";
 
 export function FeedPage() {
-  const { user, loading } = useAuth();
-  const [posts, setPosts] = useState<PostView[]>([]);
-  const [body, setBody] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const busyRef = useRef(false);
+  const { user, loading: authLoading } = useAuth();
+  const {
+    posts,
+    loading,
+    loadingMore,
+    hasMore,
+    error,
+    refresh,
+    loadMore,
+    patchPostSummary,
+    removePost,
+  } = useFeedPosts(Boolean(user));
+  const [pageError, setPageError] = useState<string | null>(null);
   const [sharingPostId, setSharingPostId] = useState<string | null>(null);
   const sharingRef = useRef(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
-
-  async function load() {
-    const data = await api.get<{ posts: PostView[] }>("/api/feed");
-    setPosts(data.posts);
-    await api.post("/api/feed/seen").catch(() => undefined);
-  }
-
-  function patchPostSummary(postId: string, reactionSummary: ReactionSummary) {
-    setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, reactionSummary } : p)));
-  }
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!user) return;
-    void load().catch((e: Error) => setError(e.message));
-  }, [user]);
-
-  async function onCompose(e: FormEvent) {
-    e.preventDefault();
-    if (busyRef.current) return;
-    const text = body.trim();
-    if (!text) return;
-    busyRef.current = true;
-    setBusy(true);
-    setError(null);
-    try {
-      await api.post("/api/posts", { body: text, imageUrl: null });
-      setBody("");
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
-    } finally {
-      busyRef.current = false;
-      setBusy(false);
-    }
-  }
+    const node = loadMoreRef.current;
+    if (!node || !user) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) void loadMore();
+      },
+      { rootMargin: "240px 0px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [user, loadMore, posts.length, hasMore]);
 
   async function onShare(postId: string) {
     if (sharingRef.current) return;
     sharingRef.current = true;
     setSharingPostId(postId);
-    setError(null);
+    setPageError(null);
     try {
       await api.post(`/api/posts/${postId}/share`);
-      await load();
+      await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to share");
+      setPageError(err instanceof Error ? err.message : "Failed to share");
     } finally {
       sharingRef.current = false;
       setSharingPostId(null);
@@ -82,142 +63,91 @@ export function FeedPage() {
     if (!pendingDeleteId || deleting || deletingRef.current) return;
     deletingRef.current = true;
     setDeleting(true);
-    setError(null);
+    setPageError(null);
     try {
       await api.delete(`/api/posts/${pendingDeleteId}`);
+      removePost(pendingDeleteId);
       setPendingDeleteId(null);
-      await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
+      setPageError(err instanceof Error ? err.message : "Failed to delete");
     } finally {
       deletingRef.current = false;
       setDeleting(false);
     }
   }
 
-  if (loading) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  const displayError = pageError ?? error;
+
+  if (authLoading) {
+    return (
+      <section className="feed-page space-y-4">
+        <FeedPostSkeleton />
+        <FeedPostSkeleton />
+      </section>
+    );
+  }
+
   if (!user) {
     return (
-      <section className="space-y-4">
-        <h1 className="text-4xl font-semibold tracking-tight">SocMed application</h1>
-        <p className="text-muted-foreground">Sign in to see your feed.</p>
-        <Button asChild>
-          <Link to="/login">Sign in</Link>
-        </Button>
+      <section className="feed-page space-y-4">
+        <div className="feed-card px-6 py-10 text-center">
+          <h1 className="text-3xl font-semibold tracking-tight">Welcome to SocMed</h1>
+          <p className="mt-3 text-muted-foreground">Sign in to see posts from you and your friends.</p>
+          <Button asChild className="mt-6">
+            <Link to="/login">Sign in</Link>
+          </Button>
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="space-y-6">
-      <form onSubmit={onCompose} className="feed-card px-3 py-2">
-        <div className="flex items-center gap-3">
-          <Link
-            to={`/u/${user.username || "me"}`}
-            className="shrink-0"
-            aria-label="Your profile"
-          >
-            <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
-          </Link>
-          <Textarea
-            placeholder="What's on your mind?"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={submitOnEnter}
-            required
-            rows={1}
-            className="h-10 min-h-10 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[15px] leading-6 shadow-none focus-visible:ring-0"
-          />
-          <Button type="submit" size="sm" className="shrink-0" disabled={busy}>
-            Post
-          </Button>
-        </div>
-        {error && <p className="mt-2 text-sm text-muted-foreground">{error}</p>}
-      </form>
+    <section className="feed-page space-y-5">
+      <FeedComposer
+        user={user}
+        onPosted={() => void refresh()}
+        onError={(message) => setPageError(message || null)}
+      />
 
-      <ul className="space-y-4">
-        {posts.map((p) => {
-          const attribution = shareAttributionLabel(user.id, p);
-          const isShare = Boolean(p.sharedFromPostId);
-          return (
-            <li key={p.id} className="feed-card px-3 py-3">
-              <div className="flex items-start gap-2.5">
-                <Link
-                  to={`/u/${p.author.username || p.author.id}`}
-                  className="shrink-0"
-                  aria-label={`${p.author.displayName}'s profile`}
-                >
-                  <ProfileAvatar
-                    displayName={p.author.displayName}
-                    avatarUrl={p.author.avatarUrl}
-                    size="sm"
-                  />
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    {attribution ? (
-                      <p className="min-w-0 font-medium leading-snug">{attribution}</p>
-                    ) : (
-                      <Link
-                        className="min-w-0 font-medium leading-snug underline-offset-2 hover:underline"
-                        to={`/u/${p.author.username || p.author.id}`}
-                      >
-                        {p.author.displayName}
-                        {p.author.username ? (
-                          <span className="font-normal text-muted-foreground">{` @${p.author.username}`}</span>
-                        ) : null}
-                      </Link>
-                    )}
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <time
-                        className="text-xs text-muted-foreground"
-                        dateTime={p.createdAt}
-                        title={formatAbsoluteTime(p.createdAt) || undefined}
-                      >
-                        {formatRelativeTime(p.createdAt)}
-                      </time>
-                      {user.id === p.author.id && (
-                        <Button type="button" variant="ghost" size="sm" onClick={() => setPendingDeleteId(p.id)}>
-                          Delete
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {isShare ? (
-                    <SharedPostEmbed sharedFrom={p.sharedFrom} />
-                  ) : (
-                    <>
-                      <p className="mt-1.5 whitespace-pre-wrap text-[15px] leading-relaxed">{p.body}</p>
-                      {p.imageUrl && (
-                        <img src={p.imageUrl} alt="" className="mt-2.5 max-h-96 w-full rounded-lg object-cover" />
-                      )}
-                    </>
-                  )}
-                  <div className="mt-2.5 border-t border-border/70 pt-2">
-                    <PostActionRow
-                      size="md"
-                      commentTo={`/posts/${p.id}#comments`}
-                      onShare={canSharePost(user.id, p) ? () => void onShare(p.id) : undefined}
-                      shareBusy={sharingPostId === p.id}
-                    >
-                      <ReactionBar
-                        size="md"
-                        targetType="post"
-                        targetId={p.id}
-                        summary={p.reactionSummary}
-                        onSummaryChange={(reactionSummary) => patchPostSummary(p.id, reactionSummary)}
-                      />
-                    </PostActionRow>
-                  </div>
-                </div>
-              </div>
+      {displayError && (
+        <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground" role="alert">
+          {displayError}
+        </p>
+      )}
+
+      {loading ? (
+        <div className="space-y-4">
+          <FeedPostSkeleton />
+          <FeedPostSkeleton />
+          <FeedPostSkeleton />
+        </div>
+      ) : posts.length === 0 ? (
+        <FeedEmptyState />
+      ) : (
+        <ul className="space-y-4">
+          {posts.map((post) => (
+            <li key={post.id}>
+              <PostCard
+                post={post}
+                currentUserId={user.id}
+                sharingPostId={sharingPostId}
+                onDelete={setPendingDeleteId}
+                onShare={(postId) => void onShare(postId)}
+                onReactionSummaryChange={patchPostSummary}
+              />
             </li>
-          );
-        })}
-        {posts.length === 0 && (
-          <li className="feed-card px-3 py-6 text-center text-sm text-muted-foreground">No posts yet.</li>
-        )}
-      </ul>
+          ))}
+        </ul>
+      )}
+
+      {!loading && posts.length > 0 && (
+        <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-2">
+          {loadingMore && <p className="text-sm text-muted-foreground">Loading more…</p>}
+          {!loadingMore && !hasMore && (
+            <p className="text-xs text-muted-foreground">You&apos;re all caught up</p>
+          )}
+        </div>
+      )}
 
       <ConfirmDialog
         open={pendingDeleteId !== null}

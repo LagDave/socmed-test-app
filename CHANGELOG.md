@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.16 — 2026-07-31
+
+### Added
+- Feed infinite scroll via cursor pagination (`useFeedPosts` + intersection observer)
+- `PostCard`, `FeedComposer`, and `FeedEmptyState` for a polished feed experience
+- Photo upload in feed composer with preview
+- Comment section components (`CommentComposer`, `CommentItem`, `CommentsSection`) with avatar headers, threaded replies, and photo attach
+
+### Changed
+- Feed post cards: overflow delete menu, hover polish, skeleton loaders, and empty state
+- Post detail reuses `PostCard`; comments composer moved to top with inline reply UX
+- Shared feed/comment CSS animations and thread styling in `index.css`
+
 ## 0.1.15 — 2026-07-30
 
 Squashed batch: PRs #19, #26, #27, #28.
