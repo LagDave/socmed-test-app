@@ -16,6 +16,10 @@ export default defineConfig({
     proxy: {
       "/api": "http://127.0.0.1:3210",
       "/uploads": "http://127.0.0.1:3210",
+      "/socket.io": {
+        target: "http://127.0.0.1:3210",
+        ws: true,
+      },
     },
   },
 });

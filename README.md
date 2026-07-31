@@ -10,10 +10,18 @@ Black-and-white social platform (auth, posts, linear comments, friends).
 
 ## Branches → hosts
 
-| Branch | Host |
-|--------|------|
-| `main` | `socmed.rustinedave.com` |
-| `dev` | `socmed-dev.rustinedave.com` |
+| Branch | Role | Host |
+|--------|------|------|
+| `dev` | **Default** — all feature PRs and squash merges | `socmed-dev.rustinedave.com` |
+| `main` | Production — promote from `dev` only | `socmed.rustinedave.com` |
+
+### Git workflow
+
+1. Branch from `dev`, open PRs with **base `dev`**.
+2. Merge / squash into `dev` → auto-deploys to staging.
+3. When staging is ready, open **`dev` → `main`** to promote production.
+
+CI blocks feature PRs targeting `main` unless the PR is `dev` → `main` (release) or carries the **`promote-to-main`** label.
 
 ## Local (recommended)
 

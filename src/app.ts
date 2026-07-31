@@ -21,7 +21,7 @@ export function createApp() {
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+      origin: process.env.CORS_ORIGIN || "http://localhost:5180",
       credentials: true,
     })
   );
@@ -35,7 +35,8 @@ export function createApp() {
 
   const frontendDist = path.join(process.cwd(), "frontend", "dist");
   app.use(express.static(frontendDist));
-  app.get(/^(?!\/api)(?!\/uploads).*/, (_req, res, next) => {
+  // Exclude Engine.IO path so SPA fallback cannot mask a missing Socket.IO attach.
+  app.get(/^(?!\/api)(?!\/uploads)(?!\/socket\.io).*/, (_req, res, next) => {
     res.sendFile(path.join(frontendDist, "index.html"), (err) => {
       if (err) next();
     });

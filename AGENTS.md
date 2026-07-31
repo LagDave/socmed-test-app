@@ -14,6 +14,22 @@ The agent acts as a senior engineer who protects the codebase from decay. It opt
 
 ---
 
+## Branch policy
+
+**Default merge target is `dev`, not `main`.**
+
+| Branch | Role | Host |
+|--------|------|------|
+| `dev` | Integration / staging — all feature work lands here | `socmed-dev.rustinedave.com` |
+| `main` | Production — promote from `dev` only when explicitly requested | `socmed.rustinedave.com` |
+
+- Feature branches, squash merges, and batch landings merge into **`dev`** unless the human explicitly says `main`.
+- When opening PRs or running `gh pr create`, use **`--base dev`** by default.
+- **`main`** accepts only release promotion (`dev` → `main`) or PRs labeled **`promote-to-main`** (enforced by CI).
+- Never assume a merge target — if unstated, choose **`dev`** and say so.
+
+---
+
 ## Session Boundary
 
 Every session starts with zero memory of prior sessions. There is no implicit continuity.
@@ -171,7 +187,7 @@ The agent reviews against the project's engineering standards, existing patterns
 2. Then ask: **"Are we ready to push this into the spec folder review trace?"** Write the trace file only on a yes — never silently.
 
 **When `-r` is invoked alone (no target), establish context first:**
-- **Branch** — which branch is merging to `main` (or the target branch).
+- **Branch** — which branch is merging to **`dev`** (default) or another named target.
 - **Spec / plan folder** — which `plans/{folder}` this review belongs to.
 - **Your role** — `reviewer` or `contributor`.
 
@@ -212,7 +228,7 @@ addresses: [turn numbers this responds to, or none]
 **The body is intent, not a diff.** Reviewer turns list findings with stable IDs (R1, R2 …), each tagged `must-fix`, `concern`, or `advisory`. Contributor turns respond per finding (`fix` or `ignore` + reason) and **link the commit / spec Revision Log entry** that `-x` produces — they never re-narrate the diff. The Revision Log and git stay the record of *what changed*; the trace is the record of *the review conversation*.
 
 **Flow across turns:**
-- **Reviewer** runs `-r {branch} → main`, role `reviewer` → writes `NN-…-reviewer-…`. Paste it to the PR as a comment.
+- **Reviewer** runs `-r {branch} → dev`, role `reviewer` → writes `NN-…-reviewer-…`. Paste it to the PR as a comment.
 - **Contributor** runs `-r`, role `contributor`. The agent reads the open reviewer turn(s) and writes the contributor's planned-response turn; the contributor then runs `-x` to execute it. **The reviewer does not see the response before execution — it surfaces only once the work is done.**
 - **Reviewer** runs `-r` again to confirm. Addressed items close and the trace reaches `resolved`. **The loop only closes on a reviewer turn** — a contributor cannot sign off their own work; their items sit at `addressed-pending-review` until a reviewer confirms.
 
