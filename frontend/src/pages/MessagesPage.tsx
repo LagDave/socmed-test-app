@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ImagePlus, SendHorizontal } from "lucide-react";
+import { ChevronLeft, ImagePlus, MessageCircle, SendHorizontal } from "lucide-react";
 import { api } from "@/api/client";
 import {
   CONVERSATION_UPDATED,
@@ -11,20 +11,29 @@ import {
   type ConversationUpdatedPayload,
   type MessageEventPayload,
 } from "@/api/socket";
-import type {
-  ConversationListItem,
-  MessageView,
-  PublicUser,
-  ReactionEmoji,
-} from "@/api/types";
+import type { ConversationListItem, MessageView, PublicUser } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
-import { ReactionIcon } from "@/components/ReactionIcon";
-import { useSocketConnected } from "@/hooks/useMessagesSocket";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ConversationListRow } from "@/components/ConversationListRow";
+import { MessageBubbleRow } from "@/components/MessageBubbleRow";
 import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
+import {
+  MessageDaySeparator,
+  MessagesEmptyThread,
+  MessagesErrorBanner,
+  MessagesRowSkeleton,
+  MessagesThreadSkeleton,
+} from "@/components/MessagesUiHelpers";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { useSocketConnected } from "@/hooks/useMessagesSocket";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { REACTION_OPTIONS } from "@/lib/reactionOptions";
-import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  formatMessageDay,
+  isSameCalendarDay,
+  messagesShareGroup,
+} from "@/lib/formatMessageDay";
+import { submitOnEnter } from "@/lib/submitOnEnter";
 
 const POLL_MS = 2500;
 
@@ -34,86 +43,6 @@ function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] 
   for (const m of incoming) map.set(m.id, m);
   return Array.from(map.values()).sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
-}
-
-function snippet(item: ConversationListItem): string {
-  const last = item.lastMessage;
-  if (!last) return "No messages yet";
-  if (last.isUnsent) return "Unsent a message";
-  if (last.imageUrl && last.body) return last.body;
-  if (last.imageUrl) return "Sent a photo";
-  return last.body || "";
-}
-
-function MessageReactions({
-  message,
-  onChange,
-  onError,
-}: {
-  message: MessageView;
-  onChange: (next: MessageView) => void;
-  onError: (message: string) => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  if (message.isUnsent) return null;
-
-  async function apply(emoji: ReactionEmoji) {
-    if (busy) return;
-    setBusy(true);
-    try {
-      if (message.reactionSummary.viewerEmoji === emoji) {
-        const data = await api.delete<{ message: MessageView }>(
-          `/api/messages/messages/${message.id}/reaction`
-        );
-        onChange(data.message);
-      } else {
-        const data = await api.put<{ message: MessageView }>(
-          `/api/messages/messages/${message.id}/reaction`,
-          { emoji }
-        );
-        onChange(data.message);
-      }
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "Reaction failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const visible = REACTION_OPTIONS.filter((o) => message.reactionSummary.counts[o.emoji] > 0);
-
-  return (
-    <div className="mt-1 flex flex-wrap items-center gap-1">
-      {REACTION_OPTIONS.map((o) => {
-        const selected = message.reactionSummary.viewerEmoji === o.emoji;
-        return (
-          <button
-            key={o.emoji}
-            type="button"
-            disabled={busy}
-            aria-label={o.label}
-            className={cn(
-              "inline-flex items-center justify-center rounded-md px-1.5 py-0.5 transition-colors hover:bg-accent",
-              selected && "bg-accent"
-            )}
-            onClick={() => void apply(o.emoji)}
-          >
-            <ReactionIcon emoji={o.emoji} className="text-sm" />
-          </button>
-        );
-      })}
-      {visible.length > 0 && (
-        <span className="ml-1 inline-flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-          {visible.map((o) => (
-            <span key={o.emoji} className="inline-flex items-center gap-0.5">
-              <ReactionIcon emoji={o.emoji} className="text-xs" />
-              <span>{message.reactionSummary.counts[o.emoji]}</span>
-            </span>
-          ))}
-        </span>
-      )}
-    </div>
   );
 }
 
@@ -128,6 +57,9 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [pendingUnsendId, setPendingUnsendId] = useState<string | null>(null);
+  const [unsending, setUnsending] = useState(false);
+  const [loadingThread, setLoadingThread] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const generationRef = useRef(0);
@@ -142,6 +74,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     setHasMore(false);
     setError(null);
     setBody("");
+    setLoadingThread(true);
 
     async function loadInitial() {
       try {
@@ -160,6 +93,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       } catch (e) {
         if (generation !== generationRef.current) return;
         setError(e instanceof Error ? e.message : "Failed to load conversation");
+      } finally {
+        if (generation === generationRef.current) setLoadingThread(false);
       }
     }
 
@@ -199,7 +134,6 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     const socket = getMessagesSocket();
     const generation = generationRef.current;
 
-    // Reactions/unsends only patch the affected row — no mark-read, no scroll.
     const applyMessagePatch = (payload: MessageEventPayload) => {
       const msg = payload.message;
       if (msg.conversationId !== conversationId) return;
@@ -207,7 +141,6 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       setMessages((prev) => mergeById(prev, [msg]));
     };
 
-    // Only an inbound new message should steal scroll position and mark the thread read.
     const applyInboundNewMessage = (payload: MessageEventPayload) => {
       const msg = payload.message;
       if (msg.conversationId !== conversationId) return;
@@ -314,141 +247,198 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     }
   }
 
-  async function onUnsend(id: string) {
+  async function confirmUnsend() {
+    if (!pendingUnsendId || unsending) return;
     const generation = generationRef.current;
+    setUnsending(true);
     try {
-      const data = await api.delete<{ message: MessageView }>(`/api/messages/messages/${id}`);
+      const data = await api.delete<{ message: MessageView }>(
+        `/api/messages/messages/${pendingUnsendId}`
+      );
       if (generation !== generationRef.current) return;
-      setMessages((prev) => prev.map((m) => (m.id === id ? data.message : m)));
+      setMessages((prev) => prev.map((m) => (m.id === pendingUnsendId ? data.message : m)));
+      setPendingUnsendId(null);
     } catch (err) {
       if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Unsend failed");
+    } finally {
+      if (generation === generationRef.current) setUnsending(false);
     }
   }
 
-  function patchMessage(next: MessageView) {
-    setMessages((prev) => prev.map((m) => (m.id === next.id ? next : m)));
+  function patchMessageReaction(messageId: string, reactionSummary: MessageView["reactionSummary"]) {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, reactionSummary } : m))
+    );
   }
 
-  return (
-    <div className="feed-card flex min-h-[70vh] flex-col">
-      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <Button type="button" variant="ghost" size="sm" onClick={() => navigate("/messages")}>
-          Back
-        </Button>
-        <div className="min-w-0">
-          <p className="truncate font-semibold">{peer?.displayName || "…"}</p>
-          {peer?.username && (
-            <p className="truncate text-xs text-muted-foreground">@{peer.username}</p>
-          )}
-        </div>
-      </header>
+  const peerProfilePath = peer?.username ? `/u/${peer.username}` : peer ? `/u/${peer.id}` : "#";
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {hasMore && (
-          <div className="flex justify-center pb-2">
+  return (
+    <section className="space-y-4">
+      <div className="feed-card flex min-h-[70vh] flex-col overflow-hidden">
+        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-card/95 px-3 py-3 backdrop-blur-sm">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Back to inbox"
+            onClick={() => navigate("/messages")}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          {peer ? (
+            <Link to={peerProfilePath} className="flex min-w-0 flex-1 items-center gap-3">
+              <ProfileAvatar
+                displayName={peer.displayName}
+                avatarUrl={peer.avatarUrl}
+                size="sm"
+              />
+              <div className="min-w-0">
+                <p className="truncate font-semibold leading-snug">{peer.displayName}</p>
+                {peer.username && (
+                  <p className="truncate text-xs text-muted-foreground">@{peer.username}</p>
+                )}
+              </div>
+            </Link>
+          ) : (
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-secondary" />
+              <div className="min-w-0 space-y-1.5">
+                <div className="h-4 w-32 animate-pulse rounded bg-secondary" />
+                <div className="h-3 w-20 animate-pulse rounded bg-secondary" />
+              </div>
+            </div>
+          )}
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-4 py-4">
+          {loadingThread ? (
+            <MessagesThreadSkeleton />
+          ) : (
+            <div className="space-y-3">
+              {hasMore && (
+                <div className="flex justify-center pb-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={loadingEarlier}
+                    onClick={() => void loadEarlier()}
+                  >
+                    {loadingEarlier ? "Loading…" : "Load earlier messages"}
+                  </Button>
+                </div>
+              )}
+              {messages.length === 0 && peer && !error && (
+                <MessagesEmptyThread peerName={peer.displayName} />
+              )}
+              {messages.map((m, index) => {
+                const prev = index > 0 ? messages[index - 1] : null;
+                const next = index < messages.length - 1 ? messages[index + 1] : null;
+                const mine = m.senderId === user?.id;
+                const showDay =
+                  !prev || !isSameCalendarDay(prev.createdAt, m.createdAt);
+                const showAvatar = !mine && (!prev || !messagesShareGroup(prev, m));
+                const showMeta = !next || !messagesShareGroup(m, next);
+
+                return (
+                  <div key={m.id} className="space-y-3">
+                    {showDay && <MessageDaySeparator label={formatMessageDay(m.createdAt)} />}
+                    <MessageBubbleRow
+                      message={m}
+                      mine={mine}
+                      peer={peer}
+                      showAvatar={showAvatar}
+                      showMeta={showMeta}
+                      peerProfilePath={peerProfilePath}
+                      onUnsend={setPendingUnsendId}
+                      onReactionChange={patchMessageReaction}
+                      onError={setError}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        {error && (
+          <div className="px-4 pb-2">
+            <MessagesErrorBanner message={error} />
+          </div>
+        )}
+
+        <form onSubmit={onSend} className="border-t border-border px-3 py-3">
+          <div className="flex items-end gap-2 rounded-2xl bg-secondary/50 px-2 py-1.5">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => void onImage(e.target.files?.[0] ?? null)}
+            />
+            {user && (
+              <ProfileAvatar
+                displayName={user.displayName}
+                avatarUrl={user.avatarUrl}
+                size="sm"
+              />
+            )}
             <Button
               type="button"
               variant="ghost"
-              size="sm"
-              disabled={loadingEarlier}
-              onClick={() => void loadEarlier()}
+              size="icon"
+              className="shrink-0"
+              aria-label="Attach image"
+              disabled={sending}
+              onClick={() => fileRef.current?.click()}
             >
-              {loadingEarlier ? "Loading…" : "Load earlier messages"}
+              <ImagePlus className="h-4 w-4" />
+            </Button>
+            <Textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={submitOnEnter}
+              placeholder="Message"
+              aria-label="Message"
+              rows={1}
+              disabled={sending}
+              className="max-h-32 min-h-10 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[15px] leading-6 shadow-none focus-visible:ring-0"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="shrink-0"
+              aria-label="Send"
+              disabled={sending || !body.trim()}
+            >
+              <SendHorizontal className="h-4 w-4" />
             </Button>
           </div>
-        )}
-        {messages.map((m) => {
-          const mine = m.senderId === user?.id;
-          return (
-            <div
-              key={m.id}
-              className={cn("flex flex-col", mine ? "items-end" : "items-start")}
-            >
-              <div
-                className={cn(
-                  "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
-                  m.isUnsent
-                    ? "border border-dashed border-border bg-transparent italic text-muted-foreground"
-                    : mine
-                      ? "bg-foreground text-background"
-                      : "bg-secondary text-foreground"
-                )}
-              >
-                {m.isUnsent ? (
-                  "Unsent a message"
-                ) : (
-                  <>
-                    {m.imageUrl && (
-                      <img
-                        src={m.imageUrl}
-                        alt=""
-                        className="mb-2 max-h-56 rounded-lg object-cover"
-                      />
-                    )}
-                    {m.body}
-                  </>
-                )}
-              </div>
-              {!m.isUnsent && (
-                <>
-                  <MessageReactions message={m} onChange={patchMessage} onError={setError} />
-                  {mine && (
-                    <button
-                      type="button"
-                      className="mt-0.5 text-[11px] text-muted-foreground underline-offset-2 hover:underline"
-                      onClick={() => void onUnsend(m.id)}
-                    >
-                      Unsend
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          );
-        })}
-        <div ref={bottomRef} />
+        </form>
       </div>
 
-      {error && <p className="px-4 text-sm text-muted-foreground">{error}</p>}
-
-      <form onSubmit={onSend} className="flex items-end gap-2 border-t border-border p-3">
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="hidden"
-          onChange={(e) => void onImage(e.target.files?.[0] ?? null)}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          aria-label="Attach image"
-          disabled={sending}
-          onClick={() => fileRef.current?.click()}
-        >
-          <ImagePlus className="h-4 w-4" />
-        </Button>
-        <Input
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="Message"
-          aria-label="Message"
-          className="flex-1"
-          disabled={sending}
-        />
-        <Button type="submit" size="icon" aria-label="Send" disabled={sending || !body.trim()}>
-          <SendHorizontal className="h-4 w-4" />
-        </Button>
-      </form>
-    </div>
+      <ConfirmDialog
+        open={pendingUnsendId !== null}
+        title="Unsend this message?"
+        description="This removes the message for everyone in the chat."
+        confirmLabel="Unsend"
+        busy={unsending}
+        onCancel={() => {
+          if (!unsending) setPendingUnsendId(null);
+        }}
+        onConfirm={() => void confirmUnsend()}
+      />
+    </section>
   );
 }
 
 function InboxView() {
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   async function reloadInbox() {
     try {
@@ -459,6 +449,8 @@ function InboxView() {
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load conversations");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -491,44 +483,50 @@ function InboxView() {
         <p className="text-sm text-muted-foreground">Chat with friends.</p>
       </div>
 
+      {error && (
+        <div className="px-1">
+          <MessagesErrorBanner message={error} />
+        </div>
+      )}
+
       <div className="feed-card p-5">
-        {error && <p className="text-sm text-muted-foreground">{error}</p>}
         <MessagesFriendPicker hasConversations={items.length > 0} />
-        {items.length === 0 ? (
-          <p className="pt-2 text-center text-sm text-muted-foreground">
-            No conversations yet. Pick a friend above to start chatting.
-          </p>
-        ) : (
-          <section className="space-y-1 border-t border-border pt-4">
-            <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
-            <ul className="divide-y divide-border">
-              {items.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    to={`/messages/${c.id}`}
-                    className="flex items-start justify-between gap-3 py-3 transition-colors hover:bg-accent/40"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold">
-                        {c.peer.displayName}{" "}
-                        <span className="font-normal text-muted-foreground">
-                          @{c.peer.username}
-                        </span>
-                      </p>
-                      <p className="truncate text-sm text-muted-foreground">{snippet(c)}</p>
-                    </div>
-                    {c.unreadCount > 0 && (
-                      <span className="mt-1 shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
-                        {c.unreadCount > 9 ? "9+" : c.unreadCount}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
       </div>
+
+      {loading && (
+        <div className="feed-card p-5">
+          <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
+          <div className="mt-3">
+            <MessagesRowSkeleton rows={3} />
+          </div>
+        </div>
+      )}
+
+      {!loading && items.length > 0 && (
+        <div className="feed-card p-5">
+          <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
+          <ul className="mt-3 space-y-1">
+            {items.map((c) => (
+              <ConversationListRow key={c.id} item={c} />
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {!loading && items.length === 0 && !error && (
+        <div className="feed-card p-5">
+          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+            <MessageCircle
+              className="size-10 text-muted-foreground/40"
+              aria-hidden="true"
+              strokeWidth={1.25}
+            />
+            <p className="text-sm text-muted-foreground">
+              No conversations yet. Pick a friend above to start chatting.
+            </p>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

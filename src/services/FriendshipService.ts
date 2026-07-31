@@ -48,6 +48,17 @@ export class FriendshipService {
     await FriendshipModel.deleteById(friendshipId);
   }
 
+  static async unfriend(userId: string, otherUserId: string) {
+    if (userId === otherUserId) {
+      throw new AppError("FRIEND_VALIDATION", "Cannot unfriend yourself.");
+    }
+    const row = await FriendshipModel.findPair(userId, otherUserId);
+    if (!row || row.status !== "accepted") {
+      throw new AppError("FRIEND_NOT_FOUND", "Friendship not found.");
+    }
+    await FriendshipModel.deleteById(row.id);
+  }
+
   static async mutuals(userId: string): Promise<PublicUser[]> {
     const ids = await FriendshipModel.listAcceptedMutualIds(userId);
     const users = await Promise.all(ids.map((id) => UserModel.findById(id)));

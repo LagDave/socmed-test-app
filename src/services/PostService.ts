@@ -109,10 +109,30 @@ export class PostService {
     if (!n) throw new AppError("POST_NOT_FOUND", "Post not found or not owned.");
   }
 
+  static async createProfilePhotoPost(userId: string, body: string, imageUrl: string): Promise<void> {
+    await PostModel.create({
+      authorId: userId,
+      body,
+      imageUrl,
+    });
+  }
+
   static async feed(userId: string, limit = 30, before?: Date): Promise<PostView[]> {
     const mutualIds = await FriendshipModel.listAcceptedMutualIds(userId);
     const authorIds = [userId, ...mutualIds];
     const rows = await PostModel.listFeed({ authorIds, limit, before });
     return hydrate(rows, userId);
+  }
+
+  static async listByUsername(
+    viewerId: string,
+    username: string,
+    limit = 30,
+    before?: Date
+  ): Promise<PostView[]> {
+    const user = await UserModel.findByUsername(username);
+    if (!user || !user.username) throw new AppError("USER_NOT_FOUND", "User not found.");
+    const rows = await PostModel.listFeed({ authorIds: [user.id], limit, before });
+    return hydrate(rows, viewerId);
   }
 }

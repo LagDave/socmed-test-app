@@ -10,13 +10,13 @@ const EXPAND_DELAY_MS = 220;
 
 const SIZE = {
   md: {
-    trigger: "h-8 w-8",
-    triggerIcon: "text-[1.25rem]",
-    icon: "text-[1.25rem]",
-    option: "h-8 w-8",
+    trigger: "h-9 w-9",
+    triggerIcon: "text-[1.5rem]",
+    icon: "text-[1.5rem]",
+    option: "h-9 w-9",
     label: "text-[11px] -bottom-4",
     summary: "gap-1.5 text-xs",
-    summaryIcon: "text-[1.1rem]",
+    summaryIcon: "text-[1.2rem]",
     pickerPad: "px-2.5 py-1",
     pickerGap: "gap-2",
     leftGap: "gap-2",

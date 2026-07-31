@@ -28,6 +28,7 @@ type InboxQueryRow = ConversationRow & {
   peer_username: string | null;
   peer_bio: string | null;
   peer_avatar_url: string | null;
+  peer_cover_url: string | null;
   peer_feed_seen_at: Date | null;
   peer_created_at: Date;
   peer_updated_at: Date;
@@ -79,6 +80,7 @@ export class ConversationModel {
         peer.username AS peer_username,
         peer.bio AS peer_bio,
         peer.avatar_url AS peer_avatar_url,
+        peer.cover_url AS peer_cover_url,
         peer.feed_seen_at AS peer_feed_seen_at,
         peer.created_at AS peer_created_at,
         peer.updated_at AS peer_updated_at,
@@ -133,6 +135,7 @@ export class ConversationModel {
         username: r.peer_username,
         bio: r.peer_bio,
         avatar_url: r.peer_avatar_url,
+        cover_url: r.peer_cover_url,
         feed_seen_at: r.peer_feed_seen_at,
         created_at: r.peer_created_at,
         updated_at: r.peer_updated_at,
