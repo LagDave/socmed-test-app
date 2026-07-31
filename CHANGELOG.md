@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.16 — 2026-07-31
+
+### Added
+- Profile page timeline: `GET /api/users/:username/posts`, shared `PostCard`, `EditProfileDialog`
+- Facebook-style cover photo on profile (`cover_url` migration) with upload from banner or edit modal
+- Timeline auto-posts when profile picture or cover photo is set or changed
+
+### Changed
+- Profile page: header + post timeline default view; edit profile and avatar/cover upload behind ⋯ menu / banner / modal
+- Feed uses extracted `PostCard`; post reaction/comment row aligned full-width with larger controls
+- Profile/cover photo timeline previews: natural aspect ratio, centered, sized consistently
+
+### Plans
+- `plans/07302026-27-profile-timeline` — Completed (execution on `kylie/profile-reorganized`)
+
 ## 0.1.15 — 2026-07-30
 
 Squashed batch: PRs #19, #26, #27, #28.

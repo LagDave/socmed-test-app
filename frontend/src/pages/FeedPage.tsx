@@ -4,14 +4,10 @@ import { api } from "@/api/client";
 import type { PostView, ReactionSummary } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { PostActionRow } from "@/components/PostActionRow";
+import { PostCard } from "@/components/PostCard";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { ReactionBar } from "@/components/ReactionBar";
-import { SharedPostEmbed } from "@/components/SharedPostEmbed";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
-import { canSharePost, shareAttributionLabel } from "@/lib/sharePost";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 
 export function FeedPage() {
@@ -136,84 +132,18 @@ export function FeedPage() {
       </form>
 
       <ul className="space-y-4">
-        {posts.map((p) => {
-          const attribution = shareAttributionLabel(user.id, p);
-          const isShare = Boolean(p.sharedFromPostId);
-          return (
-            <li key={p.id} className="feed-card px-3 py-3">
-              <div className="flex items-start gap-2.5">
-                <Link
-                  to={`/u/${p.author.username || p.author.id}`}
-                  className="shrink-0"
-                  aria-label={`${p.author.displayName}'s profile`}
-                >
-                  <ProfileAvatar
-                    displayName={p.author.displayName}
-                    avatarUrl={p.author.avatarUrl}
-                    size="sm"
-                  />
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    {attribution ? (
-                      <p className="min-w-0 font-medium leading-snug">{attribution}</p>
-                    ) : (
-                      <Link
-                        className="min-w-0 font-medium leading-snug underline-offset-2 hover:underline"
-                        to={`/u/${p.author.username || p.author.id}`}
-                      >
-                        {p.author.displayName}
-                        {p.author.username ? (
-                          <span className="font-normal text-muted-foreground">{` @${p.author.username}`}</span>
-                        ) : null}
-                      </Link>
-                    )}
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <time
-                        className="text-xs text-muted-foreground"
-                        dateTime={p.createdAt}
-                        title={formatAbsoluteTime(p.createdAt) || undefined}
-                      >
-                        {formatRelativeTime(p.createdAt)}
-                      </time>
-                      {user.id === p.author.id && (
-                        <Button type="button" variant="ghost" size="sm" onClick={() => setPendingDeleteId(p.id)}>
-                          Delete
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  {isShare ? (
-                    <SharedPostEmbed sharedFrom={p.sharedFrom} />
-                  ) : (
-                    <>
-                      <p className="mt-1.5 whitespace-pre-wrap text-[15px] leading-relaxed">{p.body}</p>
-                      {p.imageUrl && (
-                        <img src={p.imageUrl} alt="" className="mt-2.5 max-h-96 w-full rounded-lg object-cover" />
-                      )}
-                    </>
-                  )}
-                  <div className="mt-2.5 border-t border-border/70 pt-2">
-                    <PostActionRow
-                      size="md"
-                      commentTo={`/posts/${p.id}#comments`}
-                      onShare={canSharePost(user.id, p) ? () => void onShare(p.id) : undefined}
-                      shareBusy={sharingPostId === p.id}
-                    >
-                      <ReactionBar
-                        size="md"
-                        targetType="post"
-                        targetId={p.id}
-                        summary={p.reactionSummary}
-                        onSummaryChange={(reactionSummary) => patchPostSummary(p.id, reactionSummary)}
-                      />
-                    </PostActionRow>
-                  </div>
-                </div>
-              </div>
-            </li>
-          );
-        })}
+        {posts.map((p) => (
+          <li key={p.id} className="feed-card px-3 py-3">
+            <PostCard
+              post={p}
+              viewerId={user.id}
+              onDeleteRequest={setPendingDeleteId}
+              onReactionChange={patchPostSummary}
+              onShare={onShare}
+              shareBusy={sharingPostId === p.id}
+            />
+          </li>
+        ))}
         {posts.length === 0 && (
           <li className="feed-card px-3 py-6 text-center text-sm text-muted-foreground">No posts yet.</li>
         )}

@@ -38,6 +38,7 @@ export class UserModel {
       username: string;
       bio: string | null;
       avatar_url: string | null;
+      cover_url: string | null;
     }>
   ): Promise<UserRow | undefined> {
     const [row] = await db<UserRow>("users").where({ id }).update(patch).returning("*");

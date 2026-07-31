@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import { ZodError } from "zod";
 import { ProfileService } from "../../services/ProfileService";
+import { PostService } from "../../services/PostService";
 import { ok, fail } from "../../utils/response";
 import { AppError, statusForCode } from "../../utils/AppError";
 import type { AuthedRequest } from "../../middleware/requireAuth";
@@ -29,6 +30,26 @@ export class ProfileController {
     try {
       const user = await ProfileService.updateMe(req.userId!, req.body);
       return ok(res, { user });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async listPostsByUsername(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const beforeRaw = req.query.before;
+      const before =
+        typeof beforeRaw === "string" && beforeRaw ? new Date(beforeRaw) : undefined;
+      if (before && Number.isNaN(before.getTime())) {
+        return fail(res, 400, "POSTS_VALIDATION", "Invalid before cursor.");
+      }
+      const posts = await PostService.listByUsername(
+        req.userId!,
+        String(req.params.username),
+        30,
+        before
+      );
+      return ok(res, { posts });
     } catch (err) {
       return handle(res, err);
     }

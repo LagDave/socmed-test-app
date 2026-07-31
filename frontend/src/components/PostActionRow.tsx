@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const SIZE = {
-  md: { btn: "h-8 w-8", icon: "h-4 w-4" },
+  md: { btn: "h-9 w-9", icon: "h-5 w-5" },
   sm: { btn: "h-6 w-6", icon: "h-3.5 w-3.5" },
 } as const;
 
