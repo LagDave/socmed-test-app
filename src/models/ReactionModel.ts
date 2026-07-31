@@ -133,4 +133,36 @@ export class ReactionModel {
     const map = await this.summariesForComments([commentId], viewerId);
     return map.get(commentId) ?? emptyReactionSummary();
   }
+
+  static async listForPost(
+    postId: string,
+    options: { emoji?: ReactionEmoji; limit?: number } = {}
+  ): Promise<ReactionRow[]> {
+    return this.listForTarget("post_id", postId, options);
+  }
+
+  static async listForComment(
+    commentId: string,
+    options: { emoji?: ReactionEmoji; limit?: number } = {}
+  ): Promise<ReactionRow[]> {
+    return this.listForTarget("comment_id", commentId, options);
+  }
+
+  private static async listForTarget(
+    column: "post_id" | "comment_id",
+    targetId: string,
+    options: { emoji?: ReactionEmoji; limit?: number }
+  ): Promise<ReactionRow[]> {
+    const limit = options.limit ?? 50;
+    let query = db<ReactionRow>("reactions")
+      .where({ [column]: targetId })
+      .orderBy("created_at", "desc")
+      .limit(limit);
+
+    if (options.emoji) {
+      query = query.andWhere({ emoji: options.emoji });
+    }
+
+    return query;
+  }
 }

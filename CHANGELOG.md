@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.18 — 2026-07-31
+
+### Added
+- Click reaction summary on posts and comments to see who reacted (`GET /api/posts/:id/reactions`, `GET /api/comments/:id/reactions`)
+
+### Fixed
+- Profile timeline post action row: reaction trigger no longer overflows the card (`POST_MEDIA_BREAKOUT` removed from embedded action row)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added
