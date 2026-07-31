@@ -6,10 +6,18 @@ export const MESSAGE_UNSENT = "message:unsent";
 export const MESSAGE_REACTION = "message:reaction";
 export const MESSAGES_UNREAD = "messages:unread";
 export const CONVERSATION_UPDATED = "conversation:updated";
+export const TYPING_START = "typing:start";
+export const TYPING_STOP = "typing:stop";
+export const TYPING_UPDATE = "typing:update";
 
 export type MessageEventPayload = { message: MessageView };
 export type UnreadPayload = { unread: number };
 export type ConversationUpdatedPayload = { conversationId: string };
+export type TypingUpdatePayload = {
+  conversationId: string;
+  userId: string;
+  isTyping: boolean;
+};
 
 let socket: Socket | null = null;
 

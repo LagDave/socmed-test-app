@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.18 — 2026-07-31
+
+### Added
+- Messages typing indicator: Socket.IO `typing:start` / `typing:stop` relay with ephemeral server TTL
+- Animated “{name} is typing” cue above the thread composer and in inbox conversation rows
+- `TypingIndicator` component and `useTypingIndicator` hooks (debounced emit + peer listen)
+
+### Plans
+- `plans/07312026-27-messages-typing-indicator` — Completed (execution on `kylie/messages-typing-indicator`)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added
