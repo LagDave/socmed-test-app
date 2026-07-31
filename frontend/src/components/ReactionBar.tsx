@@ -36,15 +36,16 @@ const SIZE = {
 } as const;
 
 type ReactionBarProps = {
-  targetType: "post" | "comment";
+  targetType: "post" | "comment" | "message";
   targetId: string;
   summary: ReactionSummary;
   onSummaryChange: (summary: ReactionSummary) => void;
-  /** Post reactions use md; comments/replies use sm. */
+  /** Post reactions use md; comments/replies and messages use sm. */
   size?: keyof typeof SIZE;
   /** Controls rendered immediately after the trigger (comment / reply). */
   actions?: ReactNode;
   className?: string;
+  onError?: (message: string) => void;
 };
 
 export function ReactionBar({
@@ -55,6 +56,7 @@ export function ReactionBar({
   size = "md",
   actions,
   className,
+  onError,
 }: ReactionBarProps) {
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -67,7 +69,15 @@ export function ReactionBar({
   const path =
     targetType === "post"
       ? `/api/posts/${targetId}/reactions`
-      : `/api/comments/${targetId}/reactions`;
+      : targetType === "comment"
+        ? `/api/comments/${targetId}/reactions`
+        : `/api/messages/messages/${targetId}/reaction`;
+
+  function parseReactionResponse(
+    data: { reactionSummary: ReactionSummary } | { message: { reactionSummary: ReactionSummary } }
+  ): ReactionSummary {
+    return "message" in data ? data.message.reactionSummary : data.reactionSummary;
+  }
 
   useEffect(() => {
     if (!expanded) return;
@@ -107,17 +117,23 @@ export function ReactionBar({
     setBusy(true);
     try {
       if (summary.viewerEmoji === emoji) {
-        const data = await api.delete<{ reactionSummary: ReactionSummary }>(path);
-        onSummaryChange(data.reactionSummary);
+        const data = await api.delete<
+          { reactionSummary: ReactionSummary } | { message: { reactionSummary: ReactionSummary } }
+        >(path);
+        onSummaryChange(parseReactionResponse(data));
       } else {
-        const data = await api.put<{ reactionSummary: ReactionSummary }>(path, { emoji });
-        onSummaryChange(data.reactionSummary);
+        const data = await api.put<
+          { reactionSummary: ReactionSummary } | { message: { reactionSummary: ReactionSummary } }
+        >(path, { emoji });
+        onSummaryChange(parseReactionResponse(data));
       }
       setPopEmoji(emoji);
       window.setTimeout(() => setPopEmoji(null), 280);
       setExpanded(false);
     } catch (err) {
-      console.error(err instanceof Error ? err.message : "Reaction failed");
+      const message = err instanceof Error ? err.message : "Reaction failed";
+      if (onError) onError(message);
+      else console.error(message);
     } finally {
       setBusy(false);
     }
@@ -142,7 +158,11 @@ export function ReactionBar({
   return (
     <div
       ref={rootRef}
-      className={cn("flex w-full flex-wrap items-center justify-between", s.leftGap, className)}
+      className={cn(
+        "inline-flex flex-wrap items-center",
+        targetType === "message" ? "gap-1.5" : cn("w-full justify-between", s.leftGap),
+        className
+      )}
     >
       <div className={cn("flex flex-wrap items-center", s.leftGap)}>
         <div

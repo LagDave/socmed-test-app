@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Default Message Stickers Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:920px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.92rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 30</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Default Message Stickers — Facebook/Messenger Reactions + Composer Emoji</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07312026-30-default-message-stickers</dd></div>
+        <div><dt>Size</dt><dd>Medium (5 tasks, FE + BE + migration)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07312026-30-default-message-stickers</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/default-stickers</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 17 messenger · Plan 20 reaction stickers · Plan 24 summary layout · Plan 22 websockets</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Message threads already support four reaction “stickers” (👍❤️😂😮), but the UX is a hidden click-to-toggle strip — unlike the feed’s hover/hold <code>ReactionBar</code>. Facebook/Messenger ships <strong>six</strong> default reactions and makes emoji easy to send in the compose bar. Users want the same sticker set and the ability to pick <em>multiple emoji</em> when chatting — without waiting for full sticker packs or a proprietary art pipeline.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li><strong>Expand reactions</strong> to the Facebook/Messenger default six: Like, Love, Haha, Wow, Sad, Angry — Unicode equivalents (👍 ❤️ 😂 😮 😢 😡).</li>
+        <li><strong>Message thread reactions</strong> — replace the bespoke <code>MessageReactionPicker</code> floating strip with the shared <code>ReactionBar</code> interaction (hover or hold-to-expand, hover labels, pop animation, summary cluster). Surface: <code>/messages/:conversationId</code> only.</li>
+        <li><strong>Composer emoji picker</strong> — emoji button in the thread compose bar opens a curated grid; tapping emoji inserts at the textarea cursor so users can send messages containing multiple emoji characters (plain text body — no new message type).</li>
+        <li><strong>Backend</strong> — migration extends PG enum <code>reaction_emoji</code>; shared <code>REACTION_EMOJIS</code> constant and Zod schemas accept <code>sad</code> and <code>angry</code> on posts, comments, and messages.</li>
+      </ul>
+      <table>
+        <thead><tr><th>Key</th><th>Sticker</th><th>Label</th><th>New?</th></tr></thead>
+        <tbody>
+          <tr><td><code>like</code></td><td>👍</td><td>Like</td><td>existing</td></tr>
+          <tr><td><code>heart</code></td><td>❤️</td><td>Heart</td><td>existing</td></tr>
+          <tr><td><code>haha</code></td><td>😂</td><td>Haha</td><td>existing</td></tr>
+          <tr><td><code>wow</code></td><td>😮</td><td>Wow</td><td>existing</td></tr>
+          <tr><td><code>sad</code></td><td>😢</td><td>Sad</td><td><strong>new</strong></td></tr>
+          <tr><td><code>angry</code></td><td>😡</td><td>Angry</td><td><strong>new</strong></td></tr>
+        </tbody>
+      </table>
+      <pre class="wire">Message bubble (thread):
+                    ┌─ ReactionBar sm ─────────────────┐
+  [peer avatar]     │ [👍▾] → hover/hold → 👍❤️😂😮😢😡 │     [···]
+                    └──────────────────────────────────┘
+  "See you tonight!"                              😢 2
+
+Compose bar:
+[ ImagePlus ] [ 😀 ] [ textarea........................ ] [ Send ]</pre>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Six reaction stickers work on message bubbles with feed-parity expand/hold UX</li>
+        <li>Composer emoji button inserts multiple emoji into outgoing text messages</li>
+        <li>Sad/Angry persist via API on messages and on feed reactions (shared enum)</li>
+        <li>Realtime reaction sync unchanged; unsent messages still hide reaction UI</li>
+        <li>Typecheck/build green; acceptance checklist Passed or waived in writing</li>
+      </ul>
+      <div class="callout">
+        <strong>Grill locked (2026-07-31):</strong>
+        Facebook/Messenger-style default stickers · thread-only for composer + reaction placement · backend changes OK · “multiple emoji” = compose multiple emoji characters + see multiple reaction types in summary (not multi-react per user).
+      </div>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Sticker set</td>
+            <td><strong>Facebook six</strong> — add <code>sad</code>, <code>angry</code></td>
+            <td>Matches Messenger default tray; no proprietary FB art.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>“Multiple emoji”</td>
+            <td><strong>A — compose text + multi-type summary</strong></td>
+            <td>Composer picker appends Unicode to body; reaction summary already clusters multiple types from different users. One reaction per user per message (Facebook parity).</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Message reaction UX</td>
+            <td><strong>Reuse ReactionBar (size sm)</strong></td>
+            <td>Drop parallel <code>MessageReactionPicker</code>; extend <code>ReactionBar</code> with <code>targetType: "message"</code>.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Composer emoji</td>
+            <td><strong>Curated grid, no new npm dep</strong></td>
+            <td>Static list (~40 common emoji) in <code>frontend/src/lib/composerEmojiOptions.ts</code>; popover inserts at cursor. Not a full OS keyboard clone.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Surface</td>
+            <td><strong>Thread only</strong></td>
+            <td>No inbox snippet reactions; no composer on inbox view.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Feed impact</td>
+            <td><strong>Accept global enum expansion</strong></td>
+            <td>Shared <code>REACTION_EMOJIS</code> — posts/comments automatically gain Sad/Angry in picker. No separate message-only allow-list.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Out of scope v1</td>
+            <td><strong>No sticker packs, no arbitrary emoji reactions, no multi-react per user</strong></td>
+            <td>Plan 17 deferred image sticker packs; arbitrary reaction emoji needs schema/policy work; FB doesn’t allow stacked personal reactions.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today:</strong></p>
+      <ul>
+        <li><code>frontend/src/lib/reactionOptions.ts</code> — four stickers; single source for glyphs/labels.</li>
+        <li><code>frontend/src/components/ReactionBar.tsx</code> — feed/comments; <code>targetType: "post" | "comment"</code>; hover/hold expand.</li>
+        <li><code>frontend/src/components/MessageBubbleRow.tsx</code> + <code>MessageReactionBar.tsx</code> — simpler click picker on bubble corner.</li>
+        <li><code>src/models/ReactionModel.ts</code> — <code>REACTION_EMOJIS</code>; PG enum on <code>reactions</code> table.</li>
+        <li><code>message_reactions.emoji</code> — plain string; validated in service against allow-list.</li>
+        <li>Message reaction API wraps payload as <code>{ message: { reactionSummary } }</code> vs posts <code>{ reactionSummary }</code> — <code>ReactionBar</code> must handle both when adding message target.</li>
+      </ul>
+      <p><strong>Closest analogs:</strong> Plan 20 (Unicode sticker map) · Plan 24 (summary cluster) · Feed composer row in <code>MessagesPage.tsx</code> (ImagePlus + Textarea + Send).</p>
+      <p><strong>Execution:</strong> implement on <code>kylie/default-stickers</code> from current <code>dev</code> tip. Planning artifacts live under this folder / planning worktree only.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Keep one reaction per user per message (unique <code>message_id + user_id</code>)</li>
+            <li>Extend shared allow-list in one constant (backend + frontend types stay in sync)</li>
+            <li>ReactionBar message mode uses existing PUT/DELETE reaction endpoints</li>
+            <li>Composer emoji inserts at cursor; does not auto-send</li>
+            <li>Hide reaction UI on unsent messages (unchanged)</li>
+            <li>B&amp;W tokens; light + dark readable</li>
+            <li>Constitution layering — no reaction business rules in presentational components beyond API calls already in ReactionBar</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No new npm emoji-picker dependency without Revision Log justification</li>
+            <li>No sticker pack tables or sendable sticker message type</li>
+            <li>No arbitrary-string emoji reactions (stay on six-key allow-list)</li>
+            <li>No inbox last-message reaction preview</li>
+            <li>No multi-react rows per user per message</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Image/GIF sticker packs, custom sticker uploads</li>
+        <li>Full Unicode emoji keyboard (1000+ glyphs) or category tabs</li>
+        <li>“Tap + for any emoji” custom reaction (Messenger long-tail)</li>
+        <li>Reaction animations beyond existing pop/wiggle CSS</li>
+        <li>Per-user default reaction preference</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> PG enum migration is irreversible in production without care; shared reaction type touches feed + messenger.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Enum migration fails or collides</td>
+            <td>Deploy blocked</td>
+            <td>Idempotent <code>ADD VALUE IF NOT EXISTS</code>; verify timestamp unused; run migrate in dev first</td>
+          </tr>
+          <tr>
+            <td>ReactionBar message API shape mismatch</td>
+            <td>Reactions silently fail in thread</td>
+            <td>Extend ReactionBar with message path + unwrap <code>data.message.reactionSummary</code>; manual test set/switch/clear</td>
+          </tr>
+          <tr>
+            <td>ReactionBar layout on narrow bubbles</td>
+            <td>Overlapping UI</td>
+            <td>Use <code>size="sm"</code>; position below/ beside bubble like today; verify mobile viewport</td>
+          </tr>
+          <tr>
+            <td>Composer emoji + IME composition</td>
+            <td>Broken CJK input</td>
+            <td>Insert via <code>selectionStart</code>/<code>selectionEnd</code>; don’t intercept composition events</td>
+          </tr>
+          <tr>
+            <td>Feed regression on 4→6 reactions</td>
+            <td>Post/comment reaction counts</td>
+            <td><code>emptyReactionSummary()</code> must initialize all six keys; spot-check Feed + PostDetail</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Required pushback:</strong> Do not expand mid-execution into sticker packs or arbitrary emoji reactions — that is a separate plan with new schema and asset hosting.
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Extend reaction enum (migration + backend constants)</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add migration for <code>sad</code> and <code>angry</code> on <code>reaction_emoji</code>. Update <code>REACTION_EMOJIS</code>, <code>emptyReactionSummary()</code>, Zod schemas in <code>ReactionService</code> and <code>MessageService</code>. Ensure <code>MessageReactionModel</code> filters include new keys.</dd></div>
+          <div><dt>Files</dt><dd><code>database/migrations/20260731180000_reaction_emoji_sad_angry.ts</code>, <code>src/models/ReactionModel.ts</code>, <code>src/services/ReactionService.ts</code>, <code>src/services/MessageService.ts</code>, <code>src/models/MessageReactionModel.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>npm run migrate</code>; PUT reaction with <code>sad</code> succeeds on post and message</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Frontend reaction types + sticker map</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extend <code>ReactionEmoji</code> union and <code>REACTION_OPTIONS</code> with Sad/Angry glyphs. Confirm <code>ReactionIcon</code> renders new entries.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/api/types.ts</code>, <code>frontend/src/lib/reactionOptions.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Feed ReactionBar shows six options; TypeScript compiles</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — ReactionBar on message bubbles</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>targetType: "message"</code> to <code>ReactionBar</code> with path <code>/api/messages/messages/:id/reaction</code> and response unwrap. Refactor <code>MessageBubbleRow</code> to use <code>ReactionBar size="sm"</code> instead of <code>MessageReactionPicker</code> + corner button. Keep summary placement per Plan 24. Delete or slim <code>MessageReactionBar.tsx</code> if fully superseded.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ReactionBar.tsx</code>, <code>frontend/src/components/MessageBubbleRow.tsx</code>, optionally <code>MessageReactionBar.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Hover/hold expand works on thread; socket <code>message:reaction</code> still updates UI</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Composer emoji picker</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>composerEmojiOptions.ts</code> curated list. New <code>MessageComposerEmojiPicker</code> (popover/grid) + Smile icon button in thread compose form. Insert selected emoji at textarea cursor; refocus textarea after pick.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/lib/composerEmojiOptions.ts</code>, <code>frontend/src/components/MessageComposerEmojiPicker.tsx</code>, <code>frontend/src/pages/MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>— (can parallel with T3 after T2 types land)</dd></div>
+          <div><dt>Verify</dt><dd>Send message “😀🔥🎉”; peer receives exact characters; picker closes on select</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — Acceptance + docs</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Run acceptance items A1–A6; update <code>test-results.json</code>; note any waivers. Update plan README seq row when merged to <code>dev</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>plans/07312026-30-default-message-stickers/test-results.json</code>, <code>plans/README.md</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1–T4</dd></div>
+          <div><dt>Verify</dt><dd>Rollup Passed; frontend + backend typecheck green</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled checked> Migration applied; sad/angry on PG enum</li>
+        <li><input type="checkbox" disabled checked> Six-key allow-list enforced backend + frontend</li>
+        <li><input type="checkbox" disabled checked> Message thread uses ReactionBar sm with expand/hold UX</li>
+        <li><input type="checkbox" disabled checked> Composer emoji picker sends multi-emoji text messages</li>
+        <li><input type="checkbox" disabled checked> Feed post/comment reactions show six stickers (regression OK)</li>
+        <li><input type="checkbox" disabled checked> Realtime reaction sync still works on messages</li>
+        <li><input type="checkbox" disabled checked> Typecheck/build green; acceptance Passed or waived</li>
+        <li><input type="checkbox" disabled checked> Revision Log updated if contract drifted during execution</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-31</td>
+            <td>Initial spec from grill: Facebook six reactions, thread-only ReactionBar + composer emoji grid, one reaction per user, backend enum migration, no sticker packs.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-31</td>
+            <td>Execution started on <code>kylie/default-stickers</code>. Status → In Progress.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-08-01</td>
+            <td>Execution complete: six reactions, ReactionBar on messages, composer emoji picker, compact attach+emoji icons. Typecheck/build green. Status → Completed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

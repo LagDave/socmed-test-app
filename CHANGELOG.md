@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.18 — 2026-08-01
+
+### Added
+- Facebook/Messenger six reaction stickers (Sad 😢, Angry 😡) on posts, comments, and messages
+- Message thread compose emoji picker — curated grid inserts emoji at cursor
+- Migration `20260731180000_reaction_emoji_sad_angry` extends `reaction_emoji` enum
+
+### Changed
+- Message reactions use shared `ReactionBar` (hover/hold expand) instead of `MessageReactionBar`
+- Compose bar: image attach + emoji buttons grouped tightly
+
+### Plans
+- `plans/07312026-30-default-message-stickers` — Completed (execution on `kylie/default-stickers`)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added
