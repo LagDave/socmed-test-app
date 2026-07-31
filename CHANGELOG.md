@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.16 — 2026-07-31
+
+### Changed
+- Messages UI polish: split inbox cards, avatars, timestamps, unread styling, grouped bubbles with date separators, loading skeletons, Feed-style composer, reaction picker parity, unsend confirm dialog
+
 ## 0.1.15 — 2026-07-30
 
 Squashed batch: PRs #19, #26, #27, #28.
