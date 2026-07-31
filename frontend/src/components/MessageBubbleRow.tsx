@@ -39,10 +39,13 @@ function MessageHoverActions({
   return (
     <div
       className={cn(
-        "relative flex shrink-0 items-center gap-0.5 self-center",
-        mine && "flex-row-reverse"
+        "relative flex shrink-0 items-center gap-0.5 self-center transition-opacity",
+        "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+        "[@media(hover:none)]:opacity-100",
+        reactionsOpen && "opacity-100"
       )}
     >
+      <div className={cn("flex items-center gap-0.5", mine && "flex-row-reverse")}>
       <button
         type="button"
         aria-label="Reply to message"
@@ -78,6 +81,7 @@ function MessageHoverActions({
         onOpenChange={onReactionsOpenChange}
         className={mine ? "right-0" : "left-0"}
       />
+      </div>
     </div>
   );
 }
@@ -184,7 +188,7 @@ export function MessageBubbleRow({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 shrink-0 self-center text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="h-7 w-7 shrink-0 self-center text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
                 aria-label="Message options"
               >
                 <MoreVertical className="h-4 w-4" aria-hidden="true" />
