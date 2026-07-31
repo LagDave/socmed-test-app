@@ -22,6 +22,7 @@ export function useFeedPosts(enabled: boolean) {
   });
   const loadingRef = useRef(false);
   const loadingMoreRef = useRef(false);
+  const refreshGenerationRef = useRef(0);
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -33,26 +34,48 @@ export function useFeedPosts(enabled: boolean) {
 
   const refresh = useCallback(async () => {
     if (loadingRef.current) return;
+    const generation = ++refreshGenerationRef.current;
     loadingRef.current = true;
+    loadingMoreRef.current = true;
     setState((prev) => ({ ...prev, loading: prev.posts.length === 0, error: null }));
     try {
       const posts = await loadPage();
-      setState({
-        posts,
-        loading: false,
-        loadingMore: false,
-        hasMore: posts.length >= PAGE_SIZE,
-        error: null,
+      if (generation !== refreshGenerationRef.current) return;
+
+      setState((prev) => {
+        if (prev.posts.length === 0) {
+          return {
+            posts,
+            loading: false,
+            loadingMore: false,
+            hasMore: posts.length >= PAGE_SIZE,
+            error: null,
+          };
+        }
+
+        const headIds = new Set(posts.map((post) => post.id));
+        const tail = prev.posts.filter((post) => !headIds.has(post.id));
+        return {
+          posts: [...posts, ...tail],
+          loading: false,
+          loadingMore: false,
+          hasMore: prev.hasMore || posts.length >= PAGE_SIZE,
+          error: null,
+        };
       });
       await api.post("/api/feed/seen").catch(() => undefined);
     } catch (err) {
+      if (generation !== refreshGenerationRef.current) return;
       setState((prev) => ({
         ...prev,
         loading: false,
         error: err instanceof Error ? err.message : "Failed to load feed",
       }));
     } finally {
-      loadingRef.current = false;
+      if (generation === refreshGenerationRef.current) {
+        loadingRef.current = false;
+        loadingMoreRef.current = false;
+      }
     }
   }, [loadPage]);
 
@@ -72,10 +95,13 @@ export function useFeedPosts(enabled: boolean) {
     const cursor = prev.posts[prev.posts.length - 1]?.createdAt;
     if (!cursor) return;
 
+    const generation = refreshGenerationRef.current;
     loadingMoreRef.current = true;
     setState((s) => ({ ...s, loadingMore: true, error: null }));
     try {
       const next = await loadPage(cursor);
+      if (generation !== refreshGenerationRef.current) return;
+
       setState((s) => ({
         ...s,
         posts: [...s.posts, ...next],
@@ -83,13 +109,16 @@ export function useFeedPosts(enabled: boolean) {
         hasMore: next.length >= PAGE_SIZE,
       }));
     } catch (err) {
+      if (generation !== refreshGenerationRef.current) return;
       setState((s) => ({
         ...s,
         loadingMore: false,
         error: err instanceof Error ? err.message : "Failed to load more posts",
       }));
     } finally {
-      loadingMoreRef.current = false;
+      if (generation === refreshGenerationRef.current) {
+        loadingMoreRef.current = false;
+      }
     }
   }, [loadPage]);
 

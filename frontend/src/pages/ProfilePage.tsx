@@ -22,6 +22,42 @@ function toAbsoluteUrl(url: string): string {
   return trimmed;
 }
 
+/** Compare and send media URLs using the same path shape the API stores. */
+function normalizeMediaUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      return new URL(trimmed).pathname;
+    } catch {
+      return trimmed;
+    }
+  }
+  return trimmed;
+}
+
+function mediaUrlForApi(url: string | null | undefined): string | null {
+  const normalized = normalizeMediaUrl(url);
+  return normalized || null;
+}
+
+const PROFILE_POSTS_PAGE_SIZE = 30;
+
+async function fetchAllProfilePosts(username: string): Promise<PostView[]> {
+  const all: PostView[] = [];
+  let before: string | undefined;
+  for (;;) {
+    const qs = before ? `?before=${encodeURIComponent(before)}` : "";
+    const data = await api.get<{ posts: PostView[] }>(`/api/users/${username}/posts${qs}`);
+    all.push(...data.posts);
+    if (data.posts.length < PROFILE_POSTS_PAGE_SIZE) break;
+    before = data.posts[data.posts.length - 1]?.createdAt;
+    if (!before) break;
+  }
+  return all;
+}
+
 type ProfileAvatarMenuProps = {
   displayName: string;
   avatarUrl: string | null;
@@ -299,9 +335,8 @@ export function ProfilePage() {
   useEffect(() => {
     if (!username) return;
     setPostsError(null);
-    void api
-      .get<{ posts: PostView[] }>(`/api/users/${username}/posts`)
-      .then((d) => setPosts(d.posts))
+    void fetchAllProfilePosts(username)
+      .then((loaded) => setPosts(loaded))
       .catch((e: Error) => setPostsError(e.message));
   }, [username]);
 
@@ -336,8 +371,8 @@ export function ProfilePage() {
 
   async function reloadPosts() {
     if (!username) return;
-    const data = await api.get<{ posts: PostView[] }>(`/api/users/${username}/posts`);
-    setPosts(data.posts);
+    const loaded = await fetchAllProfilePosts(username);
+    setPosts(loaded);
   }
 
   async function onSave(e: FormEvent) {
@@ -346,23 +381,27 @@ export function ProfilePage() {
     savingRef.current = true;
     setSaving(true);
     setEditError(null);
-    const nextAvatarUrl = toAbsoluteUrl(avatarUrlInput) || null;
-    const nextCoverUrl = toAbsoluteUrl(coverUrlInput) || null;
-    const avatarChanged = nextAvatarUrl !== toAbsoluteUrl(profile?.avatarUrl || "");
-    const coverChanged = nextCoverUrl !== toAbsoluteUrl(profile?.coverUrl || "");
+    const nextAvatarUrl = mediaUrlForApi(avatarUrlInput);
+    const nextCoverUrl = mediaUrlForApi(coverUrlInput);
+    const avatarChanged = nextAvatarUrl !== mediaUrlForApi(profile?.avatarUrl);
+    const coverChanged = nextCoverUrl !== mediaUrlForApi(profile?.coverUrl);
     try {
       const payload: Record<string, unknown> = {
         displayName,
         username: editUsername,
         bio,
-        avatarUrl: nextAvatarUrl,
-        coverUrl: nextCoverUrl,
       };
-      if (avatarChanged && nextAvatarUrl) {
-        payload.avatarPostCaption = avatarPostCaption.trim() || null;
+      if (avatarChanged) {
+        payload.avatarUrl = nextAvatarUrl;
+        if (nextAvatarUrl) {
+          payload.avatarPostCaption = avatarPostCaption.trim() || null;
+        }
       }
-      if (coverChanged && nextCoverUrl) {
-        payload.coverPostCaption = coverPostCaption.trim() || null;
+      if (coverChanged) {
+        payload.coverUrl = nextCoverUrl;
+        if (nextCoverUrl) {
+          payload.coverPostCaption = coverPostCaption.trim() || null;
+        }
       }
       const data = await api.patch<{ user: PublicUser }>("/api/me/profile", payload);
       setProfile(data.user);
@@ -441,7 +480,7 @@ export function ProfilePage() {
     const { kind, file, caption } = pendingPhotoUpdate;
     try {
       const data = await api.upload<{ url: string }>("/api/uploads", file);
-      const nextUrl = toAbsoluteUrl(data.url);
+      const nextUrl = mediaUrlForApi(data.url);
       const payload =
         kind === "avatar"
           ? { avatarUrl: nextUrl, avatarPostCaption: caption.trim() || null }
@@ -450,9 +489,9 @@ export function ProfilePage() {
       setProfile(updated.user);
       setUser(updated.user);
       if (kind === "avatar") {
-        setAvatarUrlInput(nextUrl);
+        setAvatarUrlInput(toAbsoluteUrl(updated.user.avatarUrl || ""));
       } else {
-        setCoverUrlInput(nextUrl);
+        setCoverUrlInput(toAbsoluteUrl(updated.user.coverUrl || ""));
       }
       await reloadPosts();
       setMenuNotice(kind === "avatar" ? "Profile picture updated" : "Cover photo updated");
@@ -586,11 +625,11 @@ export function ProfilePage() {
   const headerAvatarUrl = profile.avatarUrl;
   const headerCoverUrl = profile.coverUrl;
   const avatarPhotoChanged =
-    Boolean(toAbsoluteUrl(avatarUrlInput)) &&
-    toAbsoluteUrl(avatarUrlInput) !== toAbsoluteUrl(profile.avatarUrl || "");
+    Boolean(normalizeMediaUrl(avatarUrlInput)) &&
+    normalizeMediaUrl(avatarUrlInput) !== normalizeMediaUrl(profile.avatarUrl);
   const coverPhotoChanged =
-    Boolean(toAbsoluteUrl(coverUrlInput)) &&
-    toAbsoluteUrl(coverUrlInput) !== toAbsoluteUrl(profile.coverUrl || "");
+    Boolean(normalizeMediaUrl(coverUrlInput)) &&
+    normalizeMediaUrl(coverUrlInput) !== normalizeMediaUrl(profile.coverUrl);
 
   return (
     <>

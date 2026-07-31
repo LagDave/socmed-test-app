@@ -73,17 +73,26 @@ function NotificationRow({
   const isFriendRequest = item.type === "friend_request" && item.friendshipId;
   const destination = item.postId ? `/posts/${item.postId}${item.commentId ? "#comments" : ""}` : null;
   const actorHref = profilePath(item.actor);
+  const rowLinksToPost = Boolean(destination && !isFriendRequest);
 
   const content = (
     <>
       <div className="relative shrink-0">
-        <Link to={actorHref} className="block" aria-label={`${item.actor.displayName}'s profile`}>
+        {rowLinksToPost ? (
           <ProfileAvatar
             displayName={item.actor.displayName}
             avatarUrl={item.actor.avatarUrl}
             size="sm"
           />
-        </Link>
+        ) : (
+          <Link to={actorHref} className="block" aria-label={`${item.actor.displayName}'s profile`}>
+            <ProfileAvatar
+              displayName={item.actor.displayName}
+              avatarUrl={item.actor.avatarUrl}
+              size="sm"
+            />
+          </Link>
+        )}
         {!item.isRead && (
           <span
             className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-card bg-primary"
@@ -94,12 +103,16 @@ function NotificationRow({
 
       <div className="min-w-0 flex-1">
         <p className="text-[15px] leading-snug">
-          <Link
-            to={actorHref}
-            className="font-semibold underline-offset-2 hover:underline"
-          >
-            {item.actor.displayName}
-          </Link>{" "}
+          {rowLinksToPost ? (
+            <span className="font-semibold">{item.actor.displayName}</span>
+          ) : (
+            <Link
+              to={actorHref}
+              className="font-semibold underline-offset-2 hover:underline"
+            >
+              {item.actor.displayName}
+            </Link>
+          )}{" "}
           <span className="text-foreground/90">{meta.action}</span>
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -160,7 +173,7 @@ function NotificationRow({
 
   if (destination && !isFriendRequest) {
     return (
-      <li>
+      <li className="relative">
         <Link to={destination} className={cn(rowClass, "block")}>
           {content}
         </Link>
