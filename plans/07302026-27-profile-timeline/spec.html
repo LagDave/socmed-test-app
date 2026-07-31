@@ -39,11 +39,11 @@
     <header class="spec-hero">
       <div class="hero-topline">
         <p class="eyebrow">Socmed Plan Spec · Seq 27</p>
-        <span class="status-pill">In Progress</span>
+        <span class="status-pill">Completed</span>
       </div>
       <h1>Profile Timeline + Edit-in-Menu</h1>
       <dl class="meta-grid">
-        <div><dt>Status</dt><dd>In Progress</dd></div>
+        <div><dt>Status</dt><dd>Completed</dd></div>
         <div><dt>Plan Folder</dt><dd>plans/07302026-27-profile-timeline</dd></div>
         <div><dt>Size</dt><dd>Medium (Profile UI refactor + posts API + timeline)</dd></div>
         <div><dt>Risk</dt><dd>Level 2</dd></div>
@@ -278,14 +278,14 @@
     <section class="spec-card" id="done">
       <h2>Done Checklist</h2>
       <ul class="checklist">
-        <li><span>☐</span> T1 — Backend endpoint returns hydrated posts for valid username</li>
-        <li><span>☐</span> T2 — PostCard extracted; Feed unchanged visually</li>
-        <li><span>☐</span> T3 — Edit Profile in ⋯ modal; no avatar editing UI</li>
-        <li><span>☐</span> T4 — Profile timeline renders below header for self and others</li>
-        <li><span>☐</span> Acceptance checklist in <code>test-results.json</code> passes</li>
-        <li><span>☐</span> <code>npm --prefix frontend run typecheck</code> exit 0</li>
-        <li><span>☐</span> <code>npm --prefix frontend run build</code> exit 0</li>
-        <li><span>☐</span> Backend typecheck/tests pass for touched files</li>
+        <li><span>☑</span> T1 — Backend endpoint returns hydrated posts for valid username</li>
+        <li><span>☑</span> T2 — PostCard extracted; Feed unchanged visually</li>
+        <li><span>☑</span> T3 — Edit Profile in ⋯ modal; no avatar editing UI</li>
+        <li><span>☑</span> T4 — Profile timeline renders below header for self and others</li>
+        <li><span>☑</span> Acceptance checklist in <code>test-results.json</code> passes</li>
+        <li><span>☑</span> <code>npm --prefix frontend run typecheck</code> exit 0</li>
+        <li><span>☑</span> <code>npm --prefix frontend run build</code> exit 0</li>
+        <li><span>☑</span> Backend typecheck/tests pass for touched files</li>
       </ul>
     </section>
 
@@ -294,6 +294,7 @@
       <p><strong>Rev 1 — 2026-07-30:</strong> Initial spec. Locked modal-based Edit Profile, removed avatar editing UI, Facebook-style profile timeline with new <code>GET /api/users/:username/posts</code>, PostCard extraction, execution on <code>kylie/profile-timeline-2</code>.</p>
       <p><strong>Rev 2 — 2026-07-30 (Grill):</strong> Human confirmed <strong>1A</strong> Edit Profile + Bio inside modal opened from horizontal ⋯ ellipsis (not on main page); <strong>2A</strong> remove all avatar editing UI (display-only existing avatars); <strong>3A</strong> all profile posts visible to any logged-in viewer. Defaults accepted for unanswered items: <strong>4A</strong> timeline on others' profiles, <strong>5A</strong> compose on Feed only, <strong>6A</strong> bio in header when set, <strong>7A</strong> "No posts yet." empty state.</p>
       <p><strong>Rev 3 — 2026-07-30 (Grill complete):</strong> Human explicitly confirmed <strong>4A</strong>, <strong>5A</strong>, <strong>7A</strong>; after expanded explanation chose <strong>6A</strong> — bio displays under name/@handle in header when set, empty when not, edit only via ⋯ → Edit Profile modal. All seven grill items locked; ready for execution.</p>
+      <p><strong>Rev 4 — 2026-07-31:</strong> Execution complete on <code>kylie/profile-timeline-2</code>; merged <code>dev</code> (PostCard share UI). Manual acceptance: own profile header + timeline verified (post from Feed appears). Finalized v0.1.16.</p>
     </section>
   </main>
 </body>

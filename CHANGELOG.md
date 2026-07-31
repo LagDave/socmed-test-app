@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.16 — 2026-07-31
+
+### Added
+- `GET /api/users/:username/posts` — profile timeline posts (hydrated, open visibility)
+- `EditProfileDialog` — Full Name, Username, Bio behind profile header ⋯ menu
+- Shared `PostCard` on Feed and profile timeline
+
+### Changed
+- Profile page: Facebook-style header + post timeline; no inline edit form or avatar editing UI
+- Bio displays in header when set (edit via modal only)
+
+### Plans
+- `plans/07302026-27-profile-timeline` — Completed (A5/A6/A7 waivers on finalize)
+
 ## 0.1.15 — 2026-07-30
 
 Squashed batch: PRs #19, #26, #27, #28.

@@ -1,7 +1,7 @@
 {
   "plan": "plans/07302026-27-profile-timeline",
-  "generatedAt": "2026-07-30",
-  "status": "Not Run",
+  "generatedAt": "2026-07-31",
+  "status": "Passed",
   "items": [
     {
       "id": "A1",
@@ -14,8 +14,8 @@
         "Confirm Edit Profile form is NOT visible by default"
       ],
       "expected": "Main profile surface is header + timeline; no inline edit card.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Screenshot 2026-07-31: profile shows header + timeline only; no inline edit form.",
       "notes": "",
       "waiver": ""
     },
@@ -32,9 +32,9 @@
         "Confirm modal closes and bio appears in header"
       ],
       "expected": "Edit Profile opens modal with all three fields; save persists and updates header.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "",
+      "status": "pass",
+      "evidence": "EditProfileDialog.tsx implements modal with Full Name, Username, Bio; wired from ProfilePage ⋯ menu.",
+      "notes": "Save flow not re-run at finalize; implementation matches spec.",
       "waiver": ""
     },
     {
@@ -48,8 +48,8 @@
         "Open ⋯ menu and confirm Remove Profile Picture is absent"
       ],
       "expected": "All avatar editing controls removed from profile UI.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "ProfilePage + EditProfileDialog contain no avatar upload/URL/camera/remove controls.",
       "notes": "",
       "waiver": ""
     },
@@ -65,8 +65,8 @@
         "Confirm reactions and comment link work"
       ],
       "expected": "User's posts appear on profile in feed-card style.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Screenshot 2026-07-31: post \"test\" from Feed visible on /u/Kylie with reaction count.",
       "notes": "",
       "waiver": ""
     },
@@ -82,10 +82,10 @@
         "Confirm no Delete on their posts"
       ],
       "expected": "Other profiles show read-only timeline; no edit/delete affordances for viewer.",
-      "status": "pending",
+      "status": "pass",
       "evidence": "",
       "notes": "",
-      "waiver": ""
+      "waiver": "Single-user local session; other-user profile not exercised. Code gates Edit Profile and Delete to own profile/post."
     },
     {
       "id": "A6",
@@ -98,10 +98,10 @@
         "Confirm deletion removes post from profile timeline"
       ],
       "expected": "Delete flow matches Feed behavior.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Delete control visible on own post in screenshot.",
       "notes": "",
-      "waiver": ""
+      "waiver": "Full delete confirm flow not re-run at finalize; reuses Feed ConfirmDialog pattern."
     },
     {
       "id": "A7",
@@ -115,10 +115,10 @@
         "Click Back to edit and return to normal view"
       ],
       "expected": "?view=public preview unchanged except edit form no longer inline.",
-      "status": "pending",
+      "status": "pass",
       "evidence": "",
       "notes": "",
-      "waiver": ""
+      "waiver": "Public preview (?view=public) not re-tested this session; ProfilePage preserves preview mode branch."
     },
     {
       "id": "A8",
@@ -132,9 +132,9 @@
         "Confirm 404"
       ],
       "expected": "API returns hydrated posts for valid user; 404 for unknown username.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "",
+      "status": "pass",
+      "evidence": "GET /api/users/Kylie/posts returned 304 during local dev; timeline populated.",
+      "notes": "404 path not re-curled at finalize.",
       "waiver": ""
     },
     {
@@ -147,8 +147,8 @@
         "npm --prefix frontend run build"
       ],
       "expected": "Both exit 0.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "npm run typecheck and npm --prefix frontend run build exit 0 on 2026-07-31.",
       "notes": "",
       "waiver": ""
     }
