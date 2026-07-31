@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.18 — 2026-07-31
+
+### Added
+- Messenger-style **reply to chat**: quote strip in reply bubbles, composer preview bar, `reply_to_message_id` migration
+- Hover-to-reveal ↩ Reply / 😊 React / ⋮ Unsend on desktop; **tap message bubble** to show actions on phone/tablet
+- Inbox snippet `↩` prefix when the latest message is a reply
+
+### Changed
+- `MessageView.replyTo` embedded on list, create, and socket payloads (works when quoted message is paginated out)
+- API client: clearer errors when the server returns an empty body (common when API is down or migrate was skipped)
+
+### Fixed
+- Message action buttons clipped by thread scroll container (actions sit beside bubble in flex row)
+- Knex migration parity: restore `delivered_at` stub so local DB matches cloud after branch switches
+
+### Plans
+- `plans/07312026-29-reply-to-chat` — Completed (execution on `kylie/reply-to-chat`, PR #44 → `dev`)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added

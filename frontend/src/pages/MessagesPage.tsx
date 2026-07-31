@@ -26,6 +26,7 @@ import {
   MessagesThreadSkeleton,
 } from "@/components/MessagesUiHelpers";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { useCanHover } from "@/hooks/useCanHover";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,6 +95,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [unsending, setUnsending] = useState(false);
   const [loadingThread, setLoadingThread] = useState(true);
   const [replyToMessage, setReplyToMessage] = useState<MessageView | null>(null);
+  const [tappedMessageId, setTappedMessageId] = useState<string | null>(null);
+  const canHover = useCanHover();
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -110,6 +113,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     setError(null);
     setBody("");
     setReplyToMessage(null);
+    setTappedMessageId(null);
     setLoadingThread(true);
 
     async function loadInitial() {
@@ -374,7 +378,12 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           )}
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div
+          className="flex-1 overflow-y-auto px-4 py-4"
+          onClick={() => {
+            if (!canHover) setTappedMessageId(null);
+          }}
+        >
           {loadingThread ? (
             <MessagesThreadSkeleton />
           ) : (
@@ -414,9 +423,17 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       showAvatar={showAvatar}
                       showMeta={showMeta}
                       peerProfilePath={peerProfilePath}
+                      canHover={canHover}
+                      touchRevealed={tappedMessageId === m.id}
+                      onToggleTouchReveal={() =>
+                        setTappedMessageId((prev) => (prev === m.id ? null : m.id))
+                      }
                       onUnsend={setPendingUnsendId}
                       onReactionChange={patchMessageReaction}
-                      onReply={setReplyToMessage}
+                      onReply={(msg) => {
+                        setTappedMessageId(null);
+                        setReplyToMessage(msg);
+                      }}
                       onError={setError}
                     />
                   </div>
