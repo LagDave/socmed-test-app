@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.1.17 — 2026-07-31
+
+### Added
+- Profile page timeline: `GET /api/users/:username/posts`, cover photo migration, timeline auto-posts for avatar/cover updates
+- Feed infinite scroll via cursor pagination (`useFeedPosts` + intersection observer)
+- `PostCard`, `FeedComposer`, and `FeedEmptyState` for a polished feed experience
+- Photo upload in feed composer with preview
+- Comment section components with avatar headers, threaded replies, and photo attach
+- Friends page search, unfriend flow, and polished inbox UI
+- Messages UI polish: avatars, day grouping, reaction/unsend menus
+- Notifications page polish: avatars, type icons, unread highlights
+
+### Changed
+- Profile page: Facebook-style header + post timeline; edit profile behind modal/menu
+- Feed post cards: overflow delete menu, profile-activity badges, skeleton loaders, empty state
+- Post detail reuses unified `PostCard`; comments composer at top with inline reply UX
+- Friends, Messages, and Notifications aligned with Feed card patterns
+- Messages: split inbox cards, unread styling, grouped bubbles with date separators, loading skeletons, Feed-style composer, reaction picker parity, unsend confirm dialog
+
+### Plans
+- `plans/07302026-27-profile-timeline` — Completed (execution on `kylie/profile-reorganized`)
+
 ## 0.1.15 — 2026-07-30
 
 Squashed batch: PRs #19, #26, #27, #28.

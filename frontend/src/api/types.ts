@@ -5,6 +5,7 @@ export type PublicUser = {
   username: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  coverUrl: string | null;
   createdAt: string;
 };
 

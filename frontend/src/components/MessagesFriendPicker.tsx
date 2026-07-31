@@ -4,6 +4,8 @@ import { Search, User, X } from "lucide-react";
 import { api } from "@/api/client";
 import { openConversationWithUsername } from "@/api/messages";
 import type { PublicUser } from "@/api/types";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { MessagesRowSkeleton } from "@/components/MessagesUiHelpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -83,7 +85,7 @@ export function MessagesFriendPicker({ hasConversations }: { hasConversations: b
   const title = hasConversations ? "New message" : "Friends";
 
   return (
-    <section className="space-y-3 border-t border-border pt-4 first:border-t-0 first:pt-0">
+    <section className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-wide text-foreground">{title}</h2>
         <Button
@@ -125,7 +127,7 @@ export function MessagesFriendPicker({ hasConversations }: { hasConversations: b
       {error && <p className="text-sm text-muted-foreground">{error}</p>}
 
       {loading ? (
-        <p className="py-4 text-center text-sm text-muted-foreground">Loading friends…</p>
+        <MessagesRowSkeleton rows={4} />
       ) : mutuals.length === 0 && !error ? (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
           <User className="size-10 text-muted-foreground/40" aria-hidden="true" strokeWidth={1.25} />
@@ -139,15 +141,20 @@ export function MessagesFriendPicker({ hasConversations }: { hasConversations: b
       ) : filtered.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">No matching friends</p>
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="space-y-1">
           {filtered.map((u) => (
             <li key={u.id}>
               <button
                 type="button"
                 disabled={opening || !u.username}
-                className="flex w-full items-center justify-between gap-3 py-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+                className="flex w-full items-center gap-3 border-b border-border py-3 text-left transition-colors last:border-b-0 hover:bg-accent/30 disabled:opacity-50"
                 onClick={() => void openChat(u.username)}
               >
+                <ProfileAvatar
+                  displayName={u.displayName}
+                  avatarUrl={u.avatarUrl}
+                  size="sm"
+                />
                 <span className="min-w-0 truncate">
                   <span className="font-semibold">{u.displayName}</span>{" "}
                   {u.username && (
