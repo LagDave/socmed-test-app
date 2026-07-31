@@ -7,6 +7,7 @@ export const friendsRouter = Router();
 friendsRouter.post("/friends/request", requireAuth, FriendsController.request);
 friendsRouter.post("/friends/:id/accept", requireAuth, FriendsController.accept);
 friendsRouter.post("/friends/:id/decline", requireAuth, FriendsController.decline);
+friendsRouter.delete("/friends/user/:userId", requireAuth, FriendsController.unfriend);
 friendsRouter.delete("/friends/:id", requireAuth, FriendsController.cancel);
 friendsRouter.get("/friends/mutuals", requireAuth, FriendsController.mutuals);
 friendsRouter.get("/friends/inbox", requireAuth, FriendsController.inbox);
