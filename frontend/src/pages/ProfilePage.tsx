@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Camera, ImageIcon, MessageCircle, MoreHorizontal } from "lucide-react";
+import { Camera, ImageIcon, MessageCircle, MoreHorizontal, Pencil, Settings, Share2, Trash2, UserRound, Eye, Sparkles } from "lucide-react";
 import { api } from "@/api/client";
 import { openConversationWithUsername } from "@/api/messages";
 import type { PostView, PublicUser, ReactionSummary } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
+import { PhotoUpdateDialog } from "@/components/PhotoUpdateDialog";
 import { PostCard } from "@/components/PostCard";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { ViewProfilePictureDialog } from "@/components/ViewProfilePictureDialog";
+import { ViewCoverPhotoDialog } from "@/components/ViewCoverPhotoDialog";
 import { Button } from "@/components/ui/button";
 
 function toAbsoluteUrl(url: string): string {
@@ -19,12 +22,108 @@ function toAbsoluteUrl(url: string): string {
   return trimmed;
 }
 
+type ProfileAvatarMenuProps = {
+  displayName: string;
+  avatarUrl: string | null;
+  canEdit: boolean;
+  onChangePicture: () => void;
+  onViewPicture: () => void;
+  onRemovePicture: () => void;
+};
+
+function ProfileAvatarMenu({
+  displayName,
+  avatarUrl,
+  canEdit,
+  onChangePicture,
+  onViewPicture,
+  onRemovePicture,
+}: ProfileAvatarMenuProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  function run(action: () => void) {
+    setOpen(false);
+    action();
+  }
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-label="Profile picture options"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="group relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <ProfileAvatar
+          displayName={displayName}
+          avatarUrl={avatarUrl}
+          size="xl"
+          className="bg-card shadow-lg ring-4 ring-card transition-transform duration-200 group-hover:scale-[1.02]"
+        />
+        {canEdit && (
+          <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+            <Camera className="size-6 text-white" aria-hidden="true" />
+          </span>
+        )}
+      </button>
+      {open && (
+        <div role="menu" className="profile-dropdown-menu animate-menu-enter absolute left-full top-1/2 z-30 ml-2 min-w-56 -translate-y-1/2">
+          {canEdit && (
+            <button type="button" role="menuitem" className="profile-dropdown-item" onClick={() => run(onChangePicture)}>
+              <Camera className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              Change profile picture
+            </button>
+          )}
+          {canEdit && <div className="profile-dropdown-divider" />}
+          <button type="button" role="menuitem" className="profile-dropdown-item" onClick={() => run(onViewPicture)}>
+            <Eye className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            View profile picture
+          </button>
+          {canEdit && (
+            <>
+              <div className="profile-dropdown-divider" />
+              <button
+                type="button"
+                role="menuitem"
+                disabled={!avatarUrl}
+                className="profile-dropdown-item text-destructive/90"
+                onClick={() => run(onRemovePicture)}
+              >
+                <Trash2 className="size-4 shrink-0" aria-hidden="true" />
+                Remove profile picture
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 type ProfileMenuProps = {
   showEditProfile: boolean;
-  hasAvatar: boolean;
   hasCover: boolean;
   onEditProfile: () => void;
-  onRemoveAvatar: () => void;
+  onViewCover: () => void;
   onRemoveCover: () => void;
   onViewProfile: () => void;
   onCopyLink: () => void;
@@ -32,10 +131,9 @@ type ProfileMenuProps = {
 
 function ProfileOverflowMenu({
   showEditProfile,
-  hasAvatar,
   hasCover,
   onEditProfile,
-  onRemoveAvatar,
+  onViewCover,
   onRemoveCover,
   onViewProfile,
   onCopyLink,
@@ -74,79 +172,66 @@ function ProfileOverflowMenu({
         aria-label="Profile options"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="bg-card/90 text-card-foreground shadow-sm backdrop-blur-sm hover:bg-card"
+        className="size-9 rounded-full bg-card/95 text-card-foreground shadow-md ring-1 ring-border/60 backdrop-blur-sm hover:bg-card"
         onClick={() => setOpen((v) => !v)}
       >
         <MoreHorizontal className="size-5" />
       </Button>
       {open && (
-        <div
-          role="menu"
-          className="absolute right-0 z-30 mt-1 min-w-56 overflow-hidden rounded-xl border border-border bg-card py-1 text-card-foreground shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)]"
-        >
+        <div role="menu" className="profile-dropdown-menu animate-menu-enter absolute right-0 top-full z-30 mt-1.5 min-w-56">
           {showEditProfile && (
-            <button
-              type="button"
-              role="menuitem"
-              className="block w-full px-4 py-2.5 text-left text-sm hover:bg-accent"
-              onClick={() => run(onEditProfile)}
-            >
-              Edit Profile
+            <button type="button" role="menuitem" className="profile-dropdown-item" onClick={() => run(onEditProfile)}>
+              <Pencil className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              Edit profile
             </button>
           )}
-          {showEditProfile && (
-            <button
-              type="button"
-              role="menuitem"
-              disabled={!hasAvatar}
-              className="block w-full px-4 py-2.5 text-left text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
-              onClick={() => run(onRemoveAvatar)}
-            >
-              Remove Profile Picture
+          {showEditProfile && hasCover && (
+            <button type="button" role="menuitem" className="profile-dropdown-item" onClick={() => run(onViewCover)}>
+              <Eye className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              View cover photo
             </button>
           )}
-          {showEditProfile && (
+          {showEditProfile && hasCover && (
             <button
               type="button"
               role="menuitem"
-              disabled={!hasCover}
-              className="block w-full px-4 py-2.5 text-left text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+              className="profile-dropdown-item text-destructive/90"
               onClick={() => run(onRemoveCover)}
             >
-              Remove Cover Photo
+              <Trash2 className="size-4 shrink-0" aria-hidden="true" />
+              Remove cover photo
             </button>
           )}
-          <button
-            type="button"
-            role="menuitem"
-            className="block w-full px-4 py-2.5 text-left text-sm hover:bg-accent"
-            onClick={() => run(onViewProfile)}
-          >
-            View Profile
+          {(showEditProfile && hasCover) && <div className="profile-dropdown-divider" />}
+          <button type="button" role="menuitem" className="profile-dropdown-item" onClick={() => run(onViewProfile)}>
+            <UserRound className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            View profile
           </button>
           <button
             type="button"
             role="menuitem"
-            className="block w-full px-4 py-2.5 text-left text-sm hover:bg-accent"
+            className="profile-dropdown-item"
             onClick={() =>
               run(() => {
                 void navigate("/settings");
               })
             }
           >
-            Account Settings
+            <Settings className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            Account settings
           </button>
           <button
             type="button"
             role="menuitem"
-            className="block w-full px-4 py-2.5 text-left text-sm hover:bg-accent"
+            className="profile-dropdown-item"
             onClick={() =>
               run(() => {
                 void onCopyLink();
               })
             }
           >
-            Copy Profile Link
+            <Share2 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            Copy profile link
           </button>
         </div>
       )}
@@ -172,7 +257,19 @@ export function ProfilePage() {
   const [avatarUrlInput, setAvatarUrlInput] = useState("");
   const [coverUrlInput, setCoverUrlInput] = useState("");
   const [isMutual, setIsMutual] = useState(false);
+  const [avatarPostCaption, setAvatarPostCaption] = useState("");
+  const [coverPostCaption, setCoverPostCaption] = useState("");
+  const [pendingPhotoUpdate, setPendingPhotoUpdate] = useState<{
+    kind: "avatar" | "cover";
+    file: File;
+    previewUrl: string;
+    caption: string;
+  } | null>(null);
+  const [photoUpdateError, setPhotoUpdateError] = useState<string | null>(null);
+  const [photoUpdateBusy, setPhotoUpdateBusy] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [viewAvatarOpen, setViewAvatarOpen] = useState(false);
+  const [viewCoverOpen, setViewCoverOpen] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -254,17 +351,26 @@ export function ProfilePage() {
     const avatarChanged = nextAvatarUrl !== toAbsoluteUrl(profile?.avatarUrl || "");
     const coverChanged = nextCoverUrl !== toAbsoluteUrl(profile?.coverUrl || "");
     try {
-      const data = await api.patch<{ user: PublicUser }>("/api/me/profile", {
+      const payload: Record<string, unknown> = {
         displayName,
         username: editUsername,
         bio,
         avatarUrl: nextAvatarUrl,
         coverUrl: nextCoverUrl,
-      });
+      };
+      if (avatarChanged && nextAvatarUrl) {
+        payload.avatarPostCaption = avatarPostCaption.trim() || null;
+      }
+      if (coverChanged && nextCoverUrl) {
+        payload.coverPostCaption = coverPostCaption.trim() || null;
+      }
+      const data = await api.patch<{ user: PublicUser }>("/api/me/profile", payload);
       setProfile(data.user);
       setUser(data.user);
       setAvatarUrlInput(toAbsoluteUrl(data.user.avatarUrl || ""));
       setCoverUrlInput(toAbsoluteUrl(data.user.coverUrl || ""));
+      setAvatarPostCaption("");
+      setCoverPostCaption("");
       setEditOpen(false);
       if (avatarChanged || coverChanged) {
         await reloadPosts();
@@ -302,38 +408,70 @@ export function ProfilePage() {
     }
   }
 
-  async function onHeaderAvatarFile(file: File | null) {
-    if (!file) return;
+  function queuePhotoUpdate(kind: "avatar" | "cover", file: File) {
+    setPhotoUpdateError(null);
+    setPendingPhotoUpdate((current) => {
+      if (current?.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(current.previewUrl);
+      }
+      return {
+        kind,
+        file,
+        previewUrl: URL.createObjectURL(file),
+        caption: "",
+      };
+    });
+  }
+
+  function closePhotoUpdateDialog() {
+    setPendingPhotoUpdate((current) => {
+      if (current?.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(current.previewUrl);
+      }
+      return null;
+    });
+    setPhotoUpdateError(null);
+  }
+
+  async function confirmPhotoUpdate() {
+    if (!pendingPhotoUpdate || photoUpdateBusy) return;
+    setPhotoUpdateBusy(true);
+    setPhotoUpdateError(null);
     setError(null);
+    const { kind, file, caption } = pendingPhotoUpdate;
     try {
       const data = await api.upload<{ url: string }>("/api/uploads", file);
-      const nextAvatarUrl = toAbsoluteUrl(data.url);
-      const updated = await api.patch<{ user: PublicUser }>("/api/me/profile", { avatarUrl: nextAvatarUrl });
+      const nextUrl = toAbsoluteUrl(data.url);
+      const payload =
+        kind === "avatar"
+          ? { avatarUrl: nextUrl, avatarPostCaption: caption.trim() || null }
+          : { coverUrl: nextUrl, coverPostCaption: caption.trim() || null };
+      const updated = await api.patch<{ user: PublicUser }>("/api/me/profile", payload);
       setProfile(updated.user);
       setUser(updated.user);
-      setAvatarUrlInput(nextAvatarUrl);
+      if (kind === "avatar") {
+        setAvatarUrlInput(nextUrl);
+      } else {
+        setCoverUrlInput(nextUrl);
+      }
       await reloadPosts();
-      setMenuNotice("Profile picture updated");
+      setMenuNotice(kind === "avatar" ? "Profile picture updated" : "Cover photo updated");
+      closePhotoUpdateDialog();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setPhotoUpdateError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setPhotoUpdateBusy(false);
     }
+  }
+
+  async function onHeaderAvatarFile(file: File | null) {
+    if (!file) return;
+    queuePhotoUpdate("avatar", file);
   }
 
   async function onHeaderCoverFile(file: File | null) {
     if (!file) return;
-    setError(null);
-    try {
-      const data = await api.upload<{ url: string }>("/api/uploads", file);
-      const nextCoverUrl = toAbsoluteUrl(data.url);
-      const updated = await api.patch<{ user: PublicUser }>("/api/me/profile", { coverUrl: nextCoverUrl });
-      setProfile(updated.user);
-      setUser(updated.user);
-      setCoverUrlInput(nextCoverUrl);
-      await reloadPosts();
-      setMenuNotice("Cover photo updated");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    }
+    queuePhotoUpdate("cover", file);
   }
 
   async function removeAvatar() {
@@ -420,6 +558,8 @@ export function ProfilePage() {
     setEditUsername(profile.username || "");
     setAvatarUrlInput(toAbsoluteUrl(profile.avatarUrl || ""));
     setCoverUrlInput(toAbsoluteUrl(profile.coverUrl || ""));
+    setAvatarPostCaption("");
+    setCoverPostCaption("");
     setEditError(null);
     setEditOpen(true);
   }
@@ -429,11 +569,12 @@ export function ProfilePage() {
       return <p className="text-sm text-muted-foreground">{error}</p>;
     }
     return (
-      <div className="feed-card overflow-hidden">
+      <div className="feed-card profile-header-card overflow-hidden">
         <div className="profile-cover h-28 sm:h-32" />
         <div className="px-5 pb-6 pt-16">
-          <div className="h-7 w-48 animate-pulse rounded bg-secondary" />
-          <div className="mt-2 h-4 w-28 animate-pulse rounded bg-muted" />
+          <div className="profile-skeleton-shimmer h-7 w-48 rounded-lg" />
+          <div className="profile-skeleton-shimmer mt-2 h-4 w-28 rounded-md" />
+          <div className="profile-skeleton-shimmer mt-5 h-16 w-full max-w-md rounded-xl" />
         </div>
       </div>
     );
@@ -444,47 +585,62 @@ export function ProfilePage() {
   const postCount = posts.length;
   const headerAvatarUrl = profile.avatarUrl;
   const headerCoverUrl = profile.coverUrl;
+  const avatarPhotoChanged =
+    Boolean(toAbsoluteUrl(avatarUrlInput)) &&
+    toAbsoluteUrl(avatarUrlInput) !== toAbsoluteUrl(profile.avatarUrl || "");
+  const coverPhotoChanged =
+    Boolean(toAbsoluteUrl(coverUrlInput)) &&
+    toAbsoluteUrl(coverUrlInput) !== toAbsoluteUrl(profile.coverUrl || "");
 
   return (
-    <section className="space-y-5">
-      <header className="feed-card overflow-hidden text-card-foreground">
-        <div className="relative h-36 sm:h-44">
-          {headerCoverUrl ? (
-            <img src={headerCoverUrl} alt="" className="absolute inset-0 size-full object-cover" />
-          ) : (
-            <div className="profile-cover absolute inset-0" aria-hidden="true" />
-          )}
-          {canEditAvatar && (
-            <>
-              <input
-                ref={coverFileInputRef}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => void onHeaderCoverFile(e.target.files?.[0] || null)}
+    <>
+      <section className="animate-fade-up space-y-5">
+      <header className="feed-card profile-header-card text-card-foreground">
+        <div className="relative">
+          <div className="relative h-40 overflow-hidden sm:h-52">
+            {headerCoverUrl ? (
+              <img
+                src={headerCoverUrl}
+                alt=""
+                className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out hover:scale-[1.02]"
               />
-              <button
-                type="button"
-                onClick={() => coverFileInputRef.current?.click()}
-                className="group absolute inset-0 z-10 flex items-center justify-center bg-black/0 transition-colors hover:bg-black/25 focus-visible:bg-black/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                aria-label="Change cover photo"
-                title="Change cover photo"
-              >
-                <span className="flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 text-sm font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                  <ImageIcon className="size-4" aria-hidden="true" />
-                  Change cover photo
-                </span>
-              </button>
-            </>
-          )}
+            ) : (
+              <div className="profile-cover absolute inset-0" aria-hidden="true" />
+            )}
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 via-black/10 to-transparent"
+              aria-hidden="true"
+            />
+            {canEditAvatar && (
+              <>
+                <input
+                  ref={coverFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => void onHeaderCoverFile(e.target.files?.[0] || null)}
+                />
+                <button
+                  type="button"
+                  onClick={() => coverFileInputRef.current?.click()}
+                  className="group absolute inset-0 z-10 flex items-center justify-center bg-black/0 transition-colors hover:bg-black/25 focus-visible:bg-black/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  aria-label="Change cover photo"
+                  title="Change cover photo"
+                >
+                  <span className="flex size-10 items-center justify-center rounded-full bg-black/55 text-white opacity-0 shadow-lg transition-all group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <ImageIcon className="size-4" aria-hidden="true" />
+                  </span>
+                </button>
+              </>
+            )}
+          </div>
           {isSelf && (
             <div className="absolute right-3 top-3 z-20">
               <ProfileOverflowMenu
                 showEditProfile={!isPublicPreview}
-                hasAvatar={Boolean(profile.avatarUrl)}
                 hasCover={Boolean(profile.coverUrl)}
                 onEditProfile={openEditDialog}
-                onRemoveAvatar={() => void removeAvatar()}
+                onViewCover={() => setViewCoverOpen(true)}
                 onRemoveCover={() => void removeCover()}
                 onViewProfile={() => {
                   setSearchParams({ view: "public" }, { replace: true });
@@ -496,9 +652,9 @@ export function ProfilePage() {
           )}
         </div>
 
-        <div className="relative px-5 pb-5">
+        <div className="relative overflow-visible px-5 pb-5">
           <div className="absolute left-5 top-0 z-10 -translate-y-1/2">
-            {canEditAvatar ? (
+            {canEditAvatar || headerAvatarUrl ? (
               <>
                 <input
                   ref={avatarFileInputRef}
@@ -507,30 +663,21 @@ export function ProfilePage() {
                   className="sr-only"
                   onChange={(e) => void onHeaderAvatarFile(e.target.files?.[0] || null)}
                 />
-                <button
-                  type="button"
-                  onClick={() => avatarFileInputRef.current?.click()}
-                  className="group relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="Change profile picture"
-                  title="Change profile picture"
-                >
-                  <ProfileAvatar
-                    displayName={profile.displayName}
-                    avatarUrl={headerAvatarUrl}
-                    size="xl"
-                    className="bg-card ring-4 ring-card"
-                  />
-                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                    <Camera className="size-6 text-white" aria-hidden="true" />
-                  </span>
-                </button>
+                <ProfileAvatarMenu
+                  displayName={profile.displayName}
+                  avatarUrl={headerAvatarUrl}
+                  canEdit={canEditAvatar}
+                  onChangePicture={() => avatarFileInputRef.current?.click()}
+                  onViewPicture={() => setViewAvatarOpen(true)}
+                  onRemovePicture={() => void removeAvatar()}
+                />
               </>
             ) : (
               <ProfileAvatar
                 displayName={profile.displayName}
                 avatarUrl={headerAvatarUrl}
                 size="xl"
-                className="bg-card ring-4 ring-card"
+                className="bg-card shadow-lg ring-4 ring-card"
               />
             )}
           </div>
@@ -539,7 +686,7 @@ export function ProfilePage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{profile.displayName}</h1>
-                <p className="mt-1 truncate text-sm text-muted-foreground">{handle}</p>
+                <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{handle}</p>
               </div>
 
               {!isSelf && profile.username && (
@@ -574,15 +721,10 @@ export function ProfilePage() {
             </div>
 
             {profile.bio && (
-              <p className="mt-4 max-w-prose text-[15px] leading-relaxed text-foreground/90">{profile.bio}</p>
-            )}
-
-            <div className="mt-5 flex items-center gap-6 border-t border-border/70 pt-4">
-              <div className="text-sm">
-                <span className="font-semibold tabular-nums text-foreground">{postCount}</span>
-                <span className="ml-1.5 text-muted-foreground">{postCount === 1 ? "post" : "posts"}</span>
+              <div className="profile-bio-panel mt-4 max-w-prose">
+                <p className="text-[15px] leading-relaxed text-foreground/90">{profile.bio}</p>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </header>
@@ -596,14 +738,22 @@ export function ProfilePage() {
       )}
 
       <div>
-        <div className="mb-3 flex items-baseline justify-between gap-3 px-1">
+        <div className="mb-3 flex items-center justify-between gap-3 border-b border-border/70 px-1 pb-3">
           <h2 className="text-lg font-semibold tracking-tight">Posts</h2>
-          {postCount > 0 && <span className="text-xs text-muted-foreground">{postCount} total</span>}
+          {postCount > 0 && (
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+              {postCount} total
+            </span>
+          )}
         </div>
 
         <ul className="space-y-3">
-          {posts.map((p) => (
-            <li key={p.id} className="feed-card px-4 py-3.5">
+          {posts.map((p, index) => (
+            <li
+              key={p.id}
+              className="feed-card timeline-post-card animate-fade-up px-4 py-3.5"
+              style={{ animationDelay: `${Math.min(index * 45, 270)}ms` }}
+            >
               {me && (
                 <PostCard
                   post={p}
@@ -615,11 +765,14 @@ export function ProfilePage() {
             </li>
           ))}
           {posts.length === 0 && !postsError && (
-            <li className="feed-card px-6 py-12 text-center">
-              <p className="text-base font-medium text-foreground">No posts yet</p>
-              <p className="mt-1.5 text-sm text-muted-foreground">
+            <li className="feed-card profile-empty-state px-6 py-14 text-center">
+              <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Sparkles className="size-5" aria-hidden="true" />
+              </span>
+              <p className="mt-4 text-base font-semibold text-foreground">No posts yet</p>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
                 {isSelf
-                  ? "Share something from the Feed and it will show up here."
+                  ? "Share something from the Feed and it will show up here on your timeline."
                   : "This profile has not posted anything yet."}
               </p>
             </li>
@@ -629,6 +782,35 @@ export function ProfilePage() {
           )}
         </ul>
       </div>
+      </section>
+
+      <ViewProfilePictureDialog
+        open={viewAvatarOpen}
+        displayName={profile.displayName}
+        avatarUrl={headerAvatarUrl}
+        onClose={() => setViewAvatarOpen(false)}
+      />
+
+      <ViewCoverPhotoDialog
+        open={viewCoverOpen}
+        displayName={profile.displayName}
+        coverUrl={headerCoverUrl}
+        onClose={() => setViewCoverOpen(false)}
+      />
+
+      <PhotoUpdateDialog
+        open={pendingPhotoUpdate !== null}
+        kind={pendingPhotoUpdate?.kind ?? "avatar"}
+        previewUrl={pendingPhotoUpdate?.previewUrl ?? ""}
+        caption={pendingPhotoUpdate?.caption ?? ""}
+        error={photoUpdateError}
+        busy={photoUpdateBusy}
+        onCaptionChange={(value) =>
+          setPendingPhotoUpdate((current) => (current ? { ...current, caption: value } : current))
+        }
+        onConfirm={() => void confirmPhotoUpdate()}
+        onCancel={closePhotoUpdateDialog}
+      />
 
       <EditProfileDialog
         open={editOpen}
@@ -637,6 +819,10 @@ export function ProfilePage() {
         bio={bio}
         avatarUrlInput={avatarUrlInput}
         coverUrlInput={coverUrlInput}
+        showAvatarCaption={avatarPhotoChanged}
+        showCoverCaption={coverPhotoChanged}
+        avatarPostCaption={avatarPostCaption}
+        coverPostCaption={coverPostCaption}
         error={editError}
         busy={saving}
         onDisplayNameChange={setDisplayName}
@@ -644,6 +830,8 @@ export function ProfilePage() {
         onBioChange={setBio}
         onAvatarUrlChange={setAvatarUrlInput}
         onCoverUrlChange={setCoverUrlInput}
+        onAvatarPostCaptionChange={setAvatarPostCaption}
+        onCoverPostCaptionChange={setCoverPostCaption}
         onAvatarFile={(file) => void onAvatarFile(file)}
         onCoverFile={(file) => void onCoverFile(file)}
         onSubmit={(e) => void onSave(e)}
@@ -667,11 +855,11 @@ export function ProfilePage() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-5 right-5 z-50 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
+          className="animate-toast-in fixed bottom-5 right-5 z-50 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-[0_12px_32px_rgba(0,0,0,0.14)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
         >
           {menuNotice}
         </div>
       )}
-    </section>
+    </>
   );
 }

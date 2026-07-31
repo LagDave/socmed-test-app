@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ImageIcon, UserRound } from "lucide-react";
 import type { PostView, ReactionSummary } from "@/api/types";
 import { PostActionRow } from "@/components/PostActionRow";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
@@ -6,31 +7,53 @@ import { ReactionBar } from "@/components/ReactionBar";
 import { SharedPostEmbed } from "@/components/SharedPostEmbed";
 import { Button } from "@/components/ui/button";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
+import {
+  isProfileActivityPost,
+  isProfilePicturePost,
+  profileActivityDisplayBody,
+  profileActivityHasCustomCaption,
+  profileActivityKind,
+} from "@/lib/profileActivityPosts";
 import { canSharePost, shareAttributionLabel } from "@/lib/sharePost";
 import { cn } from "@/lib/utils";
-
-export const PROFILE_PICTURE_POST_BODY = "Updated profile picture.";
-export const COVER_PHOTO_POST_BODY = "Updated cover photo.";
-
-function isProfileActivityPost(body: string): boolean {
-  return body === PROFILE_PICTURE_POST_BODY || body === COVER_PHOTO_POST_BODY;
-}
 
 /** Full card width — offsets the header avatar column (sm + gap-2.5). */
 const POST_MEDIA_BREAKOUT =
   "-ml-[calc(2.5rem+0.625rem)] flex w-[calc(100%+2.5rem+0.625rem)] justify-center";
 
-function PostActivityImage({ body, imageUrl }: { body: string; imageUrl: string }) {
-  if (body === PROFILE_PICTURE_POST_BODY || body === COVER_PHOTO_POST_BODY) {
+function ProfileActivityMedia({ body, imageUrl }: { body: string; imageUrl: string }) {
+  const isAvatar = isProfilePicturePost(body);
+
+  if (isAvatar) {
     return (
-      <div className={`mt-2.5 ${POST_MEDIA_BREAKOUT}`}>
-        <img
-          src={imageUrl}
-          alt=""
-          className="block h-auto max-h-80 w-auto max-w-full rounded-lg border border-border sm:max-h-96"
-        />
+      <div className={`mt-3 ${POST_MEDIA_BREAKOUT}`}>
+        <div className="relative inline-flex">
+          <div
+            className="absolute -inset-2 rounded-full bg-gradient-to-br from-foreground/10 via-transparent to-foreground/5 blur-sm"
+            aria-hidden="true"
+          />
+          <img
+            src={imageUrl}
+            alt=""
+            className="relative size-44 rounded-full object-cover shadow-[0_10px_28px_rgba(0,0,0,0.16)] ring-4 ring-card sm:size-48"
+          />
+        </div>
       </div>
     );
+  }
+
+  return (
+    <div className={`mt-3 ${POST_MEDIA_BREAKOUT}`}>
+      <div className="w-full max-w-2xl overflow-hidden rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] ring-1 ring-border/70">
+        <img src={imageUrl} alt="" className="block max-h-80 w-full object-cover sm:max-h-96" />
+      </div>
+    </div>
+  );
+}
+
+function PostActivityImage({ body, imageUrl }: { body: string; imageUrl: string }) {
+  if (isProfileActivityPost(body)) {
+    return <ProfileActivityMedia body={body} imageUrl={imageUrl} />;
   }
   return <img src={imageUrl} alt="" className="mt-2.5 max-h-96 w-full rounded-lg object-cover" />;
 }
@@ -54,6 +77,10 @@ export function PostCard({
 }: PostCardProps) {
   const attribution = shareAttributionLabel(viewerId, post);
   const isShare = Boolean(post.sharedFromPostId);
+  const activityKind = profileActivityKind(post.body);
+  const isActivity = activityKind !== null;
+  const displayBody = profileActivityDisplayBody(post.body);
+  const hasCustomCaption = profileActivityHasCustomCaption(post.body);
 
   const metaRow = (
     <div className="flex shrink-0 items-center gap-1.5">
@@ -65,7 +92,13 @@ export function PostCard({
         {formatRelativeTime(post.createdAt)}
       </time>
       {viewerId === post.author.id && (
-        <Button type="button" variant="ghost" size="sm" onClick={() => onDeleteRequest(post.id)}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-foreground"
+          onClick={() => onDeleteRequest(post.id)}
+        >
           Delete
         </Button>
       )}
@@ -76,14 +109,25 @@ export function PostCard({
     <SharedPostEmbed sharedFrom={post.sharedFrom} />
   ) : (
     <>
+      {isActivity && (
+        <span className="profile-activity-badge mt-2 inline-flex items-center gap-1.5">
+          {activityKind === "avatar" ? (
+            <UserRound className="size-3" aria-hidden="true" />
+          ) : (
+            <ImageIcon className="size-3" aria-hidden="true" />
+          )}
+          {activityKind === "avatar" ? "Profile picture" : "Cover photo"}
+        </span>
+      )}
       <p
-        className={`mt-1.5 whitespace-pre-wrap leading-relaxed ${
-          isProfileActivityPost(post.body)
+        className={cn(
+          "mt-2 whitespace-pre-wrap leading-relaxed",
+          isActivity && !hasCustomCaption
             ? "text-sm font-medium text-muted-foreground"
-            : "text-[15px]"
-        }`}
+            : "text-[15px] text-foreground/95"
+        )}
       >
-        {post.body}
+        {displayBody}
       </p>
       {post.imageUrl && <PostActivityImage body={post.body} imageUrl={post.imageUrl} />}
     </>
@@ -93,7 +137,7 @@ export function PostCard({
     <div className="flex items-start gap-2.5">
       <Link
         to={`/u/${post.author.username || post.author.id}`}
-        className="shrink-0"
+        className="shrink-0 transition-opacity hover:opacity-85"
         aria-label={`${post.author.displayName}'s profile`}
       >
         <ProfileAvatar displayName={post.author.displayName} avatarUrl={post.author.avatarUrl} size="sm" />
@@ -104,7 +148,7 @@ export function PostCard({
             <p className="min-w-0 font-medium leading-snug">{attribution}</p>
           ) : (
             <Link
-              className="min-w-0 font-medium leading-snug underline-offset-2 hover:underline"
+              className="min-w-0 font-medium leading-snug underline-offset-2 transition-colors hover:text-foreground/80 hover:underline"
               to={`/u/${post.author.username || post.author.id}`}
             >
               {post.author.displayName}

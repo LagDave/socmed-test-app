@@ -3,9 +3,10 @@ import { UserModel } from "../models/UserModel";
 import { PostService } from "./PostService";
 import { AppError } from "../utils/AppError";
 import { toPublicUser, type PublicUser } from "../types/user";
-
-const PROFILE_PICTURE_POST_BODY = "Updated profile picture.";
-const COVER_PHOTO_POST_BODY = "Updated cover photo.";
+import {
+  formatCoverPhotoPostBody,
+  formatProfilePicturePostBody,
+} from "../utils/profileActivityPosts";
 
 const profilePatchSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
@@ -18,6 +19,8 @@ const profilePatchSchema = z.object({
   bio: z.string().max(500).nullable().optional(),
   avatarUrl: z.string().max(500).nullable().optional(),
   coverUrl: z.string().max(500).nullable().optional(),
+  avatarPostCaption: z.string().max(500).nullable().optional(),
+  coverPostCaption: z.string().max(500).nullable().optional(),
 });
 
 export class ProfileService {
@@ -60,10 +63,18 @@ export class ProfileService {
       input.avatarUrl !== before.avatar_url &&
       input.avatarUrl
     ) {
-      await PostService.createProfilePhotoPost(userId, PROFILE_PICTURE_POST_BODY, input.avatarUrl);
+      await PostService.createProfilePhotoPost(
+        userId,
+        formatProfilePicturePostBody(input.avatarPostCaption),
+        input.avatarUrl
+      );
     }
     if (input.coverUrl !== undefined && input.coverUrl !== before.cover_url && input.coverUrl) {
-      await PostService.createProfilePhotoPost(userId, COVER_PHOTO_POST_BODY, input.coverUrl);
+      await PostService.createProfilePhotoPost(
+        userId,
+        formatCoverPhotoPostBody(input.coverPostCaption),
+        input.coverUrl
+      );
     }
 
     return toPublicUser(row);

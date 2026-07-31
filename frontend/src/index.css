@@ -101,6 +101,221 @@ body {
   box-shadow: var(--feed-shadow);
 }
 
+.modal-backdrop {
+  background: color-mix(in srgb, var(--foreground) 38%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.modal-panel {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow:
+    0 24px 48px color-mix(in srgb, var(--foreground) 14%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+.profile-dropdown-menu {
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 6px;
+  color: var(--card-foreground);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--foreground) 12%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+.profile-dropdown-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 8px;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition: background-color 0.15s ease;
+}
+
+.profile-dropdown-item:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.profile-dropdown-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.profile-dropdown-divider {
+  margin: 4px 8px;
+  height: 1px;
+  background: var(--border);
+}
+
+.profile-section-label {
+  margin-bottom: 0.625rem;
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.profile-form-section {
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  background: color-mix(in srgb, var(--muted) 45%, var(--card));
+  padding: 1rem;
+}
+
+.profile-header-card {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  box-shadow:
+    var(--feed-shadow),
+    0 0 0 1px color-mix(in srgb, var(--foreground) 3%, transparent);
+}
+
+.profile-activity-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--muted) 75%, var(--card));
+  padding: 0.2rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.timeline-post-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.timeline-post-card:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 12px color-mix(in srgb, var(--foreground) 8%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+.profile-bio-panel {
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--muted) 35%, transparent);
+  padding: 0.875rem 1rem;
+}
+
+.profile-empty-state {
+  border: 1px dashed color-mix(in srgb, var(--border) 90%, transparent);
+  background:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--muted) 60%, transparent), transparent 70%);
+}
+
+.dark .modal-panel {
+  box-shadow:
+    0 24px 56px rgba(0, 0, 0, 0.55),
+    0 0 0 1px color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.dark .profile-dropdown-menu {
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 1px color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.dark .timeline-post-card:hover {
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.35),
+    0 0 0 1px color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-modal-enter {
+  animation: modal-enter 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.animate-menu-enter {
+  animation: menu-enter 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.animate-fade-up {
+  animation: fade-up 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-toast-in {
+  animation: toast-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.profile-skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 0%,
+    color-mix(in srgb, var(--muted) 70%, var(--foreground) 8%) 50%,
+    var(--muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
 .profile-cover {
   background:
     linear-gradient(145deg, color-mix(in srgb, var(--foreground) 6%, var(--secondary)) 0%, var(--muted) 45%, color-mix(in srgb, var(--foreground) 4%, var(--border)) 100%);
@@ -136,6 +351,22 @@ body {
   }
   100% {
     transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-modal-enter,
+  .animate-menu-enter,
+  .animate-fade-up,
+  .animate-toast-in,
+  .profile-skeleton-shimmer,
+  .timeline-post-card {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .timeline-post-card:hover {
+    transform: none;
   }
 }
 
