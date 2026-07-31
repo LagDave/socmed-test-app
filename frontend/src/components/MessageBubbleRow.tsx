@@ -39,14 +39,15 @@ function MessageHoverActions({
   return (
     <div
       className={cn(
-        "relative flex shrink-0 items-center gap-0.5 self-center opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100",
+        "relative flex shrink-0 items-center gap-0.5 self-center",
         mine && "flex-row-reverse"
       )}
     >
       <button
         type="button"
         aria-label="Reply to message"
-        className="flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-background text-muted-foreground shadow-sm hover:text-foreground"
+        title="Reply"
+        className="flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-background text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground"
         onClick={() => onReply(message)}
       >
         <Reply className="h-3.5 w-3.5" aria-hidden="true" />
@@ -54,8 +55,12 @@ function MessageHoverActions({
       <button
         type="button"
         aria-label="React to message"
+        title="React"
         aria-expanded={reactionsOpen}
-        className="flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm"
+        className={cn(
+          "flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm hover:bg-accent",
+          reactionsOpen && "ring-1 ring-border"
+        )}
         onClick={() => onReactionsOpenChange(!reactionsOpen)}
       >
         {message.reactionSummary.viewerEmoji ? (
@@ -103,7 +108,7 @@ export function MessageBubbleRow({
   const [reactionsOpen, setReactionsOpen] = useState(false);
 
   return (
-    <div className={cn("group/message flex gap-2", mine ? "flex-row-reverse" : "flex-row")}>
+    <div className={cn("group flex gap-2", mine ? "flex-row-reverse" : "flex-row")}>
       {!mine &&
         (showAvatar && peer ? (
           <Link to={peerProfilePath} className="shrink-0 self-end" aria-label={`${peer.displayName}'s profile`}>
@@ -179,7 +184,7 @@ export function MessageBubbleRow({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 shrink-0 self-center text-muted-foreground opacity-0 transition-opacity group-hover/message:opacity-100 focus:opacity-100 data-[state=open]:opacity-100"
+                className="h-7 w-7 shrink-0 self-center text-muted-foreground hover:bg-accent hover:text-foreground"
                 aria-label="Message options"
               >
                 <MoreVertical className="h-4 w-4" aria-hidden="true" />
