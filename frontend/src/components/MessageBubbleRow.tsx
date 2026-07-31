@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { MoreVertical, SmilePlus } from "lucide-react";
+import { MoreVertical, Reply, SmilePlus } from "lucide-react";
 import type { MessageView, PublicUser } from "@/api/types";
 import {
   MessageReactionPicker,
   MessageReactionSummary,
 } from "@/components/MessageReactionBar";
+import { MessageQuoteStrip } from "@/components/MessageQuoteStrip";
 import { ReactionIcon } from "@/components/ReactionIcon";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export function MessageBubbleRow({
   peerProfilePath,
   onUnsend,
   onReactionChange,
+  onReply,
   onError,
 }: {
   message: MessageView;
@@ -37,6 +39,7 @@ export function MessageBubbleRow({
   peerProfilePath: string;
   onUnsend: (id: string) => void;
   onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
+  onReply: (message: MessageView) => void;
   onError: (message: string) => void;
 }) {
   const [reactionsOpen, setReactionsOpen] = useState(false);
@@ -74,6 +77,9 @@ export function MessageBubbleRow({
                 "Unsent a message"
               ) : (
                 <>
+                  {message.replyTo && (
+                    <MessageQuoteStrip replyTo={message.replyTo} mine={mine} />
+                  )}
                   {message.imageUrl && (
                     <img
                       src={message.imageUrl}
@@ -88,25 +94,34 @@ export function MessageBubbleRow({
 
             {!message.isUnsent && (
               <>
-                <button
-                  type="button"
-                  aria-label="React to message"
-                  aria-expanded={reactionsOpen}
+                <div
                   className={cn(
-                    "absolute -bottom-1 flex h-6 w-6 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm transition-opacity",
-                    mine ? "-left-1" : "-right-1",
-                    reactionsOpen
-                      ? "opacity-100"
-                      : "opacity-0 group-hover/message:opacity-100 focus:opacity-100"
+                    "absolute top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100",
+                    mine ? "-left-[4.25rem]" : "-right-[4.25rem]"
                   )}
-                  onClick={() => setReactionsOpen((open) => !open)}
                 >
-                  {message.reactionSummary.viewerEmoji ? (
-                    <ReactionIcon emoji={message.reactionSummary.viewerEmoji} className="text-sm" />
-                  ) : (
-                    <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                  )}
-                </button>
+                  <button
+                    type="button"
+                    aria-label="Reply to message"
+                    className="flex h-6 w-6 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm"
+                    onClick={() => onReply(message)}
+                  >
+                    <Reply className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="React to message"
+                    aria-expanded={reactionsOpen}
+                    className="flex h-6 w-6 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm"
+                    onClick={() => setReactionsOpen((open) => !open)}
+                  >
+                    {message.reactionSummary.viewerEmoji ? (
+                      <ReactionIcon emoji={message.reactionSummary.viewerEmoji} className="text-sm" />
+                    ) : (
+                      <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
                 <MessageReactionPicker
                   messageId={message.id}
                   summary={message.reactionSummary}

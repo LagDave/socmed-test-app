@@ -45,6 +45,15 @@ export type CommentView = {
   reactionSummary: ReactionSummary;
 };
 
+export type MessageReplyToView = {
+  id: string;
+  senderId: string;
+  senderDisplayName: string;
+  body: string | null;
+  imageUrl: string | null;
+  isUnsent: boolean;
+};
+
 export type MessageView = {
   id: string;
   conversationId: string;
@@ -54,6 +63,7 @@ export type MessageView = {
   isUnsent: boolean;
   createdAt: string;
   reactionSummary: ReactionSummary;
+  replyTo: MessageReplyToView | null;
 };
 
 export type ConversationListItem = {
@@ -66,6 +76,7 @@ export type ConversationListItem = {
     isUnsent: boolean;
     senderId: string;
     createdAt: string;
+    replyToMessageId: string | null;
   } | null;
   unreadCount: number;
   lastMessageAt: string | null;

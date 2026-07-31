@@ -5,7 +5,12 @@ import {
   type ConversationRow,
 } from "../models/ConversationModel";
 import { FriendshipModel } from "../models/FriendshipModel";
-import { MessageModel, type MessageRow } from "../models/MessageModel";
+import {
+  MessageModel,
+  type MessageReplyContext,
+  type MessageRow,
+  type MessageRowWithReply,
+} from "../models/MessageModel";
 import { MessageReactionModel } from "../models/MessageReactionModel";
 import { REACTION_EMOJIS, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { UserModel } from "../models/UserModel";
@@ -39,6 +44,7 @@ const sendMessageSchema = z
   .object({
     body: z.string().max(4000).optional(),
     imageUrl: z.string().max(500).nullable().optional(),
+    replyToMessageId: z.string().uuid().optional(),
   })
   .superRefine((v, ctx) => {
     const body = v.body?.trim() ?? "";
@@ -55,6 +61,15 @@ const reactionSchema = z.object({
   emoji: z.enum(REACTION_EMOJIS),
 });
 
+export type MessageReplyToView = {
+  id: string;
+  senderId: string;
+  senderDisplayName: string;
+  body: string | null;
+  imageUrl: string | null;
+  isUnsent: boolean;
+};
+
 export type MessageView = {
   id: string;
   conversationId: string;
@@ -64,6 +79,7 @@ export type MessageView = {
   isUnsent: boolean;
   createdAt: Date;
   reactionSummary: ReactionSummary;
+  replyTo: MessageReplyToView | null;
 };
 
 export type ConversationListItem = {
@@ -76,6 +92,7 @@ export type ConversationListItem = {
     isUnsent: boolean;
     senderId: string;
     createdAt: Date;
+    replyToMessageId: string | null;
   } | null;
   unreadCount: number;
   lastMessageAt: Date | null;
@@ -97,8 +114,28 @@ function assertParticipant(row: ConversationRow, userId: string): void {
   }
 }
 
-function toMessageView(row: MessageRow, reactionSummary: ReactionSummary): MessageView {
+function toReplyToView(context: MessageReplyContext): MessageReplyToView {
+  const isUnsent = Boolean(context.unsent_at);
+  return {
+    id: context.id,
+    senderId: context.sender_id,
+    senderDisplayName: context.sender_display_name,
+    body: isUnsent ? null : context.body,
+    imageUrl: isUnsent ? null : context.image_url,
+    isUnsent,
+  };
+}
+
+function toMessageView(
+  row: MessageRow | MessageRowWithReply,
+  reactionSummary: ReactionSummary,
+  replyContext?: MessageReplyContext | null
+): MessageView {
   const isUnsent = Boolean(row.unsent_at);
+  const context =
+    replyContext ??
+    ("replyContext" in row ? row.replyContext : null);
+
   return {
     id: row.id,
     conversationId: row.conversation_id,
@@ -108,6 +145,37 @@ function toMessageView(row: MessageRow, reactionSummary: ReactionSummary): Messa
     isUnsent,
     createdAt: row.created_at,
     reactionSummary: isUnsent ? emptyReactionSummary() : reactionSummary,
+    replyTo: context ? toReplyToView(context) : null,
+  };
+}
+
+async function rowsToViews(
+  rows: MessageRowWithReply[],
+  viewerId: string
+): Promise<MessageView[]> {
+  const summaries = await MessageReactionModel.summariesForMessages(
+    rows.filter((r) => !r.unsent_at).map((r) => r.id),
+    viewerId
+  );
+  return rows.map((r) =>
+    toMessageView(r, summaries.get(r.id) ?? emptyReactionSummary())
+  );
+}
+
+async function rowToView(row: MessageRowWithReply, viewerId: string): Promise<MessageView> {
+  const [view] = await rowsToViews([row], viewerId);
+  return view;
+}
+
+function lastMessageListShape(row: MessageRow): ConversationListItem["lastMessage"] {
+  return {
+    id: row.id,
+    body: row.unsent_at ? null : row.body,
+    imageUrl: row.unsent_at ? null : row.image_url,
+    isUnsent: Boolean(row.unsent_at),
+    senderId: row.sender_id,
+    createdAt: row.created_at,
+    replyToMessageId: row.reply_to_message_id,
   };
 }
 
@@ -170,17 +238,11 @@ export class MessageService {
       limit: MESSAGE_PAGE_SIZE,
       before,
     });
-    const summaries = await MessageReactionModel.summariesForMessages(
-      rows.filter((r) => !r.unsent_at).map((r) => r.id),
-      userId
-    );
 
     return {
       conversationId,
       peer: toPublicUser(peerUser),
-      messages: rows.map((r) =>
-        toMessageView(r, summaries.get(r.id) ?? emptyReactionSummary())
-      ),
+      messages: await rowsToViews(rows, userId),
       hasMore: rows.length >= MESSAGE_PAGE_SIZE,
     };
   }
@@ -203,14 +265,28 @@ export class MessageService {
     const body = input.body?.trim() || null;
     const imageUrl = input.imageUrl ?? null;
 
+    if (input.replyToMessageId) {
+      const target = await MessageModel.findById(input.replyToMessageId);
+      if (!target || target.conversation_id !== conversationId) {
+        throw new AppError("MESSAGE_VALIDATION", "Invalid reply target.");
+      }
+      if (target.unsent_at) {
+        throw new AppError("MESSAGE_VALIDATION", "Cannot reply to an unsent message.");
+      }
+    }
+
     const row = await MessageModel.create({
       conversationId,
       senderId: userId,
       body,
       imageUrl,
+      replyToMessageId: input.replyToMessageId ?? null,
     });
     await ConversationModel.touchLastMessage(conversationId, row.created_at);
-    const view = toMessageView(row, emptyReactionSummary());
+
+    const withReply = await MessageModel.findByIdWithReply(row.id);
+    if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found after send.");
+    const view = await rowToView(withReply, userId);
     await publishRealtime(() => MessageRealtime.messageCreated(conversation, view));
     return view;
   }
@@ -227,12 +303,16 @@ export class MessageService {
       throw new AppError("MESSAGE_FORBIDDEN", "You can only unsend your own messages.");
     }
     if (existing.unsent_at) {
-      return toMessageView(existing, emptyReactionSummary());
+      const withReply = await MessageModel.findByIdWithReply(messageId);
+      if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
+      return rowToView(withReply, userId);
     }
 
     const row = await MessageModel.markUnsent(messageId, userId);
     if (!row) throw new AppError("MESSAGE_NOT_FOUND", "Message not found or already unsent.");
-    const view = toMessageView(row, emptyReactionSummary());
+    const withReply = await MessageModel.findByIdWithReply(row.id);
+    if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
+    const view = await rowToView(withReply, userId);
     await publishRealtime(() => MessageRealtime.messageUnsent(conversation, view));
     return view;
   }
@@ -248,10 +328,10 @@ export class MessageService {
     }
     const input = reactionSchema.parse(raw);
     await MessageReactionModel.upsert(userId, messageId, input.emoji);
-    const targets = await this.reactionViewsForParticipants(conversation, message);
+    const targets = await this.reactionViewsForParticipants(conversation, message.id);
     const viewerView =
       targets.find((t) => t.userId === userId)?.message ??
-      toMessageView(message, emptyReactionSummary());
+      (await this.viewForMessage(message.id, userId));
     await publishRealtime(() => MessageRealtime.messageReaction(targets));
     return viewerView;
   }
@@ -262,10 +342,10 @@ export class MessageService {
       throw new AppError("MESSAGE_VALIDATION", "Cannot react to an unsent message.");
     }
     await MessageReactionModel.delete(userId, messageId);
-    const targets = await this.reactionViewsForParticipants(conversation, message);
+    const targets = await this.reactionViewsForParticipants(conversation, message.id);
     const viewerView =
       targets.find((t) => t.userId === userId)?.message ??
-      toMessageView(message, emptyReactionSummary());
+      (await this.viewForMessage(message.id, userId));
     await publishRealtime(() => MessageRealtime.messageReaction(targets));
     return viewerView;
   }
@@ -293,19 +373,24 @@ export class MessageService {
     return { message, conversation };
   }
 
+  private static async viewForMessage(messageId: string, viewerId: string): Promise<MessageView> {
+    const withReply = await MessageModel.findByIdWithReply(messageId);
+    if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
+    return rowToView(withReply, viewerId);
+  }
+
   private static async reactionViewsForParticipants(
     conversation: ConversationRow,
-    message: MessageRow
+    messageId: string
   ): Promise<Array<{ userId: string; message: MessageView }>> {
+    const withReply = await MessageModel.findByIdWithReply(messageId);
+    if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
     const userIds = [conversation.user_a, conversation.user_b];
     return Promise.all(
-      userIds.map(async (uid) => {
-        const summaries = await MessageReactionModel.summariesForMessages([message.id], uid);
-        return {
-          userId: uid,
-          message: toMessageView(message, summaries.get(message.id) ?? emptyReactionSummary()),
-        };
-      })
+      userIds.map(async (uid) => ({
+        userId: uid,
+        message: await rowToView(withReply, uid),
+      }))
     );
   }
 
@@ -314,16 +399,7 @@ export class MessageService {
     return {
       id: row.id,
       peer: toPublicUser(row.peer),
-      lastMessage: latest
-        ? {
-            id: latest.id,
-            body: latest.unsent_at ? null : latest.body,
-            imageUrl: latest.unsent_at ? null : latest.image_url,
-            isUnsent: Boolean(latest.unsent_at),
-            senderId: latest.sender_id,
-            createdAt: latest.created_at,
-          }
-        : null,
+      lastMessage: latest ? lastMessageListShape(latest) : null,
       unreadCount: row.unreadCount,
       lastMessageAt: row.last_message_at,
     };
@@ -345,16 +421,7 @@ export class MessageService {
     return {
       id: row.id,
       peer: toPublicUser(peerUser),
-      lastMessage: latest
-        ? {
-            id: latest.id,
-            body: latest.unsent_at ? null : latest.body,
-            imageUrl: latest.unsent_at ? null : latest.image_url,
-            isUnsent: Boolean(latest.unsent_at),
-            senderId: latest.sender_id,
-            createdAt: latest.created_at,
-          }
-        : null,
+      lastMessage: latest ? lastMessageListShape(latest) : null,
       unreadCount,
       lastMessageAt: row.last_message_at,
     };
