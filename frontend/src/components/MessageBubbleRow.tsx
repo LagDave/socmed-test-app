@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
+import { MessageBodyWithEffects } from "@/components/MessageBodyWithEffects";
 import { cn } from "@/lib/utils";
 
 export function MessageBubbleRow({
@@ -28,6 +29,7 @@ export function MessageBubbleRow({
   onUnsend,
   onReactionChange,
   onError,
+  themed = false,
 }: {
   message: MessageView;
   mine: boolean;
@@ -38,6 +40,7 @@ export function MessageBubbleRow({
   onUnsend: (id: string) => void;
   onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
   onError: (message: string) => void;
+  themed?: boolean;
 }) {
   const [reactionsOpen, setReactionsOpen] = useState(false);
 
@@ -59,15 +62,19 @@ export function MessageBubbleRow({
         )}
       >
         <div className={cn("flex min-w-0 flex-col gap-0.5", mine ? "items-end" : "items-start")}>
-          <div className="relative">
+          <div className="relative overflow-visible">
             <div
               className={cn(
-                "rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
+                "relative overflow-visible rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
                 message.isUnsent
                   ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
-                  : mine
-                    ? "bg-foreground text-background"
-                    : "bg-secondary text-foreground"
+                  : themed
+                    ? mine
+                      ? "bg-[var(--chat-bubble-mine)] text-[var(--chat-bubble-mine-fg)]"
+                      : "bg-[var(--chat-bubble-theirs)] text-[var(--chat-bubble-theirs-fg)]"
+                    : mine
+                      ? "bg-foreground text-background"
+                      : "bg-secondary text-foreground"
               )}
             >
               {message.isUnsent ? (
@@ -81,7 +88,9 @@ export function MessageBubbleRow({
                       className="mb-2 max-h-72 w-full rounded-lg object-cover"
                     />
                   )}
-                  {message.body}
+                  {message.body && (
+                    <MessageBodyWithEffects body={message.body} messageId={message.id} />
+                  )}
                 </>
               )}
             </div>

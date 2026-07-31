@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.18 — 2026-08-01
+
+### Added
+- **Chat themes** — shared per-conversation themes stored on `conversations` (preset, solid, gradient)
+- Theme API: `GET/PUT /api/messages/conversations/:id/theme`; thread load includes `theme`
+- Socket event `conversation:theme` for live peer sync
+- **ChatThemePicker** — palette button in thread header; unified horizontal swatch strips for presets, colors, gradients
+- **Word effects** — 11 trigger words with bubble-scoped CSS animations (hearts, confetti, sparkle, flame, pop)
+- 8 graphic presets, 6 solid swatches, 6 gradient presets (CSS gradients, no binary assets)
+
+### Changed
+- **Messages thread** — viewport-height chat shell with auto-scroll to latest message on load/refresh
+- **MessageBubbleRow** — themed bubble colors via CSS custom properties when a chat theme is active
+
+### Plans
+- `plans/08012026-31-chat-themes` — Completed (execution on `kylie/chat-themes`)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added

@@ -30,6 +30,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 24 | `07292026-24-reaction-summary-layout` | Reaction summary right-aligned cluster + total count |
 | 25 | `07302026-25-feed-composer-avatar` | Facebook-style feed composer + shared ProfileAvatar |
 | 26 | `07302026-26-share-button` | Facebook-style share button for friends' posts |
+| 31 | `08012026-31-chat-themes` | Messenger-style chat themes, colors/gradients, word effects |
 
 ## Branch → host (hard rule)
 

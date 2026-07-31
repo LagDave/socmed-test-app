@@ -14,6 +14,7 @@ import { isUniqueViolation } from "../utils/dbErrors";
 import { toPublicUser } from "../types/user";
 import { MessageRealtime } from "../realtime/MessageRealtime";
 import { logger } from "../logger";
+import { ChatThemeService, type ConversationThemeView } from "./ChatThemeService";
 
 async function publishRealtime(work: () => Promise<void>): Promise<void> {
   try {
@@ -158,6 +159,7 @@ export class MessageService {
     peer: ReturnType<typeof toPublicUser>;
     messages: MessageView[];
     hasMore: boolean;
+    theme: ConversationThemeView;
   }> {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
@@ -182,6 +184,7 @@ export class MessageService {
         toMessageView(r, summaries.get(r.id) ?? emptyReactionSummary())
       ),
       hasMore: rows.length >= MESSAGE_PAGE_SIZE,
+      theme: ChatThemeService.themeFromRow(conversation),
     };
   }
 

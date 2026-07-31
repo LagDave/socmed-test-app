@@ -1,18 +1,21 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ImagePlus, MessageCircle, SendHorizontal } from "lucide-react";
+import { ChevronLeft, ImagePlus, MessageCircle, Palette, SendHorizontal } from "lucide-react";
 import { api } from "@/api/client";
 import {
+  CONVERSATION_THEME,
   CONVERSATION_UPDATED,
   MESSAGE_NEW,
   MESSAGE_REACTION,
   MESSAGE_UNSENT,
   getMessagesSocket,
+  type ConversationThemePayload,
   type ConversationUpdatedPayload,
   type MessageEventPayload,
 } from "@/api/socket";
-import type { ConversationListItem, MessageView, PublicUser } from "@/api/types";
+import type { ConversationListItem, ConversationThemeView, MessageView, PublicUser } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChatThemePicker } from "@/components/ChatThemePicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ConversationListRow } from "@/components/ConversationListRow";
 import { MessageBubbleRow } from "@/components/MessageBubbleRow";
@@ -34,6 +37,13 @@ import {
   messagesShareGroup,
 } from "@/lib/formatMessageDay";
 import { submitOnEnter } from "@/lib/submitOnEnter";
+import { updateConversationTheme } from "@/api/messages";
+import {
+  chatThemeCssVars,
+  resolveConversationTheme,
+} from "@/lib/chatThemeApply";
+import type { ChatTheme } from "@/api/types";
+import { cn } from "@/lib/utils";
 
 const POLL_MS = 2500;
 
@@ -60,10 +70,26 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [pendingUnsendId, setPendingUnsendId] = useState<string | null>(null);
   const [unsending, setUnsending] = useState(false);
   const [loadingThread, setLoadingThread] = useState(true);
+  const [conversationTheme, setConversationTheme] = useState<ConversationThemeView | null>(null);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+  const [themeSaving, setThemeSaving] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const generationRef = useRef(0);
+  const themePickerOpenRef = useRef(false);
   const stickToBottomRef = useRef(true);
+
+  themePickerOpenRef.current = themePickerOpen;
+
+  function scrollThreadToBottom(behavior: ScrollBehavior = "auto") {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+    bottomRef.current?.scrollIntoView({ behavior, block: "end" });
+  }
 
   useEffect(() => {
     generationRef.current += 1;
@@ -75,6 +101,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     setError(null);
     setBody("");
     setLoadingThread(true);
+    setConversationTheme(null);
+    setThemePickerOpen(false);
 
     async function loadInitial() {
       try {
@@ -83,11 +111,14 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           peer: PublicUser;
           messages: MessageView[];
           hasMore: boolean;
+          theme: ConversationThemeView;
         }>(`/api/messages/conversations/${conversationId}`);
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
         setMessages(data.messages);
         setHasMore(Boolean(data.hasMore));
+        setConversationTheme(data.theme);
+        setLoadingThread(false);
         if (generation !== generationRef.current) return;
         await api.post(`/api/messages/conversations/${conversationId}/read`);
       } catch (e) {
@@ -116,10 +147,14 @@ function ThreadView({ conversationId }: { conversationId: string }) {
             peer: PublicUser;
             messages: MessageView[];
             hasMore: boolean;
+            theme: ConversationThemeView;
           }>(`/api/messages/conversations/${conversationId}`);
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
           setMessages((prev) => mergeById(prev, data.messages));
+          if (!themePickerOpenRef.current) {
+            setConversationTheme(data.theme);
+          }
           if (generation !== generationRef.current) return;
           await api.post(`/api/messages/conversations/${conversationId}/read`);
         } catch {
@@ -154,17 +189,79 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     socket.on(MESSAGE_NEW, applyInboundNewMessage);
     socket.on(MESSAGE_UNSENT, applyMessagePatch);
     socket.on(MESSAGE_REACTION, applyMessagePatch);
+
+    const applyTheme = (payload: ConversationThemePayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setConversationTheme({
+        theme: payload.theme,
+        updatedAt: payload.updatedAt,
+        updatedBy: payload.updatedBy,
+      });
+    };
+    socket.on(CONVERSATION_THEME, applyTheme);
+
     return () => {
       socket.off(MESSAGE_NEW, applyInboundNewMessage);
       socket.off(MESSAGE_UNSENT, applyMessagePatch);
       socket.off(MESSAGE_REACTION, applyMessagePatch);
+      socket.off(CONVERSATION_THEME, applyTheme);
     };
   }, [conversationId, user?.id]);
 
+  useLayoutEffect(() => {
+    if (loadingThread || !stickToBottomRef.current) return;
+    scrollThreadToBottom("auto");
+    const id = window.requestAnimationFrame(() => {
+      scrollThreadToBottom("auto");
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [loadingThread, conversationId, messages]);
+
   useEffect(() => {
-    if (!stickToBottomRef.current) return;
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    if (loadingThread) return;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const stickIfNeeded = () => {
+      if (!stickToBottomRef.current) return;
+      scrollThreadToBottom("auto");
+    };
+
+    const ro = new ResizeObserver(stickIfNeeded);
+    ro.observe(el);
+    const content = el.firstElementChild;
+    if (content) ro.observe(content);
+
+    return () => ro.disconnect();
+  }, [loadingThread, conversationId]);
+
+  async function sendText(text: string, options?: { clearComposer?: boolean }) {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return false;
+    const generation = generationRef.current;
+    setSending(true);
+    setError(null);
+    stickToBottomRef.current = true;
+    try {
+      const data = await api.post<{ message: MessageView }>(
+        `/api/messages/conversations/${conversationId}/messages`,
+        { body: trimmed }
+      );
+      if (generation !== generationRef.current) return false;
+      if (options?.clearComposer !== false) setBody("");
+      setMessages((prev) => mergeById(prev, [data.message]));
+      if (generation !== generationRef.current) return false;
+      await api.post(`/api/messages/conversations/${conversationId}/read`);
+      return true;
+    } catch (err) {
+      if (generation !== generationRef.current) return false;
+      setError(err instanceof Error ? err.message : "Send failed");
+      return false;
+    } finally {
+      if (generation === generationRef.current) setSending(false);
+    }
+  }
 
   async function loadEarlier() {
     if (loadingEarlier || !hasMore || messages.length === 0) return;
@@ -195,26 +292,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     e.preventDefault();
     const text = body.trim();
     if (!text || sending) return;
-    const generation = generationRef.current;
-    setSending(true);
-    setError(null);
-    stickToBottomRef.current = true;
-    try {
-      const data = await api.post<{ message: MessageView }>(
-        `/api/messages/conversations/${conversationId}/messages`,
-        { body: text }
-      );
-      if (generation !== generationRef.current) return;
-      setBody("");
-      setMessages((prev) => mergeById(prev, [data.message]));
-      if (generation !== generationRef.current) return;
-      await api.post(`/api/messages/conversations/${conversationId}/read`);
-    } catch (err) {
-      if (generation !== generationRef.current) return;
-      setError(err instanceof Error ? err.message : "Send failed");
-    } finally {
-      if (generation === generationRef.current) setSending(false);
-    }
+    await sendText(text);
   }
 
   async function onImage(file: File | null) {
@@ -272,11 +350,36 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     );
   }
 
+  async function applyThemeChoice(payload: ChatTheme | { reset: true }) {
+    setThemeSaving(true);
+    setError(null);
+    try {
+      const updated = await updateConversationTheme(conversationId, payload);
+      setConversationTheme(updated);
+      setThemePickerOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update theme");
+    } finally {
+      setThemeSaving(false);
+    }
+  }
+
+  async function sendWordEffect(word: string) {
+    setThemePickerOpen(false);
+    await sendText(word, { clearComposer: false });
+  }
+
+  const resolvedTheme = resolveConversationTheme(conversationTheme);
+  const themeVars = chatThemeCssVars(resolvedTheme);
   const peerProfilePath = peer?.username ? `/u/${peer.username}` : peer ? `/u/${peer.id}` : "#";
 
   return (
     <section className="space-y-4">
-      <div className="feed-card flex min-h-[70vh] flex-col overflow-hidden">
+      <div
+        className="feed-card relative flex h-[calc(100dvh-7rem)] min-h-[420px] flex-col overflow-hidden"
+        data-chat-theme={resolvedTheme.active ? "true" : undefined}
+        style={themeVars}
+      >
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-card/95 px-3 py-3 backdrop-blur-sm">
           <Button
             type="button"
@@ -310,9 +413,28 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               </div>
             </div>
           )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Customize chat theme"
+            onClick={() => setThemePickerOpen(true)}
+          >
+            <Palette className="h-5 w-5" />
+          </Button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div
+          ref={scrollRef}
+          className="min-h-0 flex-1 overflow-y-auto px-4 py-4"
+          style={resolvedTheme.active ? { background: resolvedTheme.background } : undefined}
+          onScroll={() => {
+            const el = scrollRef.current;
+            if (!el) return;
+            const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+            stickToBottomRef.current = distanceFromBottom < 80;
+          }}
+        >
           {loadingThread ? (
             <MessagesThreadSkeleton />
           ) : (
@@ -355,6 +477,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       onUnsend={setPendingUnsendId}
                       onReactionChange={patchMessageReaction}
                       onError={setError}
+                      themed={resolvedTheme.active}
                     />
                   </div>
                 );
@@ -371,7 +494,19 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         )}
 
         <form onSubmit={onSend} className="border-t border-border px-3 py-3">
-          <div className="flex items-end gap-2 rounded-2xl bg-secondary/50 px-2 py-1.5">
+          <div
+            className={cn(
+              "flex items-end gap-2 rounded-2xl px-2 py-1.5",
+              !resolvedTheme.active && "bg-secondary/50"
+            )}
+            style={
+              resolvedTheme.active
+                ? {
+                    backgroundColor: "color-mix(in srgb, var(--chat-accent) 18%, transparent)",
+                  }
+                : undefined
+            }
+          >
             <input
               ref={fileRef}
               type="file"
@@ -398,10 +533,11 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               <ImagePlus className="h-4 w-4" />
             </Button>
             <Textarea
+              ref={composerRef}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               onKeyDown={submitOnEnter}
-              placeholder="Message"
+              placeholder="Message — try love, congrats, or wow for effects"
               aria-label="Message"
               rows={1}
               disabled={sending}
@@ -413,12 +549,31 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               className="shrink-0"
               aria-label="Send"
               disabled={sending || !body.trim()}
+              style={
+                resolvedTheme.active
+                  ? {
+                      backgroundColor: "var(--chat-accent)",
+                      color: "var(--chat-accent-fg)",
+                    }
+                  : undefined
+              }
             >
               <SendHorizontal className="h-4 w-4" />
             </Button>
           </div>
         </form>
       </div>
+
+      <ChatThemePicker
+        open={themePickerOpen}
+        current={conversationTheme}
+        busy={themeSaving || sending}
+        onApply={(payload) => void applyThemeChoice(payload)}
+        onWordEffectSend={(word) => void sendWordEffect(word)}
+        onClose={() => {
+          if (!themeSaving) setThemePickerOpen(false);
+        }}
+      />
 
       <ConfirmDialog
         open={pendingUnsendId !== null}
