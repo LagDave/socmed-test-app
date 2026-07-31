@@ -3,12 +3,17 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ImagePlus, MessageCircle, SendHorizontal } from "lucide-react";
 import { api } from "@/api/client";
 import {
+  CONVERSATION_PEER_READ,
   CONVERSATION_UPDATED,
+  MESSAGE_ACK,
+  MESSAGE_DELIVERED,
   MESSAGE_NEW,
   MESSAGE_REACTION,
   MESSAGE_UNSENT,
   getMessagesSocket,
+  type ConversationPeerReadPayload,
   type ConversationUpdatedPayload,
+  type MessageDeliveredPayload,
   type MessageEventPayload,
 } from "@/api/socket";
 import type { ConversationListItem, MessageView, PublicUser } from "@/api/types";
@@ -40,7 +45,13 @@ const POLL_MS = 2500;
 function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] {
   const map = new Map<string, MessageView>();
   for (const m of prev) map.set(m.id, m);
-  for (const m of incoming) map.set(m.id, m);
+  for (const m of incoming) {
+    const existing = map.get(m.id);
+    map.set(m.id, {
+      ...m,
+      deliveredAt: m.deliveredAt ?? existing?.deliveredAt ?? null,
+    });
+  }
   return Array.from(map.values()).sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
@@ -51,6 +62,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const navigate = useNavigate();
   const socketConnected = useSocketConnected();
   const [peer, setPeer] = useState<PublicUser | null>(null);
+  const [peerLastReadAt, setPeerLastReadAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
@@ -70,6 +82,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     const generation = generationRef.current;
     stickToBottomRef.current = true;
     setPeer(null);
+    setPeerLastReadAt(null);
     setMessages([]);
     setHasMore(false);
     setError(null);
@@ -81,11 +94,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         const data = await api.get<{
           conversationId: string;
           peer: PublicUser;
+          peerLastReadAt: string | null;
           messages: MessageView[];
           hasMore: boolean;
         }>(`/api/messages/conversations/${conversationId}`);
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
+        setPeerLastReadAt(data.peerLastReadAt);
         setMessages(data.messages);
         setHasMore(Boolean(data.hasMore));
         if (generation !== generationRef.current) return;
@@ -114,11 +129,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           const data = await api.get<{
             conversationId: string;
             peer: PublicUser;
+            peerLastReadAt: string | null;
             messages: MessageView[];
             hasMore: boolean;
           }>(`/api/messages/conversations/${conversationId}`);
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
+          setPeerLastReadAt(data.peerLastReadAt);
           setMessages((prev) => mergeById(prev, data.messages));
           if (generation !== generationRef.current) return;
           await api.post(`/api/messages/conversations/${conversationId}/read`);
@@ -148,16 +165,37 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       setMessages((prev) => mergeById(prev, [msg]));
       if (msg.senderId === user?.id) return;
       stickToBottomRef.current = true;
+      getMessagesSocket().emit(MESSAGE_ACK, { messageId: msg.id });
       void api.post(`/api/messages/conversations/${conversationId}/read`).catch(() => undefined);
+    };
+
+    const applyMessageDelivered = (payload: MessageDeliveredPayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === payload.messageId ? { ...m, deliveredAt: payload.deliveredAt } : m
+        )
+      );
+    };
+
+    const applyPeerRead = (payload: ConversationPeerReadPayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setPeerLastReadAt(payload.peerLastReadAt);
     };
 
     socket.on(MESSAGE_NEW, applyInboundNewMessage);
     socket.on(MESSAGE_UNSENT, applyMessagePatch);
     socket.on(MESSAGE_REACTION, applyMessagePatch);
+    socket.on(MESSAGE_DELIVERED, applyMessageDelivered);
+    socket.on(CONVERSATION_PEER_READ, applyPeerRead);
     return () => {
       socket.off(MESSAGE_NEW, applyInboundNewMessage);
       socket.off(MESSAGE_UNSENT, applyMessagePatch);
       socket.off(MESSAGE_REACTION, applyMessagePatch);
+      socket.off(MESSAGE_DELIVERED, applyMessageDelivered);
+      socket.off(CONVERSATION_PEER_READ, applyPeerRead);
     };
   }, [conversationId, user?.id]);
 
@@ -177,6 +215,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const data = await api.get<{
         conversationId: string;
         peer: PublicUser;
+        peerLastReadAt: string | null;
         messages: MessageView[];
         hasMore: boolean;
       }>(`/api/messages/conversations/${conversationId}?before=${encodeURIComponent(oldestId)}`);
@@ -335,12 +374,10 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               )}
               {messages.map((m, index) => {
                 const prev = index > 0 ? messages[index - 1] : null;
-                const next = index < messages.length - 1 ? messages[index + 1] : null;
                 const mine = m.senderId === user?.id;
                 const showDay =
                   !prev || !isSameCalendarDay(prev.createdAt, m.createdAt);
                 const showAvatar = !mine && (!prev || !messagesShareGroup(prev, m));
-                const showMeta = !next || !messagesShareGroup(m, next);
 
                 return (
                   <div key={m.id} className="space-y-3">
@@ -350,7 +387,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       mine={mine}
                       peer={peer}
                       showAvatar={showAvatar}
-                      showMeta={showMeta}
+                      peerLastReadAt={peerLastReadAt}
                       peerProfilePath={peerProfilePath}
                       onUnsend={setPendingUnsendId}
                       onReactionChange={patchMessageReaction}

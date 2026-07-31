@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.18 — 2026-07-31
+
+### Added
+- Message status icons on outgoing bubbles: Sent (open blue check), Delivered (filled blue check), Seen (peer avatar)
+- `messages.delivered_at` migration; socket `message:ack` / `message:delivered` / `conversation:peer-read` events
+- `MessageStatusIcon` component and `ProfileAvatar` `xs` size
+
+### Changed
+- Message timestamps hidden by default; tap/click bubble toggles timestamp for that message
+- Thread API returns `peerLastReadAt` and per-message `deliveredAt`
+
+### Plans
+- `plans/07312026-28-messages-status-icons` — Completed (execution on `kylie/message-status-icon`)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added

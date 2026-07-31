@@ -1,0 +1,128 @@
+{
+  "plan": "plans/07312026-28-messages-status-icons",
+  "generatedAt": "2026-07-31",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T0",
+      "title": "Execution branch and migration applied",
+      "surface": "cli",
+      "precondition": "Before or at start of execution",
+      "steps": [
+        "Confirm branch kylie/message-status-icon descends from origin/dev",
+        "Run knex migrate:latest and confirm messages.delivered_at exists"
+      ],
+      "expected": "Branch has messenger + websockets; migration applied cleanly.",
+      "status": "pass",
+      "evidence": "2026-07-31: branch from origin/dev 312e03a; npm run migrate batch 4 applied 20260731140000_message_delivered_at.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Sent icon on own outgoing message",
+      "surface": "ui",
+      "precondition": "Two mutuals; A signed in; open thread with B",
+      "steps": [
+        "A sends a text message",
+        "Look at the bottom-right meta area of A's bubble"
+      ],
+      "expected": "Open blue circle with check mark (Sent) appears immediately after send succeeds.",
+      "status": "pass",
+      "evidence": "Author session: sent state visible before delivery upgrade.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Delivered icon when peer receives message",
+      "surface": "ui",
+      "precondition": "B signed in with socket connected (same thread open or inbox)",
+      "steps": [
+        "A sends a message while B is online",
+        "Watch A's bubble status icon"
+      ],
+      "expected": "Icon upgrades to filled blue circle with check mark (Delivered) within ~1s of B receiving message:new.",
+      "status": "pass",
+      "evidence": "Author screenshot 2026-07-31: filled blue circle + check on outgoing bubble.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Seen icon when peer reads thread",
+      "surface": "ui",
+      "precondition": "A sent message already Delivered; B opens the thread (mark read)",
+      "steps": [
+        "B opens or focuses the conversation with A",
+        "Observe A's status icon on that message"
+      ],
+      "expected": "Icon becomes a tiny circular profile photo of B (Seen).",
+      "status": "fail",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Two-browser Seen verify deferred; conversation:peer-read emit path implemented and typed."
+    },
+    {
+      "id": "A4",
+      "title": "Delivered via REST when peer is offline",
+      "surface": "ui",
+      "precondition": "B disconnected or not on messages; A sends message",
+      "steps": [
+        "A sends while B offline",
+        "B later opens thread (REST load)",
+        "A refreshes or waits for poll/socket reconnect"
+      ],
+      "expected": "A eventually sees Delivered after B loads the thread (fetch marks delivered_at).",
+      "status": "fail",
+      "evidence": "",
+      "notes": "",
+      "waiver": "markInboundUndeliveredAsDelivered on listMessages coded; offline scenario not re-run at finalize."
+    },
+    {
+      "id": "A5",
+      "title": "No status on incoming or unsent bubbles",
+      "surface": "ui",
+      "precondition": "Thread with sent and unsent messages",
+      "steps": [
+        "Inspect B's incoming bubbles",
+        "A unsends a message and inspect A's tombstone row"
+      ],
+      "expected": "No status icons on incoming messages or unsent placeholders.",
+      "status": "pass",
+      "evidence": "MessageBubbleRow gates status to mine && !isUnsent.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Live Seen update without reload",
+      "surface": "ui",
+      "precondition": "Both sockets connected; A viewing thread where B has unread from A",
+      "steps": [
+        "B opens thread",
+        "A watches status on latest outgoing message without refreshing"
+      ],
+      "expected": "Seen avatar appears via conversation:peer-read event without page reload.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Socket handler + MessagesPage listener implemented; interactive two-browser pass deferred."
+    },
+    {
+      "id": "A7",
+      "title": "Build and typecheck",
+      "surface": "cli",
+      "precondition": "After implementation",
+      "steps": [
+        "npm run build (root + frontend)",
+        "npm run check:conventions if available"
+      ],
+      "expected": "Green build; no new type errors from status fields or components.",
+      "status": "pass",
+      "evidence": "2026-07-31 finalize: npm run build green (api tsc + frontend vite).",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

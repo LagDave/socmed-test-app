@@ -148,6 +148,7 @@ export class ConversationModel {
             body: r.lm_body,
             image_url: r.lm_image_url,
             unsent_at: r.lm_unsent_at,
+            delivered_at: null,
             created_at: r.lm_created_at!,
           }
         : null,

@@ -63,6 +63,7 @@ export type MessageView = {
   imageUrl: string | null;
   isUnsent: boolean;
   createdAt: Date;
+  deliveredAt: Date | null;
   reactionSummary: ReactionSummary;
 };
 
@@ -91,6 +92,10 @@ function lastReadAt(row: ConversationRow, viewerId: string): Date | null {
   return null;
 }
 
+function peerLastReadAt(row: ConversationRow, viewerId: string): Date | null {
+  return lastReadAt(row, peerId(row, viewerId));
+}
+
 function assertParticipant(row: ConversationRow, userId: string): void {
   if (row.user_a !== userId && row.user_b !== userId) {
     throw new AppError("MESSAGE_FORBIDDEN", "Not a participant of this conversation.");
@@ -107,6 +112,7 @@ function toMessageView(row: MessageRow, reactionSummary: ReactionSummary): Messa
     imageUrl: isUnsent ? null : row.image_url,
     isUnsent,
     createdAt: row.created_at,
+    deliveredAt: row.delivered_at ?? null,
     reactionSummary: isUnsent ? emptyReactionSummary() : reactionSummary,
   };
 }
@@ -156,6 +162,7 @@ export class MessageService {
   ): Promise<{
     conversationId: string;
     peer: ReturnType<typeof toPublicUser>;
+    peerLastReadAt: Date | null;
     messages: MessageView[];
     hasMore: boolean;
   }> {
@@ -166,23 +173,66 @@ export class MessageService {
     const peerUser = await UserModel.findById(peerId(conversation, userId));
     if (!peerUser) throw new AppError("USER_NOT_FOUND", "Peer missing.");
 
+    const freshlyDelivered = await MessageModel.markInboundUndeliveredAsDelivered(
+      conversationId,
+      userId
+    );
+    for (const row of freshlyDelivered) {
+      if (!row.delivered_at) continue;
+      await publishRealtime(async () => {
+        MessageRealtime.messageDelivered(row.sender_id, {
+          messageId: row.id,
+          conversationId: row.conversation_id,
+          deliveredAt: row.delivered_at!,
+        });
+      });
+    }
+    const deliveredAtById = new Map(
+      freshlyDelivered.map((r) => [r.id, r.delivered_at] as const)
+    );
+
     const rows = await MessageModel.listByConversation(conversationId, {
       limit: MESSAGE_PAGE_SIZE,
       before,
     });
+    const mergedRows = rows.map((r) => {
+      const delivered = deliveredAtById.get(r.id);
+      return delivered ? { ...r, delivered_at: delivered } : r;
+    });
     const summaries = await MessageReactionModel.summariesForMessages(
-      rows.filter((r) => !r.unsent_at).map((r) => r.id),
+      mergedRows.filter((r) => !r.unsent_at).map((r) => r.id),
       userId
     );
 
     return {
       conversationId,
       peer: toPublicUser(peerUser),
-      messages: rows.map((r) =>
+      peerLastReadAt: peerLastReadAt(conversation, userId),
+      messages: mergedRows.map((r) =>
         toMessageView(r, summaries.get(r.id) ?? emptyReactionSummary())
       ),
-      hasMore: rows.length >= MESSAGE_PAGE_SIZE,
+      hasMore: mergedRows.length >= MESSAGE_PAGE_SIZE,
     };
+  }
+
+  static async ackMessageDelivery(userId: string, messageId: string): Promise<void> {
+    const message = await MessageModel.findById(messageId);
+    if (!message || message.unsent_at || message.sender_id === userId) return;
+
+    const conversation = await ConversationModel.findById(message.conversation_id);
+    if (!conversation) return;
+    assertParticipant(conversation, userId);
+
+    const row = await MessageModel.markDelivered(messageId);
+    if (!row?.delivered_at) return;
+
+    await publishRealtime(async () => {
+      MessageRealtime.messageDelivered(row.sender_id, {
+        messageId: row.id,
+        conversationId: row.conversation_id,
+        deliveredAt: row.delivered_at!,
+      });
+    });
   }
 
   static async send(
@@ -274,8 +324,22 @@ export class MessageService {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
     assertParticipant(conversation, userId);
-    await ConversationModel.markRead(conversationId, userId, new Date());
-    await publishRealtime(() => MessageRealtime.conversationRead(conversation, userId));
+    const updated = await ConversationModel.markRead(conversationId, userId, new Date());
+    if (!updated) return { ok: true };
+
+    const readerLastReadAt = lastReadAt(updated, userId);
+    const notifyId = peerId(updated, userId);
+
+    await publishRealtime(async () => {
+      await MessageRealtime.conversationRead(conversation, userId);
+      if (readerLastReadAt) {
+        MessageRealtime.conversationPeerRead(notifyId, {
+          conversationId: updated.id,
+          readerId: userId,
+          peerLastReadAt: readerLastReadAt,
+        });
+      }
+    });
     return { ok: true };
   }
 
