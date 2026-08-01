@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ImagePlus, MessageCircle, SendHorizontal } from "lucide-react";
+import { ChevronLeft, ImagePlus, SendHorizontal } from "lucide-react";
 import { api } from "@/api/client";
 import {
   CONVERSATION_UPDATED,
@@ -21,6 +21,7 @@ import {
   MessageDaySeparator,
   MessagesEmptyThread,
   MessagesErrorBanner,
+  MessagesInboxEmptyConversations,
   MessagesRowSkeleton,
   MessagesThreadSkeleton,
 } from "@/components/MessagesUiHelpers";
@@ -275,9 +276,9 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const peerProfilePath = peer?.username ? `/u/${peer.username}` : peer ? `/u/${peer.id}` : "#";
 
   return (
-    <section className="space-y-4">
+    <section className="messages-page space-y-4">
       <div className="feed-card flex min-h-[70vh] flex-col overflow-hidden">
-        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-card/95 px-3 py-3 backdrop-blur-sm">
+        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-card/95 px-4 py-3 shadow-sm backdrop-blur-sm">
           <Button
             type="button"
             variant="ghost"
@@ -312,11 +313,11 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           )}
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="messages-thread-pane flex-1 overflow-y-auto px-4 py-4">
           {loadingThread ? (
             <MessagesThreadSkeleton />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-1">
               {hasMore && (
                 <div className="flex justify-center pb-1">
                   <Button
@@ -341,9 +342,11 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                   !prev || !isSameCalendarDay(prev.createdAt, m.createdAt);
                 const showAvatar = !mine && (!prev || !messagesShareGroup(prev, m));
                 const showMeta = !next || !messagesShareGroup(m, next);
+                const groupedWithPrev = Boolean(prev && messagesShareGroup(prev, m));
+                const groupedWithNext = Boolean(next && messagesShareGroup(m, next));
 
                 return (
-                  <div key={m.id} className="space-y-3">
+                  <div key={m.id}>
                     {showDay && <MessageDaySeparator label={formatMessageDay(m.createdAt)} />}
                     <MessageBubbleRow
                       message={m}
@@ -351,6 +354,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       peer={peer}
                       showAvatar={showAvatar}
                       showMeta={showMeta}
+                      groupedWithPrev={groupedWithPrev}
+                      groupedWithNext={groupedWithNext}
                       peerProfilePath={peerProfilePath}
                       onUnsend={setPendingUnsendId}
                       onReactionChange={patchMessageReaction}
@@ -364,14 +369,10 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           <div ref={bottomRef} />
         </div>
 
-        {error && (
-          <div className="px-4 pb-2">
-            <MessagesErrorBanner message={error} />
-          </div>
-        )}
+        {error && <MessagesErrorBanner message={error} />}
 
-        <form onSubmit={onSend} className="border-t border-border px-3 py-3">
-          <div className="flex items-end gap-2 rounded-2xl bg-secondary/50 px-2 py-1.5">
+        <form onSubmit={onSend} className="border-t border-border bg-card px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
+          <div className="messages-composer-track flex items-end gap-2 rounded-full px-2 py-1.5">
             <input
               ref={fileRef}
               type="file"
@@ -476,57 +477,57 @@ function InboxView() {
     };
   }, []);
 
+  const unreadTotal = items.reduce((sum, item) => sum + item.unreadCount, 0);
+
   return (
-    <section className="space-y-4">
-      <div className="px-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Messages</h1>
-        <p className="text-sm text-muted-foreground">Chat with friends.</p>
-      </div>
-
-      {error && (
-        <div className="px-1">
-          <MessagesErrorBanner message={error} />
+    <section className="messages-page space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 px-1">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Messages</h1>
+          <p className="text-sm text-muted-foreground">Chat with friends.</p>
         </div>
-      )}
-
-      <div className="feed-card p-5">
-        <MessagesFriendPicker hasConversations={items.length > 0} />
+        {!loading && unreadTotal > 0 && (
+          <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+            {unreadTotal} unread
+          </span>
+        )}
       </div>
 
-      {loading && (
-        <div className="feed-card p-5">
-          <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
-          <div className="mt-3">
+      <div className="feed-card overflow-hidden shadow-sm">
+        {error && <MessagesErrorBanner message={error} />}
+
+        <div className="messages-inbox-compose px-4 py-4">
+          <MessagesFriendPicker
+            hasConversations={items.length > 0}
+            existingPeerIds={items.map((c) => c.peer.id)}
+          />
+        </div>
+
+        <div>
+          <div className="border-t border-border px-4 py-3">
+            <h2 className="messages-section-label">
+              Conversations
+              {!loading && items.length > 0 && (
+                <span className="ml-1.5 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold normal-case tracking-normal text-foreground">
+                  {items.length}
+                </span>
+              )}
+            </h2>
+          </div>
+
+          {loading ? (
             <MessagesRowSkeleton rows={3} />
-          </div>
+          ) : items.length > 0 ? (
+            <ul className="divide-y divide-border">
+              {items.map((c) => (
+                <ConversationListRow key={c.id} item={c} />
+              ))}
+            </ul>
+          ) : !error ? (
+            <MessagesInboxEmptyConversations />
+          ) : null}
         </div>
-      )}
-
-      {!loading && items.length > 0 && (
-        <div className="feed-card p-5">
-          <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
-          <ul className="mt-3 space-y-1">
-            {items.map((c) => (
-              <ConversationListRow key={c.id} item={c} />
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {!loading && items.length === 0 && !error && (
-        <div className="feed-card p-5">
-          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-            <MessageCircle
-              className="size-10 text-muted-foreground/40"
-              aria-hidden="true"
-              strokeWidth={1.25}
-            />
-            <p className="text-sm text-muted-foreground">
-              No conversations yet. Pick a friend above to start chatting.
-            </p>
-          </div>
-        </div>
-      )}
+      </div>
     </section>
   );
 }

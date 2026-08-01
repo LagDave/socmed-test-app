@@ -24,6 +24,8 @@ export function MessageBubbleRow({
   peer,
   showAvatar,
   showMeta,
+  groupedWithPrev,
+  groupedWithNext,
   peerProfilePath,
   onUnsend,
   onReactionChange,
@@ -34,6 +36,8 @@ export function MessageBubbleRow({
   peer: PublicUser | null;
   showAvatar: boolean;
   showMeta: boolean;
+  groupedWithPrev?: boolean;
+  groupedWithNext?: boolean;
   peerProfilePath: string;
   onUnsend: (id: string) => void;
   onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
@@ -42,7 +46,13 @@ export function MessageBubbleRow({
   const [reactionsOpen, setReactionsOpen] = useState(false);
 
   return (
-    <div className={cn("group/message flex gap-2", mine ? "flex-row-reverse" : "flex-row")}>
+    <div
+      className={cn(
+        "group/message flex gap-2",
+        mine ? "flex-row-reverse" : "flex-row",
+        groupedWithNext ? "mb-0.5" : "mb-1"
+      )}
+    >
       {!mine &&
         (showAvatar && peer ? (
           <Link to={peerProfilePath} className="shrink-0 self-end" aria-label={`${peer.displayName}'s profile`}>
@@ -62,12 +72,17 @@ export function MessageBubbleRow({
           <div className="relative">
             <div
               className={cn(
-                "rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
+                "px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
                 message.isUnsent
-                  ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
-                  : mine
-                    ? "bg-foreground text-background"
-                    : "bg-secondary text-foreground"
+                  ? "rounded-2xl border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
+                  : cn(
+                      "rounded-2xl shadow-sm",
+                      mine
+                        ? "bg-foreground text-background shadow-foreground/10"
+                        : "bg-card text-foreground ring-1 ring-border/60",
+                      groupedWithPrev && (mine ? "rounded-tr-lg" : "rounded-tl-lg"),
+                      groupedWithNext && (mine ? "rounded-br-lg" : "rounded-bl-lg")
+                    )
               )}
             >
               {message.isUnsent ? (

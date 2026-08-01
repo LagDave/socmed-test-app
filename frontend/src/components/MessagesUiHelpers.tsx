@@ -1,8 +1,10 @@
+import { MessageCircle } from "lucide-react";
+
 export function MessagesRowSkeleton({ rows = 3 }: { rows?: number }) {
   return (
-    <ul className="space-y-1" aria-hidden="true">
+    <ul className="divide-y divide-border" aria-hidden="true">
       {Array.from({ length: rows }, (_, i) => (
-        <li key={i} className="flex items-center gap-3 border-b border-border py-3 last:border-b-0">
+        <li key={i} className="flex items-center gap-3 px-4 py-4">
           <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-secondary" />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex justify-between gap-2">
@@ -41,8 +43,8 @@ export function MessagesThreadSkeleton() {
 
 export function MessageDaySeparator({ label }: { label: string }) {
   return (
-    <div className="flex justify-center py-1">
-      <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
+    <div className="flex justify-center py-2">
+      <span className="rounded-full border border-border/60 bg-secondary/80 px-3 py-1 text-xs font-medium text-muted-foreground">
         {label}
       </span>
     </div>
@@ -51,19 +53,46 @@ export function MessageDaySeparator({ label }: { label: string }) {
 
 export function MessagesEmptyThread({ peerName }: { peerName: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-      <p className="text-sm font-medium text-foreground">No messages yet</p>
-      <p className="max-w-xs text-sm text-muted-foreground">
-        Say hi to {peerName}. Your conversation stays here.
-      </p>
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
+      <span className="flex size-14 items-center justify-center rounded-full bg-secondary">
+        <MessageCircle className="size-6 text-muted-foreground/70" aria-hidden="true" strokeWidth={1.25} />
+      </span>
+      <div className="space-y-1">
+        <p className="text-base font-medium">No messages yet</p>
+        <p className="max-w-xs text-sm text-muted-foreground">
+          Say hi to {peerName}. Your conversation stays here.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export function MessagesInboxEmptyConversations() {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+      <span className="flex size-14 items-center justify-center rounded-full bg-secondary">
+        <MessageCircle className="size-6 text-muted-foreground/70" aria-hidden="true" strokeWidth={1.25} />
+      </span>
+      <div className="space-y-1">
+        <p className="text-base font-medium">No conversations yet</p>
+        <p className="max-w-xs text-sm text-muted-foreground">
+          Pick a friend above to start chatting.
+        </p>
+      </div>
     </div>
   );
 }
 
 export function MessagesErrorBanner({ message }: { message: string }) {
   return (
-    <p className="rounded-md border border-border bg-secondary/60 px-3 py-2 text-sm text-foreground">
+    <p className="border-b border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
       {message}
     </p>
+  );
+}
+
+export function MessagesInlineError({ message }: { message: string }) {
+  return (
+    <p className="rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">{message}</p>
   );
 }

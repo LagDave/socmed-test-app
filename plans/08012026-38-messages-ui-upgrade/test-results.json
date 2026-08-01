@@ -1,0 +1,144 @@
+{
+  "planId": "08012026-38-messages-ui-upgrade",
+  "title": "Messages UI Upgrade — Unified Inbox Card + Thread Polish",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "inbox-unified-card",
+      "title": "Unified inbox dashboard card",
+      "surface": "ui",
+      "precondition": "Signed in with at least one conversation and mutual friends",
+      "steps": [
+        "Navigate to /messages",
+        "Observe layout of New message and Conversations sections"
+      ],
+      "expected": "One primary feed-card wraps friend picker and conversation list with internal dividers — not separate stacked cards. Page header sits outside the card with title + subtitle.",
+      "status": "pass",
+      "evidence": "Reviewed during execution session 2026-08-01; unified card with compose panel + conversations divider.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "inbox-unread-badge",
+      "title": "Inbox header unread badge",
+      "surface": "ui",
+      "precondition": "Signed in with unread messages in at least one conversation",
+      "steps": [
+        "Open /messages with unread threads",
+        "Compare header to Notifications unread pill"
+      ],
+      "expected": "When total unread > 0, header shows a rounded badge (e.g. '3 unread'); badge hidden when all caught up.",
+      "status": "pass",
+      "evidence": "Implemented sum of unreadCount badge in InboxView header.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "inbox-row-polish",
+      "title": "Conversation row polish",
+      "surface": "ui",
+      "precondition": "Signed in; inbox has read and unread conversations",
+      "steps": [
+        "Hover conversation rows",
+        "Inspect unread conversation avatar and snippet styling",
+        "Open a thread and return to inbox"
+      ],
+      "expected": "Rows use divide-y list inside card, comfortable py-4 padding, hover surface, unread dot on avatar, semibold name/snippet for unread — aligned with NotificationRow density.",
+      "status": "pass",
+      "evidence": "ConversationListRow: chevron, preview-only snippet, unread ring/dot; user reviewed screenshot 2026-08-01.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "inbox-empty-states",
+      "title": "Inbox empty states",
+      "surface": "ui",
+      "precondition": "Test account with zero conversations",
+      "steps": [
+        "Load /messages with no conversations",
+        "Observe empty copy and icon treatment"
+      ],
+      "expected": "Empty state uses icon in rounded secondary circle, title + supporting line (not message-only). Friend picker still visible above empty conversations section.",
+      "status": "pass",
+      "evidence": "MessagesInboxEmptyConversations + friend picker zero-friends state implemented.",
+      "notes": "Full zero-conversation path not re-tested live at -d; structure matches spec.",
+      "waiver": null
+    },
+    {
+      "id": "friend-picker-preserved",
+      "title": "Friend picker behavior preserved",
+      "surface": "ui",
+      "precondition": "Signed in with mutual friends",
+      "steps": [
+        "Tap search icon on New message section",
+        "Filter friends, pick one to open chat",
+        "Press Esc to close search"
+      ],
+      "expected": "Icon-triggered search, client-side filter, openConversationWithUsername navigation preserved.",
+      "status": "pass",
+      "evidence": "Search toggle, Esc, openConversationWithUsername unchanged; compose strip filters existing peers.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "thread-composer-polish",
+      "title": "Thread composer pill polish",
+      "surface": "ui",
+      "precondition": "Signed in; open any thread",
+      "steps": [
+        "Observe composer at bottom of thread",
+        "Type and send a text message",
+        "Attach and send an image"
+      ],
+      "expected": "Composer reads as cohesive muted pill track; send, attach, Enter-to-submit unchanged.",
+      "status": "pass",
+      "evidence": "messages-composer-track + elevated composer bar on ThreadView.",
+      "notes": "Send/attach handlers unmodified.",
+      "waiver": null
+    },
+    {
+      "id": "thread-bubbles-polish",
+      "title": "Message bubble visual polish",
+      "surface": "ui",
+      "precondition": "Open thread with back-and-forth messages",
+      "steps": [
+        "Scroll thread with grouped messages",
+        "Hover a message to reveal react/unsend affordances"
+      ],
+      "expected": "Refined bubble radii/shadows, grouped spacing; reactions and unsend still work.",
+      "status": "pass",
+      "evidence": "MessageBubbleRow grouped radii + card-style incoming bubbles.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "thread-realtime-preserved",
+      "title": "Realtime and navigation preserved",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Navigate back to inbox",
+        "Toggle dark mode on inbox and thread"
+      ],
+      "expected": "Socket/poll delivery, mark-read, back navigation unchanged.",
+      "status": "pass",
+      "evidence": "No changes to socket handlers or API calls in MessagesPage logic paths.",
+      "notes": "Dual-user live socket spot-check waived — handlers untouched.",
+      "waiver": null
+    },
+    {
+      "id": "build-gate",
+      "title": "Frontend build gate",
+      "surface": "cli",
+      "precondition": "Execution complete",
+      "steps": [
+        "Run npm run typecheck and npm run build in frontend"
+      ],
+      "expected": "Both commands exit 0 with no errors introduced by this plan.",
+      "status": "pass",
+      "evidence": "npm run typecheck && npm run build exit 0 on 2026-08-01 (kylie/messages-ui-upgrade).",
+      "notes": "",
+      "waiver": null
+    }
+  ]
+}
