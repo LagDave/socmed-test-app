@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feed UI Upgrade Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    .callout.pending { border-style:dashed; border-color:var(--muted); }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+    .target-mock { margin-top:14px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#f0f2f5; padding:16px; max-width:680px; }
+    .mock-composer { display:flex; align-items:center; gap:12px; background:#fff; border-radius:12px; padding:12px 14px; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+    .mock-avatar { width:40px; height:40px; border-radius:999px; background:#e4e6eb; flex-shrink:0; }
+    .mock-pill { flex:1; background:#f0f2f5; border-radius:999px; padding:10px 16px; color:#65676b; font-size:14px; }
+    .mock-post { background:#fff; border-radius:12px; box-shadow:0 1px 2px rgba(0,0,0,.08); margin-top:12px; overflow:hidden; }
+    .mock-post-head { display:flex; gap:12px; padding:16px 16px 8px; }
+    .mock-post-body { padding:0 16px 12px; font-size:15px; line-height:1.5; }
+    .mock-post-img { width:100%; height:140px; background:linear-gradient(135deg,#e4e6eb,#f0f2f5); }
+    .mock-actions { display:flex; gap:8px; padding:8px 12px 12px; border-top:1px solid #e4e6eb; color:#65676b; font-size:13px; }
+    .mock-actions span { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 36</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Feed UI Upgrade — Elevated Cards, Composer Pill, Labeled Actions</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08012026-36-feed-ui-upgrade</dd></div>
+        <div><dt>Size</dt><dd>Medium (6 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08012026-36-feed-ui-upgrade</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/feed-ui-upgrade</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 25 FeedComposer · Plan 26 Share · existing feed-card tokens</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plans 25–26 modernized the feed composer and post cards, but the home feed still reads utilitarian next to the profile page and the in-flight navbar upgrade. The composer textarea looks like a bare form control, post photos sit inset beside the avatar column, and action rows are icon-only — fine for density, weak for scanability and “social product” feel.</p>
+      <p>This is a <strong>visual polish pass</strong> on the home feed (<code>/</code>) and post detail (<code>/posts/:id</code>). Profile timeline stays unchanged. No new features, no API changes.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p><strong>Target feed (signed in):</strong></p>
+      <pre class="wire">┌─ composer card ────────────────────────────────────────┐
+│ (●)  [ What's on your mind? ·················· ]  Post │
+└────────────────────────────────────────────────────────┘
+        ↓ refined vertical rhythm
+┌─ post card ────────────────────────────────────────────┐
+│ (●) Name · @user · 2h ago                              │
+│     Post body text…                                    │
+│ ┌──────────────── full-bleed image ─────────────────┐ │
+│ └────────────────────────────────────────────────────┘ │
+│ ─────────────────────────────────────────────────────  │
+│  💬 Comment   ↗ Share          👍 ❤️ 😂  · 3           │
+└────────────────────────────────────────────────────────┘
+        ↓
+   ─── You're all caught up ───</pre>
+      <div class="target-mock" aria-hidden="true">
+        <div class="mock-composer">
+          <div class="mock-avatar"></div>
+          <div class="mock-pill">What's on your mind?</div>
+        </div>
+        <div class="mock-post">
+          <div class="mock-post-head">
+            <div class="mock-avatar"></div>
+            <div><strong>Jane Doe</strong> <span style="color:#65676b;font-size:12px">· 1h</span></div>
+          </div>
+          <div class="mock-post-body">Weekend hike was worth the early alarm.</div>
+          <div class="mock-post-img"></div>
+          <div class="mock-actions">
+            <span>💬 Comment</span>
+            <span>↗ Share</span>
+            <span style="margin-left:auto">👍 ❤️ · 2</span>
+          </div>
+        </div>
+      </div>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Collapsed composer uses a muted pill prompt inside the card (avatar + pill + Post on one row)</li>
+        <li>Expanded composer, photo attach, Enter-to-submit, and API behavior unchanged</li>
+        <li>Standard feed post images are full-bleed within the card (edge-to-edge); profile-activity posts keep existing treatments</li>
+        <li>At <code>md+</code>, Comment/Share show icon + label; narrow viewports stay icon-only</li>
+        <li>Feed list rhythm, card elevation, skeletons, empty/welcome states, and caught-up footer feel intentional</li>
+        <li>Light + dark parity via existing CSS variables; <code>prefers-reduced-motion</code> respected</li>
+        <li>Frontend typecheck/build pass; acceptance checklist passes or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Surface scope</td>
+            <td><strong>B — Home feed + post detail</strong></td>
+            <td>Human confirmed. Feed and post detail share <code>PostCard</code> / <code>PostActionRow</code>; profile timeline stays on current styling.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Page header</td>
+            <td><strong>A — Stay headerless</strong></td>
+            <td>Human confirmed. Preserves Plan 25 removal of “Feed” title block.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Composer collapsed look</td>
+            <td><strong>A — Muted pill prompt field</strong></td>
+            <td>Human confirmed. Matches create-post affordance and navbar pill language.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Post image layout</td>
+            <td><strong>A — Full-bleed within card</strong></td>
+            <td>Human confirmed. Reuses <code>POST_MEDIA_BREAKOUT</code> pattern for standard photo posts on feed and detail.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Action row labels</td>
+            <td><strong>A — Labels at md+; icons-only on mobile</strong></td>
+            <td>Human confirmed. Better desktop scanability without crowding narrow layouts.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Reaction bar</td>
+            <td><strong>A — Visual polish only (no layout change)</strong></td>
+            <td>Default retained. Plan 24 reaction-summary layout stays locked.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today (execution base <code>kylie/feed-ui-upgrade</code> @ <code>312e03a</code>):</strong></p>
+      <ul>
+        <li><code>frontend/src/pages/FeedPage.tsx</code> — orchestrates composer, post list, infinite scroll, signed-out welcome card, error banner, end-of-feed text.</li>
+        <li><code>frontend/src/components/FeedComposer.tsx</code> — expand-on-focus composer with photo attach; collapsed = transparent single-line textarea + inline Post.</li>
+        <li><code>frontend/src/components/PostCard.tsx</code> — feed post card; profile-activity images already use negative-margin breakout; standard images are inset with rounded border.</li>
+        <li><code>frontend/src/components/PostActionRow.tsx</code> — icon-only Comment/Share ghost buttons.</li>
+        <li><code>frontend/src/components/FeedEmptyState.tsx</code> — empty + skeleton components.</li>
+        <li><code>frontend/src/index.css</code> — <code>.feed-card</code>, <code>--feed-shadow</code>, enter/shimmer animations, <code>.feed-action-row</code> divider.</li>
+        <li><code>frontend/src/components/AppShell.tsx</code> — <code>main</code> max width 680px unchanged.</li>
+      </ul>
+      <p><strong>Closest analog:</strong> Facebook home feed create-post strip + full-width photo posts; in-repo analog = Plan 35 navbar elevation language + profile timeline card polish on <code>ProfilePage</code>.</p>
+      <p><strong>Consumers / blast radius:</strong> Feed route primary; <code>PostCard</code> and <code>PostActionRow</code> if labeled actions or full-bleed props leak beyond feed — mitigate with explicit <code>variant</code> or <code>showLabels</code> props defaulting to current behavior off-feed.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Preserve all feed data-fetching, pagination, share/delete/reaction behavior</li>
+            <li>Preserve composer API payload and validation (<code>MAX_BODY</code>, photo upload flow)</li>
+            <li>Light + dark theme parity using existing B&amp;W tokens — no new accent colors</li>
+            <li><code>prefers-reduced-motion: reduce</code> disables or shortens new motion</li>
+            <li>Feed-only behavior changes gated so profile timeline is unaffected; feed + post detail share upgraded PostCard/PostActionRow props</li>
+            <li>Update <code>plans/README.md</code> with seq 36</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>Backend, schema, or API changes</li>
+            <li>New npm dependencies</li>
+            <li>Re-add removed Feed page title (“Feed” / “You and your mutuals.”)</li>
+            <li>Change <code>main</code> max width or AppShell layout</li>
+            <li>Reorder reaction stickers or reaction-summary layout (Plan 24)</li>
+            <li>Drive-by refactors on Messages, Friends, Notifications pages</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Out of scope</h3>
+          <ul>
+            <li>Feed algorithm / sorting / filters</li>
+            <li>Stories, polls, link previews, @mentions</li>
+            <li>Comment/reply UI on feed (still navigates to post detail)</li>
+            <li>Navbar upgrade (Plan 35 — parallel; do not merge chrome changes here)</li>
+            <li>Post detail page visual parity (locked — in scope with feed)</li>
+            <li>Profile timeline card restyle</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Primary hazard is styling <code>PostCard</code> globally and unintentionally changing profile timeline or post detail. Secondary: labeled actions crowding narrow cards if breakpoints are wrong.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>PostCard changes leak to profile/detail</td>
+            <td>ProfilePage, PostDetailPage</td>
+            <td>Pass explicit props from FeedPage (<code>mediaLayout="fullBleed"</code>, <code>showActionLabels</code>); defaults preserve current look elsewhere</td>
+          </tr>
+          <tr>
+            <td>Full-bleed images break shared-post embeds</td>
+            <td>Share posts on feed</td>
+            <td>Apply breakout only to top-level non-share body images; <code>SharedPostEmbed</code> unchanged</td>
+          </tr>
+          <tr>
+            <td>Composer pill hurts accessibility/focus</td>
+            <td>Compose flow</td>
+            <td>Keep real <code>Textarea</code>; pill is visual wrapper only; focus ring visible</td>
+          </tr>
+          <tr>
+            <td>Parallel Plan 35 navbar merge conflicts</td>
+            <td>AppShell vs FeedPage</td>
+            <td>Touch only feed-surface files; rebase onto latest <code>dev</code> before <code>-x</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Required pushback:</strong> Do not widen scope to “whole app UI refresh.” Do not change reaction semantics. Do not add dependencies for animation libraries.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Feed design tokens + page rhythm</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Extend <code>index.css</code> feed tokens if needed: refined <code>--feed-shadow</code> steps, <code>.feed-end-divider</code> for caught-up state, optional <code>.feed-composer-pill</code> utility. Tune <code>.feed-page</code> vertical spacing (<code>space-y</code> equivalents) between composer, errors, list, and footer. Respect reduced-motion.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>Locked decisions</dd></div>
+          <div><dt>Verify</dt><dd>Light/dark cards and divider render; no regression on Friends/Notifications pages using <code>feed-card</code></dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — FeedComposer collapsed pill polish</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            When collapsed: wrap textarea in muted pill surface (rounded-full or rounded-xl on <code>--secondary</code>/<code>--muted</code> track); keep avatar + Post alignment. When expanded: existing ring/shadow + photo row unchanged. No behavior changes to submit/upload/validation.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/FeedComposer.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Visual match to wire; focus/blur expand/collapse works; photo post still succeeds</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — PostCard feed media + header spacing</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add opt-in props for feed + detail usage: full-bleed image layout for standard photo posts (reuse/adapt <code>POST_MEDIA_BREAKOUT</code>); tighten author header typography/spacing. Profile-activity and shared embed posts exempt. <code>FeedPage</code> and <code>PostDetailPage</code> pass props; profile timeline omits.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/PostCard.tsx</code>, <code>frontend/src/pages/FeedPage.tsx</code>, <code>frontend/src/pages/PostDetailPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Feed photos edge-to-edge; profile timeline unchanged; share embeds intact</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — PostActionRow labeled mode</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add optional <code>showLabels</code> (or size-driven) mode: at <code>md+</code>, Comment and Share render icon + text label with comfortable hit targets; below <code>md</code>, current icon-only layout. <code>FeedPage</code> and <code>PostDetailPage</code> enable; profile timeline leaves default off.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/PostActionRow.tsx</code>, <code>frontend/src/pages/FeedPage.tsx</code>, <code>frontend/src/pages/PostDetailPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>Labels visible on desktop, hidden on 375px; share/comment navigation unchanged</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — FeedPage states: empty, welcome, error, caught-up</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Upgrade signed-out welcome card to match empty-state quality (icon, typography, spacing). Polish error banner styling. Replace bare “You're all caught up” with divider treatment. Wire <code>FeedEmptyState</code> + skeleton tweaks to match new card/header layout.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/FeedPage.tsx</code>, <code>frontend/src/components/FeedEmptyState.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Empty, signed-out, error, and end states visually cohesive; CTAs still work</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T6">
+        <h3>T6 — Acceptance + plans index</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Run frontend typecheck/build. Execute acceptance items in <code>test-results.json</code> (or record waivers). Append seq 36 to <code>plans/README.md</code>.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>plans/README.md</code>, plan acceptance artifacts</dd></div>
+          <div><dt>Depends on</dt><dd>T2–T5</dd></div>
+          <div><dt>Verify</dt><dd>Build green; acceptance Passed or waivers documented</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>Grill decisions locked in Revision Log</span></li>
+        <li><span>☑</span><span>Collapsed composer pill + expanded behavior preserved</span></li>
+        <li><span>☑</span><span>Feed post images full-bleed; profile-activity/share embeds intact</span></li>
+        <li><span>☑</span><span>Post detail shares full-bleed media + labeled actions; profile timeline unchanged</span></li>
+        <li><span>☑</span><span>Empty, welcome, error, caught-up states polished</span></li>
+        <li><span>☑</span><span>Light + dark + reduced-motion verified (localhost:5180)</span></li>
+        <li><span>☑</span><span>Frontend typecheck/build pass</span></li>
+        <li><span>☑</span><span>Acceptance checklist Passed</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="acceptance">
+      <h2>Acceptance</h2>
+      <p>Runnable checklist: <code>test-results.json</code> + <code>test.html</code> in this folder. Surfaces are UI.</p>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>08012026</td>
+            <td>Initial spec from <code>-s</code> on <code>kylie/feed-ui-upgrade</code>. Grill defaults proposed. Planning worktree <code>plan/08012026-36-feed-ui-upgrade</code>.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>08012026</td>
+            <td>Grill locked: 1B feed+detail · 2A headerless · 3A composer pill · 4A full-bleed · 5A labeled actions md+ · 6A reaction polish only.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>08012026</td>
+            <td>Execution on <code>kylie/feed-ui-upgrade</code>: T1–T5 implemented; typecheck + build green.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>08012026</td>
+            <td>Composer track polish: Post integrated inside pill row; focus ring + dark-mode contrast. User reviewed on localhost:5180.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>08012026</td>
+            <td><code>--done</code>: acceptance Passed; changelog 0.1.18; plan Completed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

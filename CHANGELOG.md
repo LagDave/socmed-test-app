@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.18 — 2026-08-01
+
+### Changed
+- Feed UI polish: unified composer track (avatar + pill + Post in one row), expanded composer field, full-bleed post images on feed and post detail
+- Labeled Comment/Share actions at desktop breakpoints; profile timeline unchanged
+- Feed empty/welcome states, error alerts, and caught-up divider styling
+
+### Plans
+- `plans/08012026-36-feed-ui-upgrade` — Completed (execution on `kylie/feed-ui-upgrade`)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added

@@ -52,16 +52,37 @@ function ProfileActivityMedia({ body, imageUrl }: { body: string; imageUrl: stri
   );
 }
 
-function PostActivityImage({ body, imageUrl, postPath }: { body: string; imageUrl: string; postPath: string }) {
+function PostActivityImage({
+  body,
+  imageUrl,
+  postPath,
+  fullBleed,
+}: {
+  body: string;
+  imageUrl: string;
+  postPath: string;
+  fullBleed: boolean;
+}) {
   if (isProfileActivityPost(body)) {
     return <ProfileActivityMedia body={body} imageUrl={imageUrl} />;
   }
   return (
-    <Link to={postPath} className="mt-3 block overflow-hidden rounded-xl border border-border/60">
+    <Link
+      to={postPath}
+      className={cn(
+        "mt-3 block overflow-hidden",
+        fullBleed
+          ? "feed-post-media-full-bleed"
+          : "rounded-xl border border-border/60"
+      )}
+    >
       <img
         src={imageUrl}
         alt=""
-        className="max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]"
+        className={cn(
+          "max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]",
+          fullBleed && "max-h-[32rem] rounded-none"
+        )}
       />
     </Link>
   );
@@ -76,6 +97,10 @@ type PostCardProps = {
   sharingPostId?: string | null;
   /** When embedded inside an outer feed-card (e.g. profile timeline). */
   variant?: "standalone" | "embedded";
+  /** Edge-to-edge photo within card — feed and post detail only. */
+  mediaLayout?: "inset" | "fullBleed";
+  /** Icon + label action row at md+ — feed and post detail only. */
+  showActionLabels?: boolean;
   className?: string;
 };
 
@@ -87,6 +112,8 @@ export function PostCard({
   onShare,
   sharingPostId = null,
   variant = "standalone",
+  mediaLayout = "inset",
+  showActionLabels = false,
   className,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -116,6 +143,8 @@ export function PostCard({
       document.removeEventListener("keydown", onKey);
     };
   }, [menuOpen]);
+
+  const hasFullBleedMedia = mediaLayout === "fullBleed" && variant === "standalone";
 
   const bodyBlock = isShare ? (
     <SharedPostEmbed sharedFrom={post.sharedFrom} />
@@ -151,13 +180,29 @@ export function PostCard({
       ) : null}
       {post.imageUrl &&
         (isActivity ? (
-          <PostActivityImage body={post.body} imageUrl={post.imageUrl} postPath={postPath} />
+          <PostActivityImage
+            body={post.body}
+            imageUrl={post.imageUrl}
+            postPath={postPath}
+            fullBleed={hasFullBleedMedia}
+          />
         ) : (
-          <Link to={postPath} className="mt-3 block overflow-hidden rounded-xl border border-border/60">
+          <Link
+            to={postPath}
+            className={cn(
+              "mt-3 block overflow-hidden",
+              hasFullBleedMedia
+                ? "feed-post-media-full-bleed"
+                : "rounded-xl border border-border/60"
+            )}
+          >
             <img
               src={post.imageUrl}
               alt=""
-              className="max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]"
+              className={cn(
+                "max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]",
+                hasFullBleedMedia && "max-h-[32rem] rounded-none"
+              )}
             />
           </Link>
         ))}
@@ -238,7 +283,7 @@ export function PostCard({
               )}
             </div>
 
-            <div className="mt-2.5">{bodyBlock}</div>
+            <div className={cn("mt-2", hasFullBleedMedia && "mt-2.5")}>{bodyBlock}</div>
           </div>
         </div>
       </div>
@@ -251,6 +296,7 @@ export function PostCard({
       >
         <PostActionRow
           size="md"
+          showLabels={showActionLabels}
           commentTo={`/posts/${post.id}#comments`}
           onShare={onShare && canSharePost(currentUserId, post) ? () => onShare(post.id) : undefined}
           shareBusy={sharingPostId === post.id}

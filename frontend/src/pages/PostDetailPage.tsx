@@ -201,6 +201,8 @@ export function PostDetailPage() {
         <PostCard
           post={post}
           currentUserId={user.id}
+          mediaLayout="fullBleed"
+          showActionLabels
           sharingPostId={sharingPostId}
           onDelete={() => setPendingDelete({ type: "post" })}
           onShare={(postId) => void onShare(postId)}
@@ -214,9 +216,7 @@ export function PostDetailPage() {
       )}
 
       {shareNotice && (
-        <p className="rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground">
-          {shareNotice}
-        </p>
+        <p className="feed-alert px-4 py-2.5 text-sm text-muted-foreground">{shareNotice}</p>
       )}
 
       <CommentsSection
@@ -238,7 +238,7 @@ export function PostDetailPage() {
       />
 
       {error && (
-        <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground" role="alert">
+        <p className="feed-alert px-4 py-3 text-sm text-muted-foreground" role="alert">
           {error}
         </p>
       )}

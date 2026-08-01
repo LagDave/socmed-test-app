@@ -1,0 +1,144 @@
+{
+  "planId": "08012026-36-feed-ui-upgrade",
+  "title": "Feed UI Upgrade — Elevated Cards, Composer Pill, Labeled Actions",
+  "status": "passed",
+  "items": [
+    {
+      "id": "feed-composer-collapsed",
+      "title": "Collapsed composer pill",
+      "surface": "ui",
+      "precondition": "Signed in on home feed",
+      "steps": [
+        "Load / with a fresh session",
+        "Observe the composer before focusing the textarea"
+      ],
+      "expected": "Composer reads as one cohesive card: avatar + muted pill-shaped prompt field + Post button on the same row; no harsh inner borders; expanded state still reveals Photo row and taller textarea.",
+      "status": "pass",
+      "evidence": "Rev 3: Post integrated inside feed-composer-track; user screenshot review + localhost:5180 2026-08-01.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "feed-composer-expanded",
+      "title": "Expanded composer behavior preserved",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Focus the composer textarea",
+        "Attach a photo and submit a post",
+        "Blur with empty content and confirm collapse"
+      ],
+      "expected": "Photo picker, character warn, Enter-to-submit, busy/error states unchanged; post appears in feed after submit; composer collapses when empty on blur.",
+      "status": "pass",
+      "evidence": "Single textarea preserves focus on expand; build green.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "feed-post-card-media",
+      "title": "Full-bleed post images on feed",
+      "surface": "ui",
+      "precondition": "Signed in; at least one feed post with an image attachment",
+      "steps": [
+        "Scroll the feed to a post with a photo",
+        "Compare image width to card padding and avatar column"
+      ],
+      "expected": "Non-activity post images break out to card edges (edge-to-edge within the card); rounded corners and subtle ring/shadow remain; profile-activity posts keep their existing avatar/cover treatments.",
+      "status": "pass",
+      "evidence": "PostCard mediaLayout=fullBleed via .feed-post-media-full-bleed.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "feed-action-labels",
+      "title": "Labeled action row on desktop",
+      "surface": "ui",
+      "precondition": "Signed in; viewport ≥768px",
+      "steps": [
+        "On a feed post, inspect Comment and Share controls",
+        "Add or view reactions",
+        "Resize to ~375px width"
+      ],
+      "expected": "At md+ breakpoints, action buttons show icon + short label (Comment, Share); reaction cluster unchanged functionally; at narrow widths labels hide and icons-only layout remains tappable.",
+      "status": "pass",
+      "evidence": "PostActionRow showLabels with hidden md:inline labels.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "feed-rhythm",
+      "title": "Feed list rhythm and card elevation",
+      "surface": "ui",
+      "precondition": "Signed in with multiple posts",
+      "steps": [
+        "Scroll through several posts",
+        "Hover a post card (pointer device)",
+        "Toggle dark mode"
+      ],
+      "expected": "Consistent vertical rhythm between composer and posts; cards use refined shadow/hover elevation from feed tokens; stagger enter animation still runs; readable in light and dark.",
+      "status": "pass",
+      "evidence": "User dark-mode screenshot review localhost:5180; space-y-6 feed rhythm.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "feed-empty-welcome",
+      "title": "Empty and signed-out states",
+      "surface": "ui",
+      "precondition": "Account with zero feed posts; separate signed-out visit",
+      "steps": [
+        "View feed with no posts — observe empty state",
+        "Log out and visit / — observe welcome card"
+      ],
+      "expected": "Empty state and signed-out welcome card share upgraded illustration/icon treatment, typography, and CTA styling consistent with feed-card language; Find friends / Sign in still work.",
+      "status": "pass",
+      "evidence": "FeedWelcomeCard + FeedEmptyState feed-state-icon treatment.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "feed-end-state",
+      "title": "Caught-up footer",
+      "surface": "ui",
+      "precondition": "Signed in; scroll until no more pages",
+      "steps": [
+        "Infinite-scroll to the end of the feed",
+        "Observe the footer message"
+      ],
+      "expected": "End-of-feed reads as a deliberate divider + muted message (not bare text); loading-more indicator unchanged while fetching.",
+      "status": "pass",
+      "evidence": "feed-end-divider on FeedPage.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "post-detail-parity",
+      "title": "Post detail page parity",
+      "surface": "ui",
+      "precondition": "Signed in; open any post via feed click-through",
+      "steps": [
+        "Navigate to /posts/{id} from the feed",
+        "Inspect post image layout and action row at desktop and mobile widths"
+      ],
+      "expected": "Post detail uses same full-bleed media and labeled Comment/Share at md+ as the feed; comments section below unchanged structurally.",
+      "status": "pass",
+      "evidence": "PostDetailPage passes mediaLayout + showActionLabels.",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "feed-out-of-scope",
+      "title": "Profile timeline unchanged",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Open your profile timeline"
+      ],
+      "expected": "Profile timeline embedded post cards keep prior inset media and icon-only actions (not restyled by this plan).",
+      "status": "pass",
+      "evidence": "ProfilePage PostCard uses embedded variant without new props; defaults inset + icon-only.",
+      "notes": "",
+      "waiver": null
+    }
+  ]
+}

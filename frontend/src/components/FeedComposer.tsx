@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils";
 const MAX_BODY = 5000;
 const WARN_AT = 4800;
 
+const textareaClass =
+  "min-w-0 flex-1 resize-none border-0 bg-transparent px-0 text-[15px] leading-6 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground";
+
 type FeedComposerProps = {
   user: PublicUser;
   onPosted: () => void;
@@ -76,41 +79,64 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
     }
   }
 
+  const postButton = (
+    <Button
+      type="submit"
+      size="sm"
+      className="feed-composer-post-btn"
+      disabled={busy || !canPost}
+    >
+      {busy ? (expanded ? "Posting…" : "…") : "Post"}
+    </Button>
+  );
+
   return (
     <form
       onSubmit={onSubmit}
       className={cn(
-        "feed-card feed-composer overflow-hidden transition-shadow duration-200",
-        expanded && "feed-composer-expanded ring-1 ring-border/80"
+        "feed-card feed-composer overflow-hidden transition-[box-shadow,border-color] duration-200",
+        expanded && "feed-composer-expanded"
       )}
     >
-      <div className="flex items-start gap-3 px-4 py-3">
-        <Link to={profilePath} className="shrink-0 pt-0.5" aria-label="Your profile">
+      <div className="flex items-start gap-3 px-4 py-3.5">
+        <Link
+          to={profilePath}
+          className="shrink-0 pt-0.5 ring-offset-background transition-opacity hover:opacity-90"
+          aria-label="Your profile"
+        >
           <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
         </Link>
 
         <div className="min-w-0 flex-1 space-y-3">
-          <Textarea
-            placeholder="What's on your mind?"
-            value={body}
-            onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
-            onFocus={() => setExpanded(true)}
-            onBlur={collapseIfEmpty}
-            onKeyDown={submitOnEnter}
-            rows={expanded ? 3 : 1}
-            maxLength={MAX_BODY}
+          <div
             className={cn(
-              "min-w-0 resize-none border-0 bg-transparent px-0 py-1.5 text-[15px] leading-6 shadow-none focus-visible:ring-0",
-              expanded ? "min-h-[4.5rem]" : "min-h-10"
+              !expanded && "feed-composer-track",
+              expanded && "feed-composer-expanded-field space-y-0"
             )}
-          />
+          >
+            <Textarea
+              placeholder="What's on your mind?"
+              value={body}
+              onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
+              onFocus={() => setExpanded(true)}
+              onBlur={collapseIfEmpty}
+              onKeyDown={submitOnEnter}
+              rows={expanded ? 3 : 1}
+              maxLength={MAX_BODY}
+              className={cn(
+                textareaClass,
+                expanded ? "min-h-[4.5rem] py-0" : undefined
+              )}
+            />
+            {!expanded && postButton}
+          </div>
 
-          {imagePreview && (
+          {expanded && imagePreview && (
             <div className="relative inline-block max-w-full">
               <img
                 src={imagePreview}
                 alt="Selected attachment preview"
-                className="max-h-56 rounded-xl border border-border object-cover"
+                className="max-h-56 rounded-xl border border-border/70 object-cover shadow-sm"
               />
               <Button
                 type="button"
@@ -125,50 +151,39 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
             </div>
           )}
 
-          <div
-            className={cn(
-              "flex items-center justify-between gap-2 border-t border-border/60 pt-3",
-              !expanded && "hidden"
-            )}
-          >
-            <div className="flex items-center gap-1">
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => onPickImage(e.target.files?.[0] ?? null)}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-muted-foreground"
-                onClick={() => fileRef.current?.click()}
-              >
-                <ImagePlus className="h-4 w-4" aria-hidden="true" />
-                Photo
-              </Button>
-            </div>
+          {expanded && (
+            <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-3">
+              <div className="flex items-center gap-1">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => onPickImage(e.target.files?.[0] ?? null)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                  Photo
+                </Button>
+              </div>
 
-            <div className="flex items-center gap-3">
-              {nearLimit && (
-                <span className="text-xs text-muted-foreground">
-                  {MAX_BODY - body.length} left
-                </span>
-              )}
-              <Button type="submit" size="sm" disabled={busy || !canPost}>
-                {busy ? "Posting…" : "Post"}
-              </Button>
+              <div className="flex items-center gap-3">
+                {nearLimit && (
+                  <span className="text-xs text-muted-foreground">
+                    {MAX_BODY - body.length} left
+                  </span>
+                )}
+                {postButton}
+              </div>
             </div>
-          </div>
+          )}
         </div>
-
-        {!expanded && (
-          <Button type="submit" size="sm" className="shrink-0 self-center" disabled={busy || !canPost}>
-            Post
-          </Button>
-        )}
       </div>
     </form>
   );
