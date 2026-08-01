@@ -80,9 +80,12 @@ export class ReactionService {
   }
 
   private static async hydrateList(rows: Awaited<ReturnType<typeof ReactionModel.listForPost>>) {
-    const users = await Promise.all(rows.map((row) => UserModel.findById(row.user_id)));
-    return rows.flatMap((row, index) => {
-      const user = users[index];
+    const userIds = [...new Set(rows.map((row) => row.user_id))];
+    const users = await UserModel.findByIds(userIds);
+    const userById = new Map(users.map((user) => [user.id, user]));
+
+    return rows.flatMap((row) => {
+      const user = userById.get(row.user_id);
       if (!user) return [];
       return [
         {

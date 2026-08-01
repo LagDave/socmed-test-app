@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "@/api/client";
 import type { ReactionEmoji, ReactionEntry, ReactionSummary } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ReactionIcon } from "@/components/ReactionIcon";
+import { REACTIONS_LIST_MAX_LIMIT, useReactionsList } from "@/hooks/useReactionsList";
 import { REACTION_OPTIONS } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,19 @@ function profilePath(user: ReactionEntry["user"]): string {
   return `/u/${user.username || user.id}`;
 }
 
+function scopedReactionCount(summary: ReactionSummary, filter: ReactionEmoji | "all"): number {
+  if (filter !== "all") return summary.counts[filter];
+  return REACTION_OPTIONS.reduce((sum, option) => sum + summary.counts[option.emoji], 0);
+}
+
+function headerLabel(scopedCount: number, shownCount: number, truncated: boolean): string {
+  const noun = scopedCount === 1 ? "reaction" : "reactions";
+  if (truncated) {
+    return `Showing ${shownCount} of ${scopedCount} ${noun}`;
+  }
+  return `${scopedCount} ${noun}`;
+}
+
 export function ReactionsListPopover({
   targetType,
   targetId,
@@ -28,12 +41,21 @@ export function ReactionsListPopover({
 }: ReactionsListPopoverProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<ReactionEmoji | "all">("all");
-  const [entries, setEntries] = useState<ReactionEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [placement, setPlacement] = useState<"above" | "below">("above");
 
-  const presentTypes = REACTION_OPTIONS.filter((o) => summary.counts[o.emoji] > 0);
-  const totalCount = presentTypes.reduce((sum, o) => sum + summary.counts[o.emoji], 0);
+  const presentTypes = REACTION_OPTIONS.filter((option) => summary.counts[option.emoji] > 0);
+  const scopedCount = scopedReactionCount(summary, filter);
+  const fetchLimit = Math.min(Math.max(scopedCount, 1), REACTIONS_LIST_MAX_LIMIT);
+
+  const { entries, loading, error, reset } = useReactionsList({
+    targetType,
+    targetId,
+    filter,
+    limit: fetchLimit,
+    enabled: open,
+  });
+
+  const truncated = !loading && !error && entries.length < scopedCount;
 
   useEffect(() => {
     if (!open) return;
@@ -44,44 +66,31 @@ export function ReactionsListPopover({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
+  useLayoutEffect(() => {
+    if (!open || !panelRef.current) return;
 
-    const path =
-      targetType === "post"
-        ? `/api/posts/${targetId}/reactions`
-        : `/api/comments/${targetId}/reactions`;
-    const query = filter === "all" ? "" : `?emoji=${filter}`;
+    const panel = panelRef.current;
+    const anchor = panel.parentElement;
+    if (!anchor) return;
 
-    void (async () => {
-      try {
-        const data = await api.get<{ reactions: ReactionEntry[] }>(`${path}${query}`);
-        if (cancelled) return;
-        setEntries(data.reactions);
-      } catch (e) {
-        if (cancelled) return;
-        setEntries([]);
-        setError(e instanceof Error ? e.message : "Failed to load reactions");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
+    const anchorRect = anchor.getBoundingClientRect();
+    const panelHeight = panel.offsetHeight;
+    const padding = 8;
+    const spaceAbove = anchorRect.top;
+    const spaceBelow = window.innerHeight - anchorRect.bottom;
+    const fitsAbove = spaceAbove >= panelHeight + padding;
+    const fitsBelow = spaceBelow >= panelHeight + padding;
 
-    return () => {
-      cancelled = true;
-    };
-  }, [open, targetType, targetId, filter]);
+    setPlacement(!fitsAbove && fitsBelow ? "below" : "above");
+  }, [open, entries.length, loading, filter, scopedCount]);
 
   useEffect(() => {
     if (!open) {
       setFilter("all");
-      setEntries([]);
-      setError(null);
+      setPlacement("above");
+      reset();
     }
-  }, [open]);
+  }, [open, reset]);
 
   if (!open) return null;
 
@@ -90,11 +99,14 @@ export function ReactionsListPopover({
       ref={panelRef}
       role="dialog"
       aria-label="People who reacted"
-      className="absolute bottom-full right-0 z-20 mb-2 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+      className={cn(
+        "absolute right-0 z-20 w-72 overflow-hidden rounded-xl border border-border bg-card shadow-lg",
+        placement === "above" ? "bottom-full mb-2" : "top-full mt-2"
+      )}
     >
       <div className="border-b border-border/70 px-3 py-2.5">
         <p className="text-sm font-semibold">
-          {totalCount} {totalCount === 1 ? "reaction" : "reactions"}
+          {headerLabel(scopedCount, entries.length, truncated)}
         </p>
         {presentTypes.length > 1 && (
           <div className="mt-2 flex flex-wrap gap-1">
@@ -110,21 +122,21 @@ export function ReactionsListPopover({
             >
               All
             </button>
-            {presentTypes.map((opt) => (
+            {presentTypes.map((option) => (
               <button
-                key={opt.emoji}
+                key={option.emoji}
                 type="button"
-                aria-label={opt.label}
+                aria-label={option.label}
                 className={cn(
                   "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors",
-                  filter === opt.emoji
+                  filter === option.emoji
                     ? "bg-foreground text-background"
                     : "bg-muted text-muted-foreground hover:bg-accent"
                 )}
-                onClick={() => setFilter(opt.emoji)}
+                onClick={() => setFilter(option.emoji)}
               >
-                <ReactionIcon emoji={opt.emoji} className="text-sm" />
-                <span>{summary.counts[opt.emoji]}</span>
+                <ReactionIcon emoji={option.emoji} className="text-sm" />
+                <span>{summary.counts[option.emoji]}</span>
               </button>
             ))}
           </div>
