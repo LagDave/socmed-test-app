@@ -1,6 +1,14 @@
 import { Link } from "react-router-dom";
+import { MoreVertical, Trash2 } from "lucide-react";
 import type { ConversationListItem } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { cn } from "@/lib/utils";
 
@@ -13,16 +21,25 @@ function snippet(item: ConversationListItem): string {
   return last.body || "";
 }
 
-export function ConversationListRow({ item }: { item: ConversationListItem }) {
+export function ConversationListRow({
+  item,
+  onDelete,
+  className,
+}: {
+  item: ConversationListItem;
+  onDelete: (id: string, peerName: string) => void;
+  className?: string;
+}) {
   const unread = item.unreadCount > 0;
   const peer = item.peer;
   const profilePath = peer.username ? `/u/${peer.username}` : `/u/${peer.id}`;
 
   return (
-    <li
+    <div
       className={cn(
         "flex items-center gap-3 border-b border-border py-3 transition-colors last:border-b-0 hover:bg-accent/30",
-        unread && "-mx-1 rounded-md bg-accent/25 px-1"
+        unread && "-mx-1 rounded-md bg-accent/25 px-1",
+        className
       )}
     >
       <Link
@@ -70,6 +87,29 @@ export function ConversationListRow({ item }: { item: ConversationListItem }) {
           )}
         </div>
       </Link>
-    </li>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-muted-foreground"
+            aria-label={`Conversation options for ${peer.displayName}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onSelect={() => onDelete(item.id, peer.displayName)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete conversation
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

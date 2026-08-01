@@ -34,21 +34,38 @@ export class MessageModel {
 
   static async listByConversation(
     conversationId: string,
-    opts: { limit: number; before?: string }
+    opts: { limit: number; before?: string; viewerId?: string }
   ): Promise<MessageRow[]> {
-    let q = db<MessageRow>("messages")
-      .where({ conversation_id: conversationId })
-      .orderBy("created_at", "desc")
+    let q = db("messages as m")
+      .where("m.conversation_id", conversationId)
+      .orderBy("m.created_at", "desc")
       .limit(opts.limit);
+
+    if (opts.viewerId) {
+      q = q.whereNotExists(function () {
+        this.select(1)
+          .from("message_user_deletions as d")
+          .whereRaw("d.message_id = m.id")
+          .andWhere("d.user_id", opts.viewerId!);
+      });
+    }
 
     if (opts.before) {
       const before = await this.findById(opts.before);
       if (before && before.conversation_id === conversationId) {
-        q = q.andWhere("created_at", "<", before.created_at);
+        q = q.andWhere("m.created_at", "<", before.created_at);
       }
     }
 
-    const rows = await q;
+    const rows = (await q.select(
+      "m.id",
+      "m.conversation_id",
+      "m.sender_id",
+      "m.body",
+      "m.image_url",
+      "m.unsent_at",
+      "m.created_at"
+    )) as MessageRow[];
     return rows.reverse();
   }
 
@@ -77,12 +94,18 @@ export class MessageModel {
     viewerId: string,
     lastReadAt: Date | null
   ): Promise<number> {
-    let q = db("messages")
-      .where({ conversation_id: conversationId })
-      .whereNot({ sender_id: viewerId })
-      .whereNull("unsent_at");
+    let q = db("messages as m")
+      .where({ "m.conversation_id": conversationId })
+      .whereNot({ "m.sender_id": viewerId })
+      .whereNull("m.unsent_at")
+      .whereNotExists(function () {
+        this.select(1)
+          .from("message_user_deletions as d")
+          .whereRaw("d.message_id = m.id")
+          .andWhere("d.user_id", viewerId);
+      });
     if (lastReadAt) {
-      q = q.andWhere("created_at", ">", lastReadAt);
+      q = q.andWhere("m.created_at", ">", lastReadAt);
     }
     const result = await q.count<{ count: string }>("* as count").first();
     return Number(result?.count ?? 0);

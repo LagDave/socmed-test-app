@@ -8,3 +8,7 @@ export async function openConversationWithUsername(username: string): Promise<st
   );
   return data.conversation.id;
 }
+
+export async function deleteConversation(conversationId: string): Promise<void> {
+  await api.delete(`/api/messages/conversations/${conversationId}`);
+}

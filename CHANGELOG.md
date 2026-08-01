@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.18 — 2026-08-01
+
+### Added
+- Delete conversation for you only: hides thread from inbox, marks existing messages deleted for the deleter via `message_user_deletions`, peer history unchanged
+- `DELETE /api/messages/conversations/:id` with confirm dialog on inbox (⋯ menu + swipe-left) and thread header
+- Swipeable inbox rows with iOS-style red delete strip (trash icon + label)
+- Inbound message or explicit re-open restores hidden thread to inbox; deleted messages stay filtered for deleter
+
+### Changed
+- Messages inbox: rounded conversation cards with spacing; unread badge excludes hidden threads and user-deleted messages
+- Thread load uses `?restore=1` to clear hide on intentional open; polls omit restore
+
+### Plans
+- `plans/08012026-33-message-delete-conversation` — Completed (execution on `kylie/message-delete-conversation`)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { db } from "../database/connection";
 import {
   ConversationModel,
   type ConversationInboxRow,
@@ -7,6 +8,7 @@ import {
 import { FriendshipModel } from "../models/FriendshipModel";
 import { MessageModel, type MessageRow } from "../models/MessageModel";
 import { MessageReactionModel } from "../models/MessageReactionModel";
+import { MessageUserDeletionModel } from "../models/MessageUserDeletionModel";
 import { REACTION_EMOJIS, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
@@ -141,6 +143,7 @@ export class MessageService {
         if (!conversation) throw new AppError("MESSAGE_CONFLICT", "Could not open conversation.");
       }
     }
+    await ConversationModel.clearHidden(conversation.id, userId);
     return { conversation: await this.toListItem(conversation, userId), created };
   }
 
@@ -152,7 +155,8 @@ export class MessageService {
   static async listMessages(
     userId: string,
     conversationId: string,
-    before?: string
+    before?: string,
+    options?: { restoreIfHidden?: boolean }
   ): Promise<{
     conversationId: string;
     peer: ReturnType<typeof toPublicUser>;
@@ -162,6 +166,9 @@ export class MessageService {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
     assertParticipant(conversation, userId);
+    if (options?.restoreIfHidden) {
+      await ConversationModel.clearHidden(conversationId, userId);
+    }
 
     const peerUser = await UserModel.findById(peerId(conversation, userId));
     if (!peerUser) throw new AppError("USER_NOT_FOUND", "Peer missing.");
@@ -169,6 +176,7 @@ export class MessageService {
     const rows = await MessageModel.listByConversation(conversationId, {
       limit: MESSAGE_PAGE_SIZE,
       before,
+      viewerId: userId,
     });
     const summaries = await MessageReactionModel.summariesForMessages(
       rows.filter((r) => !r.unsent_at).map((r) => r.id),
@@ -210,6 +218,8 @@ export class MessageService {
       imageUrl,
     });
     await ConversationModel.touchLastMessage(conversationId, row.created_at);
+    // Restore inbox for recipient when they previously deleted the chat (old messages stay deleted).
+    await ConversationModel.clearHidden(conversationId, otherId);
     const view = toMessageView(row, emptyReactionSummary());
     await publishRealtime(() => MessageRealtime.messageCreated(conversation, view));
     return view;
@@ -282,6 +292,37 @@ export class MessageService {
   static async unreadCount(userId: string): Promise<{ unread: number }> {
     const unread = await ConversationModel.countUnreadConversations(userId);
     return { unread };
+  }
+
+  static async deleteConversationForUser(
+    userId: string,
+    conversationId: string
+  ): Promise<{ ok: true }> {
+    const conversation = await ConversationModel.findById(conversationId);
+    if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    assertParticipant(conversation, userId);
+
+    const updated = await db.transaction(async (trx) => {
+      await MessageUserDeletionModel.markAllInConversationForUser(conversationId, userId, trx);
+      const row = await ConversationModel.findById(conversationId);
+      if (!row) return undefined;
+      const patch =
+        row.user_a === userId
+          ? { user_a_hidden_at: new Date() }
+          : row.user_b === userId
+            ? { user_b_hidden_at: new Date() }
+            : null;
+      if (!patch) return undefined;
+      const [saved] = await trx<ConversationRow>("conversations")
+        .where({ id: conversationId })
+        .update({ ...patch, updated_at: trx.fn.now() })
+        .returning("*");
+      return saved;
+    });
+
+    if (!updated) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    await publishRealtime(() => MessageRealtime.conversationHidden(updated, userId));
+    return { ok: true };
   }
 
   private static async requireMessageAccess(userId: string, messageId: string) {

@@ -42,10 +42,12 @@ export class MessagesController {
   static async listMessages(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const before = typeof req.query.before === "string" ? req.query.before : undefined;
+      const restoreIfHidden = req.query.restore === "1";
       const data = await MessageService.listMessages(
         req.userId!,
         String(req.params.id),
-        before
+        before,
+        { restoreIfHidden }
       );
       return ok(res, data);
     } catch (err) {
@@ -105,6 +107,18 @@ export class MessagesController {
   static async unreadCount(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const data = await MessageService.unreadCount(req.userId!);
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async hideConversation(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessageService.deleteConversationForUser(
+        req.userId!,
+        String(req.params.id)
+      );
       return ok(res, data);
     } catch (err) {
       return handle(res, err);
