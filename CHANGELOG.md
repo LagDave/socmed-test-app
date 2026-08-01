@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.18 — 2026-08-01
+
+### Added
+- Message notification sounds: 14 selectable tones in Account Settings, localStorage prefs, mute toggle
+- Inbound `message:new` sound plays anywhere in the app (including open thread) except for own messages
+- Autoplay unlock on sign-in, register, and first click; cross-tab dedupe for duplicate socket delivery
+
+### Plans
+- `plans/08012026-34-message-notification-sounds` — Completed (execution on `kylie/message-notification-features`)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added

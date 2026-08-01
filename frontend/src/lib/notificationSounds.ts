@@ -1,3 +1,9 @@
+import {
+  MESSAGE_NEW,
+  getMessagesSocket,
+  type MessageEventPayload,
+} from "@/api/socket";
+
 export type SoundKind = "message" | "activity";
 
 export type MessageSoundId =
@@ -52,23 +58,82 @@ export const MESSAGE_SOUND_GROUPS: MessageSoundGroup[] = ["Classic", "Cute", "Ha
 
 const ENABLED_STORAGE_KEY = "socmed.sounds.enabled";
 const MESSAGE_SOUND_STORAGE_KEY = "socmed.sounds.messageId";
-const DEFAULT_MESSAGE_SOUND_ID: MessageSoundId = "chime";
-
 const ACTIVITY_SOUND_URL = `/sounds/activity.wav?v=${SOUND_ASSET_VERSION}`;
+const MESSAGE_SOUND_TAB_CHANNEL = "socmed-message-sound";
 
-/** One preloaded element per URL — same element for preview and live messages. */
-const audioPool = new Map<string, HTMLAudioElement>();
+/** Inaudible clip — unlocks autoplay without using message sound files. */
+const SILENT_UNLOCK_DATA_URL =
+  "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
 
-let activePrefs = readNotificationSoundPreferencesFromStorage();
-let isUnlocked = false;
-let lastPlayedAt = 0;
+type SoundRuntime = {
+  activePrefs: { enabled: boolean; messageSoundId: MessageSoundId | null };
+  isUnlocked: boolean;
+  messageAudio: HTMLAudioElement | null;
+  lastPlayedMessageId: string | null;
+  lastPlayedAt: number;
+  tabChannel: BroadcastChannel | null;
+  recentTabMessageIds: Set<string>;
+  ownTabBroadcastIds: Set<string>;
+};
 
-type MessageSoundDedupe = { messageId: string | null; at: number };
+type MessageSoundContext = {
+  userId: string | null;
+};
 
-function messageSoundDedupeState(): MessageSoundDedupe {
-  const key = "__socmedMessageSoundDedupe";
-  const root = globalThis as typeof globalThis & { [key]?: MessageSoundDedupe };
-  if (!root[key]) root[key] = { messageId: null, at: 0 };
+type MessageSoundBridge = {
+  fn: (payload: MessageEventPayload) => void;
+  getContext: () => MessageSoundContext;
+  registered: boolean;
+  socket: ReturnType<typeof getMessagesSocket> | null;
+};
+
+function soundRuntime(): SoundRuntime {
+  const key = "__socmedSoundRuntime";
+  const root = globalThis as typeof globalThis & { [key]?: SoundRuntime };
+  if (!root[key]) {
+    const tabChannel =
+      typeof BroadcastChannel !== "undefined"
+        ? new BroadcastChannel(MESSAGE_SOUND_TAB_CHANNEL)
+        : null;
+    root[key] = {
+      activePrefs: readNotificationSoundPreferencesFromStorage(),
+      isUnlocked: false,
+      messageAudio: null,
+      lastPlayedMessageId: null,
+      lastPlayedAt: 0,
+      tabChannel,
+      recentTabMessageIds: new Set(),
+      ownTabBroadcastIds: new Set(),
+    };
+    tabChannel?.addEventListener("message", (event: MessageEvent<{ messageId?: string }>) => {
+      const messageId = event.data?.messageId;
+      if (!messageId) return;
+      const runtime = root[key]!;
+      if (runtime.ownTabBroadcastIds.delete(messageId)) return;
+      runtime.recentTabMessageIds.add(messageId);
+      window.setTimeout(() => runtime.recentTabMessageIds.delete(messageId), 3000);
+    });
+  }
+  return root[key]!;
+}
+
+function messageSoundBridge(): MessageSoundBridge {
+  const key = "__socmedMessageSoundBridge";
+  const root = globalThis as typeof globalThis & { [key]?: MessageSoundBridge };
+  if (!root[key]) {
+    root[key] = {
+      registered: false,
+      socket: null,
+      getContext: () => ({ userId: null }),
+      fn: (payload: MessageEventPayload) => {
+        const bridge = root[key]!;
+        const { userId } = bridge.getContext();
+        const msg = payload.message;
+        if (!userId || msg.senderId === userId) return;
+        playMessageNotificationSound(msg.id);
+      },
+    };
+  }
   return root[key]!;
 }
 
@@ -78,7 +143,7 @@ function isMessageSoundId(value: string): value is MessageSoundId {
 
 function readNotificationSoundPreferencesFromStorage(): {
   enabled: boolean;
-  messageSoundId: MessageSoundId;
+  messageSoundId: MessageSoundId | null;
 } {
   let enabled = true;
   try {
@@ -88,7 +153,7 @@ function readNotificationSoundPreferencesFromStorage(): {
     /* ignore */
   }
 
-  let messageSoundId: MessageSoundId = DEFAULT_MESSAGE_SOUND_ID;
+  let messageSoundId: MessageSoundId | null = null;
   try {
     const raw = localStorage.getItem(MESSAGE_SOUND_STORAGE_KEY);
     if (raw && isMessageSoundId(raw)) messageSoundId = raw;
@@ -100,56 +165,121 @@ function readNotificationSoundPreferencesFromStorage(): {
 }
 
 function syncActivePrefsFromStorage(): void {
-  activePrefs = readNotificationSoundPreferencesFromStorage();
+  soundRuntime().activePrefs = readNotificationSoundPreferencesFromStorage();
+}
+
+function activePrefs(): { enabled: boolean; messageSoundId: MessageSoundId | null } {
+  return soundRuntime().activePrefs;
 }
 
 function messageSoundUrl(id: MessageSoundId): string {
   return MESSAGE_SOUND_OPTIONS.find((option) => option.id === id)?.url ?? MESSAGE_SOUND_OPTIONS[0].url;
 }
 
-function activeMessageSoundUrl(): string {
-  return messageSoundUrl(activePrefs.messageSoundId);
+function activeMessageSoundUrl(): string | null {
+  const id = activePrefs().messageSoundId;
+  return id ? messageSoundUrl(id) : null;
 }
 
-function getPooledAudio(url: string): HTMLAudioElement {
-  let audio = audioPool.get(url);
-  if (!audio) {
-    audio = new Audio(url);
-    audio.preload = "auto";
-    audio.load();
-    audioPool.set(url, audio);
+function getMessageAudio(): HTMLAudioElement {
+  const runtime = soundRuntime();
+  if (!runtime.messageAudio) {
+    runtime.messageAudio = new Audio();
+    runtime.messageAudio.preload = "auto";
   }
-  return audio;
+  return runtime.messageAudio;
 }
 
-/** Restart a pooled clip from the beginning — identical path for preview and live. */
-function playSoundUrl(url: string): void {
-  const audio = getPooledAudio(url);
+function stopMessageAudio(): void {
+  const audio = soundRuntime().messageAudio;
+  if (!audio) return;
   audio.pause();
   audio.currentTime = 0;
+}
+
+/** Returns true when playback actually started. */
+function playMessageSoundUrl(url: string): Promise<boolean> {
+  const audio = getMessageAudio();
+  const absolute = new URL(url, window.location.origin).href;
+
+  stopMessageAudio();
+
+  if (audio.src !== absolute) {
+    audio.src = absolute;
+    audio.load();
+  }
+
   audio.volume = PLAYBACK_VOLUME;
-  void audio.play().then(() => {
-    isUnlocked = true;
-  }).catch(() => undefined);
+  return audio
+    .play()
+    .then(() => {
+      soundRuntime().isUnlocked = true;
+      return true;
+    })
+    .catch(() => false);
 }
 
-function playSoundUrlDebounced(url: string): void {
+function shouldSkipMessageSound(messageId: string): boolean {
+  const runtime = soundRuntime();
   const now = Date.now();
-  if (now - lastPlayedAt < 400) return;
-  lastPlayedAt = now;
-  playSoundUrl(url);
+
+  if (runtime.lastPlayedMessageId === messageId && now - runtime.lastPlayedAt < 3000) {
+    return true;
+  }
+  if (runtime.recentTabMessageIds.has(messageId)) {
+    return true;
+  }
+
+  return false;
 }
 
-function warmSound(url: string): void {
-  getPooledAudio(url);
+function markMessageSoundPlayed(messageId: string): void {
+  const runtime = soundRuntime();
+  runtime.lastPlayedMessageId = messageId;
+  runtime.lastPlayedAt = Date.now();
+  runtime.ownTabBroadcastIds.add(messageId);
+  runtime.tabChannel?.postMessage({ messageId });
+  window.setTimeout(() => runtime.ownTabBroadcastIds.delete(messageId), 100);
+}
+
+export function bindMessageNotificationSoundContext(
+  getContext: () => MessageSoundContext
+): void {
+  messageSoundBridge().getContext = getContext;
+}
+
+export function ensureMessageNotificationSoundListener(): void {
+  const bridge = messageSoundBridge();
+  const socket = getMessagesSocket();
+
+  if (bridge.socket && bridge.socket !== socket) {
+    bridge.socket.off(MESSAGE_NEW, bridge.fn);
+    bridge.registered = false;
+    bridge.socket = null;
+  }
+
+  if (bridge.registered) return;
+
+  socket.on(MESSAGE_NEW, bridge.fn);
+  bridge.registered = true;
+  bridge.socket = socket;
+}
+
+export function teardownMessageNotificationSoundListener(): void {
+  const bridge = messageSoundBridge();
+  if (!bridge.registered || !bridge.socket) return;
+
+  bridge.socket.off(MESSAGE_NEW, bridge.fn);
+  bridge.registered = false;
+  bridge.socket = null;
 }
 
 export function areNotificationSoundsEnabled(): boolean {
-  return activePrefs.enabled;
+  return activePrefs().enabled;
 }
 
-export function getSelectedMessageSoundId(): MessageSoundId {
-  return activePrefs.messageSoundId;
+export function getSelectedMessageSoundId(): MessageSoundId | null {
+  return activePrefs().messageSoundId;
 }
 
 export function setNotificationSoundsEnabled(enabled: boolean): void {
@@ -158,7 +288,7 @@ export function setNotificationSoundsEnabled(enabled: boolean): void {
   } catch {
     /* storage unavailable */
   }
-  activePrefs = { ...activePrefs, enabled };
+  soundRuntime().activePrefs = { ...activePrefs(), enabled };
   window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
 }
 
@@ -168,46 +298,46 @@ export function setSelectedMessageSoundId(id: MessageSoundId): void {
   } catch {
     /* storage unavailable */
   }
-  activePrefs = { ...activePrefs, messageSoundId: id };
-  warmSound(messageSoundUrl(id));
+  soundRuntime().activePrefs = { ...activePrefs(), messageSoundId: id };
   window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
 }
 
 export function saveNotificationSoundPreferences(prefs: {
   enabled: boolean;
-  messageSoundId: MessageSoundId;
+  messageSoundId: MessageSoundId | null;
 }): void {
   try {
     localStorage.setItem(ENABLED_STORAGE_KEY, prefs.enabled ? "true" : "false");
-    localStorage.setItem(MESSAGE_SOUND_STORAGE_KEY, prefs.messageSoundId);
+    if (prefs.messageSoundId) {
+      localStorage.setItem(MESSAGE_SOUND_STORAGE_KEY, prefs.messageSoundId);
+    } else {
+      localStorage.removeItem(MESSAGE_SOUND_STORAGE_KEY);
+    }
   } catch {
     /* storage unavailable */
   }
-  activePrefs = { ...prefs };
-  warmSound(messageSoundUrl(prefs.messageSoundId));
+  soundRuntime().activePrefs = { ...prefs };
   window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
 }
 
 export function readNotificationSoundPreferences(): {
   enabled: boolean;
-  messageSoundId: MessageSoundId;
+  messageSoundId: MessageSoundId | null;
 } {
-  return { ...activePrefs };
+  return { ...activePrefs() };
 }
 
 export function areNotificationSoundsUnlocked(): boolean {
-  return isUnlocked;
+  return soundRuntime().isUnlocked;
 }
 
+/** Unlock autoplay on the same element used for messages — must run during a click/tap. */
 export function unlockNotificationSounds(): void {
-  if (isUnlocked) {
-    warmSound(activeMessageSoundUrl());
-    return;
-  }
+  const runtime = soundRuntime();
+  if (runtime.isUnlocked) return;
 
-  const url = activeMessageSoundUrl();
-  warmSound(url);
-  const audio = getPooledAudio(url);
+  const audio = getMessageAudio();
+  audio.src = SILENT_UNLOCK_DATA_URL;
   audio.volume = 0.001;
   void audio
     .play()
@@ -215,58 +345,49 @@ export function unlockNotificationSounds(): void {
       audio.pause();
       audio.currentTime = 0;
       audio.volume = PLAYBACK_VOLUME;
-      isUnlocked = true;
+      audio.removeAttribute("src");
+      audio.load();
+      runtime.isUnlocked = true;
     })
-    .catch(() => {
-      isUnlocked = true;
-    });
+    .catch(() => undefined);
 }
 
 export function warmActiveMessageSound(): void {
-  warmSound(activeMessageSoundUrl());
+  /* no-op */
 }
 
 export function playNotificationSound(kind: SoundKind): void {
-  if (!activePrefs.enabled) return;
+  syncActivePrefsFromStorage();
+  if (!activePrefs().enabled) return;
 
   const url = kind === "message" ? activeMessageSoundUrl() : ACTIVITY_SOUND_URL;
-  warmSound(url);
-  playSoundUrlDebounced(url);
+  if (!url) return;
+  void playMessageSoundUrl(url);
 }
 
-/** Live inbound message sound — dedupes duplicate socket deliveries / stacked listeners. */
+/** Live inbound message sound — one clip only, deduped per message and across tabs. */
 export function playMessageNotificationSound(messageId: string): void {
-  if (!activePrefs.enabled) return;
-
-  const dedupe = messageSoundDedupeState();
-  const now = Date.now();
-  if (dedupe.messageId === messageId && now - dedupe.at < 3000) return;
-
-  dedupe.messageId = messageId;
-  dedupe.at = now;
+  syncActivePrefsFromStorage();
+  if (!activePrefs().enabled || !activePrefs().messageSoundId) return;
+  if (shouldSkipMessageSound(messageId)) return;
 
   const url = activeMessageSoundUrl();
-  warmSound(url);
-  playSoundUrlDebounced(url);
-}
+  if (!url) return;
 
-export function testNotificationSound(): void {
-  unlockNotificationSounds();
-  playSoundUrl(activeMessageSoundUrl());
+  void playMessageSoundUrl(url).then((played) => {
+    if (played) markMessageSoundPlayed(messageId);
+  });
 }
 
 export function previewMessageSound(id: MessageSoundId): void {
   unlockNotificationSounds();
-  const url = messageSoundUrl(id);
-  warmSound(url);
-  playSoundUrl(url);
+  void playMessageSoundUrl(messageSoundUrl(id));
 }
 
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (event) => {
     if (event.key === ENABLED_STORAGE_KEY || event.key === MESSAGE_SOUND_STORAGE_KEY) {
       syncActivePrefsFromStorage();
-      warmActiveMessageSound();
       window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
     }
   });

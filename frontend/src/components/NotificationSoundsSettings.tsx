@@ -35,7 +35,9 @@ const GROUP_META: Record<
 export function NotificationSoundsSettings() {
   const [saved, setSaved] = useState(() => readNotificationSoundPreferences());
   const [draftEnabled, setDraftEnabled] = useState(saved.enabled);
-  const [draftMessageSoundId, setDraftMessageSoundId] = useState(saved.messageSoundId);
+  const [draftMessageSoundId, setDraftMessageSoundId] = useState<MessageSoundId | null>(
+    saved.messageSoundId
+  );
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
   const hasUnsavedChanges =
@@ -64,19 +66,21 @@ export function NotificationSoundsSettings() {
   }
 
   function saveSoundSettings() {
+    if (draftEnabled && !draftMessageSoundId) return;
     saveNotificationSoundPreferences({
       enabled: draftEnabled,
       messageSoundId: draftMessageSoundId,
     });
     setSaved({ enabled: draftEnabled, messageSoundId: draftMessageSoundId });
     setSaveNotice("Saved — your message sound is now active.");
-    if (draftEnabled) {
+    if (draftEnabled && draftMessageSoundId) {
       previewMessageSound(draftMessageSoundId);
     }
   }
 
-  const activeLabel =
-    MESSAGE_SOUND_OPTIONS.find((o) => o.id === saved.messageSoundId)?.label ?? "Chime";
+  const activeLabel = saved.messageSoundId
+    ? (MESSAGE_SOUND_OPTIONS.find((o) => o.id === saved.messageSoundId)?.label ?? saved.messageSoundId)
+    : "None chosen";
 
   return (
     <section className="feed-card overflow-hidden text-card-foreground">
@@ -88,7 +92,7 @@ export function NotificationSoundsSettings() {
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-semibold tracking-tight">Notification sounds</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              Hear a gentle tone when a new message arrives while you are elsewhere in the app.
+              Hear a gentle tone when a friend sends you a message — in any part of the app.
             </p>
           </div>
         </div>
@@ -114,7 +118,11 @@ export function NotificationSoundsSettings() {
             <span>
               <span className="block text-sm font-medium">Play message sounds</span>
               <span className="mt-0.5 block text-xs text-muted-foreground">
-                {saved.enabled ? `Active: ${activeLabel}` : "Currently off"}
+                {saved.enabled
+                  ? saved.messageSoundId
+                    ? `Active: ${activeLabel}`
+                    : "On — pick a sound below"
+                  : "Currently off"}
               </span>
             </span>
           </span>
@@ -244,9 +252,11 @@ export function NotificationSoundsSettings() {
               <Button
                 type="button"
                 size="sm"
-                disabled={!draftEnabled}
+                disabled={!draftEnabled || !draftMessageSoundId}
                 variant="outline"
-                onPointerDown={() => previewMessageSound(draftMessageSoundId)}
+                onPointerDown={() => {
+                  if (draftMessageSoundId) previewMessageSound(draftMessageSoundId);
+                }}
               >
                 <Play className="size-3.5" aria-hidden="true" />
                 Preview
@@ -254,7 +264,7 @@ export function NotificationSoundsSettings() {
               <Button
                 type="button"
                 size="sm"
-                disabled={!hasUnsavedChanges}
+                disabled={!hasUnsavedChanges || (draftEnabled && !draftMessageSoundId)}
                 onClick={saveSoundSettings}
               >
                 Save sound settings
