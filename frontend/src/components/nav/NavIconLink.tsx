@@ -17,12 +17,14 @@ export function NavIconLink({
   icon,
   badge,
   variant,
+  end,
 }: {
   to: string;
   label: string;
   icon: ReactNode;
   badge?: number;
   variant: "pill" | "action";
+  end?: boolean;
 }) {
   const showBadge = typeof badge === "number" && badge > 0;
   const baseClass =
@@ -35,6 +37,7 @@ export function NavIconLink({
   return (
     <NavLink
       to={to}
+      end={end}
       aria-label={label}
       title={label}
       className={({ isActive }) =>

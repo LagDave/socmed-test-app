@@ -48,6 +48,7 @@ export function AppNavbar({
         >
           <NavIconLink
             to="/"
+            end
             label="Feed"
             variant="pill"
             badge={feedCount}
@@ -101,7 +102,7 @@ export function AppNavbar({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="profile-dropdown-menu animate-menu-enter z-50 min-w-56 border-border bg-card p-1.5 text-card-foreground shadow-none"
+                  className="profile-dropdown-menu animate-menu-enter z-50 min-w-56 border-border bg-card p-1.5 text-card-foreground"
                 >
                   <DropdownMenuItem asChild>
                     <Link to={profilePath} className="profile-dropdown-item outline-none">
