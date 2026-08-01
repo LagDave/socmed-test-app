@@ -78,7 +78,19 @@ type SoundRuntime = {
 
 type MessageSoundContext = {
   userId: string | null;
+  pathname: string;
 };
+
+/** Conversation id when route is `/messages/:conversationId`, else null. */
+export function getOpenConversationIdFromPathname(pathname: string): string | null {
+  const match = /^\/messages\/([^/]+)/.exec(pathname);
+  return match?.[1] ?? null;
+}
+
+/** True when the user is viewing the thread for this conversation. */
+export function isViewingConversation(pathname: string, conversationId: string): boolean {
+  return getOpenConversationIdFromPathname(pathname) === conversationId;
+}
 
 type MessageSoundBridge = {
   fn: (payload: MessageEventPayload) => void;
@@ -124,12 +136,13 @@ function messageSoundBridge(): MessageSoundBridge {
     root[key] = {
       registered: false,
       socket: null,
-      getContext: () => ({ userId: null }),
+      getContext: () => ({ userId: null, pathname: "/" }),
       fn: (payload: MessageEventPayload) => {
         const bridge = root[key]!;
-        const { userId } = bridge.getContext();
+        const { userId, pathname } = bridge.getContext();
         const msg = payload.message;
         if (!userId || msg.senderId === userId) return;
+        if (isViewingConversation(pathname, msg.conversationId)) return;
         playMessageNotificationSound(msg.id);
       },
     };

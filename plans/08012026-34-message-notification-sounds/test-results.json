@@ -1,7 +1,7 @@
 {
   "plan": "plans/08012026-34-message-notification-sounds",
-  "generatedAt": "2026-08-01",
-  "status": "Passed",
+  "generatedAt": "2026-08-02",
+  "status": "In Progress",
   "items": [
     {
       "id": "A1",
@@ -16,7 +16,7 @@
       "expected": "B hears the message notification sound promptly via message:new.",
       "status": "fail",
       "evidence": "",
-      "notes": "useMessageNotificationSound listens for MESSAGE_NEW in AppShell; playNotificationSound('message') when off-thread.",
+      "notes": "useMessageNotificationSound + bridge handler call playMessageNotificationSound when off-thread.",
       "waiver": "Two-browser interactive verify deferred to PR author on local Vite 5180."
     },
     {
@@ -30,8 +30,8 @@
       ],
       "expected": "Message appears in thread but no notification sound plays.",
       "status": "fail",
-      "evidence": "",
-      "notes": "isViewingConversation(pathname, conversationId) suppresses playback.",
+      "evidence": "2026-08-02: isViewingConversation(pathname, msg.conversationId) early-return in notificationSounds bridge handler.",
+      "notes": "Bridge reads pathname from useMessageNotificationSound context; suppress when route matches message conversationId.",
       "waiver": "Interactive verify deferred to PR."
     },
     {
@@ -64,7 +64,7 @@
       "expected": "localStorage preference gates playback; survives page refresh.",
       "status": "fail",
       "evidence": "",
-      "notes": "AccountSettingsPage checkbox writes socmed.sounds.enabled via setNotificationSoundsEnabled.",
+      "notes": "NotificationSoundsSettings writes socmed.sounds.enabled via setNotificationSoundsEnabled.",
       "waiver": "Interactive verify deferred to PR."
     },
     {
@@ -79,7 +79,7 @@
       "expected": "No sound for outbound messages (senderId === self).",
       "status": "fail",
       "evidence": "",
-      "notes": "Hook returns early when msg.senderId === user.id.",
+      "notes": "Bridge returns early when msg.senderId === userId.",
       "waiver": "Interactive verify deferred to PR."
     },
     {
