@@ -30,13 +30,16 @@ export function FriendsRequestForm({ onSubmit }: FriendsRequestFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="feed-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary">
+    <form
+      onSubmit={handleSubmit}
+      className="friends-add-strip flex flex-col gap-3 sm:flex-row sm:items-center"
+    >
+      <div className="friends-add-input-track">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary">
           <UserPlus className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         </div>
         <Input
-          className="h-11 flex-1 text-base"
+          className="h-10 flex-1 border-0 bg-transparent px-0 text-base shadow-none focus-visible:ring-0"
           placeholder="Add by username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
@@ -44,7 +47,12 @@ export function FriendsRequestForm({ onSubmit }: FriendsRequestFormProps) {
           aria-label="Username"
         />
       </div>
-      <Button type="submit" size="lg" className="h-11 shrink-0 px-6" disabled={busy || !username.trim()}>
+      <Button
+        type="submit"
+        size="lg"
+        className="h-11 shrink-0 rounded-full px-6"
+        disabled={busy || !username.trim()}
+      >
         {busy ? "Sending…" : "Send Request"}
       </Button>
     </form>

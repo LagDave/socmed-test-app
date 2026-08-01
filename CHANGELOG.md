@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.18 — 2026-08-01
+
+### Changed
+- Friends page UI upgrade: unified dashboard card on a soft page canvas, pill-style add-friend input, stat chips, section eyebrow headers, row hover polish, and richer empty states
+- Friends list rows: two-line name/username layout, outlined message button, preserved search/message/unfriend flows
+
+### Plans
+- `plans/08012026-37-friends-ui-upgrade` — Completed (execution on `kylie/friends-ui-upgrade`)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added

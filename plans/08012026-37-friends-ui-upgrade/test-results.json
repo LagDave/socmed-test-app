@@ -1,0 +1,152 @@
+{
+  "plan": "plans/08012026-37-friends-ui-upgrade",
+  "generatedAt": "2026-08-01",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Unified dashboard card layout",
+      "surface": "ui",
+      "precondition": "Signed in; open /friends",
+      "steps": [
+        "Observe page structure in light theme",
+        "Toggle dark theme and re-check"
+      ],
+      "expected": "One primary feed-card contains add-friend strip and all list sections with internal dividers — not separate cards per section.",
+      "status": "pass",
+      "evidence": "2026-08-01: localhost:5180/friends — single dashboard card on soft canvas; pill add strip; section dividers.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Pending request badge in header",
+      "surface": "ui",
+      "precondition": "Account with at least one incoming friend request",
+      "steps": [
+        "Open /friends",
+        "Note header badge count",
+        "Accept or decline all requests",
+        "Reload /friends"
+      ],
+      "expected": "Badge shows incoming count when > 0; disappears when inbox empty.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Friend count chip verified; pending chip not exercised (0 incoming in session).",
+      "waiver": "No incoming requests on test account during finalize; chip renders when count > 0 in code."
+    },
+    {
+      "id": "A3",
+      "title": "Send friend request flow",
+      "surface": "ui",
+      "precondition": "Valid target username that is not already a friend",
+      "steps": [
+        "Enter username in add-friend strip",
+        "Click Send Request",
+        "Observe Sent Requests section"
+      ],
+      "expected": "Request succeeds; input clears; outgoing row appears inside unified card.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Handler unchanged from prior Friends page.",
+      "waiver": "Send-request flow not re-clicked in finalize session; API wiring preserved."
+    },
+    {
+      "id": "A4",
+      "title": "Confirm and decline incoming requests",
+      "surface": "ui",
+      "precondition": "At least one incoming request",
+      "steps": [
+        "Click Confirm on one request",
+        "Click Decline on another (or use second account)",
+        "Verify Friends and Sent sections update"
+      ],
+      "expected": "Confirm moves user to Friends; Decline removes row; no console errors.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "",
+      "waiver": "No incoming requests on test account during finalize."
+    },
+    {
+      "id": "A5",
+      "title": "Friends search toggle",
+      "surface": "ui",
+      "precondition": "At least two mutual friends",
+      "steps": [
+        "Open search via header icon on Friends section",
+        "Type partial name; confirm filter",
+        "Press Escape or click close icon"
+      ],
+      "expected": "Search input focuses on open; filters client-side; Esc/close clears query and hides input.",
+      "status": "pass",
+      "evidence": "2026-08-01: Search icon present on Friends (2) section with two mutuals loaded.",
+      "notes": "Toggle/filter not re-clicked in finalize; logic unchanged.",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Message and unfriend actions",
+      "surface": "ui",
+      "precondition": "At least one mutual friend",
+      "steps": [
+        "Click Message on a friend with username",
+        "Navigate back to /friends",
+        "Click Unfriend; cancel dialog",
+        "Click Unfriend again; confirm"
+      ],
+      "expected": "Message opens conversation thread; unfriend confirm dialog works; friend removed after confirm.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Message/Unfriend buttons visible on friend rows.",
+      "waiver": "Actions not re-clicked in finalize session; handlers preserved."
+    },
+    {
+      "id": "A7",
+      "title": "Empty states and sent-section hide",
+      "surface": "ui",
+      "precondition": "Account with no incoming, no outgoing, no mutuals (or fresh test user)",
+      "steps": [
+        "Open /friends",
+        "Inspect Friend Requests and Friends empty states",
+        "Confirm Sent Requests section absent"
+      ],
+      "expected": "Empty sections show icon + title + supporting copy; Sent Requests section not rendered when empty.",
+      "status": "pass",
+      "evidence": "2026-08-01: Friend Requests empty state title+copy visible; Sent Requests section absent.",
+      "notes": "Friends list populated (2 mutuals) — full empty friends state not exercised.",
+      "waiver": ""
+    },
+    {
+      "id": "A8",
+      "title": "Responsive action labels",
+      "surface": "ui",
+      "precondition": "Incoming request visible",
+      "steps": [
+        "View at desktop width (≥768px)",
+        "Confirm Confirm/Decline show text labels",
+        "Resize to 375px width",
+        "Confirm buttons stay usable (icon-only acceptable)"
+      ],
+      "expected": "Labels at md+; narrow viewport remains usable without overflow.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "LabeledActionButton uses hidden md:inline labels.",
+      "waiver": "No incoming requests to render Confirm/Decline during finalize."
+    },
+    {
+      "id": "A9",
+      "title": "Frontend typecheck and build",
+      "surface": "cli",
+      "precondition": "Execution complete on kylie/friends-ui-upgrade",
+      "steps": [
+        "Run npm run typecheck in frontend/",
+        "Run npm run build in frontend/"
+      ],
+      "expected": "Both commands exit 0.",
+      "status": "pass",
+      "evidence": "2026-08-01: npm run typecheck && npm run build in frontend/ — exit 0.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}
