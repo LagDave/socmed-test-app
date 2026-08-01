@@ -102,6 +102,11 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const generationRef = useRef(0);
   const stickToBottomRef = useRef(true);
+  const replyTargetIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    replyTargetIdRef.current = replyToMessage?.id ?? null;
+  }, [replyToMessage?.id]);
 
   useEffect(() => {
     generationRef.current += 1;
@@ -159,7 +164,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           }>(`/api/messages/conversations/${conversationId}`);
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
-          setMessages((prev) => mergeById(prev, data.messages));
+          setMessages((prev) => {
+            let merged = mergeById(prev, data.messages);
+            for (const msg of data.messages) {
+              if (msg.isUnsent) merged = patchReplyTargetsUnsent(merged, msg.id);
+            }
+            return merged;
+          });
           if (generation !== generationRef.current) return;
           await api.post(`/api/messages/conversations/${conversationId}/read`);
         } catch {
@@ -182,7 +193,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         const merged = mergeById(prev, [msg]);
         return msg.isUnsent ? patchReplyTargetsUnsent(merged, msg.id) : merged;
       });
-      if (replyToMessage?.id === msg.id && msg.isUnsent) {
+      if (replyTargetIdRef.current === msg.id && msg.isUnsent) {
         setReplyToMessage(null);
       }
     };
@@ -205,7 +216,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       socket.off(MESSAGE_UNSENT, applyMessagePatch);
       socket.off(MESSAGE_REACTION, applyMessagePatch);
     };
-  }, [conversationId, user?.id, replyToMessage?.id]);
+  }, [conversationId, user?.id]);
 
   useEffect(() => {
     if (!replyToMessage) return;
