@@ -2,7 +2,7 @@
 
 ## PostgreSQL
 
-**File (to be created at execution):** `database/migrations/20260801140000_message_edited_at.ts`
+**File (to be created at execution):** `database/migrations/20260801150000_message_edited_at.ts`
 
 **Change:** add nullable `edited_at` (`timestamptz`) to `messages`.
 

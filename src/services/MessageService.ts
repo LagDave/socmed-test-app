@@ -257,6 +257,9 @@ export class MessageService {
     if (existing.unsent_at) {
       throw new AppError("MESSAGE_VALIDATION", "Cannot edit an unsent message.");
     }
+    if (!existing.body?.trim()) {
+      throw new AppError("MESSAGE_VALIDATION", "This message has no text to edit.");
+    }
 
     const input = editMessageSchema.parse(raw);
     const trimmed = input.body.trim();
