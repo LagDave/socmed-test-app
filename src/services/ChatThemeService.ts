@@ -7,6 +7,7 @@ import { chatThemeSchema, updateChatThemeSchema } from "../constants/chatThemeSc
 import { AppError } from "../utils/AppError";
 import { MessageRealtime } from "../realtime/MessageRealtime";
 import { logger } from "../logger";
+import { assertThemeBubbleContrast } from "../utils/chatThemeValidation";
 
 export type ConversationThemeView = {
   theme: ChatThemePayload | null;
@@ -73,6 +74,10 @@ export class ChatThemeService {
     const input = updateChatThemeSchema.parse(raw);
     const nextTheme =
       "reset" in input && input.reset === true ? null : (input as ChatThemePayload);
+
+    if (nextTheme) {
+      assertThemeBubbleContrast(nextTheme);
+    }
 
     const updated = await ConversationModel.updateTheme(conversationId, nextTheme, userId);
     if (!updated) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");

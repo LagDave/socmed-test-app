@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { ChatTheme, ConversationThemeView } from "@/api/types";
-import { pickForeground } from "@/lib/chatThemeContrast";
+import { pickForeground, meetsContrast } from "@/lib/chatThemeContrast";
 import { findGraphicPreset } from "@/lib/chatThemePresets";
 
 export type ResolvedChatTheme = {
@@ -93,4 +93,14 @@ export function chatThemeCssVars(resolved: ResolvedChatTheme): CSSProperties {
 
 export function themesEqual(a: ChatTheme | null, b: ChatTheme | null): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/** True when auto-picked bubble foreground/background pairs meet WCAG 4.5:1. */
+export function themeBubbleContrastOk(theme: ChatTheme | null | undefined): boolean {
+  const resolved = resolveChatTheme(theme);
+  if (!resolved.active) return false;
+  return (
+    meetsContrast(resolved.bubbleMineFg, resolved.bubbleMine) &&
+    meetsContrast(resolved.bubbleTheirsFg, resolved.bubbleTheirs)
+  );
 }

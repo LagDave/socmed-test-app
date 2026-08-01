@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode 
 import { Check, Palette, Sparkles, X } from "lucide-react";
 import type { ChatTheme, ConversationThemeView } from "@/api/types";
 import { Button } from "@/components/ui/button";
-import { resolveChatTheme, themesEqual } from "@/lib/chatThemeApply";
+import { resolveChatTheme, themeBubbleContrastOk, themesEqual } from "@/lib/chatThemeApply";
 import {
   GRADIENT_PRESETS,
   GRAPHIC_CATEGORIES,
@@ -32,14 +32,20 @@ function isThemeSelected(draft: ChatTheme | null, theme: ChatTheme): boolean {
   return themesEqual(draft, theme);
 }
 
-function ChatThemePreview({ theme }: { theme: ChatTheme | null }) {
+function ChatThemePreview({ theme, contrastOk }: { theme: ChatTheme | null; contrastOk: boolean }) {
   const resolved = resolveChatTheme(theme);
 
   return (
-    <div
-      className="relative overflow-hidden rounded-2xl border border-border/60"
-      style={resolved.active ? { background: resolved.background } : undefined}
-    >
+    <div className="space-y-2">
+      {!contrastOk && theme && (
+        <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          Message bubble colors are too low contrast to read. Pick different bubble colors.
+        </p>
+      )}
+      <div
+        className="relative overflow-hidden rounded-2xl border border-border/60"
+        style={resolved.active ? { background: resolved.background } : undefined}
+      >
       {!resolved.active && (
         <div className="absolute inset-0 bg-gradient-to-br from-secondary via-muted to-secondary" />
       )}
@@ -86,6 +92,7 @@ function ChatThemePreview({ theme }: { theme: ChatTheme | null }) {
           aria-hidden="true"
         />
       )}
+    </div>
     </div>
   );
 }
@@ -196,6 +203,7 @@ export function ChatThemePicker({
 
   const baselineTheme = openedThemeRef.current;
   const hasChanges = !themesEqual(draft, baselineTheme);
+  const contrastOk = !draft || themeBubbleContrastOk(draft);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
@@ -251,7 +259,7 @@ export function ChatThemePicker({
           </div>
 
           <div className="mt-4">
-            <ChatThemePreview theme={draft} />
+            <ChatThemePreview theme={draft} contrastOk={contrastOk} />
           </div>
 
           <div className="mt-4 rounded-xl bg-secondary/40 px-3 py-2.5">
@@ -351,7 +359,7 @@ export function ChatThemePicker({
               </Button>
               <Button
                 type="button"
-                disabled={busy || !draft || !hasChanges}
+                disabled={busy || !draft || !hasChanges || !contrastOk}
                 onClick={() => draft && onApply(draft)}
                 className="min-w-[5.5rem]"
               >
