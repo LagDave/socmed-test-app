@@ -7,6 +7,7 @@ export type MessageRow = {
   body: string | null;
   image_url: string | null;
   unsent_at: Date | null;
+  edited_at: Date | null;
   created_at: Date;
 };
 
@@ -60,6 +61,22 @@ export class MessageModel {
         unsent_at: db.fn.now(),
         body: null,
         image_url: null,
+      })
+      .returning("*");
+    return row;
+  }
+
+  static async updateBody(
+    id: string,
+    senderId: string,
+    body: string | null
+  ): Promise<MessageRow | undefined> {
+    const [row] = await db<MessageRow>("messages")
+      .where({ id, sender_id: senderId })
+      .whereNull("unsent_at")
+      .update({
+        body,
+        edited_at: db.fn.now(),
       })
       .returning("*");
     return row;

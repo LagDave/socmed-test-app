@@ -3,6 +3,7 @@ import type { MessageView } from "./types";
 
 export const MESSAGE_NEW = "message:new";
 export const MESSAGE_UNSENT = "message:unsent";
+export const MESSAGE_EDITED = "message:edited";
 export const MESSAGE_REACTION = "message:reaction";
 export const MESSAGES_UNREAD = "messages:unread";
 export const CONVERSATION_UPDATED = "conversation:updated";

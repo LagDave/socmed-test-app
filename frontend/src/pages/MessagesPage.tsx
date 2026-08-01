@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ImagePlus, MessageCircle, SendHorizontal } from "lucide-react";
+import { ChevronLeft, MessageCircle } from "lucide-react";
 import { api } from "@/api/client";
 import {
   CONVERSATION_UPDATED,
+  MESSAGE_EDITED,
   MESSAGE_NEW,
   MESSAGE_REACTION,
   MESSAGE_UNSENT,
@@ -15,6 +16,7 @@ import type { ConversationListItem, MessageView, PublicUser } from "@/api/types"
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ConversationListRow } from "@/components/ConversationListRow";
+import { MessageComposeBar } from "@/components/MessageComposeBar";
 import { MessageBubbleRow } from "@/components/MessageBubbleRow";
 import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import {
@@ -27,13 +29,11 @@ import {
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   formatMessageDay,
   isSameCalendarDay,
   messagesShareGroup,
 } from "@/lib/formatMessageDay";
-import { submitOnEnter } from "@/lib/submitOnEnter";
 
 const POLL_MS = 2500;
 
@@ -59,9 +59,12 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [sending, setSending] = useState(false);
   const [pendingUnsendId, setPendingUnsendId] = useState<string | null>(null);
   const [unsending, setUnsending] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [loadingThread, setLoadingThread] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const composeRef = useRef<HTMLTextAreaElement>(null);
   const generationRef = useRef(0);
   const stickToBottomRef = useRef(true);
 
@@ -74,6 +77,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     setHasMore(false);
     setError(null);
     setBody("");
+    setEditingMessageId(null);
     setLoadingThread(true);
 
     async function loadInitial() {
@@ -153,13 +157,24 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
     socket.on(MESSAGE_NEW, applyInboundNewMessage);
     socket.on(MESSAGE_UNSENT, applyMessagePatch);
+    socket.on(MESSAGE_EDITED, applyMessagePatch);
     socket.on(MESSAGE_REACTION, applyMessagePatch);
     return () => {
       socket.off(MESSAGE_NEW, applyInboundNewMessage);
       socket.off(MESSAGE_UNSENT, applyMessagePatch);
+      socket.off(MESSAGE_EDITED, applyMessagePatch);
       socket.off(MESSAGE_REACTION, applyMessagePatch);
     };
   }, [conversationId, user?.id]);
+
+  useEffect(() => {
+    if (!editingMessageId) return;
+    const el = composeRef.current;
+    if (!el) return;
+    el.focus();
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+  }, [editingMessageId]);
 
   useEffect(() => {
     if (!stickToBottomRef.current) return;
@@ -191,8 +206,16 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     }
   }
 
-  async function onSend(e: FormEvent) {
+  async function onComposeSubmit(e: FormEvent) {
     e.preventDefault();
+    if (editingMessageId) {
+      await saveEdit();
+      return;
+    }
+    await sendMessage();
+  }
+
+  async function sendMessage() {
     const text = body.trim();
     if (!text || sending) return;
     const generation = generationRef.current;
@@ -218,7 +241,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   }
 
   async function onImage(file: File | null) {
-    if (!file || sending) return;
+    if (!file || sending || editingMessageId) return;
     const generation = generationRef.current;
     setSending(true);
     setError(null);
@@ -258,11 +281,61 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       if (generation !== generationRef.current) return;
       setMessages((prev) => prev.map((m) => (m.id === pendingUnsendId ? data.message : m)));
       setPendingUnsendId(null);
+      if (editingMessageId === pendingUnsendId) cancelEdit();
     } catch (err) {
       if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Unsend failed");
     } finally {
       if (generation === generationRef.current) setUnsending(false);
+    }
+  }
+
+  function startEdit(messageId: string) {
+    const msg = messages.find((m) => m.id === messageId);
+    if (!msg?.body?.trim()) return;
+    setEditingMessageId(messageId);
+    setBody(msg.body ?? "");
+    setError(null);
+    stickToBottomRef.current = true;
+  }
+
+  function cancelEdit() {
+    setEditingMessageId(null);
+    setBody("");
+  }
+
+  async function saveEdit() {
+    if (!editingMessageId || savingEdit) return;
+    const msg = messages.find((m) => m.id === editingMessageId);
+    if (!msg) return;
+    const trimmed = body.trim();
+    if (!msg.imageUrl && !trimmed) {
+      setError("Message body cannot be empty.");
+      return;
+    }
+    const generation = generationRef.current;
+    setSavingEdit(true);
+    setError(null);
+    try {
+      const data = await api.patch<{ message: MessageView }>(
+        `/api/messages/messages/${editingMessageId}`,
+        { body: trimmed }
+      );
+      if (generation !== generationRef.current) return;
+      setMessages((prev) => mergeById(prev, [data.message]));
+      cancelEdit();
+    } catch (err) {
+      if (generation !== generationRef.current) return;
+      setError(err instanceof Error ? err.message : "Edit failed");
+    } finally {
+      if (generation === generationRef.current) setSavingEdit(false);
+    }
+  }
+
+  function handleComposeKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Escape" && editingMessageId) {
+      e.preventDefault();
+      cancelEdit();
     }
   }
 
@@ -273,6 +346,10 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   }
 
   const peerProfilePath = peer?.username ? `/u/${peer.username}` : peer ? `/u/${peer.id}` : "#";
+  const editingMessage = editingMessageId
+    ? messages.find((m) => m.id === editingMessageId) ?? null
+    : null;
+  const composeBusy = sending || savingEdit;
 
   return (
     <section className="space-y-4">
@@ -352,7 +429,9 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       showAvatar={showAvatar}
                       showMeta={showMeta}
                       peerProfilePath={peerProfilePath}
+                      isBeingEdited={editingMessageId === m.id}
                       onUnsend={setPendingUnsendId}
+                      onStartEdit={startEdit}
                       onReactionChange={patchMessageReaction}
                       onError={setError}
                     />
@@ -370,53 +449,45 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           </div>
         )}
 
-        <form onSubmit={onSend} className="border-t border-border px-3 py-3">
-          <div className="flex items-end gap-2 rounded-2xl bg-secondary/50 px-2 py-1.5">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              className="hidden"
-              onChange={(e) => void onImage(e.target.files?.[0] ?? null)}
-            />
-            {user && (
-              <ProfileAvatar
-                displayName={user.displayName}
-                avatarUrl={user.avatarUrl}
+        <form onSubmit={onComposeSubmit} className="border-t border-border px-3 py-3">
+          {editingMessageId && (
+            <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
+              <span>Editing message</span>
+              <Button
+                type="button"
+                variant="ghost"
                 size="sm"
-              />
-            )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              aria-label="Attach image"
-              disabled={sending}
-              onClick={() => fileRef.current?.click()}
-            >
-              <ImagePlus className="h-4 w-4" />
-            </Button>
-            <Textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              onKeyDown={submitOnEnter}
-              placeholder="Message"
-              aria-label="Message"
-              rows={1}
-              disabled={sending}
-              className="max-h-32 min-h-10 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[15px] leading-6 shadow-none focus-visible:ring-0"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              className="shrink-0"
-              aria-label="Send"
-              disabled={sending || !body.trim()}
-            >
-              <SendHorizontal className="h-4 w-4" />
-            </Button>
-          </div>
+                className="h-7 px-2"
+                disabled={composeBusy}
+                onClick={cancelEdit}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => void onImage(e.target.files?.[0] ?? null)}
+          />
+          <MessageComposeBar
+            value={body}
+            onChange={setBody}
+            user={user}
+            disabled={composeBusy}
+            showAttach={!editingMessageId}
+            onAttachClick={() => fileRef.current?.click()}
+            submitDisabled={
+              editingMessage
+                ? !editingMessage.imageUrl && !body.trim()
+                : !body.trim()
+            }
+            submitAriaLabel={editingMessageId ? "Save edit" : "Send"}
+            onTextareaKeyDown={handleComposeKeyDown}
+            textareaRef={composeRef}
+          />
         </form>
       </div>
 
@@ -469,10 +540,12 @@ function InboxView() {
     socket.on(CONVERSATION_UPDATED, onUpdated);
     socket.on(MESSAGE_NEW, onMessage);
     socket.on(MESSAGE_UNSENT, onMessage);
+    socket.on(MESSAGE_EDITED, onMessage);
     return () => {
       socket.off(CONVERSATION_UPDATED, onUpdated);
       socket.off(MESSAGE_NEW, onMessage);
       socket.off(MESSAGE_UNSENT, onMessage);
+      socket.off(MESSAGE_EDITED, onMessage);
     };
   }, []);
 

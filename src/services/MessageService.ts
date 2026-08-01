@@ -55,6 +55,10 @@ const reactionSchema = z.object({
   emoji: z.enum(REACTION_EMOJIS),
 });
 
+const editMessageSchema = z.object({
+  body: z.string().max(4000),
+});
+
 export type MessageView = {
   id: string;
   conversationId: string;
@@ -63,6 +67,7 @@ export type MessageView = {
   imageUrl: string | null;
   isUnsent: boolean;
   createdAt: Date;
+  editedAt: Date | null;
   reactionSummary: ReactionSummary;
 };
 
@@ -107,6 +112,7 @@ function toMessageView(row: MessageRow, reactionSummary: ReactionSummary): Messa
     imageUrl: isUnsent ? null : row.image_url,
     isUnsent,
     createdAt: row.created_at,
+    editedAt: isUnsent ? null : row.edited_at,
     reactionSummary: isUnsent ? emptyReactionSummary() : reactionSummary,
   };
 }
@@ -234,6 +240,42 @@ export class MessageService {
     if (!row) throw new AppError("MESSAGE_NOT_FOUND", "Message not found or already unsent.");
     const view = toMessageView(row, emptyReactionSummary());
     await publishRealtime(() => MessageRealtime.messageUnsent(conversation, view));
+    return view;
+  }
+
+  static async edit(userId: string, messageId: string, raw: unknown): Promise<MessageView> {
+    const existing = await MessageModel.findById(messageId);
+    if (!existing) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
+
+    const conversation = await ConversationModel.findById(existing.conversation_id);
+    if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    assertParticipant(conversation, userId);
+
+    if (existing.sender_id !== userId) {
+      throw new AppError("MESSAGE_FORBIDDEN", "You can only edit your own messages.");
+    }
+    if (existing.unsent_at) {
+      throw new AppError("MESSAGE_VALIDATION", "Cannot edit an unsent message.");
+    }
+
+    const input = editMessageSchema.parse(raw);
+    const trimmed = input.body.trim();
+    if (!existing.image_url && !trimmed) {
+      throw new AppError("MESSAGE_VALIDATION", "Message body cannot be empty.");
+    }
+
+    const newBody = trimmed || null;
+    const summaries = await MessageReactionModel.summariesForMessages([messageId], userId);
+    const currentSummary = summaries.get(messageId) ?? emptyReactionSummary();
+
+    if ((existing.body ?? "") === (newBody ?? "")) {
+      return toMessageView(existing, currentSummary);
+    }
+
+    const row = await MessageModel.updateBody(messageId, userId, newBody);
+    if (!row) throw new AppError("MESSAGE_NOT_FOUND", "Message not found or already unsent.");
+    const view = toMessageView(row, currentSummary);
+    await publishRealtime(() => MessageRealtime.messageEdited(conversation, view));
     return view;
   }
 

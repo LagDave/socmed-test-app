@@ -25,7 +25,9 @@ export function MessageBubbleRow({
   showAvatar,
   showMeta,
   peerProfilePath,
+  isBeingEdited,
   onUnsend,
+  onStartEdit,
   onReactionChange,
   onError,
 }: {
@@ -35,11 +37,15 @@ export function MessageBubbleRow({
   showAvatar: boolean;
   showMeta: boolean;
   peerProfilePath: string;
+  isBeingEdited?: boolean;
   onUnsend: (id: string) => void;
+  onStartEdit: (id: string) => void;
   onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
   onError: (message: string) => void;
 }) {
   const [reactionsOpen, setReactionsOpen] = useState(false);
+
+  const canEdit = mine && !message.isUnsent && Boolean(message.body?.trim());
 
   return (
     <div className={cn("group/message flex gap-2", mine ? "flex-row-reverse" : "flex-row")}>
@@ -67,7 +73,8 @@ export function MessageBubbleRow({
                   ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
                   : mine
                     ? "bg-foreground text-background"
-                    : "bg-secondary text-foreground"
+                    : "bg-secondary text-foreground",
+                isBeingEdited && "ring-2 ring-ring ring-offset-2 ring-offset-background"
               )}
             >
               {message.isUnsent ? (
@@ -125,17 +132,19 @@ export function MessageBubbleRow({
           )}
 
           {showMeta && (
-            <time
-              className="px-1 text-[11px] text-muted-foreground"
-              dateTime={message.createdAt}
-              title={formatAbsoluteTime(message.createdAt) || undefined}
-            >
-              {formatRelativeTime(message.createdAt)}
-            </time>
+            <div className="flex items-center gap-1 px-1 text-[11px] text-muted-foreground">
+              <time
+                dateTime={message.createdAt}
+                title={formatAbsoluteTime(message.createdAt) || undefined}
+              >
+                {formatRelativeTime(message.createdAt)}
+              </time>
+              {message.editedAt && <span aria-label="Edited">(edited)</span>}
+            </div>
           )}
         </div>
 
-        {mine && !message.isUnsent && (
+        {mine && !message.isUnsent && !isBeingEdited && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -149,6 +158,9 @@ export function MessageBubbleRow({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="left">
+              {canEdit && (
+                <DropdownMenuItem onSelect={() => onStartEdit(message.id)}>Edit</DropdownMenuItem>
+              )}
               <DropdownMenuItem onSelect={() => onUnsend(message.id)}>Unsend</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

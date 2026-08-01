@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.18 — 2026-08-01
+
+### Added
+- Edit message: sender can fix typos from the ellipsis menu on own text messages
+- `PATCH /api/messages/messages/:id` with `edited_at` column and `message:edited` socket event
+- Messenger-style edit UX: message text loads into the bottom compose bar; Enter/send saves, Escape/Cancel exits
+- Shared `MessageComposeBar` component for send and edit compose rows
+
+### Plans
+- `plans/08012026-32-edit-message` — Completed (execution on `kylie/edit-message`)
+
 ## 0.1.17 — 2026-07-31
 
 ### Added
