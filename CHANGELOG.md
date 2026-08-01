@@ -7,6 +7,9 @@
 - Animated “{name} is typing” cue above the thread composer and in inbox conversation rows
 - `TypingIndicator` component and `useTypingIndicator` hooks (debounced emit + peer listen)
 
+### Fixed
+- Typing indicator reliability: server heartbeats re-broadcast to peers and skip redundant DB lookups; socket singleton no longer disconnects on React remounts
+
 ### Plans
 - `plans/07312026-27-messages-typing-indicator` — Completed (execution on `kylie/messages-typing-indicator`)
 

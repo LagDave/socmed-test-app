@@ -85,6 +85,9 @@ export function usePeerTyping(conversationId: string, selfId: string | undefined
 
   useEffect(() => {
     setIsPeerTyping(false);
+  }, [conversationId, selfId]);
+
+  useEffect(() => {
     const socket = getMessagesSocket();
 
     const onTyping = (payload: TypingUpdatePayload) => {

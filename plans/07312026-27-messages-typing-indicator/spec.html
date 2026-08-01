@@ -362,6 +362,16 @@
             <td>2026-08-01</td>
             <td>Remote branch repair: <code>origin/kylie/messages-typing-indicator</code> had been stacked on reaction-fix commit <code>c268b75</code> (PR #41 code) instead of typing commit <code>c45ba20</code>. Reset remote to <code>c45ba20</code> + cherry-picked review trace (<code>1ec44b4</code>). PR #42 diff now matches plan scope; no overlap with PR #41 app code.</td>
           </tr>
+          <tr>
+            <td>4</td>
+            <td>2026-08-01</td>
+            <td>Grill-locked reliability pass (Q1–Q7 defaults): <code>TypingRelay</code> caches peer in memory; heartbeats skip DB and re-broadcast <code>typing:update</code> <code>true</code> every ~2s; <code>typing:stop</code> uses cache (no DB). <code>usePeerTyping</code> splits reset vs socket listeners. Addresses reviewer R2 and inconsistent peer indicator (missed first event + TTL flicker).</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>2026-08-02</td>
+            <td>Socket stability (<code>-x</code> follow-up): <code>useMessagesSocketConnection</code> no longer calls <code>disconnectMessagesSocket()</code> on effect cleanup (logout only); <code>useSocketConnected</code> actively connects when signed in. Verified two-browser typing on localhost after dev restart.</td>
+          </tr>
         </tbody>
       </table>
     </section>

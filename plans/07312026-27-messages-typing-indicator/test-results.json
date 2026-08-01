@@ -32,7 +32,7 @@
       "expected": "User B sees a typing indicator above the composer with User A's display name and animated dots within ~500ms.",
       "status": "pass",
       "evidence": "",
-      "notes": "ThreadView renders TypingIndicator when usePeerTyping true.",
+      "notes": "ThreadView renders TypingIndicator when usePeerTyping true. Rev 4: server re-broadcasts true on heartbeat so late-mounting peers recover within ~2s.",
       "waiver": "Two-browser interactive session deferred to PR review on localhost:5180."
     },
     {

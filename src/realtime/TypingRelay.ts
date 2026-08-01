@@ -16,7 +16,14 @@ const typingPayloadSchema = z.object({
 
 type TypingKey = `${string}:${string}`;
 
-const expiryTimers = new Map<TypingKey, ReturnType<typeof setTimeout>>();
+type TypingEntry = {
+  timer: ReturnType<typeof setTimeout>;
+  conversationId: string;
+  typerId: string;
+  peerUserId: string;
+};
+
+const activeTyping = new Map<TypingKey, TypingEntry>();
 
 function typingKey(conversationId: string, userId: string): TypingKey {
   return `${conversationId}:${userId}`;
@@ -49,46 +56,49 @@ function relayTyping(
   });
 }
 
-function clearExpiryTimer(key: TypingKey): void {
-  const timer = expiryTimers.get(key);
-  if (timer) {
-    clearTimeout(timer);
-    expiryTimers.delete(key);
-  }
+function armTypingExpiry(
+  key: TypingKey,
+  conversationId: string,
+  typerId: string,
+  peerUserId: string
+): void {
+  const existing = activeTyping.get(key);
+  if (existing) clearTimeout(existing.timer);
+
+  const timer = setTimeout(() => {
+    activeTyping.delete(key);
+    relayTyping(conversationId, typerId, peerUserId, false);
+  }, TYPING_TTL_MS);
+
+  activeTyping.set(key, { timer, conversationId, typerId, peerUserId });
 }
 
 async function handleTypingStart(userId: string, conversationId: string): Promise<void> {
+  const key = typingKey(conversationId, userId);
+  const cached = activeTyping.get(key);
+
+  if (cached) {
+    armTypingExpiry(key, conversationId, userId, cached.peerUserId);
+    relayTyping(conversationId, userId, cached.peerUserId, true);
+    return;
+  }
+
   const conversation = await ConversationModel.findById(conversationId);
   if (!conversation || !isParticipant(conversation, userId)) return;
 
   const peer = peerId(conversation, userId);
-  const key = typingKey(conversationId, userId);
-  const wasActive = expiryTimers.has(key);
-
-  clearExpiryTimer(key);
-  expiryTimers.set(
-    key,
-    setTimeout(() => {
-      expiryTimers.delete(key);
-      relayTyping(conversationId, userId, peer, false);
-    }, TYPING_TTL_MS)
-  );
-
-  if (!wasActive) {
-    relayTyping(conversationId, userId, peer, true);
-  }
+  armTypingExpiry(key, conversationId, userId, peer);
+  relayTyping(conversationId, userId, peer, true);
 }
 
-async function handleTypingStop(userId: string, conversationId: string): Promise<void> {
-  const conversation = await ConversationModel.findById(conversationId);
-  if (!conversation || !isParticipant(conversation, userId)) return;
-
-  const peer = peerId(conversation, userId);
+function handleTypingStop(userId: string, conversationId: string): void {
   const key = typingKey(conversationId, userId);
-  if (!expiryTimers.has(key)) return;
+  const cached = activeTyping.get(key);
+  if (!cached) return;
 
-  clearExpiryTimer(key);
-  relayTyping(conversationId, userId, peer, false);
+  clearTimeout(cached.timer);
+  activeTyping.delete(key);
+  relayTyping(conversationId, userId, cached.peerUserId, false);
 }
 
 export function attachTypingHandlers(socket: Socket): void {
@@ -112,8 +122,6 @@ export function attachTypingHandlers(socket: Socket): void {
       logger.debug({ raw }, "typing:stop ignored — invalid payload");
       return;
     }
-    void handleTypingStop(userId, parsed.data.conversationId).catch((err) => {
-      logger.error({ err, userId }, "typing:stop handler failed");
-    });
+    handleTypingStop(userId, parsed.data.conversationId);
   });
 }
