@@ -201,7 +201,6 @@ export function PostDetailPage() {
         <PostCard
           post={post}
           currentUserId={user.id}
-          mediaLayout="fullBleed"
           showActionLabels
           sharingPostId={sharingPostId}
           onDelete={() => setPendingDelete({ type: "post" })}

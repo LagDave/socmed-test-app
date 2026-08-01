@@ -6,6 +6,7 @@ export type PostRow = {
   author_id: string;
   body: string;
   image_url: string | null;
+  image_urls: string[] | null;
   shared_from_post_id: string | null;
   created_at: Date;
   updated_at: Date;
@@ -16,13 +17,19 @@ export class PostModel {
     authorId: string;
     body: string;
     imageUrl?: string | null;
+    imageUrls?: string[] | null;
     sharedFromPostId?: string | null;
   }): Promise<PostRow> {
+    const urls = input.imageUrls ?? (input.imageUrl ? [input.imageUrl] : []);
     const [row] = await db<PostRow>("posts")
       .insert({
         author_id: input.authorId,
         body: input.body,
-        image_url: input.imageUrl ?? null,
+        image_url: urls[0] ?? null,
+        image_urls:
+          urls.length > 0
+            ? (JSON.stringify(urls) as unknown as PostRow["image_urls"])
+            : null,
         shared_from_post_id: input.sharedFromPostId ?? null,
       })
       .returning("*");

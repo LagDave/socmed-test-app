@@ -122,7 +122,6 @@ export function FeedPage() {
               <PostCard
                 post={post}
                 currentUserId={user.id}
-                mediaLayout="fullBleed"
                 showActionLabels
                 sharingPostId={sharingPostId}
                 onDelete={setPendingDeleteId}

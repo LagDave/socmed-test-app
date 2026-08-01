@@ -16,6 +16,7 @@ import {
   profileActivityKind,
 } from "@/lib/profileActivityPosts";
 import { canSharePost, shareAttributionLabel } from "@/lib/sharePost";
+import { postImageUrls } from "@/lib/postImages";
 import { cn } from "@/lib/utils";
 
 /** Full card width — offsets the header avatar column (sm + gap-2.5). */
@@ -56,12 +57,10 @@ function PostActivityImage({
   body,
   imageUrl,
   postPath,
-  fullBleed,
 }: {
   body: string;
   imageUrl: string;
   postPath: string;
-  fullBleed: boolean;
 }) {
   if (isProfileActivityPost(body)) {
     return <ProfileActivityMedia body={body} imageUrl={imageUrl} />;
@@ -69,22 +68,96 @@ function PostActivityImage({
   return (
     <Link
       to={postPath}
-      className={cn(
-        "mt-3 block overflow-hidden",
-        fullBleed
-          ? "feed-post-media-full-bleed"
-          : "rounded-xl border border-border/60"
-      )}
+      className="post-media-gallery post-media-single block overflow-hidden rounded-xl ring-1 ring-border/60"
     >
-      <img
-        src={imageUrl}
-        alt=""
-        className={cn(
-          "max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]",
-          fullBleed && "max-h-[32rem] rounded-none"
-        )}
-      />
+        <img
+          src={imageUrl}
+          alt=""
+          className="max-h-80 w-full object-cover sm:max-h-96 transition-transform duration-300 hover:scale-[1.02]"
+        />
     </Link>
+  );
+}
+
+function PostMediaGallery({
+  urls,
+  postPath,
+  isActivity,
+  body,
+}: {
+  urls: string[];
+  postPath: string;
+  isActivity: boolean;
+  body: string;
+}) {
+  if (urls.length === 0) return null;
+
+  if (isActivity && urls.length === 1) {
+    return <PostActivityImage body={body} imageUrl={urls[0]} postPath={postPath} />;
+  }
+
+  const imgClass =
+    "h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]";
+
+  if (urls.length === 1) {
+    return (
+      <Link
+        to={postPath}
+        className="post-media-gallery post-media-single block overflow-hidden rounded-xl ring-1 ring-border/60"
+      >
+        <img src={urls[0]} alt="" className="max-h-80 w-full object-cover sm:max-h-96" />
+      </Link>
+    );
+  }
+
+  if (urls.length === 2) {
+    return (
+      <div className="post-media-gallery post-media-duo grid grid-cols-2 gap-1.5 overflow-hidden rounded-xl ring-1 ring-border/60">
+        {urls.map((url, index) => (
+          <Link key={`${url}-${index}`} to={postPath} className="aspect-[4/3] overflow-hidden">
+            <img src={url} alt="" className={imgClass} />
+          </Link>
+        ))}
+      </div>
+    );
+  }
+
+  if (urls.length === 3) {
+    return (
+      <div className="post-media-gallery post-media-trio grid grid-cols-2 grid-rows-2 gap-1.5 overflow-hidden rounded-xl ring-1 ring-border/60">
+        <Link to={postPath} className="row-span-2 overflow-hidden">
+          <img src={urls[0]} alt="" className={cn(imgClass, "min-h-[12rem]")} />
+        </Link>
+        <Link to={postPath} className="overflow-hidden">
+          <img src={urls[1]} alt="" className={cn(imgClass, "aspect-[4/3]")} />
+        </Link>
+        <Link to={postPath} className="overflow-hidden">
+          <img src={urls[2]} alt="" className={cn(imgClass, "aspect-[4/3]")} />
+        </Link>
+      </div>
+    );
+  }
+
+  const visible = urls.slice(0, 4);
+  const extra = urls.length - 4;
+
+  return (
+    <div className="post-media-gallery post-media-grid grid grid-cols-2 gap-1.5 overflow-hidden rounded-xl ring-1 ring-border/60">
+      {visible.map((url, index) => (
+        <Link
+          key={`${url}-${index}`}
+          to={postPath}
+          className="relative aspect-square overflow-hidden"
+        >
+          <img src={url} alt="" className={imgClass} />
+          {index === 3 && extra > 0 && (
+            <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-lg font-semibold text-white">
+              +{extra}
+            </span>
+          )}
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -97,8 +170,6 @@ type PostCardProps = {
   sharingPostId?: string | null;
   /** When embedded inside an outer feed-card (e.g. profile timeline). */
   variant?: "standalone" | "embedded";
-  /** Edge-to-edge photo within card — feed and post detail only. */
-  mediaLayout?: "inset" | "fullBleed";
   /** Icon + label action row at md+ — feed and post detail only. */
   showActionLabels?: boolean;
   className?: string;
@@ -112,7 +183,6 @@ export function PostCard({
   onShare,
   sharingPostId = null,
   variant = "standalone",
-  mediaLayout = "inset",
   showActionLabels = false,
   className,
 }: PostCardProps) {
@@ -127,6 +197,7 @@ export function PostCard({
   const isActivity = activityKind !== null;
   const displayBody = profileActivityDisplayBody(post.body);
   const hasCustomCaption = profileActivityHasCustomCaption(post.body);
+  const mediaUrls = isShare ? [] : postImageUrls(post);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -143,8 +214,6 @@ export function PostCard({
       document.removeEventListener("keydown", onKey);
     };
   }, [menuOpen]);
-
-  const hasFullBleedMedia = mediaLayout === "fullBleed" && variant === "standalone";
 
   const bodyBlock = isShare ? (
     <SharedPostEmbed sharedFrom={post.sharedFrom} />
@@ -178,34 +247,6 @@ export function PostCard({
           </Link>
         )
       ) : null}
-      {post.imageUrl &&
-        (isActivity ? (
-          <PostActivityImage
-            body={post.body}
-            imageUrl={post.imageUrl}
-            postPath={postPath}
-            fullBleed={hasFullBleedMedia}
-          />
-        ) : (
-          <Link
-            to={postPath}
-            className={cn(
-              "mt-3 block overflow-hidden",
-              hasFullBleedMedia
-                ? "feed-post-media-full-bleed"
-                : "rounded-xl border border-border/60"
-            )}
-          >
-            <img
-              src={post.imageUrl}
-              alt=""
-              className={cn(
-                "max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]",
-                hasFullBleedMedia && "max-h-[32rem] rounded-none"
-              )}
-            />
-          </Link>
-        ))}
     </>
   );
 
@@ -283,9 +324,20 @@ export function PostCard({
               )}
             </div>
 
-            <div className={cn("mt-2", hasFullBleedMedia && "mt-2.5")}>{bodyBlock}</div>
+            <div className={cn("mt-2", displayBody && "mt-2.5")}>{bodyBlock}</div>
           </div>
         </div>
+
+        {mediaUrls.length > 0 && (
+          <div className="post-media-stage">
+            <PostMediaGallery
+              urls={mediaUrls}
+              postPath={postPath}
+              isActivity={isActivity}
+              body={post.body}
+            />
+          </div>
+        )}
       </div>
 
       <div

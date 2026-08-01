@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.19 — 2026-08-01
+
+### Added
+- Multi-photo posts: `image_urls` jsonb column, backend support for up to 10 attachments, composer multi-select with preview grid
+
+### Changed
+- Post media on feed and detail: centered inset galleries (1–4+ layouts) instead of full-bleed edge-to-edge images
+- Feed composer: photo picker UX fixes (label-based file input, blur-safe expand/collapse)
+
+### Fixed
+- Post detail "Something went wrong" when creating posts with photos — jsonb insert now serializes `image_urls` correctly
+
+### Plans
+- `plans/08012026-36-feed-ui-upgrade` — Completed (Rev 5: multi-photo + centered media follow-up on `kylie/feed-ui-upgrade`)
+
 ## 0.1.18 — 2026-08-01
 
 ### Changed

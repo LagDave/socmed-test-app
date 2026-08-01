@@ -25,27 +25,28 @@
       "precondition": "Signed in",
       "steps": [
         "Focus the composer textarea",
-        "Attach a photo and submit a post",
+        "Attach one or more photos and submit a post",
         "Blur with empty content and confirm collapse"
       ],
-      "expected": "Photo picker, character warn, Enter-to-submit, busy/error states unchanged; post appears in feed after submit; composer collapses when empty on blur.",
+      "expected": "Photo picker supports multi-select (up to 10), preview grid, character warn, Enter-to-submit, busy/error states; post appears in feed after submit; composer collapses when empty on blur.",
       "status": "pass",
-      "evidence": "Single textarea preserves focus on expand; build green.",
+      "evidence": "Rev 5: label-based file picker + multi-image preview; jsonb create fix verified.",
       "notes": "",
       "waiver": null
     },
     {
       "id": "feed-post-card-media",
-      "title": "Full-bleed post images on feed",
+      "title": "Centered inset post images on feed",
       "surface": "ui",
       "precondition": "Signed in; at least one feed post with an image attachment",
       "steps": [
         "Scroll the feed to a post with a photo",
-        "Compare image width to card padding and avatar column"
+        "Compare image placement to card padding and avatar column",
+        "Post with two photos and confirm side-by-side grid"
       ],
-      "expected": "Non-activity post images break out to card edges (edge-to-edge within the card); rounded corners and subtle ring/shadow remain; profile-activity posts keep their existing avatar/cover treatments.",
+      "expected": "Non-activity post images render in a centered inset gallery below the header row (not full-bleed); rounded corners and ring/shadow remain; multi-photo grids (2–4+) layout correctly; profile-activity posts keep avatar/cover treatments.",
       "status": "pass",
-      "evidence": "PostCard mediaLayout=fullBleed via .feed-post-media-full-bleed.",
+      "evidence": "Rev 5: PostMediaGallery in .post-media-stage (max 36rem, margin auto); user layout review localhost:5180.",
       "notes": "",
       "waiver": null
     },
@@ -120,9 +121,9 @@
         "Navigate to /posts/{id} from the feed",
         "Inspect post image layout and action row at desktop and mobile widths"
       ],
-      "expected": "Post detail uses same full-bleed media and labeled Comment/Share at md+ as the feed; comments section below unchanged structurally.",
+      "expected": "Post detail uses same centered inset media and labeled Comment/Share at md+ as the feed; comments section below unchanged structurally.",
       "status": "pass",
-      "evidence": "PostDetailPage passes mediaLayout + showActionLabels.",
+      "evidence": "Rev 5: PostDetailPage shares PostCard PostMediaGallery; post click-through no longer errors.",
       "notes": "",
       "waiver": null
     },
