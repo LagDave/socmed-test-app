@@ -1,3 +1,4 @@
+import type { Knex } from "knex";
 import { db } from "../database/connection";
 import { orderedPair } from "./FriendshipModel";
 import type { UserRow } from "../types/user";
@@ -68,8 +69,8 @@ export class ConversationModel {
     return this.hiddenAtForUser(row, userId) !== null;
   }
 
-  static async findById(id: string): Promise<ConversationRow | undefined> {
-    return db<ConversationRow>("conversations").where({ id }).first();
+  static async findById(id: string, trx: Knex = db): Promise<ConversationRow | undefined> {
+    return trx<ConversationRow>("conversations").where({ id }).first();
   }
 
   static async findPair(userId: string, otherId: string): Promise<ConversationRow | undefined> {
@@ -211,8 +212,13 @@ export class ConversationModel {
     return Number(result.rows[0]?.count ?? 0);
   }
 
-  static async setHidden(id: string, userId: string, at: Date): Promise<ConversationRow | undefined> {
-    const row = await this.findById(id);
+  static async setHidden(
+    id: string,
+    userId: string,
+    at: Date,
+    trx: Knex = db
+  ): Promise<ConversationRow | undefined> {
+    const row = await this.findById(id, trx);
     if (!row) return undefined;
     const patch =
       row.user_a === userId
@@ -221,9 +227,9 @@ export class ConversationModel {
           ? { user_b_hidden_at: at }
           : null;
     if (!patch) return undefined;
-    const [updated] = await db<ConversationRow>("conversations")
+    const [updated] = await trx<ConversationRow>("conversations")
       .where({ id })
-      .update({ ...patch, updated_at: db.fn.now() })
+      .update({ ...patch, updated_at: trx.fn.now() })
       .returning("*");
     return updated;
   }

@@ -304,20 +304,7 @@ export class MessageService {
 
     const updated = await db.transaction(async (trx) => {
       await MessageUserDeletionModel.markAllInConversationForUser(conversationId, userId, trx);
-      const row = await ConversationModel.findById(conversationId);
-      if (!row) return undefined;
-      const patch =
-        row.user_a === userId
-          ? { user_a_hidden_at: new Date() }
-          : row.user_b === userId
-            ? { user_b_hidden_at: new Date() }
-            : null;
-      if (!patch) return undefined;
-      const [saved] = await trx<ConversationRow>("conversations")
-        .where({ id: conversationId })
-        .update({ ...patch, updated_at: trx.fn.now() })
-        .returning("*");
-      return saved;
+      return ConversationModel.setHidden(conversationId, userId, new Date(), trx);
     });
 
     if (!updated) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");

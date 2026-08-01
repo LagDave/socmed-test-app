@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delete Conversation Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--paper); color:var(--ink); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 33</p>
+        <span class="status-pill">Pending Execution</span>
+      </div>
+      <h1>Delete Conversation (Messenger-style)</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08012026-33-message-delete-conversation</dd></div>
+        <div><dt>Size</dt><dd>Small (migration + API + inbox/thread UI)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08012026-33-message-delete-conversation</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/message-delete-conversation</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 17 friends messenger · Plan 22 messages websockets</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Users can unsend individual messages, but there is no way to remove a whole chat from the inbox. Messenger-style <strong>delete conversation</strong> hides the thread for the acting user only — the peer keeps their history — and lets the chat reappear when either side sends again or the user re-opens it from a profile shortcut.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Per-user <strong>hide</strong> (not hard delete) with confirm dialog, available from the thread header and inbox row overflow menus.</p>
+      <p><strong>Deliverables:</strong></p>
+      <ul>
+        <li><strong>Schema</strong> — nullable <code>user_a_hidden_at</code> and <code>user_b_hidden_at</code> on <code>conversations</code></li>
+        <li><strong>API</strong> — <code>DELETE /api/messages/conversations/:id</code> sets the caller’s hide timestamp; participant-only; returns <code>{ ok: true }</code></li>
+        <li><strong>Inbox filtering</strong> — hidden threads excluded from list + unread badge counts for the viewer</li>
+        <li><strong>Restore rules</strong> — clear viewer hide on open/get-or-create thread; clear recipient hide on inbound message from peer</li>
+        <li><strong>Realtime</strong> — refresh deleter inbox + unread via existing <code>conversation:updated</code> / <code>messages:unread</code> (deleter only; peer unchanged)</li>
+        <li><strong>SPA</strong> — overflow ⋯ on thread header and inbox row → “Delete conversation” → <code>ConfirmDialog</code>; navigate to <code>/messages</code> when deleting the active thread</li>
+      </ul>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Deleting from inbox removes the row for the acting user; peer inbox unchanged</li>
+        <li>Deleting from an open thread returns to inbox and hides the conversation</li>
+        <li>Confirm copy explains it is removed from <em>your</em> inbox only</li>
+        <li>Peer sending a new message restores the thread in the deleter’s inbox (with unread)</li>
+        <li>Re-opening via Messages friend picker or profile Message icon restores the thread</li>
+        <li>Hidden conversations do not contribute to AppShell Messages unread badge</li>
+        <li>Frontend + backend typecheck/build pass; acceptance checklist passes or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Delete semantics</td>
+            <td><strong>Per-user hide (Messenger default)</strong></td>
+            <td>Hard-deleting the shared <code>conversations</code> row would CASCADE-wipe messages for both users. Hide columns match 1:1 shared-row model without a participant settings table.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Peer visibility</td>
+            <td><strong>Unchanged</strong></td>
+            <td>Peer keeps full thread in inbox and can still send. No socket to peer on delete.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Restore triggers</td>
+            <td><strong>Inbound message + explicit open</strong></td>
+            <td>Clear hide when viewer calls get-or-create, loads thread (<code>GET …/conversations/:id</code>), or receives a new inbound message. Matches Messenger reappearance behavior.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Unread while hidden</td>
+            <td><strong>Exclude from badge + inbox</strong></td>
+            <td>Hidden threads are invisible until restored; unread counts only apply to visible inbox rows.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>UI entry points</td>
+            <td><strong>Thread header ⋯, inbox row ⋯, and swipe-to-delete</strong></td>
+            <td>⋯ menus on thread header and inbox row (desktop + mobile). Swipe-left on inbox row reveals Delete (mobile/touch). All paths still require confirm dialog.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Confirm copy</td>
+            <td><strong>“Delete conversation?”</strong></td>
+            <td>Description: “This removes the chat from your inbox. [Peer name] will still have the messages.” Confirm label: <strong>Delete</strong>.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Empty threads</td>
+            <td><strong>Hide allowed</strong></td>
+            <td>Conversations opened but never messaged can still be deleted from inbox.</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Unfriend interaction</td>
+            <td><strong>Out of scope</strong></td>
+            <td>Do not auto-hide on unfriend; existing stale-thread behavior unchanged.</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>Swipe gesture</td>
+            <td><strong>Swipe-left on inbox row → Delete button</strong></td>
+            <td>Touch/pointer drag reveals a red Delete action behind the row (iOS/Messenger pattern). Tap Delete → same confirm dialog. Row tap-to-open still works when not swiped open. Desktop: ⋯ menu remains primary; swipe optional where pointer drag works.</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Deferred UX</td>
+            <td><strong>Long-press and chat settings screen — not this plan</strong></td>
+            <td>Long-press overlaps swipe on mobile. Chat settings screen is heavier (new route/modal); revisit if we add mute/block/archive later.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Not in scope:</strong> “Delete for both,” archive folder, undo toast, long-press delete, chat settings screen, bulk delete, or clearing message bodies on hide.
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Existing stack</strong> — 1:1 messenger (Plan 17) with Socket.IO (Plan 22). Conversations are a canonical ordered pair row; messages soft-unsend via <code>unsent_at</code>.</p>
+      <p><strong>Key files</strong></p>
+      <ul>
+        <li><code>src/models/ConversationModel.ts</code> — inbox SQL (<code>listInboxForUser</code>, <code>countUnreadConversations</code>); add hide filter + clear/set helpers</li>
+        <li><code>src/services/MessageService.ts</code> — add <code>hideConversation</code>; call clear-hide on open/list/send paths</li>
+        <li><code>src/routes/messages.ts</code> + <code>MessagesController</code> — wire <code>DELETE …/conversations/:id</code></li>
+        <li><code>src/realtime/MessageRealtime.ts</code> — deleter-only inbox refresh after hide</li>
+        <li><code>frontend/src/pages/MessagesPage.tsx</code> — confirm state, API call, navigate away from deleted active thread</li>
+        <li><code>frontend/src/components/ConversationListRow.tsx</code> — row overflow menu + swipe-to-delete wrapper</li>
+        <li><code>frontend/src/components/ConfirmDialog.tsx</code> — same pattern as unsend / post delete</li>
+      </ul>
+      <p><strong>Closest analogs</strong> — message unsend (<code>ConfirmDialog</code> + <code>DELETE</code> + socket refresh); post delete (<code>FeedPage</code> optimistic list removal).</p>
+      <p><strong>Layering</strong> — routes → controller → service → model; Zod in service; <code>ok</code>/<code>fail</code>/<code>AppError</code>; frontend via <code>api</code> client only. Follow Code Constitution.</p>
+      <p><strong>Execution note</strong> — Implement on <code>kylie/message-delete-conversation</code> from current <code>dev</code> tip. Planning artifacts live in this folder only.</p>
+    </section>
+
+    <section class="spec-card" id="data-model">
+      <h2>Data Model (delta)</h2>
+      <table>
+        <thead><tr><th>Table</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>conversations</code></td>
+            <td>Add nullable <code>user_a_hidden_at timestamptz</code> and <code>user_b_hidden_at timestamptz</code>. No index required initially (inbox query already filters by participant).</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Migration propose <code>20260801140000_conversation_hide.ts</code> (adjust if taken). Scaffold notes in <code>migrations/</code>.</p>
+      <p><strong>Helper semantics</strong> (on <code>ConversationModel</code>):</p>
+      <ul>
+        <li><code>hiddenAtForUser(row, userId)</code> → timestamp or null</li>
+        <li><code>isHiddenForUser(row, userId)</code> → boolean</li>
+        <li><code>setHidden(id, userId, at: Date)</code> — sets the correct side column</li>
+        <li><code>clearHidden(id, userId)</code> — nulls the correct side column</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="api">
+      <h2>API Surface (delta)</h2>
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>DELETE</td>
+            <td><code>/api/messages/conversations/:id</code></td>
+            <td>Participant-only. Sets caller’s <code>*_hidden_at</code> to now. Returns <code>{ ok: true }</code>. Emits deleter <code>conversation:updated</code> + refreshed <code>messages:unread</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Existing endpoints — behavior changes:</strong></p>
+      <ul>
+        <li><code>GET /api/messages/conversations</code> — exclude rows where viewer’s hide column is non-null</li>
+        <li><code>GET /api/messages/unread-count</code> — same hide filter</li>
+        <li><code>POST /api/messages/conversations</code> (get-or-create) — <code>clearHidden</code> for caller before return</li>
+        <li><code>GET /api/messages/conversations/:id</code> — <code>clearHidden</code> for caller (opening thread restores)</li>
+        <li><code>POST …/messages</code> — after insert, <code>clearHidden</code> for recipient (non-sender participant)</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Hide is per-user only; peer data and inbox unchanged</li>
+            <li>Participant-only access on delete and all read paths</li>
+            <li>Confirm dialog before delete</li>
+            <li>Hidden threads excluded from inbox list and unread badge</li>
+            <li>Restore on open thread, get-or-create, or inbound message</li>
+            <li>Navigate to <code>/messages</code> when deleting the currently open thread</li>
+            <li>Constitution layering; no business rules in React components beyond UI state</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No hard delete of conversation or message rows</li>
+            <li>No peer notification / socket on delete</li>
+            <li>No archive folder or “deleted messages” admin view</li>
+            <li>No auto-hide on unfriend in this plan</li>
+            <li>No new npm dependencies without Revision Log justification</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Delete for both users</li>
+        <li>Swipe gestures, bulk select, undo snackbar</li>
+        <li>Clearing read cursors or message content on hide</li>
+        <li>Blocking / reporting from delete menu</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Inbox SQL and unread counts already use raw queries; a missed hide filter leaks “deleted” threads back into the UI or inflates the badge.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Hide filter omitted from one query path</td>
+            <td>Deleted chats reappear; wrong unread badge</td>
+            <td>Centralize “visible for user” predicate in <code>ConversationModel</code>; apply to inbox, unread count, and verify list endpoints</td>
+          </tr>
+          <tr>
+            <td>Restore clears wrong side column</td>
+            <td>Peer inbox accidentally hidden</td>
+            <td>Reuse <code>user_a</code>/<code>user_b</code> side mapping already used for last-read</td>
+          </tr>
+          <tr>
+            <td>Active thread delete leaves stale route</td>
+            <td>User stuck on ghost thread URL</td>
+            <td>Navigate to <code>/messages</code> on success; optimistic inbox removal</td>
+          </tr>
+          <tr>
+            <td>Inbox row overflow vs row link</td>
+            <td>Accidental navigation when opening menu</td>
+            <td>Stop propagation on menu trigger; keep primary row tap → thread</td>
+          </tr>
+          <tr>
+            <td>Migration timestamp collision</td>
+            <td>Migrate failure on merge</td>
+            <td>Verify unused timestamp before landing</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Required pushback:</strong> Do not implement hard delete or “delete for everyone” in this plan — that is a different product contract and needs explicit approval.
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Hide columns migration</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>user_a_hidden_at</code> and <code>user_b_hidden_at</code> to <code>conversations</code>. Extend <code>ConversationRow</code> type and hide helpers on <code>ConversationModel</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>database/migrations/20260801140000_conversation_hide.ts</code>; <code>src/models/ConversationModel.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>npm run migrate</code> clean; helpers set/clear correct side</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Service + API + query filters</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Implement <code>MessageService.hideConversation</code>. Wire controller + <code>DELETE /api/messages/conversations/:id</code>. Add hide filter to <code>listInboxForUser</code> and <code>countUnreadConversations</code>. Clear hide on open, get-or-create, list thread, and inbound send.</dd></div>
+          <div><dt>Files</dt><dd><code>src/services/MessageService.ts</code>, <code>src/controllers/messages/MessagesController.ts</code>, <code>src/routes/messages.ts</code>, <code>src/models/ConversationModel.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>API hide removes from inbox for actor only; peer list unchanged; restore paths work</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Realtime refresh for deleter</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>MessageRealtime.conversationHidden(conversation, userId)</code> — emit <code>conversation:updated</code> + <code>messages:unread</code> to deleter only.</dd></div>
+          <div><dt>Files</dt><dd><code>src/realtime/MessageRealtime.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>After delete, open Messages in second tab updates inbox without manual refresh</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — SPA delete UI</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Thread header ⋯ → Delete conversation. Inbox row ⋯ → same action. Swipe-left on inbox row reveals Delete button (touch/pointer). All paths → <code>ConfirmDialog</code> with Messenger-style copy. Call <code>DELETE</code>; remove from local inbox state; navigate to <code>/messages</code> when active thread deleted.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code>, <code>frontend/src/components/ConversationListRow.tsx</code> (or new <code>SwipeableConversationRow.tsx</code> wrapper); optional thin helper in <code>frontend/src/api/messages.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>⋯ menus and swipe path work; confirm blocks double-submit; swipe does not hijack vertical scroll; peer side unchanged in second browser</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> Migration applied; hide columns + model helpers in place</li>
+        <li><input type="checkbox" disabled> <code>DELETE /api/messages/conversations/:id</code> hides for caller only</li>
+        <li><input type="checkbox" disabled> Inbox + unread badge exclude hidden threads</li>
+        <li><input type="checkbox" disabled> Restore on open thread, get-or-create, and inbound message</li>
+        <li><input type="checkbox" disabled> Thread header ⋯, inbox row ⋯, and swipe-to-delete with confirm dialog</li>
+        <li><input type="checkbox" disabled> Active thread delete navigates to inbox</li>
+        <li><input type="checkbox" disabled> Typecheck/build green; acceptance <code>test-results.json</code> rollup Passed (or written waivers)</li>
+        <li><input type="checkbox" disabled> Spec Revision Log updated if any contract drifted during execution</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-08-01</td>
+            <td>Initial spec draft: per-user hide (Messenger-style), inbox + thread ⋯ menus, confirm dialog, restore on open/inbound message, no hard delete, no peer notification.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-08-01</td>
+            <td>Grill with Kylie — locked: per-user hide only; restore on inbound message + re-open via picker/profile; delete from thread header ⋯ and inbox row ⋯; hidden threads excluded from Messages badge; empty threads hideable; no auto-hide on unfriend.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-08-01</td>
+            <td>UI expansion — add swipe-left-to-delete on inbox rows (touch). Long-press and chat settings screen explicitly deferred.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
