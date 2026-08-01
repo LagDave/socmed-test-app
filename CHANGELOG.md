@@ -8,6 +8,10 @@
 - Messenger-style edit UX: message text loads into the bottom compose bar; Enter/send saves, Escape/Cancel exits
 - Shared `MessageComposeBar` component for send and edit compose rows
 
+### Fixed
+- Restored missing idempotent Knex migrations (reply-to, delivered_at, chat themes) so `npm run migrate` runs cleanly on local DBs with parallel feature work
+- Edit save 500 when `edited_at` column was missing before migration applied
+
 ### Plans
 - `plans/08012026-32-edit-message` — Completed (execution on `kylie/edit-message`)
 

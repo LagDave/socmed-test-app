@@ -1,7 +1,7 @@
 {
   "plan": "plans/08012026-32-edit-message",
   "generatedAt": "2026-08-01",
-  "status": "Not Run",
+  "status": "In Progress",
   "items": [
     {
       "id": "T0",
@@ -13,8 +13,8 @@
         "Run knex migrate:latest and confirm messages.edited_at exists"
       ],
       "expected": "Branch has messenger + websockets; migration applied cleanly.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "npm run migrate → Already up to date; messages.edited_at present (937075a)",
       "notes": "",
       "waiver": ""
     },
@@ -132,8 +132,8 @@
         "npm run check:conventions if available"
       ],
       "expected": "Green build; no new type errors from editedAt field or edit flow.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "npm run build green on kylie/edit-message",
       "notes": "",
       "waiver": ""
     }
