@@ -1,0 +1,268 @@
+import { useEffect, useState } from "react";
+import {
+  Bell,
+  Check,
+  Heart,
+  Music2,
+  PartyPopper,
+  Play,
+  Sparkles,
+  Sun,
+  Volume2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  MESSAGE_SOUND_GROUPS,
+  MESSAGE_SOUND_OPTIONS,
+  previewMessageSound,
+  readNotificationSoundPreferences,
+  saveNotificationSoundPreferences,
+  type MessageSoundGroup,
+  type MessageSoundId,
+} from "@/lib/notificationSounds";
+import { cn } from "@/lib/utils";
+
+const GROUP_META: Record<
+  MessageSoundGroup,
+  { icon: typeof Music2; blurb: string }
+> = {
+  Classic: { icon: Music2, blurb: "Clean and minimal" },
+  Cute: { icon: Sparkles, blurb: "Soft and playful" },
+  Happy: { icon: Sun, blurb: "Warm and uplifting" },
+  Excited: { icon: PartyPopper, blurb: "Bright and energetic" },
+};
+
+export function NotificationSoundsSettings() {
+  const [saved, setSaved] = useState(() => readNotificationSoundPreferences());
+  const [draftEnabled, setDraftEnabled] = useState(saved.enabled);
+  const [draftMessageSoundId, setDraftMessageSoundId] = useState(saved.messageSoundId);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+
+  const hasUnsavedChanges =
+    draftEnabled !== saved.enabled || draftMessageSoundId !== saved.messageSoundId;
+
+  useEffect(() => {
+    const sync = () => {
+      const prefs = readNotificationSoundPreferences();
+      setSaved(prefs);
+      setDraftEnabled(prefs.enabled);
+      setDraftMessageSoundId(prefs.messageSoundId);
+    };
+    window.addEventListener("socmed:sounds-preference", sync);
+    return () => window.removeEventListener("socmed:sounds-preference", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!saveNotice) return;
+    const id = window.setTimeout(() => setSaveNotice(null), 3000);
+    return () => window.clearTimeout(id);
+  }, [saveNotice]);
+
+  function selectMessageSound(id: MessageSoundId) {
+    setDraftMessageSoundId(id);
+    previewMessageSound(id);
+  }
+
+  function saveSoundSettings() {
+    saveNotificationSoundPreferences({
+      enabled: draftEnabled,
+      messageSoundId: draftMessageSoundId,
+    });
+    setSaved({ enabled: draftEnabled, messageSoundId: draftMessageSoundId });
+    setSaveNotice("Saved — your message sound is now active.");
+    if (draftEnabled) {
+      previewMessageSound(draftMessageSoundId);
+    }
+  }
+
+  const activeLabel =
+    MESSAGE_SOUND_OPTIONS.find((o) => o.id === saved.messageSoundId)?.label ?? "Chime";
+
+  return (
+    <section className="feed-card overflow-hidden text-card-foreground">
+      <div className="border-b border-border/80 bg-secondary/40 px-5 py-4">
+        <div className="flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-border/80">
+            <Volume2 className="size-4 text-foreground" strokeWidth={1.75} aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold tracking-tight">Notification sounds</h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              Hear a gentle tone when a new message arrives while you are elsewhere in the app.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-5 p-5">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={draftEnabled}
+          onClick={() => setDraftEnabled((on) => !on)}
+          className={cn(
+            "flex w-full items-center justify-between gap-4 rounded-xl border px-4 py-3.5 text-left transition-colors",
+            draftEnabled
+              ? "border-foreground/15 bg-accent/30"
+              : "border-border bg-background hover:bg-accent/20"
+          )}
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-full bg-secondary">
+              <Bell className="size-4 text-foreground" strokeWidth={1.75} aria-hidden="true" />
+            </span>
+            <span>
+              <span className="block text-sm font-medium">Play message sounds</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                {saved.enabled ? `Active: ${activeLabel}` : "Currently off"}
+              </span>
+            </span>
+          </span>
+          <span
+            className={cn(
+              "relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors",
+              draftEnabled ? "bg-foreground" : "bg-muted"
+            )}
+            aria-hidden="true"
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 size-5 rounded-full bg-background shadow-sm transition-transform",
+                draftEnabled ? "translate-x-5" : "translate-x-0.5"
+              )}
+            />
+          </span>
+        </button>
+
+        {draftEnabled && (
+          <div className="space-y-5">
+            <div>
+              <h3 className="text-sm font-medium">Choose your sound</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tap to preview a sound, then save to apply it for incoming messages.
+              </p>
+            </div>
+
+            {MESSAGE_SOUND_GROUPS.map((group) => {
+              const meta = GROUP_META[group];
+              const GroupIcon = meta.icon;
+              const options = MESSAGE_SOUND_OPTIONS.filter((option) => option.group === group);
+              return (
+                <div key={group} className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <GroupIcon className="size-4 text-muted-foreground" strokeWidth={1.75} />
+                    <div>
+                      <h4 className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                        {group}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">{meta.blurb}</p>
+                    </div>
+                  </div>
+
+                  <ul className="grid gap-2 sm:grid-cols-2">
+                    {options.map((option) => {
+                      const selected = draftMessageSoundId === option.id;
+                      return (
+                        <li key={option.id}>
+                          <button
+                            type="button"
+                            onClick={() => selectMessageSound(option.id)}
+                            className={cn(
+                              "group flex h-full w-full items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition-all",
+                              selected
+                                ? "border-foreground bg-accent/50 shadow-sm ring-1 ring-foreground/10"
+                                : "border-border bg-background hover:border-foreground/20 hover:bg-accent/25"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full transition-colors",
+                                selected
+                                  ? "bg-foreground text-background"
+                                  : "bg-secondary text-muted-foreground group-hover:text-foreground"
+                              )}
+                            >
+                              {selected ? (
+                                <Check className="size-4" strokeWidth={2.25} aria-hidden="true" />
+                              ) : (
+                                <Play
+                                  className="size-3.5 translate-x-0.5"
+                                  strokeWidth={2}
+                                  aria-hidden="true"
+                                />
+                              )}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium">{option.label}</span>
+                                {group === "Cute" && (
+                                  <Heart
+                                    className="size-3 text-muted-foreground/70"
+                                    strokeWidth={2}
+                                    aria-hidden="true"
+                                  />
+                                )}
+                              </span>
+                              <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                                {option.description}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div
+          className={cn(
+            "rounded-xl border px-4 py-3.5",
+            hasUnsavedChanges ? "border-foreground/20 bg-accent/25" : "border-border bg-secondary/30"
+          )}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              {hasUnsavedChanges ? (
+                <p className="text-sm text-foreground">You have unsaved changes.</p>
+              ) : saveNotice ? (
+                <p className="text-sm font-medium text-foreground">{saveNotice}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Active sound: <span className="font-medium text-foreground">{activeLabel}</span>
+                </p>
+              )}
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Click anywhere once after sign-in if audio does not play.
+              </p>
+            </div>
+
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={!draftEnabled}
+                variant="outline"
+                onPointerDown={() => previewMessageSound(draftMessageSoundId)}
+              >
+                <Play className="size-3.5" aria-hidden="true" />
+                Preview
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={!hasUnsavedChanges}
+                onClick={saveSoundSettings}
+              >
+                Save sound settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

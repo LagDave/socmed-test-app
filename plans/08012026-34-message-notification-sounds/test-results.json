@@ -1,0 +1,115 @@
+{
+  "plan": "plans/08012026-34-message-notification-sounds",
+  "generatedAt": "2026-08-01",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Sound plays when inbound DM arrives off-thread",
+      "surface": "ui",
+      "precondition": "Two mutuals signed in; B on Feed (or any page except /messages/:thatConversationId); sockets connected; sounds enabled; B has clicked once after sign-in (unlock)",
+      "steps": [
+        "Confirm B Account Settings → Play notification sounds is on",
+        "A sends a text message to B",
+        "Listen on B's browser"
+      ],
+      "expected": "B hears the message notification sound promptly via message:new.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "useMessageNotificationSound listens for MESSAGE_NEW in AppShell; playNotificationSound('message') when off-thread.",
+      "waiver": "Two-browser interactive verify deferred to PR author on local Vite 5180."
+    },
+    {
+      "id": "A2",
+      "title": "No sound when already in the open thread",
+      "surface": "ui",
+      "precondition": "Same as A1; B has conversation with A open at /messages/:conversationId",
+      "steps": [
+        "A sends another message while B stays on that thread",
+        "Listen on B's browser"
+      ],
+      "expected": "Message appears in thread but no notification sound plays.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "isViewingConversation(pathname, conversationId) suppresses playback.",
+      "waiver": "Interactive verify deferred to PR."
+    },
+    {
+      "id": "A3",
+      "title": "Autoplay unlock after first interaction",
+      "surface": "ui",
+      "precondition": "Fresh sign-in session; sounds enabled; socket connected",
+      "steps": [
+        "Before any click, have A send a message — expect silence (blocked)",
+        "B clicks anywhere once",
+        "A sends again while B is off-thread"
+      ],
+      "expected": "Second message plays sound after unlock interaction.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "pointerdown/keydown calls unlockNotificationSounds(); silent play at volume 0 sets isUnlocked.",
+      "waiver": "Browser autoplay behavior varies; interactive verify deferred to PR."
+    },
+    {
+      "id": "A4",
+      "title": "Mute toggle blocks and restores sounds",
+      "surface": "ui",
+      "precondition": "Sounds previously working; B off-thread",
+      "steps": [
+        "Turn off Play notification sounds in Account Settings",
+        "A sends a message — no sound",
+        "Turn setting back on",
+        "A sends again — sound plays"
+      ],
+      "expected": "localStorage preference gates playback; survives page refresh.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "AccountSettingsPage checkbox writes socmed.sounds.enabled via setNotificationSoundsEnabled.",
+      "waiver": "Interactive verify deferred to PR."
+    },
+    {
+      "id": "A5",
+      "title": "Own messages never play sound",
+      "surface": "ui",
+      "precondition": "Single user; sounds enabled; unlocked",
+      "steps": [
+        "Send a message from B to A while B is on inbox list or another page",
+        "Observe B's client"
+      ],
+      "expected": "No sound for outbound messages (senderId === self).",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Hook returns early when msg.senderId === user.id.",
+      "waiver": "Interactive verify deferred to PR."
+    },
+    {
+      "id": "A6",
+      "title": "Typecheck / build",
+      "surface": "cli",
+      "precondition": "Dependencies installed",
+      "steps": [
+        "npm run typecheck",
+        "npm run build"
+      ],
+      "expected": "Both succeed with no errors caused by this plan.",
+      "status": "pass",
+      "evidence": "2026-08-01: npm run typecheck and npm run build succeeded on kylie/message-notification-features.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A7",
+      "title": "No backend or migration changes",
+      "surface": "none",
+      "precondition": "Diff reviewed",
+      "steps": [
+        "Confirm no edits under src/ services, routes, or database/migrations for this feature"
+      ],
+      "expected": "Frontend-only delivery.",
+      "status": "pass",
+      "evidence": "2026-08-01: changes limited to frontend/public/sounds, frontend/src/lib, hooks, AppShell, AccountSettingsPage, and plans/.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}
