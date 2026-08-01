@@ -173,10 +173,11 @@ export class MessageService {
     const peerUser = await UserModel.findById(peerId(conversation, userId));
     if (!peerUser) throw new AppError("USER_NOT_FOUND", "Peer missing.");
 
-    const freshlyDelivered = await MessageModel.markInboundUndeliveredAsDelivered(
-      conversationId,
-      userId
-    );
+    const otherId = peerId(conversation, userId);
+    const freshlyDelivered =
+      (await FriendshipModel.areFriends(userId, otherId))
+        ? await MessageModel.markInboundUndeliveredAsDelivered(conversationId, userId)
+        : [];
     for (const row of freshlyDelivered) {
       if (!row.delivered_at) continue;
       await publishRealtime(async () => {
@@ -222,6 +223,9 @@ export class MessageService {
     const conversation = await ConversationModel.findById(message.conversation_id);
     if (!conversation) return;
     assertParticipant(conversation, userId);
+
+    const otherId = peerId(conversation, userId);
+    if (!(await FriendshipModel.areFriends(userId, otherId))) return;
 
     const row = await MessageModel.markDelivered(messageId);
     if (!row?.delivered_at) return;
@@ -331,7 +335,7 @@ export class MessageService {
     const notifyId = peerId(updated, userId);
 
     await publishRealtime(async () => {
-      await MessageRealtime.conversationRead(conversation, userId);
+      await MessageRealtime.conversationRead(updated, userId);
       if (readerLastReadAt) {
         MessageRealtime.conversationPeerRead(notifyId, {
           conversationId: updated.id,

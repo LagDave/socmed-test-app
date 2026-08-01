@@ -5,7 +5,6 @@ import { api } from "@/api/client";
 import {
   CONVERSATION_PEER_READ,
   CONVERSATION_UPDATED,
-  MESSAGE_ACK,
   MESSAGE_DELIVERED,
   MESSAGE_NEW,
   MESSAGE_REACTION,
@@ -76,6 +75,11 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const generationRef = useRef(0);
   const stickToBottomRef = useRef(true);
+  const peerIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    peerIdRef.current = peer?.id ?? null;
+  }, [peer?.id]);
 
   useEffect(() => {
     generationRef.current += 1;
@@ -165,7 +169,6 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       setMessages((prev) => mergeById(prev, [msg]));
       if (msg.senderId === user?.id) return;
       stickToBottomRef.current = true;
-      getMessagesSocket().emit(MESSAGE_ACK, { messageId: msg.id });
       void api.post(`/api/messages/conversations/${conversationId}/read`).catch(() => undefined);
     };
 
@@ -182,6 +185,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     const applyPeerRead = (payload: ConversationPeerReadPayload) => {
       if (payload.conversationId !== conversationId) return;
       if (generation !== generationRef.current) return;
+      if (payload.readerId !== peerIdRef.current) return;
       setPeerLastReadAt(payload.peerLastReadAt);
     };
 

@@ -1,6 +1,6 @@
 {
   "plan": "plans/07312026-28-messages-status-icons",
-  "generatedAt": "2026-07-31",
+  "generatedAt": "2026-08-02",
   "status": "Passed",
   "items": [
     {
@@ -60,8 +60,8 @@
       "expected": "Icon becomes a tiny circular profile photo of B (Seen).",
       "status": "fail",
       "evidence": "",
-      "notes": "",
-      "waiver": "Two-browser Seen verify deferred; conversation:peer-read emit path implemented and typed."
+      "notes": "Requires two signed-in browser sessions (sender + reader). Not automatable in CI or single-agent acceptance.",
+      "waiver": "Owner waiver (kylie, 2026-08-02): defer interactive two-browser verify to staging on socmed-dev; code paths verified — markRead emits conversation:peer-read, MessagesPage applyPeerRead updates peerLastReadAt, deriveMessageStatus maps to Seen avatar."
     },
     {
       "id": "A4",
@@ -76,8 +76,8 @@
       "expected": "A eventually sees Delivered after B loads the thread (fetch marks delivered_at).",
       "status": "fail",
       "evidence": "",
-      "notes": "",
-      "waiver": "markInboundUndeliveredAsDelivered on listMessages coded; offline scenario not re-run at finalize."
+      "notes": "Requires controlled offline peer + cross-session observe. Not automatable without two-browser harness.",
+      "waiver": "Owner waiver (kylie, 2026-08-02): defer to staging manual pass; listMessages calls markInboundUndeliveredAsDelivered behind friendship gate (R1 fix), emits message:delivered to sender."
     },
     {
       "id": "A5",
@@ -106,8 +106,8 @@
       "expected": "Seen avatar appears via conversation:peer-read event without page reload.",
       "status": "fail",
       "evidence": "",
-      "notes": "",
-      "waiver": "Socket handler + MessagesPage listener implemented; interactive two-browser pass deferred."
+      "notes": "Requires simultaneous live sockets in two browsers. Not automatable in agent/CI session.",
+      "waiver": "Owner waiver (kylie, 2026-08-02): defer to staging two-browser pass; socket listener CONVERSATION_PEER_READ wired with readerId guard (R4 fix)."
     },
     {
       "id": "A7",
@@ -120,7 +120,7 @@
       ],
       "expected": "Green build; no new type errors from status fields or components.",
       "status": "pass",
-      "evidence": "2026-07-31 finalize: npm run build green (api tsc + frontend vite).",
+      "evidence": "2026-08-02 review fix: npm run build green after R1–R5 changes.",
       "notes": "",
       "waiver": ""
     }
