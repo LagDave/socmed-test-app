@@ -30,7 +30,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 24 | `07292026-24-reaction-summary-layout` | Reaction summary right-aligned cluster + total count |
 | 25 | `07302026-25-feed-composer-avatar` | Facebook-style feed composer + shared ProfileAvatar |
 | 26 | `07302026-26-share-button` | Facebook-style share button for friends' posts |
-| 36 | `08012026-36-feed-ui-upgrade` | Feed + post detail UI polish — composer pill, full-bleed media, labeled actions |
+| 36 | `08012026-36-feed-ui-upgrade` | Feed + post detail UI polish — composer pill, centered inset galleries, multi-photo, labeled actions |
 
 ## Branch → host (hard rule)
 

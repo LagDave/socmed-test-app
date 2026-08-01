@@ -26,10 +26,7 @@ export class PostModel {
         author_id: input.authorId,
         body: input.body,
         image_url: urls[0] ?? null,
-        image_urls:
-          urls.length > 0
-            ? (JSON.stringify(urls) as unknown as PostRow["image_urls"])
-            : null,
+        image_urls: urls.length > 0 ? urls : null,
         shared_from_post_id: input.sharedFromPostId ?? null,
       })
       .returning("*");

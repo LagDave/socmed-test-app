@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type FocusEvent, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FocusEvent, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { api } from "@/api/client";
@@ -49,6 +49,18 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
 
   bodyRef.current = body;
   imagesRef.current = images;
+
+  useEffect(() => {
+    if (!pickingPhotos) return;
+    const resetPicking = () => setPickingPhotos(false);
+    const input = fileRef.current;
+    window.addEventListener("focus", resetPicking);
+    input?.addEventListener("cancel", resetPicking);
+    return () => {
+      window.removeEventListener("focus", resetPicking);
+      input?.removeEventListener("cancel", resetPicking);
+    };
+  }, [pickingPhotos]);
 
   const trimmed = body.trim();
   const canPost = Boolean(trimmed || images.length > 0);
@@ -112,12 +124,18 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
     setBusy(true);
     onError("");
     try {
-      let imageUrls: string[] = [];
-      if (images.length > 0) {
-        const uploads = await Promise.all(
-          images.map((img) => api.upload<{ url: string }>("/api/uploads", img.file))
-        );
-        imageUrls = uploads.map((up) => up.url);
+      const imageUrls: string[] = [];
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        try {
+          const up = await api.upload<{ url: string }>("/api/uploads", img.file);
+          imageUrls.push(up.url);
+        } catch (err) {
+          const label =
+            images.length === 1 ? "Photo upload" : `Photo ${i + 1} of ${images.length} upload`;
+          const detail = err instanceof Error ? err.message : "Upload failed";
+          throw new Error(`${label} failed: ${detail}`);
+        }
       }
       await api.post("/api/posts", {
         body: trimmed || " ",
