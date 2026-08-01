@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { api } from "@/api/client";
 import type { ReactionEmoji, ReactionSummary } from "@/api/types";
 import { ReactionIcon } from "@/components/ReactionIcon";
@@ -64,6 +64,7 @@ export function ReactionBar({
   const rootRef = useRef<HTMLDivElement>(null);
   const holdTimerRef = useRef<number | null>(null);
   const expandTimerRef = useRef<number | null>(null);
+  const pickerId = useId();
   const s = SIZE[size];
 
   const path =
@@ -171,53 +172,55 @@ export function ReactionBar({
           onMouseLeave={collapse}
         >
           <div className={shellClass}>
-            {!expanded ? (
-              <button
-                type="button"
-                disabled={busy}
-                aria-label={triggerLabel}
-                aria-expanded={false}
+            <button
+              type="button"
+              disabled={busy}
+              aria-label={triggerLabel}
+              aria-expanded={expanded}
+              aria-controls={pickerId}
+              className={cn(
+                "group relative inline-flex items-center justify-center rounded-full transition-colors",
+                s.trigger,
+                "hover:bg-accent",
+                "disabled:pointer-events-none disabled:opacity-50",
+                expanded && "sr-only"
+              )}
+              onClick={() => {
+                clearExpandTimer();
+                setExpanded(true);
+              }}
+              onPointerDown={(e) => {
+                if (e.pointerType === "touch" || e.pointerType === "pen") {
+                  clearHoldTimer();
+                  holdTimerRef.current = window.setTimeout(() => setExpanded(true), HOLD_MS);
+                }
+              }}
+              onPointerUp={clearHoldTimer}
+              onPointerCancel={clearHoldTimer}
+              onPointerLeave={clearHoldTimer}
+            >
+              <span
                 className={cn(
-                  "group relative inline-flex items-center justify-center rounded-full transition-colors",
-                  s.trigger,
-                  "hover:bg-accent",
-                  "disabled:pointer-events-none disabled:opacity-50"
+                  "inline-flex items-center justify-center leading-none",
+                  popEmoji && popEmoji === (triggerEmoji ?? "like") && "reaction-icon-pop"
                 )}
-                onClick={() => {
-                  clearExpandTimer();
-                  setExpanded(true);
-                }}
-                onPointerDown={(e) => {
-                  if (e.pointerType === "touch" || e.pointerType === "pen") {
-                    clearHoldTimer();
-                    holdTimerRef.current = window.setTimeout(() => setExpanded(true), HOLD_MS);
-                  }
-                }}
-                onPointerUp={clearHoldTimer}
-                onPointerCancel={clearHoldTimer}
-                onPointerLeave={clearHoldTimer}
               >
-                <span
-                  className={cn(
-                    "inline-flex items-center justify-center leading-none",
-                    popEmoji && popEmoji === (triggerEmoji ?? "like") && "reaction-icon-pop"
-                  )}
-                >
-                  <ReactionIcon emoji={triggerEmoji} className={s.triggerIcon} />
-                </span>
-                <span
-                  className={cn(
-                    "pointer-events-none absolute left-1/2 -translate-x-1/2",
-                    "whitespace-nowrap text-muted-foreground",
-                    s.label,
-                    "opacity-0 transition-opacity group-hover:opacity-100"
-                  )}
-                >
-                  {triggerLabel}
-                </span>
-              </button>
-            ) : (
+                <ReactionIcon emoji={triggerEmoji} className={s.triggerIcon} />
+              </span>
+              <span
+                className={cn(
+                  "pointer-events-none absolute left-1/2 -translate-x-1/2",
+                  "whitespace-nowrap text-muted-foreground",
+                  s.label,
+                  "opacity-0 transition-opacity group-hover:opacity-100"
+                )}
+              >
+                {triggerLabel}
+              </span>
+            </button>
+            {expanded && (
               <div
+                id={pickerId}
                 className={cn("inline-flex items-center", s.pickerGap)}
                 role="listbox"
                 aria-label="Choose reaction"
