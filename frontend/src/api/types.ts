@@ -88,3 +88,33 @@ export type ConversationListItem = {
   unreadCount: number;
   lastMessageAt: string | null;
 };
+
+export type ChatThemePreset = {
+  kind: "preset";
+  presetId: string;
+};
+
+export type ChatThemeSolid = {
+  kind: "solid";
+  background: string;
+  bubbleMine: string;
+  bubbleTheirs: string;
+  accent: string;
+};
+
+export type ChatThemeGradient = {
+  kind: "gradient";
+  stops: [string, string];
+  angle: number;
+  bubbleMine: string;
+  bubbleTheirs: string;
+  accent: string;
+};
+
+export type ChatTheme = ChatThemePreset | ChatThemeSolid | ChatThemeGradient;
+
+export type ConversationThemeView = {
+  theme: ChatTheme | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
+};

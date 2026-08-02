@@ -3,6 +3,12 @@
 ## 0.1.18 — 2026-08-02
 
 ### Added
+- **Chat themes** — shared per-conversation themes stored on `conversations` (preset, solid, gradient)
+- Theme API: `GET/PUT /api/messages/conversations/:id/theme`; thread load includes `theme`
+- Socket event `conversation:theme` for live peer sync
+- **ChatThemePicker** — palette button in thread header; unified horizontal swatch strips for presets, colors, gradients
+- **Word effects** — 11 trigger words with bubble-scoped CSS animations (hearts, confetti, sparkle, flame, pop)
+- 8 graphic presets, 6 solid swatches, 6 gradient presets (CSS gradients, no binary assets)
 - Facebook/Messenger six reaction stickers (Sad 😢, Angry 😡) on posts, comments, and messages
 - Message thread compose emoji picker — curated grid inserts emoji at cursor
 - Migration `20260731180000_reaction_emoji_sad_angry` extends `reaction_emoji` enum
@@ -18,6 +24,8 @@
 - Click reaction summary on posts and comments to see who reacted (`GET /api/posts/:id/reactions`, `GET /api/comments/:id/reactions`)
 
 ### Changed
+- **Messages thread** — viewport-height chat shell with auto-scroll to latest message on load/refresh
+- **MessageBubbleRow** — themed bubble colors via CSS custom properties when a chat theme is active
 - Message reactions use shared `ReactionBar` (hover/hold expand) instead of `MessageReactionBar`
 - Compose bar: image attach + emoji buttons grouped tightly
 - `MessageView.replyTo` embedded on list, create, and socket payloads (works when quoted message is paginated out)
@@ -32,6 +40,7 @@
 - Profile timeline post action row: reaction trigger no longer overflows the card (`POST_MEDIA_BREAKOUT` removed from embedded action row)
 
 ### Plans
+- `plans/08012026-31-chat-themes` — Completed (execution on `kylie/chat-themes`)
 - `plans/07312026-30-default-message-stickers` — Completed (execution on `kylie/default-stickers`)
 - `plans/07312026-29-reply-to-chat` — Completed (execution on `kylie/reply-to-chat`, PR #44 → `dev`)
 - `plans/07312026-28-messages-status-icons` — Completed (execution on `kylie/message-status-icon`)

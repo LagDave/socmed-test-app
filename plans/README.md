@@ -34,6 +34,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 28 | `07312026-28-messages-status-icons` | Outgoing message status icons (Sent · Delivered · Seen) |
 | 29 | `07312026-29-reply-to-chat` | Messenger-style reply to chat (quote strip + composer preview) |
 | 30 | `07312026-30-default-message-stickers` | Messenger six reactions + composer emoji picker (thread) |
+| 31 | `08012026-31-chat-themes` | Messenger-style chat themes, colors/gradients, word effects |
 
 ## Branch → host (hard rule)
 

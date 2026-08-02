@@ -10,6 +10,9 @@ export type ConversationRow = {
   user_a_last_read_at: Date | null;
   user_b_last_read_at: Date | null;
   last_message_at: Date | null;
+  theme: unknown | null;
+  theme_updated_at: Date | null;
+  theme_updated_by: string | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -127,6 +130,9 @@ export class ConversationModel {
       user_a_last_read_at: r.user_a_last_read_at,
       user_b_last_read_at: r.user_b_last_read_at,
       last_message_at: r.last_message_at,
+      theme: r.theme ?? null,
+      theme_updated_at: r.theme_updated_at ?? null,
+      theme_updated_by: r.theme_updated_by ?? null,
       created_at: r.created_at,
       updated_at: r.updated_at,
       peer: {
@@ -188,6 +194,24 @@ export class ConversationModel {
       last_message_at: at,
       updated_at: db.fn.now(),
     });
+  }
+
+  static async updateTheme(
+    id: string,
+    theme: unknown | null,
+    updatedBy: string
+  ): Promise<ConversationRow | undefined> {
+    const now = new Date();
+    const [updated] = await db<ConversationRow>("conversations")
+      .where({ id })
+      .update({
+        theme,
+        theme_updated_at: theme === null ? null : now,
+        theme_updated_by: theme === null ? null : updatedBy,
+        updated_at: db.fn.now(),
+      })
+      .returning("*");
+    return updated;
   }
 
   static async markRead(id: string, userId: string, at: Date): Promise<ConversationRow | undefined> {

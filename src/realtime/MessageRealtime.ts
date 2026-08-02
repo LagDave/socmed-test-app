@@ -1,6 +1,7 @@
 import { ConversationModel } from "../models/ConversationModel";
 import type { ConversationRow } from "../models/ConversationModel";
 import type { MessageView } from "../services/MessageService";
+import type { ConversationThemeView } from "../services/ChatThemeService";
 import { emitToUser } from "./io";
 
 export const MESSAGE_NEW = "message:new";
@@ -11,6 +12,7 @@ export const CONVERSATION_PEER_READ = "conversation:peer-read";
 export const MESSAGE_ACK = "message:ack";
 export const MESSAGES_UNREAD = "messages:unread";
 export const CONVERSATION_UPDATED = "conversation:updated";
+export const CONVERSATION_THEME = "conversation:theme";
 
 export type MessageDeliveredPayload = {
   messageId: string;
@@ -75,6 +77,21 @@ export const MessageRealtime = {
   async conversationRead(conversation: ConversationRow, readerId: string): Promise<void> {
     emitToUser(readerId, CONVERSATION_UPDATED, { conversationId: conversation.id });
     await emitUnreadForUser(readerId);
+  },
+
+  async conversationTheme(
+    conversation: ConversationRow,
+    theme: ConversationThemeView
+  ): Promise<void> {
+    const payload = {
+      conversationId: conversation.id,
+      theme: theme.theme,
+      updatedAt: theme.updatedAt?.toISOString() ?? null,
+      updatedBy: theme.updatedBy,
+    };
+    for (const userId of participantIds(conversation)) {
+      emitToUser(userId, CONVERSATION_THEME, payload);
+    }
   },
 
   messageDelivered(senderId: string, payload: MessageDeliveredPayload): void {

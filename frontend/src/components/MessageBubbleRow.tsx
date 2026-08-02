@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { REACTION_OPTIONS } from "@/lib/reactionOptions";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
+import { MessageBodyWithEffects } from "@/components/MessageBodyWithEffects";
 import { cn } from "@/lib/utils";
 
 function MessageHoverActions({
@@ -65,6 +66,7 @@ export function MessageBubbleRow({
   onReactionChange,
   onReply,
   onError,
+  themed = false,
 }: {
   message: MessageView;
   mine: boolean;
@@ -79,6 +81,7 @@ export function MessageBubbleRow({
   onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
   onReply: (message: MessageView) => void;
   onError: (message: string) => void;
+  themed?: boolean;
 }) {
   const [timestampVisible, setTimestampVisible] = useState(false);
   const hasReactions = REACTION_OPTIONS.some((o) => message.reactionSummary.counts[o.emoji] > 0);
@@ -132,12 +135,16 @@ export function MessageBubbleRow({
               }
             }}
             className={cn(
-              "rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
+              "relative overflow-visible rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
               message.isUnsent
                 ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
-                : mine
-                  ? "cursor-pointer bg-foreground text-background"
-                  : "cursor-pointer bg-secondary text-foreground",
+                : themed
+                  ? mine
+                    ? "cursor-pointer bg-[var(--chat-bubble-mine)] text-[var(--chat-bubble-mine-fg)]"
+                    : "cursor-pointer bg-[var(--chat-bubble-theirs)] text-[var(--chat-bubble-theirs-fg)]"
+                  : mine
+                    ? "cursor-pointer bg-foreground text-background"
+                    : "cursor-pointer bg-secondary text-foreground",
               !canHover && touchRevealed && !message.isUnsent && "ring-2 ring-border/80"
             )}
           >
@@ -150,10 +157,15 @@ export function MessageBubbleRow({
                   <img
                     src={message.imageUrl}
                     alt=""
-                    className="mb-2 max-h-72 w-full rounded-lg object-cover"
+                    className={cn(
+                      "block max-h-48 max-w-[220px] rounded-lg object-contain",
+                      message.body && "mb-2"
+                    )}
                   />
                 )}
-                {message.body}
+                {message.body && (
+                  <MessageBodyWithEffects body={message.body} messageId={message.id} />
+                )}
               </>
             )}
           </div>
