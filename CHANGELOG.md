@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.25 — 2026-08-03
+
+### Changed
+- Notifications page: soft dashboard shell (canvas plate, hero header card, separate list card) while preserving row polish (avatars, type pills, skeletons, nested post links)
+- Notifications unread UX: soft outline New badge; removed heavy left edge bar
+
+### Plans
+- `plans/08022026-39-notifications-ui-upgrade` — Completed (execution on `kylie/notifications-ui-upgrade`)
+
 ## 0.1.24 — 2026-08-03
 
 ### Changed
