@@ -340,12 +340,7 @@ export function PostCard({
         )}
       </div>
 
-      <div
-        className={cn(
-          "feed-action-row mt-2 mb-3",
-          variant === "embedded" ? cn("border-t border-border/70 pt-2", POST_MEDIA_BREAKOUT) : "mx-4"
-        )}
-      >
+      <div className={cn("feed-action-row mt-2 mb-3", variant === "standalone" && "mx-4")}>
         <PostActionRow
           size="md"
           showLabels={showActionLabels}

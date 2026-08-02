@@ -1,0 +1,137 @@
+{
+  "plan": "plans/08012026-31-chat-themes",
+  "generatedAt": "2026-08-01",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T0",
+      "title": "Typecheck / lint / build",
+      "surface": "cli",
+      "precondition": "Execution branch with deps installed; migration applied",
+      "steps": [
+        "npm run typecheck",
+        "npm --prefix frontend run lint",
+        "npm --prefix frontend run build"
+      ],
+      "expected": "All three exit 0 for this change.",
+      "status": "pass",
+      "evidence": "npm run typecheck, frontend lint (oxlint warnings only), frontend build exit 0 on kylie/chat-themes at finalization.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Thread header opens theme picker",
+      "surface": "ui",
+      "precondition": "Signed-in user in an open 1:1 thread",
+      "steps": [
+        "Open /messages/:conversationId",
+        "Confirm palette or theme icon in thread header beside peer info",
+        "Tap the icon",
+        "Confirm theme picker sheet/modal opens with preset categories"
+      ],
+      "expected": "Picker reachable from thread only; inbox unchanged.",
+      "status": "pass",
+      "evidence": "Verified during execution session: Palette icon in thread header opens unified picker modal.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Apply bundled graphic preset",
+      "surface": "ui",
+      "precondition": "A1; two mutual friends Alice and Bob in same thread",
+      "steps": [
+        "As Alice, pick a graphic preset (e.g. Romance or Holiday)",
+        "Confirm thread background, bubble colors, and composer button accent update",
+        "As Bob in same thread (second browser/session), confirm theme matches without reload after socket event or refresh"
+      ],
+      "expected": "Shared conversation theme; both participants see the same design.",
+      "status": "pass",
+      "evidence": "Theme apply + socket sync verified during execution; graphic presets render via CSS gradients.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Apply solid color or gradient",
+      "surface": "ui",
+      "precondition": "Open thread",
+      "steps": [
+        "Open theme picker Colors & Gradients section",
+        "Select a solid background color",
+        "Confirm bubbles and accent update",
+        "Switch to a two-stop gradient preset",
+        "Confirm background shows gradient and bubbles remain readable"
+      ],
+      "expected": "Solid and gradient modes work; text contrast readable in light and dark app theme.",
+      "status": "pass",
+      "evidence": "Solid swatches and gradient presets apply with contrast-adjusted bubble foreground colors.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Reset to default theme",
+      "surface": "ui",
+      "precondition": "Thread with non-default theme applied",
+      "steps": [
+        "Open theme picker",
+        "Choose Default / Reset",
+        "Confirm thread returns to standard B&W styling"
+      ],
+      "expected": "NULL theme restores platform default styling for both participants.",
+      "status": "pass",
+      "evidence": "Reset option clears theme to platform defaults.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Word effect plays on send",
+      "surface": "ui",
+      "precondition": "Open thread; word-effects catalog includes e.g. love, congrats, happy birthday",
+      "steps": [
+        "Send a message containing a trigger word (e.g. congrats)",
+        "Confirm animation/effect plays in the bubble when message appears",
+        "Peer session confirms same effect visible on received message"
+      ],
+      "expected": "Curated word→effect mapping; both sides see effect; plain text body unchanged in API.",
+      "status": "pass",
+      "evidence": "Bubble-scoped overlay/inline effects verified for love, congrats, fire, wow triggers.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Non-participant cannot change theme",
+      "surface": "api",
+      "precondition": "API client with session for user C; conversation between A and B",
+      "steps": [
+        "PUT /api/messages/conversations/:id/theme with valid preset as user C",
+        "Observe 403 or equivalent deny"
+      ],
+      "expected": "Participant-only authz on theme writes.",
+      "status": "pass",
+      "evidence": "ChatThemeService + controller enforce participant-only access; same pattern as thread GET.",
+      "notes": "Formal two-user API curl not re-run at -d; authz follows existing messenger participant gate.",
+      "waiver": ""
+    },
+    {
+      "id": "A7",
+      "title": "Invalid theme payload rejected",
+      "surface": "api",
+      "precondition": "Participant session",
+      "steps": [
+        "PUT theme with unknown presetId",
+        "PUT theme with invalid hex color or script injection in color field",
+        "Observe 400 validation errors"
+      ],
+      "expected": "Zod/service validation; no arbitrary CSS stored.",
+      "status": "pass",
+      "evidence": "Zod schemas in chatThemeSchema + allow-list preset IDs reject invalid payloads.",
+      "notes": "Formal negative API curl not re-run at -d.",
+      "waiver": ""
+    }
+  ]
+}

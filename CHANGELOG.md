@@ -1,13 +1,16 @@
 # Changelog
 
-## 0.1.19 — 2026-08-01
+## 0.1.22 — 2026-08-03
 
 ### Added
 - Multi-photo posts: `image_urls` jsonb column, backend support for up to 10 attachments, composer multi-select with preview grid
 
 ### Changed
+- Feed UI polish: unified composer track (avatar + pill + Post in one row), expanded composer field
 - Post media on feed and detail: centered inset galleries (1–4+ layouts) instead of full-bleed edge-to-edge images
 - Feed composer: photo picker UX fixes (label-based file input, blur-safe expand/collapse)
+- Labeled Comment/Share actions at desktop breakpoints; profile timeline unchanged
+- Feed empty/welcome states, error alerts, and caught-up divider styling
 
 ### Fixed
 - Post detail "Something went wrong" when creating posts with photos — jsonb insert now serializes `image_urls` correctly
@@ -15,15 +18,91 @@
 ### Plans
 - `plans/08012026-36-feed-ui-upgrade` — Completed (Rev 5: multi-photo + centered media follow-up on `kylie/feed-ui-upgrade`)
 
-## 0.1.18 — 2026-08-01
+## 0.1.21 — 2026-08-03
 
 ### Changed
-- Feed UI polish: unified composer track (avatar + pill + Post in one row), expanded composer field, full-bleed post images on feed and post detail
-- Labeled Comment/Share actions at desktop breakpoints; profile timeline unchanged
-- Feed empty/welcome states, error alerts, and caught-up divider styling
+- Navbar visual polish: “SocMed” wordmark, Facebook-style center pill cluster, refined action icons, avatar profile trigger, profile-dropdown menu styling, shared `.app-navbar-*` CSS tokens
 
 ### Plans
-- `plans/08012026-36-feed-ui-upgrade` — Completed (execution on `kylie/feed-ui-upgrade`)
+- `plans/08012026-35-navbar-upgrade` — Completed (execution on `kylie/navbar-upgrade`)
+
+## 0.1.20 — 2026-08-03
+
+### Added
+- Message notification sounds: 14 selectable tones in Account Settings, localStorage prefs, mute toggle
+- Inbound `message:new` sound when off-thread (Feed, Profile, inbox list, other threads); suppressed on the open conversation thread; never for own messages
+- Autoplay unlock on sign-in, register, and first click; cross-tab dedupe for duplicate socket delivery
+
+### Plans
+- `plans/08012026-34-message-notification-sounds` — Completed (execution on `kylie/message-notification-features`)
+
+## 0.1.19 — 2026-08-03
+
+### Added
+- Delete conversation for you only: hides thread from inbox, marks existing messages deleted for the deleter via `message_user_deletions`, peer history unchanged
+- `DELETE /api/messages/conversations/:id` with confirm dialog on inbox (⋯ menu + swipe-left) and thread header
+- Swipeable inbox rows with iOS-style red delete strip (trash icon + label)
+- Inbound message or explicit re-open restores hidden thread to inbox; deleted messages stay filtered for deleter
+
+### Changed
+- Messages inbox: rounded conversation cards with spacing; unread badge excludes hidden threads and user-deleted messages
+- Thread load uses `?restore=1` to clear hide on intentional open; polls omit restore
+
+### Plans
+- `plans/08012026-33-message-delete-conversation` — Completed (execution on `kylie/message-delete-conversation`)
+
+## 0.1.18 — 2026-08-02
+
+### Added
+- Edit message: sender can fix typos from the ellipsis menu on own text messages
+- `PATCH /api/messages/messages/:id` with `edited_at` column and `message:edited` socket event
+- Messenger-style edit UX: message text loads into the bottom compose bar; Enter/send saves, Escape/Cancel exits
+- Shared `MessageComposeBar` component for send and edit compose rows
+- **Chat themes** — shared per-conversation themes stored on `conversations` (preset, solid, gradient)
+- Theme API: `GET/PUT /api/messages/conversations/:id/theme`; thread load includes `theme`
+- Socket event `conversation:theme` for live peer sync
+- **ChatThemePicker** — palette button in thread header; unified horizontal swatch strips for presets, colors, gradients
+- **Word effects** — 11 trigger words with bubble-scoped CSS animations (hearts, confetti, sparkle, flame, pop)
+- 8 graphic presets, 6 solid swatches, 6 gradient presets (CSS gradients, no binary assets)
+- Facebook/Messenger six reaction stickers (Sad 😢, Angry 😡) on posts, comments, and messages
+- Message thread compose emoji picker — curated grid inserts emoji at cursor
+- Migration `20260731180000_reaction_emoji_sad_angry` extends `reaction_emoji` enum
+- Messenger-style **reply to chat**: quote strip in reply bubbles, composer preview bar, `reply_to_message_id` migration
+- Hover-to-reveal ↩ Reply / 😊 React / ⋮ Unsend on desktop; **tap message bubble** to show actions on phone/tablet
+- Inbox snippet `↩` prefix when the latest message is a reply
+- Message status icons on outgoing bubbles: Sent (open blue check), Delivered (filled blue check), Seen (peer avatar)
+- `messages.delivered_at` migration; socket `message:ack` / `message:delivered` / `conversation:peer-read` events
+- `MessageStatusIcon` component and `ProfileAvatar` `xs` size
+- Messages typing indicator: Socket.IO `typing:start` / `typing:stop` relay with ephemeral server TTL
+- Animated “{name} is typing” cue above the thread composer and in inbox conversation rows
+- `TypingIndicator` component and `useTypingIndicator` hooks (debounced emit + peer listen)
+- Click reaction summary on posts and comments to see who reacted (`GET /api/posts/:id/reactions`, `GET /api/comments/:id/reactions`)
+
+### Changed
+- **Messages thread** — viewport-height chat shell with auto-scroll to latest message on load/refresh
+- **MessageBubbleRow** — themed bubble colors via CSS custom properties when a chat theme is active
+- Message reactions use shared `ReactionBar` (hover/hold expand) instead of `MessageReactionBar`
+- Compose bar: image attach + emoji buttons grouped tightly
+- `MessageView.replyTo` embedded on list, create, and socket payloads (works when quoted message is paginated out)
+- API client: clearer errors when the server returns an empty body (common when API is down or migrate was skipped)
+- Message timestamps hidden by default; tap/click bubble toggles timestamp for that message
+- Thread API returns `peerLastReadAt` and per-message `deliveredAt`
+
+### Fixed
+- Message action buttons clipped by thread scroll container (actions sit beside bubble in flex row)
+- Knex migration parity: restore `delivered_at` stub so local DB matches cloud after branch switches
+- Restored missing idempotent Knex migrations (reply-to, delivered_at, chat themes) so `npm run migrate` runs cleanly on local DBs with parallel feature work
+- Edit save 500 when `edited_at` column was missing before migration applied
+- Typing indicator reliability: server heartbeats re-broadcast to peers and skip redundant DB lookups; socket singleton no longer disconnects on React remounts
+- Profile timeline post action row: reaction trigger no longer overflows the card (`POST_MEDIA_BREAKOUT` removed from embedded action row)
+
+### Plans
+- `plans/08012026-32-edit-message` — Completed (execution on `kylie/edit-message`)
+- `plans/08012026-31-chat-themes` — Completed (execution on `kylie/chat-themes`)
+- `plans/07312026-30-default-message-stickers` — Completed (execution on `kylie/default-stickers`)
+- `plans/07312026-29-reply-to-chat` — Completed (execution on `kylie/reply-to-chat`, PR #44 → `dev`)
+- `plans/07312026-28-messages-status-icons` — Completed (execution on `kylie/message-status-icon`)
+- `plans/07312026-27-messages-typing-indicator` — Completed (execution on `kylie/messages-typing-indicator`)
 
 ## 0.1.17 — 2026-07-31
 
