@@ -31,6 +31,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 25 | `07302026-25-feed-composer-avatar` | Facebook-style feed composer + shared ProfileAvatar |
 | 26 | `07302026-26-share-button` | Facebook-style share button for friends' posts |
 | 27 | `07312026-27-messages-typing-indicator` | Messages thread typing indicator (animated dots) |
+| 28 | `07312026-28-messages-status-icons` | Outgoing message status icons (Sent · Delivered · Seen) |
 
 ## Branch → host (hard rule)
 

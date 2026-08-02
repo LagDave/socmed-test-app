@@ -2,6 +2,8 @@ import type { Server as HttpServer } from "http";
 import { Server, type Socket } from "socket.io";
 import { SessionModel } from "../models/SessionModel";
 import { sessionCookieName } from "../middleware/requireAuth";
+import { MessageService } from "../services/MessageService";
+import { MESSAGE_ACK } from "./MessageRealtime";
 import { logger } from "../logger";
 import { attachTypingHandlers } from "./TypingRelay";
 
@@ -79,6 +81,23 @@ export function attachRealtime(httpServer: HttpServer): Server {
     void socket.join(userRoom(userId));
     attachTypingHandlers(socket);
     logger.debug({ userId, socketId: socket.id }, "Socket connected");
+    socket.on(MESSAGE_ACK, (payload: unknown) => {
+      void (async () => {
+        try {
+          const messageId =
+            payload &&
+            typeof payload === "object" &&
+            "messageId" in payload &&
+            typeof (payload as { messageId: unknown }).messageId === "string"
+              ? (payload as { messageId: string }).messageId
+              : null;
+          if (!messageId) return;
+          await MessageService.ackMessageDelivery(userId, messageId);
+        } catch (err) {
+          logger.error({ err, userId }, "message:ack handler failed");
+        }
+      })();
+    });
     socket.on("disconnect", (reason) => {
       logger.debug({ userId, socketId: socket.id, reason }, "Socket disconnected");
     });

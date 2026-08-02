@@ -7,6 +7,7 @@ export type MessageRow = {
   body: string | null;
   image_url: string | null;
   unsent_at: Date | null;
+  delivered_at: Date | null;
   created_at: Date;
 };
 
@@ -70,6 +71,30 @@ export class MessageModel {
       .where({ conversation_id: conversationId })
       .orderBy("created_at", "desc")
       .first();
+  }
+
+  static async markDelivered(id: string): Promise<MessageRow | undefined> {
+    const [row] = await db<MessageRow>("messages")
+      .where({ id })
+      .whereNull("delivered_at")
+      .whereNull("unsent_at")
+      .update({ delivered_at: db.fn.now() })
+      .returning("*");
+    return row;
+  }
+
+  /** Marks peer-sent messages as delivered when the viewer loads the thread. */
+  static async markInboundUndeliveredAsDelivered(
+    conversationId: string,
+    viewerId: string
+  ): Promise<MessageRow[]> {
+    return db<MessageRow>("messages")
+      .where({ conversation_id: conversationId })
+      .whereNot({ sender_id: viewerId })
+      .whereNull("delivered_at")
+      .whereNull("unsent_at")
+      .update({ delivered_at: db.fn.now() })
+      .returning("*");
   }
 
   static async countUnreadInConversation(

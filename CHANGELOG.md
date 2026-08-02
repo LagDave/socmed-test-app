@@ -3,16 +3,24 @@
 ## 0.1.18 — 2026-07-31
 
 ### Added
+- Message status icons on outgoing bubbles: Sent (open blue check), Delivered (filled blue check), Seen (peer avatar)
+- `messages.delivered_at` migration; socket `message:ack` / `message:delivered` / `conversation:peer-read` events
+- `MessageStatusIcon` component and `ProfileAvatar` `xs` size
 - Messages typing indicator: Socket.IO `typing:start` / `typing:stop` relay with ephemeral server TTL
 - Animated “{name} is typing” cue above the thread composer and in inbox conversation rows
 - `TypingIndicator` component and `useTypingIndicator` hooks (debounced emit + peer listen)
 - Click reaction summary on posts and comments to see who reacted (`GET /api/posts/:id/reactions`, `GET /api/comments/:id/reactions`)
+
+### Changed
+- Message timestamps hidden by default; tap/click bubble toggles timestamp for that message
+- Thread API returns `peerLastReadAt` and per-message `deliveredAt`
 
 ### Fixed
 - Typing indicator reliability: server heartbeats re-broadcast to peers and skip redundant DB lookups; socket singleton no longer disconnects on React remounts
 - Profile timeline post action row: reaction trigger no longer overflows the card (`POST_MEDIA_BREAKOUT` removed from embedded action row)
 
 ### Plans
+- `plans/07312026-28-messages-status-icons` — Completed (execution on `kylie/message-status-icon`)
 - `plans/07312026-27-messages-typing-indicator` — Completed (execution on `kylie/messages-typing-indicator`)
 
 ## 0.1.17 — 2026-07-31
