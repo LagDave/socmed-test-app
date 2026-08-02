@@ -81,6 +81,15 @@ export class MessagesController {
     }
   }
 
+  static async edit(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const message = await MessageService.edit(req.userId!, String(req.params.id), req.body);
+      return ok(res, { message });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
   static async setReaction(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const message = await MessageService.setReaction(

@@ -62,6 +62,10 @@ const reactionSchema = z.object({
   emoji: z.enum(REACTION_EMOJIS),
 });
 
+const editMessageSchema = z.object({
+  body: z.string().max(4000),
+});
+
 export type MessageReplyToView = {
   id: string;
   senderId: string;
@@ -79,6 +83,7 @@ export type MessageView = {
   imageUrl: string | null;
   isUnsent: boolean;
   createdAt: Date;
+  editedAt: Date | null;
   deliveredAt: Date | null;
   reactionSummary: ReactionSummary;
   replyTo: MessageReplyToView | null;
@@ -150,6 +155,7 @@ function toMessageView(
     imageUrl: isUnsent ? null : row.image_url,
     isUnsent,
     createdAt: row.created_at,
+    editedAt: isUnsent ? null : row.edited_at,
     deliveredAt: row.delivered_at ?? null,
     reactionSummary: isUnsent ? emptyReactionSummary() : reactionSummary,
     replyTo: context ? toReplyToView(context) : null,
@@ -371,6 +377,45 @@ export class MessageService {
     if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
     const view = await rowToView(withReply, userId);
     await publishRealtime(() => MessageRealtime.messageUnsent(conversation, view));
+    return view;
+  }
+
+  static async edit(userId: string, messageId: string, raw: unknown): Promise<MessageView> {
+    const existing = await MessageModel.findById(messageId);
+    if (!existing) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
+
+    const conversation = await ConversationModel.findById(existing.conversation_id);
+    if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    assertParticipant(conversation, userId);
+
+    if (existing.sender_id !== userId) {
+      throw new AppError("MESSAGE_FORBIDDEN", "You can only edit your own messages.");
+    }
+    if (existing.unsent_at) {
+      throw new AppError("MESSAGE_VALIDATION", "Cannot edit an unsent message.");
+    }
+    if (!existing.body?.trim()) {
+      throw new AppError("MESSAGE_VALIDATION", "This message has no text to edit.");
+    }
+
+    const input = editMessageSchema.parse(raw);
+    const trimmed = input.body.trim();
+    if (!existing.image_url && !trimmed) {
+      throw new AppError("MESSAGE_VALIDATION", "Message body cannot be empty.");
+    }
+
+    const newBody = trimmed || null;
+    const summaries = await MessageReactionModel.summariesForMessages([messageId], userId);
+    const currentSummary = summaries.get(messageId) ?? emptyReactionSummary();
+
+    if ((existing.body ?? "") === (newBody ?? "")) {
+      return toMessageView(existing, currentSummary);
+    }
+
+    const row = await MessageModel.updateBody(messageId, userId, newBody);
+    if (!row) throw new AppError("MESSAGE_NOT_FOUND", "Message not found or already unsent.");
+    const view = toMessageView(row, currentSummary);
+    await publishRealtime(() => MessageRealtime.messageEdited(conversation, view));
     return view;
   }
 

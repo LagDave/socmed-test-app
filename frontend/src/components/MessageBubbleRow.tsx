@@ -59,10 +59,12 @@ export function MessageBubbleRow({
   showAvatar,
   peerLastReadAt,
   peerProfilePath,
+  isBeingEdited,
   canHover,
   touchRevealed,
   onToggleTouchReveal,
   onUnsend,
+  onStartEdit,
   onReactionChange,
   onReply,
   onError,
@@ -74,10 +76,12 @@ export function MessageBubbleRow({
   showAvatar: boolean;
   peerLastReadAt: string | null;
   peerProfilePath: string;
+  isBeingEdited?: boolean;
   canHover: boolean;
   touchRevealed: boolean;
   onToggleTouchReveal: () => void;
   onUnsend: (id: string) => void;
+  onStartEdit: (id: string) => void;
   onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
   onReply: (message: MessageView) => void;
   onError: (message: string) => void;
@@ -85,6 +89,7 @@ export function MessageBubbleRow({
 }) {
   const [timestampVisible, setTimestampVisible] = useState(false);
   const hasReactions = REACTION_OPTIONS.some((o) => message.reactionSummary.counts[o.emoji] > 0);
+  const canEdit = mine && !message.isUnsent && Boolean(message.body?.trim());
 
   function handleTouchToggle(e: MouseEvent | TouchEvent) {
     if (canHover || message.isUnsent) return;
@@ -145,6 +150,7 @@ export function MessageBubbleRow({
                   : mine
                     ? "cursor-pointer bg-foreground text-background"
                     : "cursor-pointer bg-secondary text-foreground",
+              isBeingEdited && "ring-2 ring-ring ring-offset-2 ring-offset-background",
               !canHover && touchRevealed && !message.isUnsent && "ring-2 ring-border/80"
             )}
           >
@@ -199,19 +205,22 @@ export function MessageBubbleRow({
                 />
               )}
               {timestampVisible && (
-                <time
-                  className="text-[11px] text-muted-foreground"
-                  dateTime={message.createdAt}
-                  title={formatAbsoluteTime(message.createdAt) || undefined}
-                >
-                  {formatRelativeTime(message.createdAt)}
-                </time>
+                <>
+                  <time
+                    className="text-[11px] text-muted-foreground"
+                    dateTime={message.createdAt}
+                    title={formatAbsoluteTime(message.createdAt) || undefined}
+                  >
+                    {formatRelativeTime(message.createdAt)}
+                  </time>
+                  {message.editedAt && <span className="text-[11px] text-muted-foreground">(edited)</span>}
+                </>
               )}
             </div>
           )}
         </div>
 
-        {!message.isUnsent && (
+        {!message.isUnsent && !isBeingEdited && (
           <MessageHoverActions
             message={message}
             mine={mine}
@@ -220,7 +229,7 @@ export function MessageBubbleRow({
           />
         )}
 
-        {mine && !message.isUnsent && (
+        {mine && !message.isUnsent && !isBeingEdited && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -237,6 +246,9 @@ export function MessageBubbleRow({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="left">
+              {canEdit && (
+                <DropdownMenuItem onSelect={() => onStartEdit(message.id)}>Edit</DropdownMenuItem>
+              )}
               <DropdownMenuItem onSelect={() => onUnsend(message.id)}>Unsend</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

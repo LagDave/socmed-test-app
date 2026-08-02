@@ -3,6 +3,10 @@
 ## 0.1.18 — 2026-08-02
 
 ### Added
+- Edit message: sender can fix typos from the ellipsis menu on own text messages
+- `PATCH /api/messages/messages/:id` with `edited_at` column and `message:edited` socket event
+- Messenger-style edit UX: message text loads into the bottom compose bar; Enter/send saves, Escape/Cancel exits
+- Shared `MessageComposeBar` component for send and edit compose rows
 - **Chat themes** — shared per-conversation themes stored on `conversations` (preset, solid, gradient)
 - Theme API: `GET/PUT /api/messages/conversations/:id/theme`; thread load includes `theme`
 - Socket event `conversation:theme` for live peer sync
@@ -36,10 +40,13 @@
 ### Fixed
 - Message action buttons clipped by thread scroll container (actions sit beside bubble in flex row)
 - Knex migration parity: restore `delivered_at` stub so local DB matches cloud after branch switches
+- Restored missing idempotent Knex migrations (reply-to, delivered_at, chat themes) so `npm run migrate` runs cleanly on local DBs with parallel feature work
+- Edit save 500 when `edited_at` column was missing before migration applied
 - Typing indicator reliability: server heartbeats re-broadcast to peers and skip redundant DB lookups; socket singleton no longer disconnects on React remounts
 - Profile timeline post action row: reaction trigger no longer overflows the card (`POST_MEDIA_BREAKOUT` removed from embedded action row)
 
 ### Plans
+- `plans/08012026-32-edit-message` — Completed (execution on `kylie/edit-message`)
 - `plans/08012026-31-chat-themes` — Completed (execution on `kylie/chat-themes`)
 - `plans/07312026-30-default-message-stickers` — Completed (execution on `kylie/default-stickers`)
 - `plans/07312026-29-reply-to-chat` — Completed (execution on `kylie/reply-to-chat`, PR #44 → `dev`)

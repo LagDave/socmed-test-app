@@ -68,6 +68,7 @@ export type MessageView = {
   imageUrl: string | null;
   isUnsent: boolean;
   createdAt: string;
+  editedAt: string | null;
   deliveredAt: string | null;
   reactionSummary: ReactionSummary;
   replyTo: MessageReplyToView | null;

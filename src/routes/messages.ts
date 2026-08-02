@@ -13,6 +13,7 @@ messagesRouter.put("/messages/conversations/:id/theme", requireAuth, MessagesCon
 messagesRouter.post("/messages/conversations/:id/messages", requireAuth, MessagesController.send);
 messagesRouter.post("/messages/conversations/:id/read", requireAuth, MessagesController.markRead);
 messagesRouter.delete("/messages/messages/:id", requireAuth, MessagesController.unsend);
+messagesRouter.patch("/messages/messages/:id", requireAuth, MessagesController.edit);
 messagesRouter.put("/messages/messages/:id/reaction", requireAuth, MessagesController.setReaction);
 messagesRouter.delete(
   "/messages/messages/:id/reaction",

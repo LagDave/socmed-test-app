@@ -3,6 +3,7 @@ import type { ChatTheme, MessageView } from "./types";
 
 export const MESSAGE_NEW = "message:new";
 export const MESSAGE_UNSENT = "message:unsent";
+export const MESSAGE_EDITED = "message:edited";
 export const MESSAGE_REACTION = "message:reaction";
 export const MESSAGE_DELIVERED = "message:delivered";
 export const CONVERSATION_PEER_READ = "conversation:peer-read";

@@ -6,6 +6,7 @@ import { emitToUser } from "./io";
 
 export const MESSAGE_NEW = "message:new";
 export const MESSAGE_UNSENT = "message:unsent";
+export const MESSAGE_EDITED = "message:edited";
 export const MESSAGE_REACTION = "message:reaction";
 export const MESSAGE_DELIVERED = "message:delivered";
 export const CONVERSATION_PEER_READ = "conversation:peer-read";
@@ -64,6 +65,14 @@ export const MessageRealtime = {
     }
     emitConversationUpdated(conversation);
     await emitUnreadForParticipants(conversation);
+  },
+
+  async messageEdited(conversation: ConversationRow, message: MessageView): Promise<void> {
+    const payload = { message };
+    for (const userId of participantIds(conversation)) {
+      emitToUser(userId, MESSAGE_EDITED, payload);
+    }
+    emitConversationUpdated(conversation);
   },
 
   async messageReaction(

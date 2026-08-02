@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ImagePlus, MessageCircle, Palette, SendHorizontal, X } from "lucide-react";
 import { api } from "@/api/client";
@@ -7,6 +7,7 @@ import {
   CONVERSATION_THEME,
   CONVERSATION_UPDATED,
   MESSAGE_DELIVERED,
+  MESSAGE_EDITED,
   MESSAGE_NEW,
   MESSAGE_REACTION,
   MESSAGE_UNSENT,
@@ -101,6 +102,7 @@ function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] 
     map.set(m.id, {
       ...m,
       deliveredAt: m.deliveredAt ?? existing?.deliveredAt ?? null,
+      editedAt: m.editedAt ?? existing?.editedAt ?? null,
     });
   }
   return Array.from(map.values()).sort(
@@ -122,6 +124,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [sending, setSending] = useState(false);
   const [pendingUnsendId, setPendingUnsendId] = useState<string | null>(null);
   const [unsending, setUnsending] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [loadingThread, setLoadingThread] = useState(true);
   const [conversationTheme, setConversationTheme] = useState<ConversationThemeView | null>(null);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
@@ -134,7 +138,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     conversationId,
     text: body,
     connected: socketConnected,
-    active: !sending,
+    active: !sending && !editingMessageId,
   });
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -174,6 +178,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     setHasMore(false);
     setError(null);
     setBody("");
+    setEditingMessageId(null);
     setReplyToMessage(null);
     setTappedMessageId(null);
     setLoadingThread(true);
@@ -297,6 +302,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
     socket.on(MESSAGE_NEW, applyInboundNewMessage);
     socket.on(MESSAGE_UNSENT, applyMessagePatch);
+    socket.on(MESSAGE_EDITED, applyMessagePatch);
     socket.on(MESSAGE_REACTION, applyMessagePatch);
     socket.on(MESSAGE_DELIVERED, applyMessageDelivered);
     socket.on(CONVERSATION_PEER_READ, applyPeerRead);
@@ -315,6 +321,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     return () => {
       socket.off(MESSAGE_NEW, applyInboundNewMessage);
       socket.off(MESSAGE_UNSENT, applyMessagePatch);
+      socket.off(MESSAGE_EDITED, applyMessagePatch);
       socket.off(MESSAGE_REACTION, applyMessagePatch);
       socket.off(MESSAGE_DELIVERED, applyMessageDelivered);
       socket.off(CONVERSATION_PEER_READ, applyPeerRead);
@@ -350,9 +357,18 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   }, [loadingThread, conversationId]);
 
   useEffect(() => {
-    if (!replyToMessage) return;
+    if (!replyToMessage || editingMessageId) return;
     textareaRef.current?.focus();
-  }, [replyToMessage]);
+  }, [replyToMessage, editingMessageId]);
+
+  useEffect(() => {
+    if (!editingMessageId) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.focus();
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+  }, [editingMessageId]);
 
   async function sendText(text: string, options?: { clearComposer?: boolean }) {
     const trimmed = text.trim();
@@ -431,13 +447,17 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
   async function onSend(e: FormEvent) {
     e.preventDefault();
+    if (editingMessageId) {
+      await saveEdit();
+      return;
+    }
     const text = body.trim();
     if (!text || sending) return;
     await sendText(text);
   }
 
   async function onImage(file: File | null) {
-    if (!file || sending) return;
+    if (!file || sending || editingMessageId) return;
     stopTyping();
     const generation = generationRef.current;
     setSending(true);
@@ -488,6 +508,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       });
       if (replyToMessage?.id === pendingUnsendId) setReplyToMessage(null);
       setPendingUnsendId(null);
+      if (editingMessageId === pendingUnsendId) cancelEdit();
     } catch (err) {
       if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Unsend failed");
@@ -500,6 +521,56 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     setMessages((prev) =>
       prev.map((m) => (m.id === messageId ? { ...m, reactionSummary } : m))
     );
+  }
+
+  function startEdit(messageId: string) {
+    const msg = messages.find((m) => m.id === messageId);
+    if (!msg?.body?.trim()) return;
+    setEditingMessageId(messageId);
+    setReplyToMessage(null);
+    setBody(msg.body ?? "");
+    setError(null);
+    stickToBottomRef.current = true;
+  }
+
+  function cancelEdit() {
+    setEditingMessageId(null);
+    setBody("");
+  }
+
+  async function saveEdit() {
+    if (!editingMessageId || savingEdit) return;
+    const msg = messages.find((m) => m.id === editingMessageId);
+    if (!msg) return;
+    const trimmed = body.trim();
+    if (!msg.imageUrl && !trimmed) {
+      setError("Message body cannot be empty.");
+      return;
+    }
+    const generation = generationRef.current;
+    setSavingEdit(true);
+    setError(null);
+    try {
+      const data = await api.patch<{ message: MessageView }>(
+        `/api/messages/messages/${editingMessageId}`,
+        { body: trimmed }
+      );
+      if (generation !== generationRef.current) return;
+      setMessages((prev) => mergeById(prev, [data.message]));
+      cancelEdit();
+    } catch (err) {
+      if (generation !== generationRef.current) return;
+      setError(err instanceof Error ? err.message : "Edit failed");
+    } finally {
+      if (generation === generationRef.current) setSavingEdit(false);
+    }
+  }
+
+  function handleComposeKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Escape" && editingMessageId) {
+      e.preventDefault();
+      cancelEdit();
+    }
   }
 
   async function applyThemeChoice(payload: ChatTheme | { reset: true }) {
@@ -525,7 +596,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const themeVars = chatThemeCssVars(resolvedTheme);
   const peerProfilePath = peer?.username ? `/u/${peer.username}` : peer ? `/u/${peer.id}` : "#";
   const replyPreview =
-    replyToMessage && user && peer ? replyTargetPreview(replyToMessage, user, peer) : null;
+    replyToMessage && user && peer && !editingMessageId
+      ? replyTargetPreview(replyToMessage, user, peer)
+      : null;
+  const editingMessage = editingMessageId
+    ? messages.find((m) => m.id === editingMessageId) ?? null
+    : null;
+  const composeBusy = sending || savingEdit;
 
   return (
     <section className="space-y-4">
@@ -629,12 +706,14 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       showAvatar={showAvatar}
                       peerLastReadAt={peerLastReadAt}
                       peerProfilePath={peerProfilePath}
+                      isBeingEdited={editingMessageId === m.id}
                       canHover={canHover}
                       touchRevealed={tappedMessageId === m.id}
                       onToggleTouchReveal={() =>
                         setTappedMessageId((prev) => (prev === m.id ? null : m.id))
                       }
                       onUnsend={setPendingUnsendId}
+                      onStartEdit={startEdit}
                       onReactionChange={patchMessageReaction}
                       onReply={(msg) => {
                         setTappedMessageId(null);
@@ -660,6 +739,21 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         {isPeerTyping && peer && <TypingIndicator displayName={peer.displayName} />}
 
         <form onSubmit={onSend} className="border-t border-border px-3 py-3">
+          {editingMessageId && (
+            <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
+              <span>Editing message</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                disabled={composeBusy}
+                onClick={cancelEdit}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
           {replyPreview && (
             <div className="mb-2 flex items-start justify-between gap-2 rounded-xl border border-border/70 bg-secondary/40 px-3 py-2 text-sm">
               <div className="min-w-0">
@@ -717,37 +811,50 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               />
             )}
             <div className="flex shrink-0 items-center -space-x-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                aria-label="Attach image"
-                disabled={sending}
-                onClick={() => fileRef.current?.click()}
-              >
-                <ImagePlus className="h-4 w-4" />
-              </Button>
-              <MessageComposerEmojiPicker disabled={sending} onPick={insertComposerEmoji} />
+              {!editingMessageId && (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Attach image"
+                    disabled={composeBusy}
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                  </Button>
+                  <MessageComposerEmojiPicker disabled={composeBusy} onPick={insertComposerEmoji} />
+                </>
+              )}
             </div>
             <Textarea
               ref={textareaRef}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               onBlur={() => stopTyping()}
-              onKeyDown={submitOnEnter}
-              placeholder="Type a message"
-              aria-label="Message"
+              onKeyDown={(e) => {
+                handleComposeKeyDown(e);
+                if (e.defaultPrevented) return;
+                submitOnEnter(e);
+              }}
+              placeholder={editingMessageId ? "Edit message" : "Type a message"}
+              aria-label={editingMessageId ? "Edit message" : "Message"}
               rows={1}
-              disabled={sending}
+              disabled={composeBusy}
               className="max-h-32 min-h-10 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[15px] leading-6 shadow-none focus-visible:ring-0"
             />
             <Button
               type="submit"
               size="icon"
               className="shrink-0"
-              aria-label="Send"
-              disabled={sending || !body.trim()}
+              aria-label={editingMessageId ? "Save edit" : "Send"}
+              disabled={
+                composeBusy ||
+                (editingMessage
+                  ? !editingMessage.imageUrl && !body.trim()
+                  : !body.trim())
+              }
               style={
                 resolvedTheme.active
                   ? {
@@ -766,7 +873,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       <ChatThemePicker
         open={themePickerOpen}
         current={conversationTheme}
-        busy={themeSaving || sending}
+        busy={themeSaving || composeBusy}
         onApply={(payload) => void applyThemeChoice(payload)}
         onWordEffectSend={(word) => void sendWordEffect(word)}
         onClose={() => {
@@ -825,10 +932,12 @@ function InboxView() {
     socket.on(CONVERSATION_UPDATED, onUpdated);
     socket.on(MESSAGE_NEW, onMessage);
     socket.on(MESSAGE_UNSENT, onMessage);
+    socket.on(MESSAGE_EDITED, onMessage);
     return () => {
       socket.off(CONVERSATION_UPDATED, onUpdated);
       socket.off(MESSAGE_NEW, onMessage);
       socket.off(MESSAGE_UNSENT, onMessage);
+      socket.off(MESSAGE_EDITED, onMessage);
     };
   }, []);
 

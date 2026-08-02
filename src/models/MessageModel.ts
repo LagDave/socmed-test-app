@@ -7,6 +7,7 @@ export type MessageRow = {
   body: string | null;
   image_url: string | null;
   unsent_at: Date | null;
+  edited_at: Date | null;
   reply_to_message_id: string | null;
   delivered_at: Date | null;
   created_at: Date;
@@ -54,6 +55,7 @@ function mapListRow(row: MessageListQueryRow): MessageRowWithReply {
     body: row.body,
     image_url: row.image_url,
     unsent_at: row.unsent_at,
+    edited_at: row.edited_at,
     reply_to_message_id: row.reply_to_message_id,
     delivered_at: row.delivered_at,
     created_at: row.created_at,
@@ -141,6 +143,22 @@ export class MessageModel {
         unsent_at: db.fn.now(),
         body: null,
         image_url: null,
+      })
+      .returning("*");
+    return row;
+  }
+
+  static async updateBody(
+    id: string,
+    senderId: string,
+    body: string | null
+  ): Promise<MessageRow | undefined> {
+    const [row] = await db<MessageRow>("messages")
+      .where({ id, sender_id: senderId })
+      .whereNull("unsent_at")
+      .update({
+        body,
+        edited_at: db.fn.now(),
       })
       .returning("*");
     return row;
