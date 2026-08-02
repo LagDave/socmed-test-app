@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CommentsSection } from "@/components/CommentsSection";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PostCard } from "@/components/PostCard";
+import { SharePostDialog } from "@/components/SharePostDialog";
+import { ShareSuccessNotice } from "@/components/ShareSuccessNotice";
 import { Button } from "@/components/ui/button";
 import { groupComments } from "@/lib/groupComments";
 
@@ -25,8 +27,10 @@ export function PostDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
-  const [sharingPostId, setSharingPostId] = useState<string | null>(null);
-  const sharingRef = useRef(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const shareBusyRef = useRef(false);
   const [shareNotice, setShareNotice] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -59,10 +63,12 @@ export function PostDetailPage() {
     setReplyTo(null);
     setError(null);
     setShareNotice(null);
+    setShareDialogOpen(false);
+    setShareError(null);
+    shareBusyRef.current = false;
+    setShareBusy(false);
     busyRef.current = false;
     setBusy(false);
-    sharingRef.current = false;
-    setSharingPostId(null);
     setPendingDelete(null);
     void load().catch((e: Error) => setError(e.message));
   }, [id]);
@@ -122,20 +128,28 @@ export function PostDetailPage() {
     clearReply();
   }
 
-  async function onShare(postId: string) {
-    if (!post || sharingRef.current) return;
-    sharingRef.current = true;
-    setSharingPostId(postId);
+  function openShare() {
+    setShareError(null);
+    setShareNotice(null);
+    setShareDialogOpen(true);
+  }
+
+  async function confirmShare(caption: string) {
+    if (!post || shareBusyRef.current) return;
+    shareBusyRef.current = true;
+    setShareBusy(true);
+    setShareError(null);
     setError(null);
     setShareNotice(null);
     try {
-      await api.post(`/api/posts/${postId}/share`);
+      await api.post(`/api/posts/${post.id}/share`, { body: caption });
+      setShareDialogOpen(false);
       setShareNotice("Shared to your feed.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to share");
+      setShareError(err instanceof Error ? err.message : "Failed to share");
     } finally {
-      sharingRef.current = false;
-      setSharingPostId(null);
+      shareBusyRef.current = false;
+      setShareBusy(false);
     }
   }
 
@@ -201,9 +215,8 @@ export function PostDetailPage() {
         <PostCard
           post={post}
           currentUserId={user.id}
-          sharingPostId={sharingPostId}
           onDelete={() => setPendingDelete({ type: "post" })}
-          onShare={(postId) => void onShare(postId)}
+          onShare={() => openShare()}
           onReactionSummaryChange={(_, summary) => patchPostSummary(summary)}
         />
       ) : (
@@ -213,11 +226,7 @@ export function PostDetailPage() {
         </article>
       )}
 
-      {shareNotice && (
-        <p className="rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground">
-          {shareNotice}
-        </p>
-      )}
+      {shareNotice && <ShareSuccessNotice message={shareNotice} />}
 
       <CommentsSection
         comments={comments}
@@ -253,6 +262,23 @@ export function PostDetailPage() {
         }}
         onConfirm={() => void confirmPendingDelete()}
       />
+
+      {user && post && (
+        <SharePostDialog
+          open={shareDialogOpen}
+          post={post}
+          user={user}
+          busy={shareBusy}
+          error={shareError}
+          onConfirm={(caption) => void confirmShare(caption)}
+          onCancel={() => {
+            if (!shareBusy) {
+              setShareDialogOpen(false);
+              setShareError(null);
+            }
+          }}
+        />
+      )}
     </section>
   );
 }

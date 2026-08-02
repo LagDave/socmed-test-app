@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.18 — 2026-08-02
+
+### Added
+- Share post composer dialog with optional caption before resharing to feed
+- `SharePostDialog`, `ShareAttribution`, and `ShareSuccessNotice` components
+- Share API caption support via `POST /api/posts/:id/share` `{ body? }`
+
+### Changed
+- Share button UI: pill action buttons, polished nested embed, and attribution links
+- Feed and post detail open share composer instead of one-click reshare
+
 ## 0.1.17 — 2026-07-31
 
 ### Added

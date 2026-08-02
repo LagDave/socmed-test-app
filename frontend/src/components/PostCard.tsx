@@ -15,7 +15,8 @@ import {
   profileActivityHasCustomCaption,
   profileActivityKind,
 } from "@/lib/profileActivityPosts";
-import { canSharePost, shareAttributionLabel } from "@/lib/sharePost";
+import { ShareAttribution } from "@/components/ShareAttribution";
+import { canSharePost } from "@/lib/sharePost";
 import { cn } from "@/lib/utils";
 
 /** Full card width — offsets the header avatar column (sm + gap-2.5). */
@@ -73,7 +74,6 @@ type PostCardProps = {
   onDelete: (postId: string) => void;
   onReactionSummaryChange: (postId: string, summary: ReactionSummary) => void;
   onShare?: (postId: string) => void;
-  sharingPostId?: string | null;
   /** When embedded inside an outer feed-card (e.g. profile timeline). */
   variant?: "standalone" | "embedded";
   className?: string;
@@ -85,13 +85,11 @@ export function PostCard({
   onDelete,
   onReactionSummaryChange,
   onShare,
-  sharingPostId = null,
   variant = "standalone",
   className,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const attribution = shareAttributionLabel(currentUserId, post);
   const isShare = Boolean(post.sharedFromPostId);
   const isOwner = currentUserId === post.author.id;
   const profilePath = `/u/${post.author.username || post.author.id}`;
@@ -118,7 +116,12 @@ export function PostCard({
   }, [menuOpen]);
 
   const bodyBlock = isShare ? (
-    <SharedPostEmbed sharedFrom={post.sharedFrom} />
+    <>
+      {post.body.trim() ? (
+        <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/95">{post.body}</p>
+      ) : null}
+      <SharedPostEmbed sharedFrom={post.sharedFrom} className={post.body.trim() ? "mt-2.5" : undefined} />
+    </>
   ) : (
     <>
       {isActivity && (
@@ -179,8 +182,8 @@ export function PostCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                {attribution ? (
-                  <p className="font-semibold leading-snug">{attribution}</p>
+                {isShare ? (
+                  <ShareAttribution viewerId={currentUserId} post={post} />
                 ) : (
                   <Link
                     className="font-semibold leading-snug underline-offset-2 hover:underline"
@@ -253,7 +256,6 @@ export function PostCard({
           size="md"
           commentTo={`/posts/${post.id}#comments`}
           onShare={onShare && canSharePost(currentUserId, post) ? () => onShare(post.id) : undefined}
-          shareBusy={sharingPostId === post.id}
         >
           <ReactionBar
             size="md"
