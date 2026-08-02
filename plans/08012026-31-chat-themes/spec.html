@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat Themes Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; --warn:#8a5a00; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:#f5e6a8; color:var(--ink); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    .callout-warn { border-color:var(--warn); background:#fffbf0; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    pre { background:var(--soft); border:1px solid var(--line); border-radius:8px; padding:14px; overflow-x:auto; font-size:0.88rem; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 31</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Chat Themes (Messenger-style)</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08012026-31-chat-themes</dd></div>
+        <div><dt>Size</dt><dd>Large (schema + API + assets + SPA + word effects)</dd></div>
+        <div><dt>Risk</dt><dd>Level 3</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08012026-31-chat-themes</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/chat-themes</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 17 messenger · Plan 22 websockets</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>SocMed's messenger works — send, react, unsend, live delivery — but every conversation looks identical. Messenger-style chat themes let friends personalize a thread's background, bubble colors, and composer accents, plus playful word-triggered animations. That makes 1:1 chat feel expressive without touching the feed or global app theme.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>A <strong>shared per-conversation theme</strong> system: either participant can pick a look; both see the same design. Three customization layers ship together:</p>
+      <ul>
+        <li><strong>Chat Themes</strong> — bundled graphic presets (holiday, romance, music, movies, etc.) with background art + coordinated bubble/accent colors</li>
+        <li><strong>Colors &amp; Gradients</strong> — solid background colors or two-stop gradient mixes with derived bubble/button colors</li>
+        <li><strong>Word Effects</strong> — curated word→animation catalog; when a message contains a trigger word, both participants see a one-shot effect in the bubble</li>
+      </ul>
+      <p><strong>Deliverables:</strong></p>
+      <ul>
+        <li><strong>Schema</strong> — nullable <code>theme</code> JSONB (+ audit columns) on <code>conversations</code></li>
+        <li><strong>API</strong> — <code>GET/PUT /api/messages/conversations/:id/theme</code>; participant-only; validated preset/custom payload</li>
+        <li><strong>Realtime</strong> — <code>conversation:theme</code> socket event so the peer's open thread updates without reload</li>
+        <li><strong>Assets</strong> — bundled preset manifest + static backgrounds under <code>frontend/public/chat-themes/</code></li>
+        <li><strong>SPA</strong> — palette icon in thread header → theme picker sheet; CSS custom properties drive background, bubbles, composer accents; word-effect renderer in message bubbles</li>
+      </ul>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Either participant can apply a graphic preset, solid color, or gradient; peer sees the same theme (socket or refresh)</li>
+        <li>Reset restores platform default B&amp;W styling</li>
+        <li>Sending a message with a catalog trigger word plays the mapped animation for both sides</li>
+        <li>Non-participants cannot read/write theme; invalid colors/presets rejected</li>
+        <li>Bubble text remains readable (contrast guard) in light and dark app theme</li>
+        <li>Typecheck/build green; acceptance checklist passes or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Theme scope</td>
+            <td><strong>Shared per conversation</strong></td>
+            <td>Messenger-style: one look for the thread. Stored server-side on <code>conversations</code>. Last writer wins; either participant may change.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Graphic themes</td>
+            <td><strong>Bundled presets only</strong></td>
+            <td>Static assets in repo + allow-list (like reaction emojis). No custom background upload in this plan.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Word effects</td>
+            <td><strong>Full MVP — curated catalog</strong></td>
+            <td>Client-side word→effect map; plain text body in API unchanged; effects render at display time for both participants.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Settings entry</td>
+            <td><strong>Palette icon in thread header</strong></td>
+            <td>Messenger pattern. No Account Settings section in v1.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Default theme</td>
+            <td><strong>NULL = current platform styling</strong></td>
+            <td>Existing <code>bg-foreground</code> / <code>bg-secondary</code> bubbles and card background when no theme set.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Custom colors</td>
+            <td><strong>Hex only + preset gradients</strong></td>
+            <td>No arbitrary CSS strings stored. Service validates <code>#RRGGBB</code> and known gradient tokens.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Word match rules</td>
+            <td><strong>Case-insensitive whole word</strong></td>
+            <td><code>congrats</code> matches; <code>congrats!</code> matches word boundary; no regex from users.</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Sizing</td>
+            <td><strong>Single plan</strong></td>
+            <td>Schema, API, assets, picker UI, bubble refactor, and word effects ship together for spec-code parity.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Existing messenger</strong> — <code>conversations</code>, <code>messages</code>, <code>message_reactions</code>; REST under <code>/api/messages</code>; Socket.IO events <code>message:new</code>, <code>conversation:updated</code>, etc. Thread UI in <code>MessagesPage.tsx</code> → <code>ThreadView</code>; bubbles in <code>MessageBubbleRow.tsx</code> with hardcoded Tailwind color classes.</p>
+      <p><strong>Closest analogs</strong> — <code>reactionOptions.ts</code> fixed allow-list; profile cover image pattern for background layers; <code>ThemeContext</code> for CSS-variable-driven styling (apply same technique scoped to thread root, not <code>documentElement</code>).</p>
+      <p><strong>Layering</strong> — routes → controller → <code>ChatThemeService</code> → model; Zod validation in service; frontend via <code>api/messages</code> helpers only. Word-effect catalog is frontend-only constants + pure render helper — no DB.</p>
+      <p><strong>Execution note</strong> — Implement on <code>kylie/chat-themes</code> cut from <code>dev</code>, not the planning worktree.</p>
+    </section>
+
+    <section class="spec-card" id="data-model">
+      <h2>Data Model</h2>
+      <p><strong>Migration:</strong> <code>database/migrations/20260801140000_conversation_chat_themes.ts</code> (adjust timestamp if taken).</p>
+      <p>Add to <code>conversations</code>:</p>
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>theme</code></td><td><code>jsonb</code> nullable</td><td>Validated theme payload; <code>NULL</code> = default</td></tr>
+          <tr><td><code>theme_updated_at</code></td><td><code>timestamptz</code> nullable</td><td>Audit</td></tr>
+          <tr><td><code>theme_updated_by</code></td><td><code>uuid</code> nullable FK → users</td><td>Who applied</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Theme JSON shape</strong> (discriminated union, Zod-validated):</p>
+      <pre>{
+  "kind": "preset",
+  "presetId": "romance-hearts"   // allow-list key
+}
+
+{
+  "kind": "solid",
+  "background": "#1a1a2e",
+  "bubbleMine": "#e94560",
+  "bubbleTheirs": "#16213e",
+  "accent": "#e94560"
+}
+
+{
+  "kind": "gradient",
+  "stops": ["#667eea", "#764ba2"],
+  "angle": 135,
+  "bubbleMine": "#ffffff",
+  "bubbleTheirs": "#f0f0f0",
+  "accent": "#667eea"
+}</pre>
+      <p>Preset entries in code define full color sets + background asset path so clients need not guess derived colors.</p>
+    </section>
+
+    <section class="spec-card" id="presets">
+      <h2>Bundled Preset Catalog (minimum v1)</h2>
+      <p>At least <strong>8 presets</strong> across categories. Each includes: <code>id</code>, display name, category tab, thumbnail, background asset (webp/svg/css gradient), and resolved bubble/accent hex values.</p>
+      <table>
+        <thead><tr><th>Category</th><th>Example IDs</th><th>Background</th></tr></thead>
+        <tbody>
+          <tr><td>Romance</td><td><code>romance-hearts</code>, <code>romance-rose</code></td><td>Soft pink pattern / rose gradient</td></tr>
+          <tr><td>Holiday</td><td><code>holiday-winter</code>, <code>holiday-sparkle</code></td><td>Snow / festive lights motif</td></tr>
+          <tr><td>Music</td><td><code>music-vinyl</code></td><td>Dark vinyl / wave pattern</td></tr>
+          <tr><td>Movies</td><td><code>movies-reel</code></td><td>Film strip / cinema gradient</td></tr>
+          <tr><td>Events</td><td><code>event-confetti</code></td><td>Party confetti subtle tile</td></tr>
+        </tbody>
+      </table>
+      <p>Manifest lives in <code>frontend/src/lib/chatThemePresets.ts</code> (and mirrored allow-list constant in backend service for validation).</p>
+    </section>
+
+    <section class="spec-card" id="word-effects">
+      <h2>Word Effects Catalog (minimum v1)</h2>
+      <p>At least <strong>10 trigger words</strong> mapped to distinct CSS-driven animations (no new npm animation libraries without Revision Log justification). Examples:</p>
+      <table>
+        <thead><tr><th>Trigger(s)</th><th>Effect</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td>love, xoxo</td><td>floating hearts</td><td>One-shot overlay inside bubble on mount</td></tr>
+          <tr><td>congrats, congratulations</td><td>confetti burst</td><td>Same</td></tr>
+          <tr><td>happy birthday, birthday</td><td>balloons / sparkle</td><td>Same</td></tr>
+          <tr><td>fire, lit</td><td>flame flicker on word</td><td>Inline emphasis + subtle glow</td></tr>
+          <tr><td>wow, omg</td><td>pop / scale pulse</td><td>Inline on matched token</td></tr>
+        </tbody>
+      </table>
+      <p>Implementation: <code>frontend/src/lib/chatWordEffects.ts</code> + <code>MessageBodyWithEffects</code> component. Match with word-boundary regex built from escaped literals. Effect plays once when message enters DOM (including peer receive via socket). Unsent messages: no effects.</p>
+    </section>
+
+    <section class="spec-card" id="api">
+      <h2>API Surface</h2>
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>GET</td>
+            <td><code>/api/messages/conversations/:id/theme</code></td>
+            <td>Returns <code>{ theme, updatedAt, updatedBy }</code> or null theme. Participant-only. Include in thread GET response optionally (avoid extra round-trip).</td>
+          </tr>
+          <tr>
+            <td>PUT</td>
+            <td><code>/api/messages/conversations/:id/theme</code></td>
+            <td>Body: theme payload or <code>{ reset: true }</code>. Validates, persists, emits <code>conversation:theme</code>. Participant-only.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Thread GET enhancement:</strong> extend existing <code>GET /api/messages/conversations/:id</code> response with <code>theme</code> field so thread load is one request.</p>
+      <p><strong>Socket:</strong> <code>conversation:theme</code> → <code>{ conversationId, theme, updatedAt, updatedBy }</code> to both participants' user rooms.</p>
+    </section>
+
+    <section class="spec-card" id="ui">
+      <h2>UI / UX</h2>
+      <ul>
+        <li><strong>Entry</strong> — Lucide <code>Palette</code> (or <code>Sparkles</code>) icon button in <code>ThreadView</code> header, right side. <code>aria-label="Customize chat theme"</code>.</li>
+        <li><strong>Picker</strong> — Sheet or dialog with tabs: <em>Themes</em> (graphic presets grid), <em>Colors</em> (swatches + custom hex picker if feasible without new deps), <em>Gradients</em> (preset gradient tiles). Live preview on selection; Apply commits via PUT.</li>
+        <li><strong>Thread shell</strong> — Wrapper <code>data-chat-theme</code> sets CSS vars: <code>--chat-bg</code>, <code>--chat-bubble-mine</code>, <code>--chat-bubble-theirs</code>, <code>--chat-accent</code>, <code>--chat-bubble-mine-fg</code>, <code>--chat-bubble-theirs-fg</code> (foreground computed for contrast).</li>
+        <li><strong>Bubbles</strong> — <code>MessageBubbleRow</code> uses vars instead of <code>bg-foreground</code> / <code>bg-secondary</code> when theme active.</li>
+        <li><strong>Composer</strong> — Send button and icon buttons pick up <code>--chat-accent</code>.</li>
+        <li><strong>Inbox</strong> — unchanged (no per-row theme preview in v1).</li>
+        <li><strong>Accessibility</strong> — contrast helper ensures bubble text ≥ 4.5:1 against bubble bg; if fail, auto-adjust foreground to black/white.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Shared theme visible to both participants</li>
+            <li>Participant-only theme read/write</li>
+            <li>Preset allow-list validated server-side</li>
+            <li>Hex colors only for custom mode; no stored CSS strings</li>
+            <li>Socket push on theme change for open threads</li>
+            <li>Word effects client-rendered; message API body stays plain text</li>
+            <li>Readable bubbles in light + dark app theme</li>
+            <li>Constitution layering; theme logic not in React event handlers beyond apply-vars</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No custom user-uploaded chat backgrounds</li>
+            <li>No per-user local-only theme override layer</li>
+            <li>No rich-text / markdown message format change</li>
+            <li>No word effects stored or editable by users</li>
+            <li>No group chat theming (1:1 only)</li>
+            <li>No new npm deps without Revision Log justification</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Theme preview in inbox list rows</li>
+        <li>Account Settings global chat defaults</li>
+        <li>Animated theme backgrounds (video/GIF)</li>
+        <li>Sound effects on word triggers</li>
+        <li>Theme history / undo</li>
+        <li>Nicknames, bubbles shapes, custom fonts</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 3 — Structural Risk.</strong> Touches messenger core UI, adds persisted JSON with validation surface, ships static assets, and introduces animation rendering in the hot path (every message bubble). Blast radius: all messenger thread users, MessageService authz path, Socket.IO event surface, MessageBubbleRow render tree.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Illegible bubble text on custom colors</td>
+            <td>UX / a11y</td>
+            <td>Contrast utility picks foreground; block apply in picker if still failing</td>
+          </tr>
+          <tr>
+            <td>CSS injection via theme JSON</td>
+            <td>Security</td>
+            <td>Strict Zod schema; hex-only colors; preset IDs from allow-list only</td>
+          </tr>
+          <tr>
+            <td>Word-effect performance jank</td>
+            <td>Thread scroll</td>
+            <td>CSS-only animations; cap concurrent effects; disable on reduced-motion</td>
+          </tr>
+          <tr>
+            <td>Theme desync between peers</td>
+            <td>Confusion</td>
+            <td><code>conversation:theme</code> event + include theme in thread GET</td>
+          </tr>
+          <tr>
+            <td>Asset bundle bloat</td>
+            <td>Load time</td>
+            <td>Optimize webp; lazy-load preset thumbnails; keep v1 ≤ 12 presets</td>
+          </tr>
+          <tr>
+            <td>Scope creep into rich text</td>
+            <td>Architecture</td>
+            <td>Word effects wrap plain text spans only — no markdown pipeline</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout callout-warn">
+        <strong>Required pushback:</strong> This plan bundles theming + word effects + asset pipeline in one landing. If execution stalls, split word effects to a follow-up plan rather than shipping broken animations or skipping contrast guards. Do not add custom background uploads mid-flight.
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Conversation theme schema</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Migration adding <code>theme</code>, <code>theme_updated_at</code>, <code>theme_updated_by</code> to <code>conversations</code>. Extend <code>ConversationModel</code> row type + update helpers.</dd></div>
+          <div><dt>Files</dt><dd><code>database/migrations/20260801140000_conversation_chat_themes.ts</code>, <code>src/models/ConversationModel.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>npm run migrate</code> clean; nullable columns default NULL</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — ChatThemeService + API</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>ChatThemeService</code> with Zod schemas, preset allow-list, get/update/reset. Wire GET/PUT routes; extend thread GET with theme. Participant + friendship gates reuse MessageService patterns.</dd></div>
+          <div><dt>Files</dt><dd><code>src/services/ChatThemeService.ts</code>, <code>src/controllers/messages/*</code>, <code>src/routes/messages.ts</code>, shared preset constants</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>API round-trip preset + solid + reset; stranger denied; bad hex rejected</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Realtime theme sync</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Emit <code>conversation:theme</code> after PUT; frontend listener in <code>ThreadView</code> updates local theme state.</dd></div>
+          <div><dt>Files</dt><dd><code>src/realtime/MessageRealtime.ts</code>, <code>frontend/src/api/socket.ts</code>, <code>MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Peer thread updates theme without manual refresh when socket connected</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Preset manifest + static assets</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Create <code>chatThemePresets.ts</code> manifest (≥8 presets) and optimized background assets under <code>frontend/public/chat-themes/</code>. Thumbnails for picker grid.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/lib/chatThemePresets.ts</code>, <code>frontend/public/chat-themes/**</code></dd></div>
+          <div><dt>Depends on</dt><dd>— (parallel with T1)</dd></div>
+          <div><dt>Verify</dt><dd>Assets resolve in dev + production build paths</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — Thread theme application (CSS vars)</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>applyConversationTheme()</code> helper maps theme JSON → CSS custom properties on thread root. Refactor <code>MessageBubbleRow</code> + composer to consume vars. Contrast helper for foreground colors. Respect <code>prefers-reduced-motion</code> for any ambient theme animation.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/lib/chatThemeApply.ts</code>, <code>frontend/src/lib/chatThemeContrast.ts</code>, <code>MessageBubbleRow.tsx</code>, <code>MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2, T4</dd></div>
+          <div><dt>Verify</dt><dd>Each theme kind renders correctly; default NULL matches pre-feature look</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T6">
+        <h3>T6 — Theme picker UI</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>ChatThemePicker</code> sheet/dialog; palette header button; tabs for Themes / Colors / Gradients; preview + Apply; Reset to default.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ChatThemePicker.tsx</code>, <code>MessagesPage.tsx</code>, <code>frontend/src/api/messages.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T5</dd></div>
+          <div><dt>Verify</dt><dd>Picker opens from thread header; apply persists and reopens with selection</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T7">
+        <h3>T7 — Word effects renderer</h3>
+        <dl>
+          <div><dt>Do</dt><dd><code>chatWordEffects.ts</code> catalog (≥10 triggers). <code>MessageBodyWithEffects</code> wraps matched tokens; one-shot animation on mount. Integrate into <code>MessageBubbleRow</code>. Skip unsent messages.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/lib/chatWordEffects.ts</code>, <code>frontend/src/components/MessageBodyWithEffects.tsx</code>, <code>frontend/src/index.css</code> (keyframes)</dd></div>
+          <div><dt>Depends on</dt><dd>T5</dd></div>
+          <div><dt>Verify</dt><dd>Trigger words animate for sender and receiver; reduced-motion disables animations</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" checked disabled> Migration applied; theme columns on conversations</li>
+        <li><input type="checkbox" checked disabled> GET/PUT theme API + thread GET includes theme; authz enforced</li>
+        <li><input type="checkbox" checked disabled> <code>conversation:theme</code> socket sync works</li>
+        <li><input type="checkbox" checked disabled> ≥8 bundled presets with assets; solid + gradient modes</li>
+        <li><input type="checkbox" checked disabled> Thread header picker; CSS-var-driven bubbles + composer</li>
+        <li><input type="checkbox" checked disabled> ≥10 word triggers with distinct effects; plain text API unchanged</li>
+        <li><input type="checkbox" checked disabled> Contrast readable in light/dark app theme</li>
+        <li><input type="checkbox" checked disabled> Typecheck/build green; acceptance Passed or waived</li>
+        <li><input type="checkbox" checked disabled> Spec Revision Log updated if contracts drift</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-08-01</td>
+            <td>Initial spec from grill: shared per-conversation theme, bundled graphic presets, colors/gradients, full word-effects MVP, thread-header palette entry. Execution branch <code>kylie/chat-themes</code>.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-08-01</td>
+            <td>Execution started on <code>kylie/chat-themes</code>. T1–T7 implemented: schema, ChatThemeService + API, socket sync, preset manifest (CSS gradients), theme picker, CSS-var bubbles/composer, word effects.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-08-01</td>
+            <td>Finalized on <code>kylie/chat-themes</code>: unified horizontal theme picker (no tabs/cards); graphic presets via CSS gradients (no binary assets in <code>public/chat-themes/</code>); word effects bubble-scoped only; thread auto-scroll on load with viewport-height shell; word-effect chips auto-send.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
