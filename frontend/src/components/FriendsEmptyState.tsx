@@ -3,7 +3,8 @@ import { User, UserPlus, Users } from "lucide-react";
 
 type FriendsEmptyStateProps = {
   icon?: "user" | "users" | "request";
-  message: string;
+  title: string;
+  description: string;
   action?: ReactNode;
 };
 
@@ -13,14 +14,22 @@ const ICONS = {
   request: UserPlus,
 } as const;
 
-export function FriendsEmptyState({ icon = "user", message, action }: FriendsEmptyStateProps) {
+export function FriendsEmptyState({
+  icon = "user",
+  title,
+  description,
+  action,
+}: FriendsEmptyStateProps) {
   const Icon = ICONS[icon];
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-        <Icon className="size-5 text-muted-foreground/70" aria-hidden="true" strokeWidth={1.5} />
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+      <span className="flex size-16 items-center justify-center rounded-full border border-border/60 bg-secondary/80 shadow-sm">
+        <Icon className="size-7 text-muted-foreground/80" aria-hidden="true" strokeWidth={1.25} />
+      </span>
+      <div className="space-y-1.5">
+        <p className="text-base font-semibold tracking-tight">{title}</p>
+        <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">{description}</p>
       </div>
-      <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">{message}</p>
       {action}
     </div>
   );
@@ -28,28 +37,47 @@ export function FriendsEmptyState({ icon = "user", message, action }: FriendsEmp
 
 export function FriendsRowSkeleton() {
   return (
-    <li className="flex items-center justify-between gap-3 py-3" aria-hidden="true">
+    <li className="friends-row flex items-center justify-between gap-3 px-3 py-3.5 sm:py-4" aria-hidden="true">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="feed-skeleton h-10 w-10 shrink-0 rounded-full" />
+        <div className="feed-skeleton h-11 w-11 shrink-0 rounded-full" />
         <div className="min-w-0 flex-1 space-y-2">
           <div className="feed-skeleton h-4 w-36 rounded-md" />
           <div className="feed-skeleton h-3 w-24 rounded-md" />
         </div>
       </div>
-      <div className="feed-skeleton h-8 w-20 shrink-0 rounded-md" />
+      <div className="feed-skeleton h-9 w-20 shrink-0 rounded-full" />
     </li>
   );
 }
 
-export function FriendsSectionSkeleton({ rows = 3 }: { rows?: number }) {
+export function FriendsDashboardSkeleton() {
   return (
-    <div className="feed-card p-4">
-      <div className="feed-skeleton h-4 w-28 rounded-md" />
-      <ul className="mt-3 divide-y divide-border">
-        {Array.from({ length: rows }, (_, i) => (
-          <FriendsRowSkeleton key={i} />
-        ))}
-      </ul>
+    <div className="friends-page-canvas">
+      <div className="feed-card friends-dashboard-card overflow-hidden" aria-hidden="true">
+        <div className="friends-add-strip">
+          <div className="feed-skeleton h-11 w-full rounded-full" />
+        </div>
+        <div className="friends-section-divider">
+          <div className="friends-section-header">
+            <div className="feed-skeleton h-3 w-24 rounded-md" />
+          </div>
+          <ul className="friends-section-body divide-y divide-border/60">
+            {Array.from({ length: 2 }, (_, i) => (
+              <FriendsRowSkeleton key={i} />
+            ))}
+          </ul>
+        </div>
+        <div className="friends-section-divider">
+          <div className="friends-section-header">
+            <div className="feed-skeleton h-3 w-16 rounded-md" />
+          </div>
+          <ul className="friends-section-body divide-y divide-border/60">
+            {Array.from({ length: 4 }, (_, i) => (
+              <FriendsRowSkeleton key={i} />
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }

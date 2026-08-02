@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Friends UI Upgrade Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    .callout.pending { border-style:dashed; border-color:var(--muted); }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 37</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Friends UI Upgrade — Unified Dashboard Card + Row Polish</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08012026-37-friends-ui-upgrade</dd></div>
+        <div><dt>Size</dt><dd>Medium (6 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 — Concern</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08012026-37-friends-ui-upgrade</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/friends-ui-upgrade</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 16 Friends UI · Plan 23 Messages friend picker (search pattern) · existing feed-card tokens</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 16 lifted Friends from a bare scaffold, but the page still reads fragmented: the add-friend form and each list (requests, sent, mutuals) live in separate <code>feed-card</code> shells. Errors sit as loose text. Row density and hover affordances lag behind <code>/notifications</code>, which uses a single elevated card, in-card error banner, header badge, and richer empty states.</p>
+      <p>With Feed (Plan 36) and Navbar (Plan 35) upgrades in flight, Friends should match the same “social dashboard” language — without new features or API changes.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p><strong>Target layout (<code>/friends</code>):</strong></p>
+      <pre class="wire">Friends                              [3 pending]
+Send requests, manage invites, and message mutuals.
+
+┌─ unified friends card ─────────────────────────────────┐
+│ (＋)  [ Add by username ·················· ] Send Request│
+├──────────────────────────────────────────────────────────┤
+│ Friend Requests (3)                                      │
+│   (●) Jane Doe  @jane          [Confirm] [Decline]       │
+│   …                                                      │
+├──────────────────────────────────────────────────────────┤
+│ Sent Requests (1)                                        │
+│   (●) Bob  @bob                         [Cancel]         │
+├──────────────────────────────────────────────────────────┤
+│ Friends (12)                                        [🔍] │
+│   [ Search friends… ]                                    │
+│   (●) Alice  @alice                    [Message] [Unfriend]│
+│   …                                                      │
+└──────────────────────────────────────────────────────────┘</pre>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Page uses one primary <code>feed-card</code> with internal section dividers (not 3–4 separate cards)</li>
+        <li>Add-friend row is the top strip inside that card (muted track + primary CTA), not a standalone card</li>
+        <li>Page header shows a pending-request badge when <code>incoming.length &gt; 0</code> (mirrors Notifications “X new”)</li>
+        <li>Errors render as an in-card banner (border-bottom + muted background), not bare paragraph text</li>
+        <li>Section headers keep counts; Sent Requests section still hidden when empty</li>
+        <li>Friend rows match NotificationRow polish: comfortable padding, hover surface, username on secondary line at <code>sm+</code></li>
+        <li>Confirm / Decline / Cancel show icon + label at <code>md+</code>; Message / Unfriend stay icon buttons with accessible labels</li>
+        <li>Empty states use title + supporting line (like Notifications), not message-only</li>
+        <li>Search toggle, Esc-to-close, message navigation, unfriend confirm dialog, and all API flows unchanged</li>
+        <li>Light + dark parity via existing B&amp;W tokens; <code>prefers-reduced-motion</code> respected</li>
+        <li>Frontend typecheck/build pass; acceptance checklist passes or carries written waivers</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <div class="callout pending">
+        <strong>Grill — confirm before <code>-x</code>:</strong> defaults below are recommendations from codebase review. Reply with overrides or “lock defaults” to execute.
+      </div>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Recommended</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Card layout</td>
+            <td><strong>A — Single unified card</strong></td>
+            <td>Matches <code>NotificationsPage</code>; removes visual stacking noise from four separate cards.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Add-friend placement</td>
+            <td><strong>A — Top strip inside unified card</strong></td>
+            <td>Reads as dashboard action row; keeps page header outside for title + badge.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Sent Requests section</td>
+            <td><strong>A — Hide when empty (current behavior)</strong></td>
+            <td>Avoids a third empty state most users never see.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Primary row action labels</td>
+            <td><strong>A — Labels at md+ for Confirm / Decline / Cancel</strong></td>
+            <td>Same breakpoint language as Feed Plan 36 action labels; icons-only on narrow viewports.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Page header</td>
+            <td><strong>A — Keep title block + pending badge</strong></td>
+            <td>Consistent with Notifications; badge only when incoming &gt; 0.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Color strategy</td>
+            <td><strong>B — B&amp;W tokens only</strong></td>
+            <td>Plan 16 contract: no Meta blue or new accent colors.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today (execution base <code>kylie/friends-ui-upgrade</code> @ <code>312e03a</code>):</strong></p>
+      <ul>
+        <li><code>frontend/src/pages/FriendsPage.tsx</code> — orchestrates inbox/mutuals via <code>useFriendsInbox</code>; local <code>FriendsSection</code> wrapper; search toggle; message + unfriend actions.</li>
+        <li><code>frontend/src/components/FriendsRequestForm.tsx</code> — standalone <code>feed-card</code> form row.</li>
+        <li><code>frontend/src/components/FriendListRow.tsx</code> — avatar link + inline displayName/@username + action slot.</li>
+        <li><code>frontend/src/components/FriendsEmptyState.tsx</code> — icon + single message; skeleton helpers.</li>
+        <li><code>frontend/src/pages/NotificationsPage.tsx</code> — closest polished analog (unified card, badge, banner, row density).</li>
+        <li><code>frontend/src/components/MessagesFriendPicker.tsx</code> — search icon pattern already mirrored on Friends mutuals section.</li>
+        <li><code>frontend/src/index.css</code> — <code>.friends-page</code> enter animation only; shared <code>.feed-card</code> tokens.</li>
+      </ul>
+      <p><strong>Closest analog:</strong> Notifications dashboard card + Messages friend-picker search UX.</p>
+      <p><strong>Consumers / blast radius:</strong> Friends route primary; shared components (<code>FriendListRow</code>, <code>FriendsRequestForm</code>, <code>FriendsEmptyState</code>) used only on Friends today — safe to restyle in place.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Preserve all friend API behaviors (<code>useFriendsInbox</code> mutations, error handling)</li>
+            <li>Preserve search, message open, unfriend confirm dialog, skeleton loading</li>
+            <li>Light + dark theme parity using existing tokens</li>
+            <li><code>prefers-reduced-motion: reduce</code> disables or shortens new motion</li>
+            <li>Frontend-only; presentation in page/components per Code Constitution</li>
+            <li>Update <code>plans/README.md</code> with seq 37</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>Backend, schema, or API changes</li>
+            <li>New npm dependencies</li>
+            <li>Global body or AppShell layout changes</li>
+            <li>Tabs or route splits for requests vs friends</li>
+            <li>Fake online/presence indicators</li>
+            <li>Drive-by refactors on Feed, Messages, Notifications, Profile</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Out of scope</h3>
+          <ul>
+            <li>Friend suggestions / “People you may know”</li>
+            <li>Server-side search or pagination</li>
+            <li>Realtime inbox updates (websocket)</li>
+            <li>Batch accept/decline</li>
+            <li>Redesign of <code>/notifications</code> friend-request rows (separate surface)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Primary hazard is over-styling shared <code>feed-card</code> utilities and unintentionally shifting Feed/Messages cards. Secondary: labeled buttons crowding narrow rows if breakpoints are wrong.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Global <code>feed-card</code> CSS change</td>
+            <td>Feed, Messages, Profile</td>
+            <td>Scope new utilities to <code>.friends-page</code> or friends-specific class names only</td>
+          </tr>
+          <tr>
+            <td>Unified card hurts long lists</td>
+            <td>Friends page scroll</td>
+            <td>Keep section dividers; row padding consistent with Notifications (~py-4)</td>
+          </tr>
+          <tr>
+            <td>Action label crowding on mobile</td>
+            <td>Incoming request rows</td>
+            <td>Icon-only below <code>md</code>; test at 375px width</td>
+          </tr>
+          <tr>
+            <td>Behavior regression on search/message/unfriend</td>
+            <td>Core flows</td>
+            <td>Acceptance checklist covers each mutation path; no handler rewrites</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Required pushback:</strong> Do not widen to “all social surfaces refresh.” Do not add dependencies for animation. Do not change friendship business rules.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Friends page tokens + rhythm</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add Friends-scoped CSS helpers in <code>index.css</code> if needed: <code>.friends-dashboard-card</code> (overflow hidden), <code>.friends-section-divider</code>, optional <code>.friends-add-strip</code> muted top track. Tune <code>.friends-page</code> vertical spacing between header and card. Respect reduced-motion.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>Locked decisions</dd></div>
+          <div><dt>Verify</dt><dd>Light/dark card + dividers render; Feed/Messages cards unchanged</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — FriendsPage unified shell + header badge</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Restructure page: header row with title, subtitle, and conditional pending badge; single outer <code>feed-card</code> wrapping all sections. Move error display to in-card banner (match Notifications pattern). Keep loading skeletons coherent with unified card shape.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/FriendsPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>One card on populated + empty states; badge shows/hides with incoming count</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Add-friend strip integration</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Restyle <code>FriendsRequestForm</code> as top strip inside unified card (no outer card class). Muted icon well + full-width input + primary CTA; border-bottom separator. Preserve submit busy state and parent error surfacing.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/FriendsRequestForm.tsx</code>, <code>frontend/src/pages/FriendsPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Send request still clears input and updates lists; strip visually distinct from list sections</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Section headers + empty states</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Refactor inline <code>FriendsSection</code>: internal section labels with counts, dividers between sections, search slot unchanged. Upgrade <code>FriendsEmptyState</code> to title + supporting copy pattern; tune skeleton to unified card padding.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/FriendsPage.tsx</code>, <code>frontend/src/components/FriendsEmptyState.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>All three section empty states read professionally; sent section hidden when empty</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — FriendListRow polish + labeled actions</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Row padding/hover aligned with <code>NotificationRow</code>. Stack displayName + @username on two lines at <code>sm+</code>. In <code>FriendsPage</code>, pass Confirm/Decline/Cancel buttons with optional labels at <code>md+</code> (icon-only below). Message/Unfriend remain icon ghost buttons with aria-labels.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/FriendListRow.tsx</code>, <code>frontend/src/pages/FriendsPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T4</dd></div>
+          <div><dt>Verify</dt><dd>Desktop shows labels; 375px stays compact; profile links and actions work</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T6">
+        <h3>T6 — Acceptance + plans index</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Run frontend typecheck/build. Execute acceptance items in <code>test-results.json</code> (or record waivers). Append seq 37 to <code>plans/README.md</code>.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>plans/README.md</code>, plan acceptance artifacts</dd></div>
+          <div><dt>Depends on</dt><dd>T3–T5</dd></div>
+          <div><dt>Verify</dt><dd>Build green; acceptance Passed or waivers documented</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>Grill decisions locked in Revision Log</span></li>
+        <li><span>☑</span><span>Unified friends card with internal section dividers</span></li>
+        <li><span>☑</span><span>Add-friend strip integrated at card top (pill input + rounded CTA)</span></li>
+        <li><span>☑</span><span>Header stat chips + in-card error banner</span></li>
+        <li><span>☑</span><span>Empty states use title + supporting copy</span></li>
+        <li><span>☑</span><span>Row polish + md+ action labels; search/message/unfriend preserved</span></li>
+        <li><span>☑</span><span>Light + dark spot-check on localhost (Rev 2 canvas pass)</span></li>
+        <li><span>☑</span><span>Frontend typecheck/build pass</span></li>
+        <li><span>☑</span><span>Acceptance checklist Passed with written waivers (A2–A4, A6, A8)</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="acceptance">
+      <h2>Acceptance</h2>
+      <p>Runnable checklist: <code>test-results.json</code> + <code>test.html</code> in this folder. Surfaces are UI unless noted.</p>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>08012026</td>
+            <td>Initial spec from <code>-s</code> on <code>kylie/friends-ui-upgrade</code>. Grill defaults proposed (unified card, top add strip, hide empty sent, md+ labels, header badge, B&amp;W tokens). Planning worktree <code>plan/08012026-37-friends-ui-upgrade</code>.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>08012026</td>
+            <td>Grill locked at execution: unified card, top add strip, hide empty sent, md+ labels, header badge, B&amp;W tokens.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>08012026</td>
+            <td>Rev 2 bolder visual pass: page canvas, stat chips, pill add-friend track, section eyebrows, row hover, outlined message buttons. Finalized on <code>kylie/friends-ui-upgrade</code> v0.1.18.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
