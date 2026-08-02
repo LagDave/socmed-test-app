@@ -460,7 +460,8 @@ body {
   .animate-fade-up,
   .animate-toast-in,
   .profile-skeleton-shimmer,
-  .timeline-post-card {
+  .timeline-post-card,
+  .typing-dot {
     animation: none !important;
     transition: none !important;
   }
@@ -642,5 +643,36 @@ body {
 
   .chat-word-overlay::before {
     display: none;
+  }
+}
+
+.typing-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.45;
+  animation: typing-bounce 1.2s infinite ease-in-out;
+}
+
+.typing-dot-delay-1 {
+  animation-delay: 0.15s;
+}
+
+.typing-dot-delay-2 {
+  animation-delay: 0.3s;
+}
+
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
   }
 }

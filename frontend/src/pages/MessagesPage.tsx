@@ -1,16 +1,20 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ImagePlus, MessageCircle, Palette, SendHorizontal } from "lucide-react";
+import { ChevronLeft, ImagePlus, MessageCircle, Palette, SendHorizontal, X } from "lucide-react";
 import { api } from "@/api/client";
 import {
+  CONVERSATION_PEER_READ,
   CONVERSATION_THEME,
   CONVERSATION_UPDATED,
+  MESSAGE_DELIVERED,
   MESSAGE_NEW,
   MESSAGE_REACTION,
   MESSAGE_UNSENT,
   getMessagesSocket,
+  type ConversationPeerReadPayload,
   type ConversationThemePayload,
   type ConversationUpdatedPayload,
+  type MessageDeliveredPayload,
   type MessageEventPayload,
 } from "@/api/socket";
 import type { ConversationListItem, ConversationThemeView, MessageView, PublicUser } from "@/api/types";
@@ -19,6 +23,8 @@ import { ChatThemePicker } from "@/components/ChatThemePicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ConversationListRow } from "@/components/ConversationListRow";
 import { MessageBubbleRow } from "@/components/MessageBubbleRow";
+import { MessageComposerEmojiPicker } from "@/components/MessageComposerEmojiPicker";
+import { truncateQuoteText } from "@/components/MessageQuoteStrip";
 import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import {
   MessageDaySeparator,
@@ -28,7 +34,14 @@ import {
   MessagesThreadSkeleton,
 } from "@/components/MessagesUiHelpers";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { TypingIndicator } from "@/components/TypingIndicator";
+import { useCanHover } from "@/hooks/useCanHover";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
+import {
+  useInboxPeerTyping,
+  usePeerTyping,
+  useTypingEmitter,
+} from "@/hooks/useTypingIndicator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -43,14 +56,53 @@ import {
   resolveConversationTheme,
 } from "@/lib/chatThemeApply";
 import type { ChatTheme } from "@/api/types";
+import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
 import { cn } from "@/lib/utils";
 
 const POLL_MS = 2500;
 
+function replyTargetPreview(
+  message: MessageView,
+  user: PublicUser,
+  peer: PublicUser
+): { name: string; snippet: string; imageUrl: string | null } {
+  const name = message.senderId === user.id ? user.displayName : peer.displayName;
+  if (message.isUnsent) {
+    return { name, snippet: "Message unavailable", imageUrl: null };
+  }
+  const snippet = message.body?.trim()
+    ? truncateQuoteText(message.body)
+    : message.imageUrl
+      ? "Photo"
+      : "Message";
+  return { name, snippet, imageUrl: message.imageUrl };
+}
+
+function patchReplyTargetsUnsent(prev: MessageView[], unsentId: string): MessageView[] {
+  return prev.map((m) => {
+    if (m.replyTo?.id !== unsentId) return m;
+    return {
+      ...m,
+      replyTo: {
+        ...m.replyTo,
+        isUnsent: true,
+        body: null,
+        imageUrl: null,
+      },
+    };
+  });
+}
+
 function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] {
   const map = new Map<string, MessageView>();
   for (const m of prev) map.set(m.id, m);
-  for (const m of incoming) map.set(m.id, m);
+  for (const m of incoming) {
+    const existing = map.get(m.id);
+    map.set(m.id, {
+      ...m,
+      deliveredAt: m.deliveredAt ?? existing?.deliveredAt ?? null,
+    });
+  }
   return Array.from(map.values()).sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
@@ -61,6 +113,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const navigate = useNavigate();
   const socketConnected = useSocketConnected();
   const [peer, setPeer] = useState<PublicUser | null>(null);
+  const [peerLastReadAt, setPeerLastReadAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
@@ -73,13 +126,33 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [conversationTheme, setConversationTheme] = useState<ConversationThemeView | null>(null);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const [themeSaving, setThemeSaving] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState<MessageView | null>(null);
+  const [tappedMessageId, setTappedMessageId] = useState<string | null>(null);
+  const canHover = useCanHover();
+  const isPeerTyping = usePeerTyping(conversationId, user?.id);
+  const { stopTyping } = useTypingEmitter({
+    conversationId,
+    text: body,
+    connected: socketConnected,
+    active: !sending,
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const composerRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const generationRef = useRef(0);
   const themePickerOpenRef = useRef(false);
   const stickToBottomRef = useRef(true);
+  const replyTargetIdRef = useRef<string | null>(null);
+  const peerIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    replyTargetIdRef.current = replyToMessage?.id ?? null;
+  }, [replyToMessage?.id]);
+
+  useEffect(() => {
+    peerIdRef.current = peer?.id ?? null;
+  }, [peer?.id]);
 
   themePickerOpenRef.current = themePickerOpen;
 
@@ -96,10 +169,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     const generation = generationRef.current;
     stickToBottomRef.current = true;
     setPeer(null);
+    setPeerLastReadAt(null);
     setMessages([]);
     setHasMore(false);
     setError(null);
     setBody("");
+    setReplyToMessage(null);
+    setTappedMessageId(null);
     setLoadingThread(true);
     setConversationTheme(null);
     setThemePickerOpen(false);
@@ -109,12 +185,14 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         const data = await api.get<{
           conversationId: string;
           peer: PublicUser;
+          peerLastReadAt: string | null;
           messages: MessageView[];
           hasMore: boolean;
           theme: ConversationThemeView;
         }>(`/api/messages/conversations/${conversationId}`);
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
+        setPeerLastReadAt(data.peerLastReadAt);
         setMessages(data.messages);
         setHasMore(Boolean(data.hasMore));
         setConversationTheme(data.theme);
@@ -145,13 +223,21 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           const data = await api.get<{
             conversationId: string;
             peer: PublicUser;
+            peerLastReadAt: string | null;
             messages: MessageView[];
             hasMore: boolean;
             theme: ConversationThemeView;
           }>(`/api/messages/conversations/${conversationId}`);
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
-          setMessages((prev) => mergeById(prev, data.messages));
+          setPeerLastReadAt(data.peerLastReadAt);
+          setMessages((prev) => {
+            let merged = mergeById(prev, data.messages);
+            for (const msg of data.messages) {
+              if (msg.isUnsent) merged = patchReplyTargetsUnsent(merged, msg.id);
+            }
+            return merged;
+          });
           if (!themePickerOpenRef.current) {
             setConversationTheme(data.theme);
           }
@@ -173,7 +259,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const msg = payload.message;
       if (msg.conversationId !== conversationId) return;
       if (generation !== generationRef.current) return;
-      setMessages((prev) => mergeById(prev, [msg]));
+      setMessages((prev) => {
+        const merged = mergeById(prev, [msg]);
+        return msg.isUnsent ? patchReplyTargetsUnsent(merged, msg.id) : merged;
+      });
+      if (replyTargetIdRef.current === msg.id && msg.isUnsent) {
+        setReplyToMessage(null);
+      }
     };
 
     const applyInboundNewMessage = (payload: MessageEventPayload) => {
@@ -186,9 +278,28 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       void api.post(`/api/messages/conversations/${conversationId}/read`).catch(() => undefined);
     };
 
+    const applyMessageDelivered = (payload: MessageDeliveredPayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === payload.messageId ? { ...m, deliveredAt: payload.deliveredAt } : m
+        )
+      );
+    };
+
+    const applyPeerRead = (payload: ConversationPeerReadPayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      if (payload.readerId !== peerIdRef.current) return;
+      setPeerLastReadAt(payload.peerLastReadAt);
+    };
+
     socket.on(MESSAGE_NEW, applyInboundNewMessage);
     socket.on(MESSAGE_UNSENT, applyMessagePatch);
     socket.on(MESSAGE_REACTION, applyMessagePatch);
+    socket.on(MESSAGE_DELIVERED, applyMessageDelivered);
+    socket.on(CONVERSATION_PEER_READ, applyPeerRead);
 
     const applyTheme = (payload: ConversationThemePayload) => {
       if (payload.conversationId !== conversationId) return;
@@ -205,6 +316,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       socket.off(MESSAGE_NEW, applyInboundNewMessage);
       socket.off(MESSAGE_UNSENT, applyMessagePatch);
       socket.off(MESSAGE_REACTION, applyMessagePatch);
+      socket.off(MESSAGE_DELIVERED, applyMessageDelivered);
+      socket.off(CONVERSATION_PEER_READ, applyPeerRead);
       socket.off(CONVERSATION_THEME, applyTheme);
     };
   }, [conversationId, user?.id]);
@@ -236,20 +349,31 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     return () => ro.disconnect();
   }, [loadingThread, conversationId]);
 
+  useEffect(() => {
+    if (!replyToMessage) return;
+    textareaRef.current?.focus();
+  }, [replyToMessage]);
+
   async function sendText(text: string, options?: { clearComposer?: boolean }) {
     const trimmed = text.trim();
     if (!trimmed || sending) return false;
+    stopTyping();
     const generation = generationRef.current;
     setSending(true);
     setError(null);
     stickToBottomRef.current = true;
     try {
+      const payload: { body: string; replyToMessageId?: string } = { body: trimmed };
+      if (replyToMessage) payload.replyToMessageId = replyToMessage.id;
       const data = await api.post<{ message: MessageView }>(
         `/api/messages/conversations/${conversationId}/messages`,
-        { body: trimmed }
+        payload
       );
       if (generation !== generationRef.current) return false;
-      if (options?.clearComposer !== false) setBody("");
+      if (options?.clearComposer !== false) {
+        setBody("");
+        setReplyToMessage(null);
+      }
       setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return false;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
@@ -274,6 +398,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const data = await api.get<{
         conversationId: string;
         peer: PublicUser;
+        peerLastReadAt: string | null;
         messages: MessageView[];
         hasMore: boolean;
       }>(`/api/messages/conversations/${conversationId}?before=${encodeURIComponent(oldestId)}`);
@@ -288,6 +413,22 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     }
   }
 
+  function insertComposerEmoji(emoji: string) {
+    const el = textareaRef.current;
+    if (!el) {
+      setBody((prev) => prev + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? body.length;
+    const end = el.selectionEnd ?? body.length;
+    const { nextValue, nextCursor } = insertTextAtSelection(body, emoji, start, end);
+    setBody(nextValue);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(nextCursor, nextCursor);
+    });
+  }
+
   async function onSend(e: FormEvent) {
     e.preventDefault();
     const text = body.trim();
@@ -297,6 +438,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
   async function onImage(file: File | null) {
     if (!file || sending) return;
+    stopTyping();
     const generation = generationRef.current;
     setSending(true);
     setError(null);
@@ -305,12 +447,18 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const uploaded = await api.upload<{ url: string }>("/api/uploads", file);
       if (generation !== generationRef.current) return;
       const caption = body.trim() || undefined;
+      const payload: { body?: string; imageUrl: string; replyToMessageId?: string } = {
+        body: caption,
+        imageUrl: uploaded.url,
+      };
+      if (replyToMessage) payload.replyToMessageId = replyToMessage.id;
       const data = await api.post<{ message: MessageView }>(
         `/api/messages/conversations/${conversationId}/messages`,
-        { body: caption, imageUrl: uploaded.url }
+        payload
       );
       if (generation !== generationRef.current) return;
       setBody("");
+      setReplyToMessage(null);
       setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
@@ -334,7 +482,11 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         `/api/messages/messages/${pendingUnsendId}`
       );
       if (generation !== generationRef.current) return;
-      setMessages((prev) => prev.map((m) => (m.id === pendingUnsendId ? data.message : m)));
+      setMessages((prev) => {
+        const next = prev.map((m) => (m.id === pendingUnsendId ? data.message : m));
+        return patchReplyTargetsUnsent(next, pendingUnsendId);
+      });
+      if (replyToMessage?.id === pendingUnsendId) setReplyToMessage(null);
       setPendingUnsendId(null);
     } catch (err) {
       if (generation !== generationRef.current) return;
@@ -372,6 +524,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const resolvedTheme = resolveConversationTheme(conversationTheme);
   const themeVars = chatThemeCssVars(resolvedTheme);
   const peerProfilePath = peer?.username ? `/u/${peer.username}` : peer ? `/u/${peer.id}` : "#";
+  const replyPreview =
+    replyToMessage && user && peer ? replyTargetPreview(replyToMessage, user, peer) : null;
 
   return (
     <section className="space-y-4">
@@ -434,6 +588,9 @@ function ThreadView({ conversationId }: { conversationId: string }) {
             const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
             stickToBottomRef.current = distanceFromBottom < 80;
           }}
+          onClick={() => {
+            if (!canHover) setTappedMessageId(null);
+          }}
         >
           {loadingThread ? (
             <MessagesThreadSkeleton />
@@ -457,12 +614,10 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               )}
               {messages.map((m, index) => {
                 const prev = index > 0 ? messages[index - 1] : null;
-                const next = index < messages.length - 1 ? messages[index + 1] : null;
                 const mine = m.senderId === user?.id;
                 const showDay =
                   !prev || !isSameCalendarDay(prev.createdAt, m.createdAt);
                 const showAvatar = !mine && (!prev || !messagesShareGroup(prev, m));
-                const showMeta = !next || !messagesShareGroup(m, next);
 
                 return (
                   <div key={m.id} className="space-y-3">
@@ -472,10 +627,19 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       mine={mine}
                       peer={peer}
                       showAvatar={showAvatar}
-                      showMeta={showMeta}
+                      peerLastReadAt={peerLastReadAt}
                       peerProfilePath={peerProfilePath}
+                      canHover={canHover}
+                      touchRevealed={tappedMessageId === m.id}
+                      onToggleTouchReveal={() =>
+                        setTappedMessageId((prev) => (prev === m.id ? null : m.id))
+                      }
                       onUnsend={setPendingUnsendId}
                       onReactionChange={patchMessageReaction}
+                      onReply={(msg) => {
+                        setTappedMessageId(null);
+                        setReplyToMessage(msg);
+                      }}
                       onError={setError}
                       themed={resolvedTheme.active}
                     />
@@ -493,7 +657,38 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           </div>
         )}
 
+        {isPeerTyping && peer && <TypingIndicator displayName={peer.displayName} />}
+
         <form onSubmit={onSend} className="border-t border-border px-3 py-3">
+          {replyPreview && (
+            <div className="mb-2 flex items-start justify-between gap-2 rounded-xl border border-border/70 bg-secondary/40 px-3 py-2 text-sm">
+              <div className="min-w-0">
+                <p className="text-muted-foreground">
+                  Replying to{" "}
+                  <span className="font-medium text-foreground">{replyPreview.name}</span>
+                  {" · "}
+                  <span className="text-foreground/90">{replyPreview.snippet}</span>
+                </p>
+                {replyPreview.imageUrl && (
+                  <img
+                    src={replyPreview.imageUrl}
+                    alt=""
+                    className="mt-2 h-10 w-10 rounded object-cover"
+                  />
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label="Cancel reply"
+                onClick={() => setReplyToMessage(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <div
             className={cn(
               "flex items-end gap-2 rounded-2xl px-2 py-1.5",
@@ -521,21 +716,25 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                 size="sm"
               />
             )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              aria-label="Attach image"
-              disabled={sending}
-              onClick={() => fileRef.current?.click()}
-            >
-              <ImagePlus className="h-4 w-4" />
-            </Button>
+            <div className="flex shrink-0 items-center -space-x-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                aria-label="Attach image"
+                disabled={sending}
+                onClick={() => fileRef.current?.click()}
+              >
+                <ImagePlus className="h-4 w-4" />
+              </Button>
+              <MessageComposerEmojiPicker disabled={sending} onPick={insertComposerEmoji} />
+            </div>
             <Textarea
-              ref={composerRef}
+              ref={textareaRef}
               value={body}
               onChange={(e) => setBody(e.target.value)}
+              onBlur={() => stopTyping()}
               onKeyDown={submitOnEnter}
               placeholder="Type a message"
               aria-label="Message"
@@ -591,6 +790,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 }
 
 function InboxView() {
+  const { user } = useAuth();
+  const typingByConversation = useInboxPeerTyping(user?.id);
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -662,7 +863,11 @@ function InboxView() {
           <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
           <ul className="mt-3 space-y-1">
             {items.map((c) => (
-              <ConversationListRow key={c.id} item={c} />
+              <ConversationListRow
+                key={c.id}
+                item={c}
+                isPeerTyping={Boolean(typingByConversation[c.id])}
+              />
             ))}
           </ul>
         </div>

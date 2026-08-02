@@ -1,6 +1,19 @@
 import type { Knex } from "knex";
 
-/** Stub — already applied on this database before the migration file was added to the repo. */
-export async function up(_knex: Knex): Promise<void> {}
+export async function up(knex: Knex): Promise<void> {
+  const hasColumn = await knex.schema.hasColumn("messages", "delivered_at");
+  if (hasColumn) return;
 
-export async function down(_knex: Knex): Promise<void> {}
+  await knex.schema.alterTable("messages", (t) => {
+    t.timestamp("delivered_at", { useTz: true }).nullable();
+  });
+}
+
+export async function down(knex: Knex): Promise<void> {
+  const hasColumn = await knex.schema.hasColumn("messages", "delivered_at");
+  if (!hasColumn) return;
+
+  await knex.schema.alterTable("messages", (t) => {
+    t.dropColumn("delivered_at");
+  });
+}

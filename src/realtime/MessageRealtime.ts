@@ -7,9 +7,24 @@ import { emitToUser } from "./io";
 export const MESSAGE_NEW = "message:new";
 export const MESSAGE_UNSENT = "message:unsent";
 export const MESSAGE_REACTION = "message:reaction";
+export const MESSAGE_DELIVERED = "message:delivered";
+export const CONVERSATION_PEER_READ = "conversation:peer-read";
+export const MESSAGE_ACK = "message:ack";
 export const MESSAGES_UNREAD = "messages:unread";
 export const CONVERSATION_UPDATED = "conversation:updated";
 export const CONVERSATION_THEME = "conversation:theme";
+
+export type MessageDeliveredPayload = {
+  messageId: string;
+  conversationId: string;
+  deliveredAt: Date;
+};
+
+export type ConversationPeerReadPayload = {
+  conversationId: string;
+  readerId: string;
+  peerLastReadAt: Date;
+};
 
 function participantIds(conversation: ConversationRow): [string, string] {
   return [conversation.user_a, conversation.user_b];
@@ -77,5 +92,13 @@ export const MessageRealtime = {
     for (const userId of participantIds(conversation)) {
       emitToUser(userId, CONVERSATION_THEME, payload);
     }
+  },
+
+  messageDelivered(senderId: string, payload: MessageDeliveredPayload): void {
+    emitToUser(senderId, MESSAGE_DELIVERED, payload);
+  },
+
+  conversationPeerRead(recipientId: string, payload: ConversationPeerReadPayload): void {
+    emitToUser(recipientId, CONVERSATION_PEER_READ, payload);
   },
 };
