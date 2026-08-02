@@ -5,6 +5,7 @@ import { sessionCookieName } from "../middleware/requireAuth";
 import { MessageService } from "../services/MessageService";
 import { MESSAGE_ACK } from "./MessageRealtime";
 import { logger } from "../logger";
+import { attachTypingHandlers } from "./TypingRelay";
 
 const SOCKET_PATH = "/socket.io";
 
@@ -78,6 +79,7 @@ export function attachRealtime(httpServer: HttpServer): Server {
       return;
     }
     void socket.join(userRoom(userId));
+    attachTypingHandlers(socket);
     logger.debug({ userId, socketId: socket.id }, "Socket connected");
     socket.on(MESSAGE_ACK, (payload: unknown) => {
       void (async () => {

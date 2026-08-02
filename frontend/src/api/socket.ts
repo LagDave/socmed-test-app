@@ -9,6 +9,9 @@ export const CONVERSATION_PEER_READ = "conversation:peer-read";
 export const MESSAGE_ACK = "message:ack";
 export const MESSAGES_UNREAD = "messages:unread";
 export const CONVERSATION_UPDATED = "conversation:updated";
+export const TYPING_START = "typing:start";
+export const TYPING_STOP = "typing:stop";
+export const TYPING_UPDATE = "typing:update";
 
 export type MessageEventPayload = { message: MessageView };
 export type UnreadPayload = { unread: number };
@@ -22,6 +25,11 @@ export type ConversationPeerReadPayload = {
   conversationId: string;
   readerId: string;
   peerLastReadAt: string;
+};
+export type TypingUpdatePayload = {
+  conversationId: string;
+  userId: string;
+  isTyping: boolean;
 };
 
 let socket: Socket | null = null;

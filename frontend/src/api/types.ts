@@ -23,6 +23,12 @@ export type ReactionSummary = {
   viewerEmoji: ReactionEmoji | null;
 };
 
+export type ReactionEntry = {
+  user: PublicUser;
+  emoji: ReactionEmoji;
+  createdAt: string;
+};
+
 export type PostView = {
   id: string;
   body: string;

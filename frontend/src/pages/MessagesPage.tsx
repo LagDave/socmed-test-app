@@ -29,7 +29,13 @@ import {
   MessagesThreadSkeleton,
 } from "@/components/MessagesUiHelpers";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { TypingIndicator } from "@/components/TypingIndicator";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
+import {
+  useInboxPeerTyping,
+  usePeerTyping,
+  useTypingEmitter,
+} from "@/hooks/useTypingIndicator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -71,6 +77,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [pendingUnsendId, setPendingUnsendId] = useState<string | null>(null);
   const [unsending, setUnsending] = useState(false);
   const [loadingThread, setLoadingThread] = useState(true);
+  const isPeerTyping = usePeerTyping(conversationId, user?.id);
+  const { stopTyping } = useTypingEmitter({
+    conversationId,
+    text: body,
+    connected: socketConnected,
+    active: !sending,
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const generationRef = useRef(0);
@@ -238,6 +251,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     e.preventDefault();
     const text = body.trim();
     if (!text || sending) return;
+    stopTyping();
     const generation = generationRef.current;
     setSending(true);
     setError(null);
@@ -262,6 +276,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
   async function onImage(file: File | null) {
     if (!file || sending) return;
+    stopTyping();
     const generation = generationRef.current;
     setSending(true);
     setError(null);
@@ -411,6 +426,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           </div>
         )}
 
+        {isPeerTyping && peer && <TypingIndicator displayName={peer.displayName} />}
+
         <form onSubmit={onSend} className="border-t border-border px-3 py-3">
           <div className="flex items-end gap-2 rounded-2xl bg-secondary/50 px-2 py-1.5">
             <input
@@ -441,6 +458,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
             <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
+              onBlur={() => stopTyping()}
               onKeyDown={submitOnEnter}
               placeholder="Message"
               aria-label="Message"
@@ -477,6 +495,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 }
 
 function InboxView() {
+  const { user } = useAuth();
+  const typingByConversation = useInboxPeerTyping(user?.id);
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -548,7 +568,11 @@ function InboxView() {
           <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
           <ul className="mt-3 space-y-1">
             {items.map((c) => (
-              <ConversationListRow key={c.id} item={c} />
+              <ConversationListRow
+                key={c.id}
+                item={c}
+                isPeerTyping={Boolean(typingByConversation[c.id])}
+              />
             ))}
           </ul>
         </div>

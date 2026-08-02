@@ -12,6 +12,7 @@ postsRouter.post("/posts/:id/share", requireAuth, PostsController.share);
 postsRouter.get("/posts/:id", requireAuth, PostsController.get);
 postsRouter.delete("/posts/:id", requireAuth, PostsController.remove);
 
+postsRouter.get("/posts/:id/reactions", requireAuth, ReactionsController.listOnPost);
 postsRouter.put("/posts/:id/reactions", requireAuth, ReactionsController.setOnPost);
 postsRouter.delete("/posts/:id/reactions", requireAuth, ReactionsController.clearOnPost);
 
@@ -20,4 +21,5 @@ postsRouter.post("/posts/:postId/comments", requireAuth, CommentsController.crea
 postsRouter.delete("/comments/:id", requireAuth, CommentsController.remove);
 
 postsRouter.put("/comments/:id/reactions", requireAuth, ReactionsController.setOnComment);
+postsRouter.get("/comments/:id/reactions", requireAuth, ReactionsController.listOnComment);
 postsRouter.delete("/comments/:id/reactions", requireAuth, ReactionsController.clearOnComment);
