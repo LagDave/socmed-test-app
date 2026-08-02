@@ -8,7 +8,7 @@
 - Section header: icon + count only (no "Comments" heading)
 
 ### Plans
-- `plans/08022026-40-comment-section-ui` — executed on `kylie/comment-section-ui`
+- `plans/08012026-40-comment-section-ui` — executed on `kylie/comment-section-ui`
 
 ## 0.1.17 — 2026-07-31
 
