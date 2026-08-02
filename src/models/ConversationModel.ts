@@ -151,6 +151,7 @@ export class ConversationModel {
             image_url: r.lm_image_url,
             unsent_at: r.lm_unsent_at,
             reply_to_message_id: r.lm_reply_to_message_id,
+            delivered_at: null,
             created_at: r.lm_created_at!,
           }
         : null,

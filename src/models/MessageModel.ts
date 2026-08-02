@@ -8,6 +8,7 @@ export type MessageRow = {
   image_url: string | null;
   unsent_at: Date | null;
   reply_to_message_id: string | null;
+  delivered_at: Date | null;
   created_at: Date;
 };
 
@@ -54,6 +55,7 @@ function mapListRow(row: MessageListQueryRow): MessageRowWithReply {
     image_url: row.image_url,
     unsent_at: row.unsent_at,
     reply_to_message_id: row.reply_to_message_id,
+    delivered_at: row.delivered_at,
     created_at: row.created_at,
     replyContext,
   };
@@ -149,6 +151,30 @@ export class MessageModel {
       .where({ conversation_id: conversationId })
       .orderBy("created_at", "desc")
       .first();
+  }
+
+  static async markDelivered(id: string): Promise<MessageRow | undefined> {
+    const [row] = await db<MessageRow>("messages")
+      .where({ id })
+      .whereNull("delivered_at")
+      .whereNull("unsent_at")
+      .update({ delivered_at: db.fn.now() })
+      .returning("*");
+    return row;
+  }
+
+  /** Marks peer-sent messages as delivered when the viewer loads the thread. */
+  static async markInboundUndeliveredAsDelivered(
+    conversationId: string,
+    viewerId: string
+  ): Promise<MessageRow[]> {
+    return db<MessageRow>("messages")
+      .where({ conversation_id: conversationId })
+      .whereNot({ sender_id: viewerId })
+      .whereNull("delivered_at")
+      .whereNull("unsent_at")
+      .update({ delivered_at: db.fn.now() })
+      .returning("*");
   }
 
   static async countUnreadInConversation(

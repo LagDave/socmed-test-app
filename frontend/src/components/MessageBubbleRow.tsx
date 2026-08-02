@@ -9,6 +9,7 @@ import {
 import { MessageQuoteStrip } from "@/components/MessageQuoteStrip";
 import { ReactionIcon } from "@/components/ReactionIcon";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { MessageStatusIconForMessage } from "@/components/MessageStatusIcon";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -94,7 +95,7 @@ export function MessageBubbleRow({
   mine,
   peer,
   showAvatar,
-  showMeta,
+  peerLastReadAt,
   peerProfilePath,
   canHover,
   touchRevealed,
@@ -108,7 +109,7 @@ export function MessageBubbleRow({
   mine: boolean;
   peer: PublicUser | null;
   showAvatar: boolean;
-  showMeta: boolean;
+  peerLastReadAt: string | null;
   peerProfilePath: string;
   canHover: boolean;
   touchRevealed: boolean;
@@ -119,6 +120,7 @@ export function MessageBubbleRow({
   onError: (message: string) => void;
 }) {
   const [reactionsOpen, setReactionsOpen] = useState(false);
+  const [timestampVisible, setTimestampVisible] = useState(false);
   const showTouchActions = touchRevealed || reactionsOpen;
 
   function handleTouchToggle(e: MouseEvent | TouchEvent) {
@@ -127,6 +129,12 @@ export function MessageBubbleRow({
     if (target.closest("button, a, [role='menu'], [data-radix-popper-content-wrapper]")) return;
     e.stopPropagation();
     onToggleTouchReveal();
+  }
+
+  function toggleTimestamp(e: MouseEvent) {
+    if (message.isUnsent) return;
+    e.stopPropagation();
+    setTimestampVisible((visible) => !visible);
   }
 
   return (
@@ -153,13 +161,23 @@ export function MessageBubbleRow({
       >
         <div className={cn("flex min-w-0 flex-col gap-0.5", mine ? "items-end" : "items-start")}>
           <div
+            role={message.isUnsent ? undefined : "button"}
+            tabIndex={message.isUnsent ? undefined : 0}
+            onClick={toggleTimestamp}
+            onKeyDown={(e) => {
+              if (message.isUnsent) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setTimestampVisible((visible) => !visible);
+              }
+            }}
             className={cn(
               "rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
               message.isUnsent
                 ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
                 : mine
-                  ? "bg-foreground text-background"
-                  : "bg-secondary text-foreground",
+                  ? "cursor-pointer bg-foreground text-background"
+                  : "cursor-pointer bg-secondary text-foreground",
               !canHover && touchRevealed && !message.isUnsent && "ring-2 ring-border/80"
             )}
           >
@@ -182,14 +200,25 @@ export function MessageBubbleRow({
 
           {!message.isUnsent && <MessageReactionSummary summary={message.reactionSummary} />}
 
-          {showMeta && (
-            <time
-              className="px-1 text-[11px] text-muted-foreground"
-              dateTime={message.createdAt}
-              title={formatAbsoluteTime(message.createdAt) || undefined}
-            >
-              {formatRelativeTime(message.createdAt)}
-            </time>
+          {!message.isUnsent && (mine || timestampVisible) && (
+            <div className={cn("flex items-center gap-1 px-1", mine && "justify-end")}>
+              {mine && peer && (
+                <MessageStatusIconForMessage
+                  message={message}
+                  peerLastReadAt={peerLastReadAt}
+                  peer={peer}
+                />
+              )}
+              {timestampVisible && (
+                <time
+                  className="text-[11px] text-muted-foreground"
+                  dateTime={message.createdAt}
+                  title={formatAbsoluteTime(message.createdAt) || undefined}
+                >
+                  {formatRelativeTime(message.createdAt)}
+                </time>
+              )}
+            </div>
           )}
         </div>
 

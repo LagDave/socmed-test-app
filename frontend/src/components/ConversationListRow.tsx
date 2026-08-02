@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { ConversationListItem } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { TypingIndicator } from "@/components/TypingIndicator";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,13 @@ function snippet(item: ConversationListItem): string {
   return text;
 }
 
-export function ConversationListRow({ item }: { item: ConversationListItem }) {
+export function ConversationListRow({
+  item,
+  isPeerTyping = false,
+}: {
+  item: ConversationListItem;
+  isPeerTyping?: boolean;
+}) {
   const unread = item.unreadCount > 0;
   const peer = item.peer;
   const profilePath = peer.username ? `/u/${peer.username}` : `/u/${peer.id}`;
@@ -59,14 +66,18 @@ export function ConversationListRow({ item }: { item: ConversationListItem }) {
           )}
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p
-            className={cn(
-              "truncate text-sm",
-              unread ? "font-medium text-foreground" : "text-muted-foreground"
-            )}
-          >
-            {snippet(item)}
-          </p>
+          {isPeerTyping ? (
+            <TypingIndicator displayName={peer.displayName} compact className="min-w-0 flex-1" />
+          ) : (
+            <p
+              className={cn(
+                "truncate text-sm",
+                unread ? "font-medium text-foreground" : "text-muted-foreground"
+              )}
+            >
+              {snippet(item)}
+            </p>
+          )}
           {unread && (
             <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
               {item.unreadCount > 9 ? "9+" : item.unreadCount}
