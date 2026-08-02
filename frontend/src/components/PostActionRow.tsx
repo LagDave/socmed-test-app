@@ -24,6 +24,8 @@ type PostActionRowProps = {
   children: ReactNode;
   size?: keyof typeof SIZE;
   className?: string;
+  /** Feed + detail: icon + label at md+ breakpoints. */
+  showLabels?: boolean;
   /** Feed: navigate to post comments. */
   commentTo?: string;
   /** Detail: scroll / focus comments. */
@@ -33,10 +35,14 @@ type PostActionRowProps = {
   shareBusy?: boolean;
 };
 
+const labeledBtn =
+  "md:h-9 md:w-auto md:gap-2 md:rounded-full md:px-3.5 md:text-sm md:font-medium md:text-muted-foreground md:hover:bg-accent md:hover:text-foreground";
+
 export function PostActionRow({
   children,
   size = "md",
   className,
+  showLabels = false,
   commentTo,
   onCommentClick,
   onShare,
@@ -44,11 +50,13 @@ export function PostActionRow({
 }: PostActionRowProps) {
   const s = SIZE[size];
   const commentIcon = <MessageSquare className={s.icon} aria-hidden="true" />;
+  const labelClass = showLabels ? labeledBtn : "";
 
   const commentControl = commentTo ? (
-    <Button asChild variant="ghost" size="icon" className={s.btn}>
+    <Button asChild variant="ghost" size="icon" className={cn(s.btn, labelClass)}>
       <Link to={commentTo} aria-label="Comments">
         {commentIcon}
+        {showLabels ? <span className="hidden md:inline">Comment</span> : null}
       </Link>
     </Button>
   ) : (
@@ -56,11 +64,12 @@ export function PostActionRow({
       type="button"
       variant="ghost"
       size="icon"
-      className={s.btn}
+      className={cn(s.btn, labelClass)}
       aria-label="Comments"
       onClick={onCommentClick}
     >
       {commentIcon}
+      {showLabels ? <span className="hidden md:inline">Comment</span> : null}
     </Button>
   );
 
@@ -69,12 +78,13 @@ export function PostActionRow({
       type="button"
       variant="ghost"
       size="icon"
-      className={s.btn}
+      className={cn(s.btn, labelClass)}
       aria-label="Share"
       disabled={shareBusy}
       onClick={onShare}
     >
       <Share2 className={s.icon} aria-hidden="true" />
+      {showLabels ? <span className="hidden md:inline">Share</span> : null}
     </Button>
   ) : null;
 

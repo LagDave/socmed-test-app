@@ -33,6 +33,7 @@ export type PostView = {
   id: string;
   body: string;
   imageUrl: string | null;
+  imageUrls: string[];
   createdAt: string;
   author: PublicUser;
   reactionSummary: ReactionSummary;

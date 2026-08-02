@@ -1,6 +1,6 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FocusEvent, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import { api } from "@/api/client";
 import type { PublicUser } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
@@ -11,6 +11,21 @@ import { cn } from "@/lib/utils";
 
 const MAX_BODY = 5000;
 const WARN_AT = 4800;
+const MAX_PHOTOS = 10;
+const IMAGE_EXT_RE = /\.(jpe?g|png|gif|webp|heic|heif|bmp|svg)$/i;
+
+const textareaClass =
+  "min-w-0 flex-1 resize-none border-0 bg-transparent px-0 text-[15px] leading-6 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground";
+
+function isImageFile(file: File) {
+  return file.type.startsWith("image/") || IMAGE_EXT_RE.test(file.name);
+}
+
+type PendingImage = {
+  id: string;
+  file: File;
+  preview: string;
+};
 
 type FeedComposerProps = {
   user: PublicUser;
@@ -19,36 +34,97 @@ type FeedComposerProps = {
 };
 
 export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
+  const fileInputId = useId();
   const [body, setBody] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [images, setImages] = useState<PendingImage[]>([]);
+  const [pickingPhotos, setPickingPhotos] = useState(false);
   const busyRef = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef(body);
+  const imagesRef = useRef(images);
+  const pickingPhotosRef = useRef(pickingPhotos);
   const profilePath = `/u/${user.username || "me"}`;
 
-  const trimmed = body.trim();
-  const canPost = Boolean(trimmed || imageFile);
-  const nearLimit = body.length >= WARN_AT;
+  bodyRef.current = body;
+  imagesRef.current = images;
+  pickingPhotosRef.current = pickingPhotos;
 
-  function clearImage() {
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
+  useEffect(() => {
+    if (!pickingPhotos) return;
+    const resetPicking = () => setPickingPhotos(false);
+    const input = fileRef.current;
+    window.addEventListener("focus", resetPicking);
+    input?.addEventListener("cancel", resetPicking);
+    return () => {
+      window.removeEventListener("focus", resetPicking);
+      input?.removeEventListener("cancel", resetPicking);
+    };
+  }, [pickingPhotos]);
+
+  const trimmed = body.trim();
+  const canPost = Boolean(trimmed || images.length > 0);
+  const nearLimit = body.length >= WARN_AT;
+  const atPhotoLimit = images.length >= MAX_PHOTOS;
+  const readyToPost = canPost && !busy;
+  const photosDisabled = atPhotoLimit || busy;
+
+  function clearImages() {
+    for (const img of imagesRef.current) URL.revokeObjectURL(img.preview);
+    setImages([]);
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  function collapseIfEmpty() {
-    if (!trimmed && !imageFile) setExpanded(false);
+  function handleTextareaBlur(_e: FocusEvent<HTMLTextAreaElement>) {
+    // File picker opens with no relatedTarget — defer so we don't collapse mid-pick.
+    window.setTimeout(() => {
+      const active = document.activeElement;
+      if (composerRef.current?.contains(active)) return;
+      if (pickingPhotosRef.current) return;
+      if (!bodyRef.current.trim() && imagesRef.current.length === 0) {
+        setExpanded(false);
+      }
+    }, 0);
   }
 
-  function onPickImage(file: File | null) {
-    clearImage();
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+  function openPhotoPicker() {
+    if (photosDisabled || !fileRef.current) return;
+    fileRef.current.value = "";
+    setPickingPhotos(true);
+    fileRef.current.click();
+  }
+
+  function onPickImages(fileList: FileList | null) {
+    setPickingPhotos(false);
+    if (!fileList?.length) return;
+
+    const incoming = Array.from(fileList).filter(isImageFile);
+    if (incoming.length === 0) return;
+
+    setImages((prev) => {
+      const slotsLeft = MAX_PHOTOS - prev.length;
+      if (slotsLeft <= 0) return prev;
+
+      const picked = incoming.slice(0, slotsLeft).map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+
+      return picked.length > 0 ? [...prev, ...picked] : prev;
+    });
     setExpanded(true);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function removeImage(id: string) {
+    setImages((prev) => {
+      const target = prev.find((img) => img.id === id);
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter((img) => img.id !== id);
+    });
   }
 
   async function onSubmit(e: FormEvent) {
@@ -58,14 +134,25 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
     setBusy(true);
     onError("");
     try {
-      let imageUrl: string | null = null;
-      if (imageFile) {
-        const up = await api.upload<{ url: string }>("/api/uploads", imageFile);
-        imageUrl = up.url;
+      const imageUrls: string[] = [];
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        try {
+          const up = await api.upload<{ url: string }>("/api/uploads", img.file);
+          imageUrls.push(up.url);
+        } catch (err) {
+          const label =
+            images.length === 1 ? "Photo upload" : `Photo ${i + 1} of ${images.length} upload`;
+          const detail = err instanceof Error ? err.message : "Upload failed";
+          throw new Error(`${label} failed: ${detail}`);
+        }
       }
-      await api.post("/api/posts", { body: trimmed || " ", imageUrl });
+      await api.post("/api/posts", {
+        body: trimmed || " ",
+        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      });
       setBody("");
-      clearImage();
+      clearImages();
       setExpanded(false);
       onPosted();
     } catch (err) {
@@ -76,99 +163,193 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
     }
   }
 
+  const postButton = (
+    <Button
+      type="submit"
+      size="sm"
+      className={cn("feed-composer-post-btn", readyToPost && "feed-composer-post-btn-ready")}
+      disabled={busy || !canPost}
+      aria-busy={busy}
+    >
+      {busy ? (
+        <>
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          {expanded ? "Posting…" : "…"}
+        </>
+      ) : (
+        "Post"
+      )}
+    </Button>
+  );
+
+  const photosButtonContent = (
+    <>
+      {pickingPhotos ? (
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+      ) : (
+        <ImagePlus className="h-4 w-4" aria-hidden="true" />
+      )}
+      {pickingPhotos
+        ? "Opening…"
+        : images.length > 0
+          ? `Add photos (${images.length}/${MAX_PHOTOS})`
+          : "Photos"}
+    </>
+  );
+
+  const photosButtonClass = (compact = false) =>
+    cn(
+      "feed-composer-photos-btn inline-flex items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+      compact
+        ? "feed-composer-track-photos-btn h-8 w-8 shrink-0 rounded-full"
+        : "h-9 gap-1.5 rounded-full px-3 text-sm font-medium",
+      images.length > 0 && "feed-composer-photos-btn-active",
+      pickingPhotos && "feed-composer-photos-btn-picking",
+      photosDisabled && "pointer-events-none opacity-50"
+    );
+
+  const photosControl = (compact = false) =>
+    photosDisabled ? (
+      <span
+        className={photosButtonClass(compact)}
+        aria-disabled="true"
+        aria-label={compact ? "Add photos" : undefined}
+      >
+        {photosButtonContent}
+      </span>
+    ) : (
+      <button
+        type="button"
+        className={cn(photosButtonClass(compact), "cursor-pointer")}
+        aria-label={compact ? "Add photos" : undefined}
+        onClick={openPhotoPicker}
+      >
+        {compact ? (
+          pickingPhotos ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <ImagePlus className="h-4 w-4" aria-hidden="true" />
+          )
+        ) : (
+          photosButtonContent
+        )}
+      </button>
+    );
+
   return (
     <form
       onSubmit={onSubmit}
       className={cn(
-        "feed-card feed-composer overflow-hidden transition-shadow duration-200",
-        expanded && "feed-composer-expanded ring-1 ring-border/80"
+        "feed-card feed-composer overflow-hidden transition-[box-shadow,border-color] duration-200",
+        expanded && "feed-composer-expanded",
+        readyToPost && "feed-composer-ready",
+        images.length > 0 && "feed-composer-has-photos"
       )}
     >
-      <div className="flex items-start gap-3 px-4 py-3">
-        <Link to={profilePath} className="shrink-0 pt-0.5" aria-label="Your profile">
+      <div className="flex items-start gap-3 px-4 py-3.5">
+        <Link
+          to={profilePath}
+          className="shrink-0 pt-0.5 ring-offset-background transition-opacity hover:opacity-90"
+          aria-label="Your profile"
+        >
           <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
         </Link>
 
-        <div className="min-w-0 flex-1 space-y-3">
-          <Textarea
-            placeholder="What's on your mind?"
-            value={body}
-            onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
-            onFocus={() => setExpanded(true)}
-            onBlur={collapseIfEmpty}
-            onKeyDown={submitOnEnter}
-            rows={expanded ? 3 : 1}
-            maxLength={MAX_BODY}
-            className={cn(
-              "min-w-0 resize-none border-0 bg-transparent px-0 py-1.5 text-[15px] leading-6 shadow-none focus-visible:ring-0",
-              expanded ? "min-h-[4.5rem]" : "min-h-10"
-            )}
+        <div ref={composerRef} className="min-w-0 flex-1 space-y-3">
+          <input
+            id={fileInputId}
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(e) => onPickImages(e.target.files)}
           />
-
-          {imagePreview && (
-            <div className="relative inline-block max-w-full">
-              <img
-                src={imagePreview}
-                alt="Selected attachment preview"
-                className="max-h-56 rounded-xl border border-border object-cover"
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="icon"
-                className="absolute right-2 top-2 h-8 w-8 rounded-full shadow-md"
-                aria-label="Remove photo"
-                onClick={clearImage}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
 
           <div
             className={cn(
-              "flex items-center justify-between gap-2 border-t border-border/60 pt-3",
-              !expanded && "hidden"
+              !expanded && "feed-composer-track",
+              expanded && "feed-composer-expanded-field space-y-0"
             )}
           >
-            <div className="flex items-center gap-1">
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => onPickImage(e.target.files?.[0] ?? null)}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-muted-foreground"
-                onClick={() => fileRef.current?.click()}
-              >
-                <ImagePlus className="h-4 w-4" aria-hidden="true" />
-                Photo
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {nearLimit && (
-                <span className="text-xs text-muted-foreground">
-                  {MAX_BODY - body.length} left
-                </span>
+            <Textarea
+              placeholder="What's on your mind?"
+              value={body}
+              onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
+              onFocus={() => setExpanded(true)}
+              onBlur={handleTextareaBlur}
+              onKeyDown={submitOnEnter}
+              rows={expanded ? 3 : 1}
+              maxLength={MAX_BODY}
+              className={cn(
+                textareaClass,
+                expanded ? "min-h-[4.5rem] py-0" : undefined
               )}
-              <Button type="submit" size="sm" disabled={busy || !canPost}>
-                {busy ? "Posting…" : "Post"}
-              </Button>
-            </div>
+            />
+            {!expanded && (
+              <>
+                {photosControl(true)}
+                {postButton}
+              </>
+            )}
           </div>
-        </div>
 
-        {!expanded && (
-          <Button type="submit" size="sm" className="shrink-0 self-center" disabled={busy || !canPost}>
-            Post
-          </Button>
-        )}
+          {expanded && images.length > 0 && (
+            <div className="feed-composer-previews space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                {images.length === 1 ? "1 photo attached" : `${images.length} photos attached`}
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {images.map((img) => (
+                  <div
+                    key={img.id}
+                    className="feed-composer-preview-tile relative aspect-square overflow-hidden rounded-xl border border-border/70"
+                  >
+                    <img
+                      src={img.preview}
+                      alt="Selected attachment preview"
+                      className="h-full w-full object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      className="absolute right-1.5 top-1.5 h-7 w-7 rounded-full shadow-md"
+                      aria-label="Remove photo"
+                      onClick={() => removeImage(img.id)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {expanded && !canPost && !busy && (
+            <p className="text-xs text-muted-foreground">Write something or add photos to post.</p>
+          )}
+
+          {expanded && (
+            <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-3">
+              <div className="flex items-center gap-1">{photosControl()}</div>
+
+              <div className="flex items-center gap-3">
+                {readyToPost && images.length > 0 && !nearLimit && (
+                  <span className="feed-composer-ready-hint text-xs font-medium">Ready</span>
+                )}
+                {nearLimit && (
+                  <span className="text-xs text-muted-foreground">
+                    {MAX_BODY - body.length} left
+                  </span>
+                )}
+                {postButton}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </form>
   );
