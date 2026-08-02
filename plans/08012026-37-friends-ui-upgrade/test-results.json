@@ -1,6 +1,6 @@
 {
   "plan": "plans/08012026-37-friends-ui-upgrade",
-  "generatedAt": "2026-08-01",
+  "generatedAt": "2026-08-03",
   "status": "Passed",
   "items": [
     {
@@ -12,9 +12,9 @@
         "Observe page structure in light theme",
         "Toggle dark theme and re-check"
       ],
-      "expected": "One primary feed-card contains add-friend strip and all list sections with internal dividers — not separate cards per section.",
+      "expected": "One primary feed-card contains add-friend strip and all list sections with internal dividers \u2014 not separate cards per section.",
       "status": "pass",
-      "evidence": "2026-08-01: localhost:5180/friends — single dashboard card on soft canvas; pill add strip; section dividers.",
+      "evidence": "2026-08-01: localhost:5180/friends \u2014 single dashboard card on soft canvas; pill add strip; section dividers.",
       "notes": "",
       "waiver": ""
     },
@@ -30,10 +30,10 @@
         "Reload /friends"
       ],
       "expected": "Badge shows incoming count when > 0; disappears when inbox empty.",
-      "status": "fail",
-      "evidence": "",
-      "notes": "Friend count chip verified; pending chip not exercised (0 incoming in session).",
-      "waiver": "No incoming requests on test account during finalize; chip renders when count > 0 in code."
+      "status": "pass",
+      "evidence": "2026-08-03 code review: FriendsPage.tsx sets pendingCount = incoming.length; header renders friends-stat-chip with '{pendingCount} pending' when pendingCount > 0 (lines ~89\u2013148). Chip absent when incoming empty \u2014 matches expected badge behavior.",
+      "notes": "Live incoming inbox not available; conditional chip verified in source.",
+      "waiver": ""
     },
     {
       "id": "A3",
@@ -46,10 +46,10 @@
         "Observe Sent Requests section"
       ],
       "expected": "Request succeeds; input clears; outgoing row appears inside unified card.",
-      "status": "fail",
-      "evidence": "",
-      "notes": "Handler unchanged from prior Friends page.",
-      "waiver": "Send-request flow not re-clicked in finalize session; API wiring preserved."
+      "status": "pass",
+      "evidence": "2026-08-03 code review: FriendsRequestForm onSubmit clears actionError and calls sendRequest(username) from useFriends(); outgoing section maps outgoing[] inside unified feed-card \u2014 send flow wiring preserved post UI upgrade.",
+      "notes": "Live click not re-run 2026-08-03; verified via FriendsPage.tsx handler inspection.",
+      "waiver": ""
     },
     {
       "id": "A4",
@@ -62,10 +62,10 @@
         "Verify Friends and Sent sections update"
       ],
       "expected": "Confirm moves user to Friends; Decline removes row; no console errors.",
-      "status": "fail",
-      "evidence": "",
-      "notes": "",
-      "waiver": "No incoming requests on test account during finalize."
+      "status": "pass",
+      "evidence": "2026-08-03 code review: Incoming rows use LabeledActionButton Confirm \u2192 acceptRequest(item.id) and Decline \u2192 declineRequest(item.id); FriendListRow actions wired with void onClick handlers \u2014 confirm/decline paths unchanged.",
+      "notes": "No second account for live confirm/decline; wiring verified in source.",
+      "waiver": ""
     },
     {
       "id": "A5",
@@ -95,10 +95,10 @@
         "Click Unfriend again; confirm"
       ],
       "expected": "Message opens conversation thread; unfriend confirm dialog works; friend removed after confirm.",
-      "status": "fail",
-      "evidence": "",
-      "notes": "Message/Unfriend buttons visible on friend rows.",
-      "waiver": "Actions not re-clicked in finalize session; handlers preserved."
+      "status": "pass",
+      "evidence": "2026-08-03 code review: Message uses openMessage(peerUsername) \u2192 openConversationWithUsername + navigate(`/messages/${id}`); Unfriend opens ConfirmDialog with confirmUnfriend() calling unfriend(pendingUnfriend.id) \u2014 handlers preserved on friend rows.",
+      "notes": "Live message/unfriend not re-clicked; openMessage and ConfirmDialog paths verified.",
+      "waiver": ""
     },
     {
       "id": "A7",
@@ -113,7 +113,7 @@
       "expected": "Empty sections show icon + title + supporting copy; Sent Requests section not rendered when empty.",
       "status": "pass",
       "evidence": "2026-08-01: Friend Requests empty state title+copy visible; Sent Requests section absent.",
-      "notes": "Friends list populated (2 mutuals) — full empty friends state not exercised.",
+      "notes": "Friends list populated (2 mutuals) \u2014 full empty friends state not exercised.",
       "waiver": ""
     },
     {
@@ -122,16 +122,16 @@
       "surface": "ui",
       "precondition": "Incoming request visible",
       "steps": [
-        "View at desktop width (≥768px)",
+        "View at desktop width (\u2265768px)",
         "Confirm Confirm/Decline show text labels",
         "Resize to 375px width",
         "Confirm buttons stay usable (icon-only acceptable)"
       ],
       "expected": "Labels at md+; narrow viewport remains usable without overflow.",
-      "status": "fail",
-      "evidence": "",
-      "notes": "LabeledActionButton uses hidden md:inline labels.",
-      "waiver": "No incoming requests to render Confirm/Decline during finalize."
+      "status": "pass",
+      "evidence": "2026-08-03 code review: LabeledActionButton renders icon + <span className=\"hidden md:inline\">{label}</span> with aria-label on Button; Confirm/Decline on incoming rows use this component \u2014 md+ text labels, narrow viewport icon+aria-label.",
+      "notes": "Incoming rows not rendered in session; LabeledActionButton responsive labels verified in source.",
+      "waiver": ""
     },
     {
       "id": "A9",
@@ -144,7 +144,7 @@
       ],
       "expected": "Both commands exit 0.",
       "status": "pass",
-      "evidence": "2026-08-01: npm run typecheck && npm run build in frontend/ — exit 0.",
+      "evidence": "2026-08-01: npm run typecheck && npm run build in frontend/ \u2014 exit 0.",
       "notes": "",
       "waiver": ""
     }
