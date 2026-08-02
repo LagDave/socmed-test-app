@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.27 — 2026-08-03
+
+### Added
+- Share post composer dialog with optional caption before resharing to feed
+- `SharePostDialog`, `ShareAttribution`, and `ShareSuccessNotice` components
+- Share API caption support via `POST /api/posts/:id/share` `{ body? }`
+
+### Changed
+- Share button UI: pill action buttons, polished nested embed, and attribution links
+- Feed and post detail open share composer instead of one-click reshare
+- Shared post embeds and share preview support multi-photo originals
+
+### Plans
+- `plans/08032026-41-share-button-ui` — executed on `kylie/share-button-ui`
+
 ## 0.1.26 — 2026-08-03
 
 ### Changed

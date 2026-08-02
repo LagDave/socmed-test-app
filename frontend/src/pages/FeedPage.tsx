@@ -4,8 +4,10 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { FeedComposer } from "@/components/FeedComposer";
 import { FeedEmptyState, FeedPostSkeleton, FeedWelcomeCard } from "@/components/FeedEmptyState";
 import { PostCard } from "@/components/PostCard";
+import { SharePostDialog } from "@/components/SharePostDialog";
 import { useFeedPosts } from "@/hooks/useFeedPosts";
 import { api } from "@/api/client";
+import type { PostView } from "@/api/types";
 
 export function FeedPage() {
   const { user, loading: authLoading } = useAuth();
@@ -21,8 +23,10 @@ export function FeedPage() {
     removePost,
   } = useFeedPosts(Boolean(user));
   const [pageError, setPageError] = useState<string | null>(null);
-  const [sharingPostId, setSharingPostId] = useState<string | null>(null);
-  const sharingRef = useRef(false);
+  const [shareTarget, setShareTarget] = useState<PostView | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const shareBusyRef = useRef(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
@@ -41,19 +45,29 @@ export function FeedPage() {
     return () => observer.disconnect();
   }, [user, loadMore, posts.length, hasMore]);
 
-  async function onShare(postId: string) {
-    if (sharingRef.current) return;
-    sharingRef.current = true;
-    setSharingPostId(postId);
+  function openShare(postId: string) {
+    const target = posts.find((p) => p.id === postId) ?? null;
+    if (target) {
+      setShareError(null);
+      setShareTarget(target);
+    }
+  }
+
+  async function confirmShare(caption: string) {
+    if (!shareTarget || shareBusyRef.current) return;
+    shareBusyRef.current = true;
+    setShareBusy(true);
+    setShareError(null);
     setPageError(null);
     try {
-      await api.post(`/api/posts/${postId}/share`);
+      await api.post(`/api/posts/${shareTarget.id}/share`, { body: caption });
+      setShareTarget(null);
       await refresh();
     } catch (err) {
-      setPageError(err instanceof Error ? err.message : "Failed to share");
+      setShareError(err instanceof Error ? err.message : "Failed to share");
     } finally {
-      sharingRef.current = false;
-      setSharingPostId(null);
+      shareBusyRef.current = false;
+      setShareBusy(false);
     }
   }
 
@@ -123,9 +137,8 @@ export function FeedPage() {
                 post={post}
                 currentUserId={user.id}
                 showActionLabels
-                sharingPostId={sharingPostId}
                 onDelete={setPendingDeleteId}
-                onShare={(postId) => void onShare(postId)}
+                onShare={openShare}
                 onReactionSummaryChange={patchPostSummary}
               />
             </li>
@@ -152,6 +165,23 @@ export function FeedPage() {
         }}
         onConfirm={() => void confirmDeletePost()}
       />
+
+      {user && (
+        <SharePostDialog
+          open={shareTarget !== null}
+          post={shareTarget}
+          user={user}
+          busy={shareBusy}
+          error={shareError}
+          onConfirm={(caption) => void confirmShare(caption)}
+          onCancel={() => {
+            if (!shareBusy) {
+              setShareTarget(null);
+              setShareError(null);
+            }
+          }}
+        />
+      )}
     </section>
   );
 }

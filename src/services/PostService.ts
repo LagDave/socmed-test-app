@@ -26,6 +26,10 @@ const createPostSchema = z
     }
   });
 
+const sharePostSchema = z.object({
+  body: z.string().max(5000).optional(),
+});
+
 export type PostView = {
   id: string;
   body: string;
@@ -95,7 +99,10 @@ export class PostService {
     return (await hydrate([row], userId))[0];
   }
 
-  static async share(viewerId: string, postId: string): Promise<PostView> {
+  static async share(viewerId: string, postId: string, raw?: unknown): Promise<PostView> {
+    const input = sharePostSchema.parse(raw ?? {});
+    const caption = input.body?.trim() ?? "";
+
     const original = await PostModel.findById(postId);
     if (!original) throw new AppError("POST_NOT_FOUND", "Post not found.");
     if (original.shared_from_post_id) {
@@ -111,7 +118,7 @@ export class PostService {
 
     const row = await PostModel.create({
       authorId: viewerId,
-      body: "",
+      body: caption,
       imageUrl: null,
       sharedFromPostId: original.id,
     });
