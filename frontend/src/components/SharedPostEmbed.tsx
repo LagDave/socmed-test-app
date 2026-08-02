@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { PostView } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { postImageUrls } from "@/lib/postImages";
 import { cn } from "@/lib/utils";
 
 type SharePostPreviewProps = {
@@ -10,6 +11,8 @@ type SharePostPreviewProps = {
 
 /** Read-only preview of a post inside the share composer. */
 export function SharePostPreview({ post, className }: SharePostPreviewProps) {
+  const images = postImageUrls(post);
+
   return (
     <div className={cn("shared-post-embed shared-post-embed--preview", className)} aria-hidden="true">
       <div className="flex items-start gap-2.5">
@@ -30,11 +33,24 @@ export function SharePostPreview({ post, className }: SharePostPreviewProps) {
               {post.body}
             </p>
           ) : null}
-          {post.imageUrl ? (
+          {images.length > 0 && (
             <div className="shared-post-embed-media mt-2.5 overflow-hidden rounded-lg">
-              <img src={post.imageUrl} alt="" className="max-h-48 w-full object-cover sm:max-h-56" />
+              {images.length === 1 ? (
+                <img src={images[0]} alt="" className="max-h-48 w-full object-cover sm:max-h-56" />
+              ) : (
+                <div className="grid gap-1.5">
+                  {images.map((url, index) => (
+                    <img
+                      key={`${url}-${index}`}
+                      src={url}
+                      alt=""
+                      className="max-h-48 w-full object-cover sm:max-h-56"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </div>
@@ -57,6 +73,7 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
 
   const profilePath = `/u/${sharedFrom.author.username || sharedFrom.author.id}`;
   const postPath = `/posts/${sharedFrom.id}`;
+  const images = postImageUrls(sharedFrom);
 
   return (
     <div className={cn("shared-post-embed", className)}>
@@ -82,21 +99,37 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
               <span className="font-normal text-muted-foreground">{` @${sharedFrom.author.username}`}</span>
             ) : null}
           </Link>
-          <Link to={postPath} className="group/embed mt-1 block rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
+          <Link
+            to={postPath}
+            className="group/embed mt-1 block rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+          >
             {sharedFrom.body ? (
               <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90 transition-colors group-hover/embed:text-foreground">
                 {sharedFrom.body}
               </p>
             ) : null}
-            {sharedFrom.imageUrl ? (
+            {images.length > 0 && (
               <div className="shared-post-embed-media mt-2.5 overflow-hidden rounded-lg">
-                <img
-                  src={sharedFrom.imageUrl}
-                  alt=""
-                  className="max-h-96 w-full object-cover transition-transform duration-300 group-hover/embed:scale-[1.01]"
-                />
+                {images.length === 1 ? (
+                  <img
+                    src={images[0]}
+                    alt=""
+                    className="max-h-96 w-full object-cover transition-transform duration-300 group-hover/embed:scale-[1.01]"
+                  />
+                ) : (
+                  <div className="grid gap-1.5">
+                    {images.map((url, index) => (
+                      <img
+                        key={`${url}-${index}`}
+                        src={url}
+                        alt=""
+                        className="max-h-96 w-full rounded-lg object-cover transition-transform duration-300 group-hover/embed:scale-[1.01]"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : null}
+            )}
           </Link>
         </div>
       </div>

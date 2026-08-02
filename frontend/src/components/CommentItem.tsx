@@ -50,7 +50,7 @@ export function CommentItem({
   return (
     <article
       className={cn(
-        "comment-item feed-post-enter",
+        "comment-item group feed-post-enter",
         isReply ? "comment-item-reply" : "comment-item-root"
       )}
     >
@@ -64,44 +64,25 @@ export function CommentItem({
         </Link>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <Link
-                className="text-sm font-semibold leading-snug underline-offset-2 hover:underline"
-                to={profilePath}
-              >
-                {comment.author.displayName}
-                {comment.author.username ? (
-                  <span className="font-normal text-muted-foreground">{` @${comment.author.username}`}</span>
-                ) : null}
-              </Link>
-              <time
-                className="mt-0.5 block text-xs text-muted-foreground"
-                dateTime={comment.createdAt}
-                title={formatAbsoluteTime(comment.createdAt) || undefined}
-              >
-                {formatRelativeTime(comment.createdAt)}
-              </time>
-            </div>
-
+          <div className={cn("comment-bubble", isReply && "comment-bubble-reply")}>
             {isOwner && (
-              <div ref={menuRef} className="relative shrink-0">
+              <div ref={menuRef} className="comment-bubble-menu">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground"
-                  aria-label="Comment options"
-                  aria-haspopup="menu"
-                  aria-expanded={menuOpen}
+                  className={cn(
+                    "h-7 w-7 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100",
+                    menuOpen && "opacity-100"
+                  )}
                   onClick={() => setMenuOpen((open) => !open)}
                 >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
                 {menuOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 z-10 mt-1 min-w-36 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg"
+                    className="absolute right-0 top-full z-10 mt-1 min-w-36 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg"
                   >
                     <button
                       type="button"
@@ -119,21 +100,36 @@ export function CommentItem({
                 )}
               </div>
             )}
+
+            <div className="comment-bubble-header">
+              <Link
+                className="text-[13px] font-semibold leading-tight underline-offset-2 hover:underline"
+                to={profilePath}
+              >
+                {comment.author.displayName}
+              </Link>
+              {comment.author.username ? (
+                <span className="text-[13px] text-muted-foreground">@{comment.author.username}</span>
+              ) : null}
+            </div>
+
+            {comment.body ? (
+              <p className="comment-bubble-body whitespace-pre-wrap">{comment.body}</p>
+            ) : null}
+
+            {comment.imageUrl && (
+              <img
+                src={comment.imageUrl}
+                alt=""
+                className={cn(
+                  "comment-bubble-image max-h-52 w-full object-cover",
+                  comment.body ? "mt-2" : "mt-0.5"
+                )}
+              />
+            )}
           </div>
 
-          {comment.body ? (
-            <p className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed">{comment.body}</p>
-          ) : null}
-
-          {comment.imageUrl && (
-            <img
-              src={comment.imageUrl}
-              alt=""
-              className="mt-2.5 max-h-52 w-full rounded-lg border border-border/70 object-cover"
-            />
-          )}
-
-          <div className="comment-action-row mt-2">
+          <div className="comment-meta-row">
             <ReactionBar
               size="sm"
               targetType="comment"
@@ -142,6 +138,13 @@ export function CommentItem({
               onSummaryChange={onReactionSummaryChange}
               actions={onReply ? <ReplyActionButton onClick={onReply} /> : undefined}
             />
+            <time
+              className="comment-meta-time"
+              dateTime={comment.createdAt}
+              title={formatAbsoluteTime(comment.createdAt) || undefined}
+            >
+              {formatRelativeTime(comment.createdAt)}
+            </time>
           </div>
         </div>
       </div>

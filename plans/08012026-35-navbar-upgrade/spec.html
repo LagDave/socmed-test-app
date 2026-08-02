@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Navbar UI Upgrade Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    figure.mock { margin:16px 0 0; padding:12px; border:1px dashed var(--line); border-radius:8px; background:var(--soft); }
+    figure.mock img { display:block; max-width:100%; height:auto; border-radius:6px; }
+    figcaption { margin-top:8px; color:var(--muted); font-size:0.85rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+    .target-mock { margin-top:14px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#f0f2f5; }
+    .target-header { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px; padding:0 16px; height:56px; background:#fff; border-bottom:1px solid #e4e6eb; box-shadow:0 1px 2px rgba(0,0,0,.08); }
+    .target-brand { font-weight:700; font-size:1.125rem; letter-spacing:-.02em; }
+    .target-brand span { color:#65676b; font-weight:500; font-size:.75rem; display:block; letter-spacing:.04em; text-transform:uppercase; }
+    .target-pill { display:flex; gap:4px; padding:4px; border-radius:999px; background:#f0f2f5; }
+    .target-pill a { display:inline-flex; align-items:center; justify-content:center; width:44px; height:36px; border-radius:999px; color:#65676b; text-decoration:none; font-size:.7rem; }
+    .target-pill a.active { background:#fff; color:#0a0a0a; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+    .target-right { display:flex; justify-content:flex-end; gap:6px; align-items:center; }
+    .target-icon { width:36px; height:36px; border-radius:999px; background:transparent; display:inline-flex; align-items:center; justify-content:center; position:relative; }
+    .target-avatar { width:32px; height:32px; border-radius:999px; background:#e4e6eb; border:1px solid #d8dadf; }
+    .target-badge { position:absolute; top:2px; right:2px; min-width:16px; height:16px; border-radius:999px; background:#0a0a0a; color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 4px; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 35</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Navbar UI Upgrade — Elevated Chrome + Avatar Profile Trigger</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08012026-35-navbar-upgrade</dd></div>
+        <div><dt>Size</dt><dd>Small (5 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08012026-35-navbar-upgrade</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/navbar-upgrade</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 19 navbar arrangement · Plan 25 ProfileAvatar · existing B&amp;W tokens</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 19 fixed navbar <em>structure</em> (full-width three zones, profile dropdown). The chrome still reads as a bare utility strip: plain product title, flat gray icon buttons, generic profile silhouette. Feed cards, profile headers, and modals already use elevation, rounded surfaces, and avatar identity — the navbar is the visual weak link on every page.</p>
+      <figure class="mock">
+        <img src="./mock-current-navbar.png" alt="Current navbar: SocMed application title, flat icon buttons, generic user icon">
+        <figcaption>Current (before) — functional layout, minimal polish.</figcaption>
+      </figure>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Visual-only upgrade of <code>AppShell</code> header chrome. No route, API, badge-logic, or layout-zone changes.</p>
+      <p><strong>Target header (signed in):</strong></p>
+      <pre class="wire">|←———————————— viewport ————————————→|
+[ SocMed ]          ( ● Home  ● Friends )          [ 💬  🔔  (avatar▾) ]
+     ↑ pill cluster on muted track                      ↑ avatar trigger
+|              main content (max-w 680 unchanged)              |</pre>
+      <div class="target-mock" aria-hidden="true">
+        <div class="target-header">
+          <div class="target-brand">SocMed<span>Social</span></div>
+          <div class="target-pill">
+            <a href="#" class="active" title="Home">⌂</a>
+            <a href="#" title="Friends">👥</a>
+          </div>
+          <div class="target-right">
+            <span class="target-icon">💬<span class="target-badge">2</span></span>
+            <span class="target-icon">🔔</span>
+            <span class="target-avatar"></span>
+          </div>
+        </div>
+      </div>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Brand reads <strong>SocMed</strong> (not “SocMed application”); optional muted micro-label below is allowed but not required</li>
+        <li>Signed-in center nav sits in a raised pill track; active destination gets elevated pill + foreground emphasis</li>
+        <li>Right cluster icons share refined hover/focus rings; badges keep counts but look tighter and consistent</li>
+        <li>Profile dropdown trigger shows the signed-in user’s <code>ProfileAvatar</code> (~32px) instead of <code>UserRound</code></li>
+        <li>Profile dropdown panel matches existing <code>.profile-dropdown-menu</code> polish (or equivalent classes on Radix content)</li>
+        <li>Header has subtle elevation (<code>--feed-shadow</code> family) and works in light + dark</li>
+        <li>All Plan 19 behaviors preserved (zones, menu items, signed-out cluster, badges, polling)</li>
+        <li>Frontend typecheck/build pass; acceptance checklist passes or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Profile trigger</td>
+            <td><strong>A — User avatar via ProfileAvatar</strong></td>
+            <td>Human confirmed. Matches feed/notifications identity; reverses Plan 19 “icon only” out-of-scope note for this upgrade.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Brand text</td>
+            <td><strong>A — “SocMed” wordmark</strong></td>
+            <td>Human confirmed. Shorter, less cramped; still links to <code>/</code>.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Center nav chrome</td>
+            <td><strong>A — Pill cluster on muted track</strong></td>
+            <td>Human confirmed. Facebook-style affordance consistent with feed-card elevation language.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Component split</td>
+            <td><strong>Extract header subcomponents from AppShell</strong></td>
+            <td>Keep <code>AppShell.tsx</code> orchestration-only; move <code>NavIcon</code> + new chrome into dedicated files under <code>components/nav/</code>.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Avatar size token</td>
+            <td><strong>Add <code>xs</code> (~32px) to ProfileAvatar</strong></td>
+            <td>Existing <code>sm</code> is 40px — too large for header row; one shared size map avoids ad-hoc classes.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Signed-out header</td>
+            <td><strong>Unchanged behavior — polish pass only</strong></td>
+            <td>ThemeToggle + Sign in stay; apply same header elevation + brand wordmark.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Primary file</strong> — <code>frontend/src/components/AppShell.tsx</code> (~230 lines). Owns sticky header grid, badge polling, profile dropdown, and inline <code>NavIcon</code>.</p>
+      <p><strong>Design tokens</strong> — <code>frontend/src/index.css</code>: B&amp;W palette, <code>--feed-shadow</code>, <code>.profile-dropdown-menu</code>, <code>.animate-menu-enter</code>, reduced-motion guards. Reuse — do not invent a second shadow/menu system.</p>
+      <p><strong>Avatar</strong> — <code>frontend/src/components/ProfileAvatar.tsx</code>; user fields from <code>AuthContext</code> (<code>displayName</code>, <code>avatarUrl</code>).</p>
+      <p><strong>Dropdown</strong> — <code>frontend/src/components/ui/dropdown-menu.tsx</code> (Radix). Style content with profile-dropdown classes or extend primitive with a <code>variant</code> prop — one menu look app-wide.</p>
+      <p><strong>Prior plan</strong> — <code>plans/07292026-19-navbar-arrangement</code> (Completed). This plan is visual polish only; structural decisions there remain locked.</p>
+      <p><strong>Consumers</strong> — <code>App.tsx</code> wraps all routes in <code>AppShell</code>. Blast radius: global chrome on every authenticated page.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Preserve three-zone layout and all nav destinations</li>
+            <li>Preserve badge counts + polling/socket behavior unchanged</li>
+            <li>Profile dropdown items: Profile · Switch mode · Log out</li>
+            <li>Light + dark theme parity using existing CSS variables</li>
+            <li><code>prefers-reduced-motion</code> respected for any new transitions</li>
+            <li>Extract nav presentation from AppShell (§2.1 one responsibility)</li>
+            <li>Update <code>plans/README.md</code> with seq 35</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>Change routes, APIs, or badge endpoints</li>
+            <li>Widen <code>main</code> beyond <code>max-w-[680px]</code></li>
+            <li>Introduce new npm dependencies</li>
+            <li>Add color outside the B&amp;W token set</li>
+            <li>Mobile hamburger / bottom tab bar</li>
+            <li>Drive-by refactors outside header/nav surface</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Out of scope</h3>
+          <ul>
+            <li>Notification/message flyout panels</li>
+            <li>Search bar in navbar</li>
+            <li>Animated logo or marketing rebrand</li>
+            <li>Backend / migrations</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Global chrome restyle; ProfileAvatar size addition touches a shared component.</p>
+      <table>
+        <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Pill cluster overflows on narrow viewports (~375px)</td>
+            <td>Keep icon-only pills; allow track to shrink; maintain min tap targets (36px). No hamburger in this plan.</td>
+          </tr>
+          <tr>
+            <td>Avatar trigger regresses active profile route styling</td>
+            <td>Reuse existing <code>isProfileActive</code> logic; ring/border on trigger when on profile routes.</td>
+          </tr>
+          <tr>
+            <td>ProfileAvatar <code>xs</code> breaks existing size call sites</td>
+            <td>Additive token only; default stays <code>lg</code>; grep consumers after change.</td>
+          </tr>
+          <tr>
+            <td>Dropdown styling diverges from profile page menus</td>
+            <td>Apply <code>profile-dropdown-menu</code> / item classes to Radix content — same shadows, radius, padding.</td>
+          </tr>
+          <tr>
+            <td>AppShell grows while extracting components</td>
+            <td>Move polling/state in AppShell; presentation in <code>AppNavbar.tsx</code> + <code>NavIconLink.tsx</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Required pushback:</strong> Do not treat “beautiful” as permission to re-layout zones or add features (search, flyouts). This is polish on Plan 19’s structure. Do not ship a 40px avatar in the header row — add <code>xs</code> or equivalent shared token.
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="t1">
+        <h3>T1 — Nav chrome CSS tokens</h3>
+        <p><strong>Do:</strong> Add reusable classes in <code>index.css</code>: <code>.app-navbar</code> (sticky shell + shadow), <code>.app-navbar-brand</code>, <code>.app-navbar-pill-track</code>, <code>.app-navbar-pill-item</code> (+ active/hover), <code>.app-navbar-action</code> (right-cluster icon button), refined <code>.app-navbar-badge</code>. Mirror dark mode + reduced-motion like existing feed/profile utilities.</p>
+        <p><strong>Files:</strong> <code>frontend/src/index.css</code></p>
+        <p><strong>Depends on:</strong> —</p>
+        <p><strong>Verify:</strong> Classes compose without hard-coded hex outside token vars; dark mode spot-check in DevTools.</p>
+      </article>
+
+      <article class="task-card" id="t2">
+        <h3>T2 — ProfileAvatar <code>xs</code> size</h3>
+        <p><strong>Do:</strong> Extend <code>ProfileAvatar</code> size map with <code>xs: h-8 w-8 text-xs</code> (~32px). No behavior change for existing sizes.</p>
+        <p><strong>Files:</strong> <code>frontend/src/components/ProfileAvatar.tsx</code></p>
+        <p><strong>Depends on:</strong> —</p>
+        <p><strong>Verify:</strong> Typecheck; existing call sites unchanged; xs renders circular with border/shadow.</p>
+      </article>
+
+      <article class="task-card" id="t3">
+        <h3>T3 — Extract nav presentation components</h3>
+        <p><strong>Do:</strong> Create <code>frontend/src/components/nav/NavIconLink.tsx</code> (NavLink + badge + action styling) and <code>frontend/src/components/nav/AppNavbar.tsx</code> (brand, pill cluster, right cluster, profile dropdown markup). Props-driven — no fetching inside nav components.</p>
+        <p><strong>Files:</strong> <code>frontend/src/components/nav/NavIconLink.tsx</code> (new), <code>frontend/src/components/nav/AppNavbar.tsx</code> (new)</p>
+        <p><strong>Depends on:</strong> T1, T2</p>
+        <p><strong>Verify:</strong> Components are presentational; accept counts/paths/user from AppShell.</p>
+      </article>
+
+      <article class="task-card" id="t4">
+        <h3>T4 — Wire AppShell to polished navbar</h3>
+        <p><strong>Do:</strong> Slim <code>AppShell.tsx</code> to state/effects + <code>&lt;AppNavbar … /&gt;</code>. Brand → “SocMed”. Center nav in pill track. Profile trigger → <code>ProfileAvatar size="xs"</code> with active ring. Dropdown content uses profile-dropdown styling + <code>animate-menu-enter</code>. Signed-out cluster gets same header shell + wordmark.</p>
+        <p><strong>Files:</strong> <code>frontend/src/components/AppShell.tsx</code>, <code>frontend/src/components/nav/AppNavbar.tsx</code>, optionally <code>frontend/src/components/ui/dropdown-menu.tsx</code></p>
+        <p><strong>Depends on:</strong> T3</p>
+        <p><strong>Verify:</strong> All Plan 19 behaviors still work; no duplicate theme/logout in signed-in row.</p>
+      </article>
+
+      <article class="task-card" id="t5">
+        <h3>T5 — Acceptance artifacts + plan index</h3>
+        <p><strong>Do:</strong> Run frontend typecheck/build. Complete <code>test-results.json</code> via manual UI pass (or waiver). Index seq 35 in <code>plans/README.md</code>.</p>
+        <p><strong>Files:</strong> <code>plans/08012026-35-navbar-upgrade/test-results.json</code>, <code>plans/README.md</code></p>
+        <p><strong>Depends on:</strong> T4</p>
+        <p><strong>Verify:</strong> Rollup Passed; README lists plan 35.</p>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" checked disabled> Brand shows “SocMed”; links home</li>
+        <li><input type="checkbox" checked disabled> Center nav uses pill track + elevated active state</li>
+        <li><input type="checkbox" checked disabled> Right icons polished; badges accurate</li>
+        <li><input type="checkbox" checked disabled> Profile trigger is user avatar (xs)</li>
+        <li><input type="checkbox" checked disabled> Dropdown styled like profile menus; all items work</li>
+        <li><input type="checkbox" checked disabled> Header elevation in light + dark</li>
+        <li><input type="checkbox" checked disabled> Signed-out: ThemeToggle + Sign in unchanged functionally</li>
+        <li><input type="checkbox" checked disabled> Three-zone layout + badge polling unchanged</li>
+        <li><input type="checkbox" checked disabled> Frontend typecheck + build clean</li>
+        <li><input type="checkbox" checked disabled> Acceptance rollup Passed (or written waivers)</li>
+        <li><input type="checkbox" checked disabled> README seq 35 indexed; spec status updated</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-08-01</td>
+            <td>Initial spec. Locked: avatar profile trigger (1A), “SocMed” wordmark (2A), pill cluster center nav (3A). Planning worktree <code>plan/08012026-35-navbar-upgrade</code>; execution branch <code>kylie/navbar-upgrade</code>.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-08-01</td>
+            <td>Executed on <code>kylie/navbar-upgrade</code>: extracted <code>AppNavbar</code> / <code>NavIconLink</code>, nav CSS tokens, ProfileAvatar <code>xs</code>, profile-dropdown styling. Follow-up polish: soft avatar ring, pill track depth, action icon hover parity.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-08-01</td>
+            <td>Finalized (<code>-d</code>): acceptance Passed; Done checklist verified; changelog 0.1.18; status Completed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

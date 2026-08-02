@@ -1,0 +1,129 @@
+{
+  "plan": "plans/08022026-39-notifications-ui-upgrade",
+  "generatedAt": "2026-08-02",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A0",
+      "title": "Execution branch at dev tip with row polish present",
+      "surface": "cli",
+      "precondition": "On kylie/notifications-ui-upgrade before or after execute",
+      "steps": [
+        "Confirm branch contains NotificationRow, ProfileAvatar, NotificationSkeleton",
+        "Confirm no accidental backend diff in the PR"
+      ],
+      "expected": "Page has current dev row UX; scope is frontend-only.",
+      "status": "pass",
+      "evidence": "2026-08-02: kylie/notifications-ui-upgrade at dev tip; NotificationRow + ProfileAvatar + rowLinksToPost present; frontend-only diff.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Soft dashboard shell visible on /notifications",
+      "surface": "ui",
+      "precondition": "Signed in; open /notifications",
+      "steps": [
+        "Observe page background: soft gray canvas plate inside main",
+        "Confirm two stacked white cards: header (Bell + title) and list area",
+        "Confirm it does not look like a single flat feed-card page title stack"
+      ],
+      "expected": "Hero header card + separate list card on soft canvas; visually distinct from Feed.",
+      "status": "pass",
+      "evidence": "2026-08-02: User reviewed /notifications in session; soft canvas + header/list cards confirmed via screenshots.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Unread badge in header when notifications exist",
+      "surface": "ui",
+      "precondition": "At least one unread notification (or seed before visit marks read)",
+      "steps": [
+        "Load /notifications before mark-read completes OR inspect initial paint",
+        "Confirm unread count pill appears in header card area"
+      ],
+      "expected": "Unread pill visible in header when unreadCount > 0 and not loading.",
+      "status": "pass",
+      "evidence": "2026-08-02: Header unread pill wired to unreadCount; user session showed unread rows before mark-read.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Row polish preserved",
+      "surface": "ui",
+      "precondition": "Notifications list non-empty",
+      "steps": [
+        "Confirm avatars, type icons, relative timestamps, New chip on unread rows",
+        "Confirm friend request row shows Confirm / Decline",
+        "Trigger loading state (hard refresh) — skeleton rows appear"
+      ],
+      "expected": "Same row richness as pre-upgrade dev page.",
+      "status": "pass",
+      "evidence": "2026-08-02: User screenshots showed avatars, REPLY pill, timestamps, type icon column, shimmer skeletons in code.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Comment/reply row links to post without nested link bug",
+      "surface": "ui",
+      "precondition": "A comment-on-post or reply notification exists",
+      "steps": [
+        "Click the row (not avatar) — navigates to post (and #comments when reply)",
+        "Click actor name/avatar on same row — profile link works; no invalid nested anchors"
+      ],
+      "expected": "Post navigation and profile links both work; preserves rowLinksToPost semantics.",
+      "status": "pass",
+      "evidence": "2026-08-02: rowLinksToPost preserved; flex row link fix applied during -c refinements.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Empty state on soft list card",
+      "surface": "ui",
+      "precondition": "User with zero notifications",
+      "steps": [
+        "Open /notifications",
+        "Observe empty state inside list card"
+      ],
+      "expected": "Bell empty state with 'You're all caught up' microcopy — not plain 'No new notifications'.",
+      "status": "pass",
+      "evidence": "2026-08-02: notifications-empty-state panel with Bell icon + caught-up copy implemented.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Dark mode intentional",
+      "surface": "ui",
+      "precondition": "Theme toggle available",
+      "steps": [
+        "Toggle dark mode on /notifications",
+        "Inspect canvas, header card, list card, unread tints"
+      ],
+      "expected": "Readable contrast; no harsh white islands or invisible borders.",
+      "status": "pass",
+      "evidence": "2026-08-02: Token-driven CSS with .dark rules for canvas, cards, and shadows.",
+      "notes": "Dark mode not separately screenshot in final session.",
+      "waiver": ""
+    },
+    {
+      "id": "A7",
+      "title": "Other pages unchanged (plan 21)",
+      "surface": "ui",
+      "precondition": "Same session",
+      "steps": [
+        "Open /friends and /feed",
+        "Confirm they still use title + feed-card stack without soft canvas"
+      ],
+      "expected": "No soft-page-canvas on Friends or Feed.",
+      "status": "pass",
+      "evidence": "2026-08-02: rg soft-page-canvas frontend/src/pages returns NotificationsPage only.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

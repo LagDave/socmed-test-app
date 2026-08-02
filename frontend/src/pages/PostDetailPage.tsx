@@ -215,6 +215,7 @@ export function PostDetailPage() {
         <PostCard
           post={post}
           currentUserId={user.id}
+          showActionLabels
           onDelete={() => setPendingDelete({ type: "post" })}
           onShare={() => openShare()}
           onReactionSummaryChange={(_, summary) => patchPostSummary(summary)}
@@ -247,7 +248,7 @@ export function PostDetailPage() {
       />
 
       {error && (
-        <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground" role="alert">
+        <p className="feed-alert px-4 py-3 text-sm text-muted-foreground" role="alert">
           {error}
         </p>
       )}

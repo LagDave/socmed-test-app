@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ImagePlus, X } from "lucide-react";
+import { ArrowUp, ImagePlus, Loader2, X } from "lucide-react";
 import type { PublicUser } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
@@ -42,11 +42,13 @@ export function CommentComposer({
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const profilePath = `/u/${user.username || "me"}`;
+  const isReply = Boolean(replyingTo);
 
   const trimmed = body.trim();
   const canSubmit = Boolean(trimmed || imageFile);
   const nearLimit = body.length >= WARN_AT;
   const disabled = busy || submitting;
+  const sendLabel = submitting ? "Sending comment" : isReply ? "Post reply" : "Post comment";
 
   useEffect(() => {
     if (!autoFocus && !replyingTo) return;
@@ -58,6 +60,11 @@ export function CommentComposer({
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(null);
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function collapseIfEmpty() {
+    if (isReply || imageFile) return;
+    if (!trimmed) setExpanded(false);
   }
 
   function resetForm() {
@@ -90,52 +97,76 @@ export function CommentComposer({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "comment-composer overflow-hidden rounded-xl border border-border/70 bg-canvas/40 transition-shadow duration-200",
-        expanded && "comment-composer-expanded ring-1 ring-border/60",
-        compact && "bg-canvas/25"
+        "comment-composer",
+        expanded && "comment-composer-expanded",
+        compact && "comment-composer-reply"
       )}
     >
       {replyingTo && (
-        <div className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2 text-sm text-muted-foreground">
+        <div className="comment-composer-reply-banner">
           <span>
             Replying to{" "}
-            <span className="font-medium text-foreground">{replyingTo.displayName}</span>
+            <span className="font-semibold text-foreground">{replyingTo.displayName}</span>
           </span>
           {onCancel && (
-            <Button type="button" variant="ghost" size="sm" className="h-8 px-2" onClick={onCancel}>
+            <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onCancel}>
               Cancel
             </Button>
           )}
         </div>
       )}
 
-      <div className="flex items-start gap-3 px-3 py-3">
+      <div className="flex items-start gap-2.5">
         <Link to={profilePath} className="shrink-0 pt-0.5" aria-label="Your profile">
           <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
         </Link>
 
-        <div className="min-w-0 flex-1 space-y-3">
-          <Textarea
-            ref={textareaRef}
-            placeholder={placeholder}
-            value={body}
-            onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
-            onFocus={() => setExpanded(true)}
-            onKeyDown={submitOnEnter}
-            rows={expanded ? 3 : 1}
-            maxLength={MAX_BODY}
+        <div className="min-w-0 flex-1">
+          <div
             className={cn(
-              "min-w-0 resize-none border-0 bg-transparent px-0 py-1 text-[15px] leading-6 shadow-none focus-visible:ring-0",
-              expanded ? "min-h-[4rem]" : "min-h-9"
+              "comment-composer-shell",
+              expanded && "comment-composer-shell-expanded"
             )}
-          />
+          >
+            <Textarea
+              ref={textareaRef}
+              placeholder={placeholder}
+              value={body}
+              onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
+              onFocus={() => setExpanded(true)}
+              onBlur={collapseIfEmpty}
+              onKeyDown={submitOnEnter}
+              rows={expanded ? 3 : 1}
+              maxLength={MAX_BODY}
+              className={cn(
+                "min-w-0 w-full resize-none border-0 bg-transparent px-0 py-0 text-[15px] leading-6 shadow-none focus-visible:ring-0",
+                expanded ? "min-h-[3.5rem]" : "min-h-6"
+              )}
+            />
+
+            {!expanded && (
+              <Button
+                type="submit"
+                size="icon"
+                className="comment-composer-send h-8 w-8 shrink-0 rounded-full"
+                disabled={disabled || !canSubmit}
+                aria-label={sendLabel}
+              >
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                )}
+              </Button>
+            )}
+          </div>
 
           {imagePreview && (
-            <div className="relative inline-block max-w-full">
+            <div className="relative mt-2 inline-block max-w-full">
               <img
                 src={imagePreview}
                 alt="Selected attachment preview"
-                className="max-h-44 rounded-lg border border-border object-cover"
+                className="max-h-44 rounded-xl border border-border object-cover"
               />
               <Button
                 type="button"
@@ -151,7 +182,7 @@ export function CommentComposer({
           )}
 
           {expanded && (
-            <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+            <div className="mt-2 flex items-center justify-between gap-2">
               <div>
                 <input
                   ref={fileRef}
@@ -164,13 +195,14 @@ export function CommentComposer({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-8 gap-1.5 px-2 text-muted-foreground"
+                  className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
                   onClick={() => fileRef.current?.click()}
                 >
                   <ImagePlus className="h-4 w-4" aria-hidden="true" />
                   Photo
                 </Button>
               </div>
+
               <div className="flex items-center gap-2">
                 {nearLimit && (
                   <span className="text-xs text-muted-foreground">{MAX_BODY - body.length} left</span>
@@ -182,17 +214,6 @@ export function CommentComposer({
             </div>
           )}
         </div>
-
-        {!expanded && (
-          <Button
-            type="submit"
-            size="sm"
-            className="shrink-0 self-center"
-            disabled={disabled || !canSubmit}
-          >
-            {submitLabel}
-          </Button>
-        )}
       </div>
     </form>
   );

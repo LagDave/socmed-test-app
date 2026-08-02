@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { FeedComposer } from "@/components/FeedComposer";
-import { FeedEmptyState, FeedPostSkeleton } from "@/components/FeedEmptyState";
+import { FeedEmptyState, FeedPostSkeleton, FeedWelcomeCard } from "@/components/FeedEmptyState";
 import { PostCard } from "@/components/PostCard";
 import { SharePostDialog } from "@/components/SharePostDialog";
-import { Button } from "@/components/ui/button";
 import { useFeedPosts } from "@/hooks/useFeedPosts";
 import { api } from "@/api/client";
 import type { PostView } from "@/api/types";
@@ -104,19 +102,13 @@ export function FeedPage() {
   if (!user) {
     return (
       <section className="feed-page space-y-4">
-        <div className="feed-card px-6 py-10 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight">Welcome to SocMed</h1>
-          <p className="mt-3 text-muted-foreground">Sign in to see posts from you and your friends.</p>
-          <Button asChild className="mt-6">
-            <Link to="/login">Sign in</Link>
-          </Button>
-        </div>
+        <FeedWelcomeCard />
       </section>
     );
   }
 
   return (
-    <section className="feed-page space-y-5">
+    <section className="feed-page space-y-6">
       <FeedComposer
         user={user}
         onPosted={() => void refresh()}
@@ -124,13 +116,13 @@ export function FeedPage() {
       />
 
       {displayError && (
-        <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground" role="alert">
+        <p className="feed-alert px-4 py-3 text-sm text-muted-foreground" role="alert">
           {displayError}
         </p>
       )}
 
       {loading && posts.length === 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <FeedPostSkeleton />
           <FeedPostSkeleton />
           <FeedPostSkeleton />
@@ -138,12 +130,13 @@ export function FeedPage() {
       ) : posts.length === 0 ? (
         <FeedEmptyState />
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-5">
           {posts.map((post) => (
             <li key={post.id}>
               <PostCard
                 post={post}
                 currentUserId={user.id}
+                showActionLabels
                 onDelete={setPendingDeleteId}
                 onShare={openShare}
                 onReactionSummaryChange={patchPostSummary}
@@ -154,10 +147,10 @@ export function FeedPage() {
       )}
 
       {!loading && posts.length > 0 && (
-        <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-2">
+        <div ref={loadMoreRef} className="flex min-h-10 items-center justify-center py-3">
           {loadingMore && <p className="text-sm text-muted-foreground">Loading more…</p>}
           {!loadingMore && !hasMore && (
-            <p className="text-xs text-muted-foreground">You&apos;re all caught up</p>
+            <p className="feed-end-divider w-full max-w-sm">You&apos;re all caught up</p>
           )}
         </div>
       )}

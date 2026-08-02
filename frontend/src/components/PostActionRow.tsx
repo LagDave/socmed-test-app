@@ -33,6 +33,8 @@ type PostActionRowProps = {
   children: ReactNode;
   size?: keyof typeof SIZE;
   className?: string;
+  /** Feed + detail: icon + label at md+ breakpoints. */
+  showLabels?: boolean;
   /** Feed: navigate to post comments. */
   commentTo?: string;
   /** Detail: scroll / focus comments. */
@@ -49,16 +51,25 @@ type PostActionIconProps = {
   onClick?: () => void;
   to?: string;
   children: ReactNode;
+  showLabels?: boolean;
 };
 
-function PostActionIcon({ label, size, busy = false, onClick, to, children }: PostActionIconProps) {
+function PostActionIcon({
+  label,
+  size,
+  busy = false,
+  onClick,
+  to,
+  children,
+  showLabels = false,
+}: PostActionIconProps) {
   const s = SIZE[size];
   const shellClass =
     "inline-flex items-center rounded-full border border-border/80 bg-background p-px transition-shadow hover:shadow-sm";
 
   const innerClass = cn(
     "group relative inline-flex items-center justify-center rounded-full transition-colors hover:bg-accent",
-    s.btn,
+    showLabels ? "h-9 w-9 md:h-9 md:w-auto md:gap-2 md:px-3.5" : s.btn,
     busy && "pointer-events-none opacity-70"
   );
 
@@ -68,7 +79,9 @@ function PostActionIcon({ label, size, busy = false, onClick, to, children }: Po
     children
   );
 
-  const hoverLabel = (
+  const labelContent = showLabels ? (
+    <span className="hidden text-sm font-medium text-muted-foreground md:inline">{label}</span>
+  ) : (
     <span
       className={cn(
         "pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-muted-foreground",
@@ -85,7 +98,7 @@ function PostActionIcon({ label, size, busy = false, onClick, to, children }: Po
       <div className={shellClass}>
         <Link to={to} aria-label={label} className={innerClass}>
           {iconContent}
-          {hoverLabel}
+          {labelContent}
         </Link>
       </div>
     );
@@ -101,7 +114,7 @@ function PostActionIcon({ label, size, busy = false, onClick, to, children }: Po
         onClick={onClick}
       >
         {iconContent}
-        {hoverLabel}
+        {labelContent}
       </button>
     </div>
   );
@@ -111,6 +124,7 @@ export function PostActionRow({
   children,
   size = "md",
   className,
+  showLabels = false,
   commentTo,
   onCommentClick,
   onShare,
@@ -121,8 +135,9 @@ export function PostActionRow({
   const commentControl =
     commentTo || onCommentClick ? (
       <PostActionIcon
-        label="Comments"
+        label={showLabels ? "Comment" : "Comments"}
         size={size}
+        showLabels={showLabels}
         to={commentTo}
         onClick={onCommentClick}
       >
@@ -131,7 +146,13 @@ export function PostActionRow({
     ) : null;
 
   const shareControl = onShare ? (
-    <PostActionIcon label="Share" size={size} busy={shareBusy} onClick={onShare}>
+    <PostActionIcon
+      label="Share"
+      size={size}
+      showLabels={showLabels}
+      busy={shareBusy}
+      onClick={onShare}
+    >
       <Share2 className={s.icon} aria-hidden="true" />
     </PostActionIcon>
   ) : null;
