@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationSoundsSettings } from "@/components/NotificationSoundsSettings";
 
 function SettingsBlock({ title, body }: { title: string; body: string }) {
   return (
@@ -18,7 +19,7 @@ export function AccountSettingsPage() {
       <div className="px-1">
         <h1 className="text-2xl font-semibold tracking-tight">Account Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Privacy, security, and general account configuration.
+          Privacy, security, and notification preferences.
         </p>
         {user?.username && (
           <p className="mt-2 text-sm">
@@ -29,17 +30,21 @@ export function AccountSettingsPage() {
         )}
       </div>
 
+      <NotificationSoundsSettings />
+
       <SettingsBlock
         title="Privacy"
         body="Control who can find your profile and send friend requests. Detailed privacy controls will land in a later pass — defaults stay open to signed-in users."
       />
+
       <SettingsBlock
         title="Security"
         body="Password changes, session management, and two-factor options will live here. Your session is currently cookie-based."
       />
+
       <SettingsBlock
-        title="General"
-        body="Language, notification preferences, and account deletion will appear in this section when those features ship."
+        title="More settings"
+        body="Language and account deletion will appear in a later pass when those features ship."
       />
     </section>
   );

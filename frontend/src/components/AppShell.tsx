@@ -14,6 +14,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useMessageNotificationSound } from "@/hooks/useMessageNotificationSound";
 import { useMessagesSocketConnection } from "@/hooks/useMessagesSocket";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { toggleTheme } = useTheme();
   const location = useLocation();
   const socketConnected = useMessagesSocketConnection();
+  useMessageNotificationSound();
   const [notificationCount, setNotificationCount] = useState(0);
   const [feedCount, setFeedCount] = useState(0);
   const [messagesCount, setMessagesCount] = useState(0);
