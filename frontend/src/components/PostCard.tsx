@@ -123,6 +123,7 @@ type PostCardProps = {
   variant?: "standalone" | "embedded";
   /** Full photo album on post detail; grid + link on feed. */
   postMediaMode?: "feed" | "detail";
+  showActionLabels?: boolean;
   className?: string;
 };
 
@@ -136,6 +137,7 @@ export function PostCard({
   sharingPostId = null,
   variant = "standalone",
   postMediaMode = "feed",
+  showActionLabels = false,
   className,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -306,6 +308,7 @@ export function PostCard({
         >
           <PostActionRow
             size="md"
+            showLabels={showActionLabels}
             commentTo={`/posts/${post.id}#comments`}
             onShare={onShare && canSharePost(currentUserId, post) ? () => onShare(post.id) : undefined}
             shareBusy={sharingPostId === post.id}

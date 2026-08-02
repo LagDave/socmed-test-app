@@ -24,6 +24,7 @@ type PostActionRowProps = {
   children: ReactNode;
   size?: keyof typeof SIZE;
   className?: string;
+  showLabels?: boolean;
   commentTo?: string;
   commentCount?: number;
   onCommentClick?: () => void;
@@ -47,10 +48,14 @@ function CommentCountBadge({ count, className }: { count: number; className?: st
   );
 }
 
+const labeledBtn =
+  "md:h-9 md:w-auto md:gap-2 md:rounded-full md:px-3.5 md:text-sm md:font-medium md:text-muted-foreground md:hover:bg-accent md:hover:text-foreground";
+
 export function PostActionRow({
   children,
   size = "md",
   className,
+  showLabels = false,
   commentTo,
   commentCount = 0,
   onCommentClick,
@@ -65,12 +70,14 @@ export function PostActionRow({
       ? `${commentCount} ${commentCount === 1 ? "comment" : "comments"}`
       : "Comments";
   const commentIcon = <MessageSquare className={s.icon} aria-hidden="true" />;
+  const labelClass = showLabels ? labeledBtn : "";
 
   const commentControl = commentTo ? (
-    <Button asChild variant="ghost" size="icon" className={cn(s.btn, "relative")}>
+    <Button asChild variant="ghost" size="icon" className={cn(s.btn, "relative", labelClass)}>
       <Link to={commentTo} aria-label={commentLabel}>
         {commentIcon}
         <CommentCountBadge count={commentCount} className={s.badge} />
+        {showLabels ? <span className="hidden md:inline">Comment</span> : null}
       </Link>
     </Button>
   ) : (
@@ -78,12 +85,13 @@ export function PostActionRow({
       type="button"
       variant="ghost"
       size="icon"
-      className={cn(s.btn, "relative")}
+      className={cn(s.btn, "relative", labelClass)}
       aria-label={commentLabel}
       onClick={onCommentClick}
     >
       {commentIcon}
       <CommentCountBadge count={commentCount} className={s.badge} />
+      {showLabels ? <span className="hidden md:inline">Comment</span> : null}
     </Button>
   );
 
@@ -93,12 +101,13 @@ export function PostActionRow({
         type="button"
         variant="ghost"
         size="icon"
-        className={s.btn}
+        className={cn(s.btn, labelClass)}
         aria-label={shareDisabled ? "Share unavailable" : "Share"}
         disabled={shareBusy || shareDisabled || !onShare}
         onClick={onShare}
       >
         <Share2 className={s.icon} aria-hidden="true" />
+        {showLabels ? <span className="hidden md:inline">Share</span> : null}
       </Button>
     ) : null;
 

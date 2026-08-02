@@ -142,18 +142,10 @@ export class PostService {
     const input = createPostSchema.parse(raw);
     const imageUrls = resolveImageUrls(input);
 
-    const row = await PostModel.withTransaction(async (trx) => {
-      const [created] = await trx<PostRow>("posts")
-        .insert({
-          author_id: userId,
-          body: input.body,
-          image_url: imageUrls[0] ?? null,
-          shared_from_post_id: null,
-        })
-        .returning("*");
-
-      await PostImageModel.insertMany(created.id, imageUrls, trx);
-      return created;
+    const row = await PostModel.create({
+      authorId: userId,
+      body: input.body,
+      imageUrls,
     });
 
     return (await hydrate([row], userId))[0];
@@ -194,16 +186,10 @@ export class PostService {
   }
 
   static async createProfilePhotoPost(userId: string, body: string, imageUrl: string): Promise<void> {
-    await PostModel.withTransaction(async (trx) => {
-      const [row] = await trx<PostRow>("posts")
-        .insert({
-          author_id: userId,
-          body,
-          image_url: imageUrl,
-          shared_from_post_id: null,
-        })
-        .returning("*");
-      await PostImageModel.insertMany(row.id, [imageUrl], trx);
+    await PostModel.create({
+      authorId: userId,
+      body,
+      imageUrl,
     });
   }
 

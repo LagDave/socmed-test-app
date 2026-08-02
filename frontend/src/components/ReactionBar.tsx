@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { api } from "@/api/client";
 import type { ReactionEmoji, ReactionSummary } from "@/api/types";
 import { ReactionIcon } from "@/components/ReactionIcon";
-import { ReactionUsersPanel } from "@/components/ReactionUsersPanel";
+import { ReactionsListPopover } from "@/components/ReactionsListPopover";
 import { REACTION_OPTIONS, reactionOption } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
 
@@ -37,13 +37,14 @@ const SIZE = {
 } as const;
 
 type ReactionBarProps = {
-  targetType: "post" | "comment" | "post_image";
+  targetType: "post" | "comment" | "post_image" | "message";
   targetId: string;
   summary: ReactionSummary;
   onSummaryChange: (summary: ReactionSummary) => void;
   size?: keyof typeof SIZE;
   actions?: ReactNode;
   className?: string;
+  onError?: (message: string) => void;
 };
 
 export function ReactionBar({
@@ -54,15 +55,16 @@ export function ReactionBar({
   size = "md",
   actions,
   className,
+  onError,
 }: ReactionBarProps) {
   const [expanded, setExpanded] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [usersOpen, setUsersOpen] = useState(false);
   const [popEmoji, setPopEmoji] = useState<ReactionEmoji | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const summaryRef = useRef<HTMLButtonElement>(null);
   const holdTimerRef = useRef<number | null>(null);
   const expandTimerRef = useRef<number | null>(null);
+  const pickerId = useId();
   const s = SIZE[size];
 
   const path =
@@ -70,16 +72,27 @@ export function ReactionBar({
       ? `/api/posts/${targetId}/reactions`
       : targetType === "post_image"
         ? `/api/post-images/${targetId}/reactions`
-        : `/api/comments/${targetId}/reactions`;
+        : targetType === "comment"
+          ? `/api/comments/${targetId}/reactions`
+          : `/api/messages/messages/${targetId}/reaction`;
+
+  function parseReactionResponse(
+    data: { reactionSummary: ReactionSummary } | { message: { reactionSummary: ReactionSummary } }
+  ): ReactionSummary {
+    return "message" in data ? data.message.reactionSummary : data.reactionSummary;
+  }
 
   useEffect(() => {
-    if (!expanded) return;
+    if (!expanded && !listOpen) return;
     function onPointerDown(e: PointerEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setExpanded(false);
+      if (!rootRef.current?.contains(e.target as Node)) {
+        setExpanded(false);
+        setListOpen(false);
+      }
     }
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [expanded]);
+  }, [expanded, listOpen]);
 
   function clearHoldTimer() {
     if (holdTimerRef.current !== null) {
@@ -105,22 +118,34 @@ export function ReactionBar({
     setExpanded(false);
   }
 
+  function toggleList() {
+    clearExpandTimer();
+    setExpanded(false);
+    setListOpen((open) => !open);
+  }
+
   async function applyEmoji(emoji: ReactionEmoji) {
     if (busy) return;
     setBusy(true);
     try {
       if (summary.viewerEmoji === emoji) {
-        const data = await api.delete<{ reactionSummary: ReactionSummary }>(path);
-        onSummaryChange(data.reactionSummary);
+        const data = await api.delete<
+          { reactionSummary: ReactionSummary } | { message: { reactionSummary: ReactionSummary } }
+        >(path);
+        onSummaryChange(parseReactionResponse(data));
       } else {
-        const data = await api.put<{ reactionSummary: ReactionSummary }>(path, { emoji });
-        onSummaryChange(data.reactionSummary);
+        const data = await api.put<
+          { reactionSummary: ReactionSummary } | { message: { reactionSummary: ReactionSummary } }
+        >(path, { emoji });
+        onSummaryChange(parseReactionResponse(data));
       }
       setPopEmoji(emoji);
       window.setTimeout(() => setPopEmoji(null), 280);
       setExpanded(false);
     } catch (err) {
-      console.error(err instanceof Error ? err.message : "Reaction failed");
+      const message = err instanceof Error ? err.message : "Reaction failed";
+      if (onError) onError(message);
+      else console.error(message);
     } finally {
       setBusy(false);
     }
@@ -136,7 +161,6 @@ export function ReactionBar({
           .map((o) => o.label)
           .join(", ")}`
       : undefined;
-  const showPhotoReactors = targetType === "post_image" && totalCount > 0;
 
   const shellClass = cn(
     "inline-flex items-center rounded-full border border-border/80 bg-background",
@@ -146,7 +170,11 @@ export function ReactionBar({
   return (
     <div
       ref={rootRef}
-      className={cn("flex w-full flex-wrap items-center justify-between", s.leftGap, className)}
+      className={cn(
+        "inline-flex flex-wrap items-center",
+        targetType === "message" ? "gap-1.5" : cn("w-full justify-between", s.leftGap),
+        className
+      )}
     >
       <div className={cn("flex flex-wrap items-center", s.leftGap)}>
         <div
@@ -155,53 +183,55 @@ export function ReactionBar({
           onMouseLeave={collapse}
         >
           <div className={shellClass}>
-            {!expanded ? (
-              <button
-                type="button"
-                disabled={busy}
-                aria-label={triggerLabel}
-                aria-expanded={false}
+            <button
+              type="button"
+              disabled={busy}
+              aria-label={triggerLabel}
+              aria-expanded={expanded}
+              aria-controls={pickerId}
+              className={cn(
+                "group relative inline-flex items-center justify-center rounded-full transition-colors",
+                s.trigger,
+                "hover:bg-accent",
+                "disabled:pointer-events-none disabled:opacity-50",
+                expanded && "sr-only"
+              )}
+              onClick={() => {
+                clearExpandTimer();
+                setExpanded(true);
+              }}
+              onPointerDown={(e) => {
+                if (e.pointerType === "touch" || e.pointerType === "pen") {
+                  clearHoldTimer();
+                  holdTimerRef.current = window.setTimeout(() => setExpanded(true), HOLD_MS);
+                }
+              }}
+              onPointerUp={clearHoldTimer}
+              onPointerCancel={clearHoldTimer}
+              onPointerLeave={clearHoldTimer}
+            >
+              <span
                 className={cn(
-                  "group relative inline-flex items-center justify-center rounded-full transition-colors",
-                  s.trigger,
-                  "hover:bg-accent",
-                  "disabled:pointer-events-none disabled:opacity-50"
+                  "inline-flex items-center justify-center leading-none",
+                  popEmoji && popEmoji === (triggerEmoji ?? "like") && "reaction-icon-pop"
                 )}
-                onClick={() => {
-                  clearExpandTimer();
-                  setExpanded(true);
-                }}
-                onPointerDown={(e) => {
-                  if (e.pointerType === "touch" || e.pointerType === "pen") {
-                    clearHoldTimer();
-                    holdTimerRef.current = window.setTimeout(() => setExpanded(true), HOLD_MS);
-                  }
-                }}
-                onPointerUp={clearHoldTimer}
-                onPointerCancel={clearHoldTimer}
-                onPointerLeave={clearHoldTimer}
               >
-                <span
-                  className={cn(
-                    "inline-flex items-center justify-center leading-none",
-                    popEmoji && popEmoji === (triggerEmoji ?? "like") && "reaction-icon-pop"
-                  )}
-                >
-                  <ReactionIcon emoji={triggerEmoji} className={s.triggerIcon} />
-                </span>
-                <span
-                  className={cn(
-                    "pointer-events-none absolute left-1/2 -translate-x-1/2",
-                    "whitespace-nowrap text-muted-foreground",
-                    s.label,
-                    "opacity-0 transition-opacity group-hover:opacity-100"
-                  )}
-                >
-                  {triggerLabel}
-                </span>
-              </button>
-            ) : (
+                <ReactionIcon emoji={triggerEmoji} className={s.triggerIcon} />
+              </span>
+              <span
+                className={cn(
+                  "pointer-events-none absolute left-1/2 -translate-x-1/2",
+                  "whitespace-nowrap text-muted-foreground",
+                  s.label,
+                  "opacity-0 transition-opacity group-hover:opacity-100"
+                )}
+              >
+                {triggerLabel}
+              </span>
+            </button>
+            {expanded && (
               <div
+                id={pickerId}
                 className={cn("inline-flex items-center", s.pickerGap)}
                 role="listbox"
                 aria-label="Choose reaction"
@@ -251,41 +281,12 @@ export function ReactionBar({
 
       {totalCount > 0 && (
         <div className="relative">
-          {showPhotoReactors ? (
-            <ReactionUsersPanel
-              postImageId={targetId}
-              open={usersOpen}
-              onClose={() => setUsersOpen(false)}
-              anchorRef={summaryRef}
-            />
-          ) : null}
-          {showPhotoReactors ? (
-            <button
-              ref={summaryRef}
-              type="button"
-              aria-label={summaryLabel}
-              aria-expanded={usersOpen}
+          {targetType === "message" ? (
+            <span
               className={cn(
-                "inline-flex items-center rounded-full px-1.5 py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                "inline-flex items-center rounded-full text-muted-foreground",
                 s.summary
               )}
-              onClick={() => setUsersOpen((open) => !open)}
-            >
-              <span className="inline-flex items-center -space-x-1" aria-hidden="true">
-                {presentTypes.map((opt) => (
-                  <span
-                    key={opt.emoji}
-                    className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
-                  >
-                    <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
-                  </span>
-                ))}
-              </span>
-              <span className="tabular-nums">{totalCount}</span>
-            </button>
-          ) : (
-            <div
-              className={cn("inline-flex items-center text-muted-foreground", s.summary)}
               aria-label={summaryLabel}
             >
               <span className="inline-flex items-center -space-x-1" aria-hidden="true">
@@ -299,7 +300,41 @@ export function ReactionBar({
                 ))}
               </span>
               <span>{totalCount}</span>
-            </div>
+            </span>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex items-center rounded-full text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground",
+                  s.summary,
+                  listOpen && "bg-accent/60 text-foreground"
+                )}
+                aria-label={summaryLabel}
+                aria-haspopup="dialog"
+                aria-expanded={listOpen}
+                onClick={toggleList}
+              >
+                <span className="inline-flex items-center -space-x-1" aria-hidden="true">
+                  {presentTypes.map((opt) => (
+                    <span
+                      key={opt.emoji}
+                      className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
+                    >
+                      <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
+                    </span>
+                  ))}
+                </span>
+                <span>{totalCount}</span>
+              </button>
+              <ReactionsListPopover
+                targetType={targetType}
+                targetId={targetId}
+                summary={summary}
+                open={listOpen}
+                onClose={() => setListOpen(false)}
+              />
+            </>
           )}
         </div>
       )}

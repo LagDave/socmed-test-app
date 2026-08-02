@@ -66,6 +66,24 @@ export class ReactionsController {
     }
   }
 
+  static async listOnPost(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactions = await ReactionService.listOnPost(String(req.params.id), req.query);
+      return ok(res, { reactions });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async listOnComment(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactions = await ReactionService.listOnComment(String(req.params.id), req.query);
+      return ok(res, { reactions });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
   static async setOnPostImage(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const reactionSummary = await ReactionService.setOnPostImage(
@@ -91,10 +109,10 @@ export class ReactionsController {
     }
   }
 
-  static async listUsersForPostImage(req: AuthedRequest, res: Response): Promise<Response> {
+  static async listOnPostImage(req: AuthedRequest, res: Response): Promise<Response> {
     try {
-      const reactors = await ReactionService.listUsersForPostImage(String(req.params.id));
-      return ok(res, { reactors });
+      const reactions = await ReactionService.listOnPostImage(String(req.params.id), req.query);
+      return ok(res, { reactions });
     } catch (err) {
       return handle(res, err);
     }

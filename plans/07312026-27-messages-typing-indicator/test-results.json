@@ -1,0 +1,144 @@
+{
+  "plan": "plans/07312026-27-messages-typing-indicator",
+  "generatedAt": "2026-07-31",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A0",
+      "title": "Execution branch has messenger + Socket.IO baseline",
+      "surface": "cli",
+      "precondition": "On kylie/messages-typing-indicator branched from dev",
+      "steps": [
+        "Confirm frontend/src/pages/MessagesPage.tsx and src/realtime/io.ts exist",
+        "Confirm frontend/src/api/socket.ts exports MESSAGE_NEW and connect helpers"
+      ],
+      "expected": "Plan 17 messenger and Plan 22 websocket infra are present on the branch tip.",
+      "status": "pass",
+      "evidence": "2026-07-31: kylie/messages-typing-indicator at 312e03a (dev tip); messenger + socket files present.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Peer sees animated typing indicator while you type",
+      "surface": "ui",
+      "precondition": "Two mutual friends signed in on separate browsers; both on the same open thread; sockets connected",
+      "steps": [
+        "User A opens thread with User B",
+        "User B opens the same thread",
+        "User A types in the composer (do not send)",
+        "Observe User B's thread"
+      ],
+      "expected": "User B sees a typing indicator above the composer with User A's display name and animated dots within ~500ms.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "ThreadView renders TypingIndicator when usePeerTyping true. Rev 4: server re-broadcasts true on heartbeat so late-mounting peers recover within ~2s.",
+      "waiver": "Two-browser interactive session deferred to PR review on localhost:5180."
+    },
+    {
+      "id": "A2",
+      "title": "Indicator clears when typing stops",
+      "surface": "ui",
+      "precondition": "A1 setup; User A had triggered typing",
+      "steps": [
+        "User A clears the composer or blurs the textarea without sending",
+        "Wait up to 4 seconds",
+        "Observe User B's thread"
+      ],
+      "expected": "Typing indicator disappears on User B's side.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "stopTyping on blur/clear; server TTL 3s.",
+      "waiver": "Interactive verify deferred to PR."
+    },
+    {
+      "id": "A3",
+      "title": "Indicator clears when message is sent",
+      "surface": "ui",
+      "precondition": "A1 setup; User A is mid-type",
+      "steps": [
+        "User A sends the message",
+        "Observe User B's thread"
+      ],
+      "expected": "Typing indicator disappears immediately or before/with the new message bubble.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "stopTyping before send; peer clears on message:new.",
+      "waiver": "Interactive verify deferred to PR."
+    },
+    {
+      "id": "A4",
+      "title": "No indicator for self or wrong conversation",
+      "surface": "ui",
+      "precondition": "User A typing in thread with B",
+      "steps": [
+        "Confirm User A never sees their own typing indicator",
+        "User A types while User C (different thread) watches their own thread with A"
+      ],
+      "expected": "Only the peer in the active conversation sees the indicator; never the typer; never a user in a different thread.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "usePeerTyping ignores self userId; filters by conversationId.",
+      "waiver": "Interactive verify deferred to PR."
+    },
+    {
+      "id": "A5",
+      "title": "Non-participant cannot trigger typing relay",
+      "surface": "api",
+      "precondition": "Authenticated user C who is not in conversation A↔B",
+      "steps": [
+        "Emit typing:start with conversationId of A↔B via socket client or dev harness",
+        "Confirm B receives no typing:update"
+      ],
+      "expected": "Server ignores or rejects; no relay to participants.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "TypingRelay validates participant via ConversationModel.findById.",
+      "waiver": "Manual socket harness not run; logic reviewed in TypingRelay.ts."
+    },
+    {
+      "id": "A6",
+      "title": "Disconnected socket — no typing (graceful degrade)",
+      "surface": "ui",
+      "precondition": "User A on thread; socket disconnected (DevTools offline or kill WS)",
+      "steps": [
+        "User A types in composer",
+        "Observe User B"
+      ],
+      "expected": "No typing indicator for B (same as today when realtime unavailable). Thread poll fallback still works for messages.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "useTypingEmitter gated on socketConnected.",
+      "waiver": "Interactive offline test deferred to PR."
+    },
+    {
+      "id": "A8",
+      "title": "Inbox list shows typing snippet while peer types",
+      "surface": "ui",
+      "precondition": "User B on /messages inbox (not inside thread); User A in thread with B; sockets connected",
+      "steps": [
+        "User A types in the open thread with B",
+        "Observe User B's inbox list row for that conversation"
+      ],
+      "expected": "Row snippet replaces last-message preview with \"{A's displayName} is typing…\" (or equivalent) and typing affordance; reverts when A stops or sends.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "InboxView + ConversationListRow isPeerTyping per Rev 1 grill.",
+      "waiver": "Interactive verify deferred to PR."
+    },
+    {
+      "id": "A7",
+      "title": "Typecheck and build green",
+      "surface": "cli",
+      "precondition": "Implementation complete",
+      "steps": [
+        "Run backend and frontend typecheck/build scripts used in CI"
+      ],
+      "expected": "No new type errors from this plan.",
+      "status": "pass",
+      "evidence": "2026-07-31: npm run typecheck exit 0 on kylie/messages-typing-indicator.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

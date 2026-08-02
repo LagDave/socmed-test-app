@@ -1,6 +1,9 @@
 import type { Knex } from "knex";
 
 export async function up(knex: Knex): Promise<void> {
+  const hasColumn = await knex.schema.hasColumn("comments", "post_image_id");
+  if (hasColumn) return;
+
   await knex.schema.alterTable("comments", (t) => {
     t.uuid("post_image_id")
       .nullable()
@@ -13,6 +16,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
+  const hasColumn = await knex.schema.hasColumn("comments", "post_image_id");
+  if (!hasColumn) return;
+
   await knex.schema.alterTable("comments", (t) => {
     t.dropIndex(["post_id", "post_image_id", "parent_id", "created_at"]);
     t.dropIndex(["post_image_id", "created_at"]);

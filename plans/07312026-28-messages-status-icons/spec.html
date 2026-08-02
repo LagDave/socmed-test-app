@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Messages Status Icons Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; --blue:#2563eb; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:920px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .status-demo { display:flex; flex-wrap:wrap; gap:24px; margin-top:16px; }
+    .status-demo div { display:flex; flex-direction:column; align-items:center; gap:8px; font-size:0.85rem; color:var(--muted); }
+    .icon-sent, .icon-delivered { position:relative; width:18px; height:18px; }
+    .icon-sent .ring { width:18px; height:18px; border:2px solid var(--blue); border-radius:50%; box-sizing:border-box; }
+    .icon-delivered .fill { width:18px; height:18px; background:var(--blue); border-radius:50%; }
+    .icon-sent .check, .icon-delivered .check { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:var(--blue); }
+    .icon-delivered .check { color:#fff; }
+    .icon-seen { width:16px; height:16px; border-radius:50%; background:linear-gradient(135deg,#94a3b8,#64748b); border:1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 28</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Messages → status icons (Sent · Delivered · Seen)</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07312026-28-messages-status-icons</dd></div>
+        <div><dt>Size</dt><dd>Medium–Large (migration + realtime + UI component)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 (read receipts always on; delivery ack pattern)</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07312026-28-messages-status-icons</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/message-status-icon</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 17 friends-messenger · Plan 22 messages-websockets</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 17 shipped 1:1 messaging with conversation-level read watermarks for <em>inbound</em> unread badges, but senders never see whether a message left, arrived, or was read. That gap makes the thread feel one-sided — especially after Plan 22 added live delivery.</p>
+      <p>Status icons are the sender-facing mirror of read receipts: lightweight feedback on every outgoing bubble without changing how messages are composed or stored beyond a single delivery timestamp.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>On <strong>outgoing</strong> message bubbles in the thread view, show a three-state status indicator beside the timestamp meta row:</p>
+
+      <div class="status-demo" aria-hidden="true">
+        <div>
+          <div class="icon-sent"><div class="ring"></div><span class="check">✓</span></div>
+          <strong>Sent</strong>
+          <span>Open blue circle + check</span>
+        </div>
+        <div>
+          <div class="icon-delivered"><div class="fill"></div><span class="check">✓</span></div>
+          <strong>Delivered</strong>
+          <span>Filled blue circle + check</span>
+        </div>
+        <div>
+          <div class="icon-seen"></div>
+          <strong>Seen</strong>
+          <span>Peer profile photo (tiny circle)</span>
+        </div>
+      </div>
+
+      <p><strong>Semantics (web app, not phone):</strong></p>
+      <ul>
+        <li><strong>Sent</strong> — REST send succeeded; message is in thread state.</li>
+        <li><strong>Delivered</strong> — peer’s client received the message (socket ack) <em>or</em> peer loaded the thread via REST while offline.</li>
+        <li><strong>Seen</strong> — peer’s conversation read watermark is at or after this message’s <code>created_at</code> (they opened/read the chat).</li>
+      </ul>
+
+      <p><strong>Deliverables:</strong></p>
+      <ul>
+        <li><strong>Migration</strong> — <code>messages.delivered_at</code> (nullable timestamptz).</li>
+        <li><strong>Backend</strong> — mark delivered on client ack + on peer <code>listMessages</code> fetch; expose <code>peerLastReadAt</code> on thread load; emit sender-facing realtime events.</li>
+        <li><strong>SPA</strong> — <code>MessageStatusIcon</code> component; integrate in <code>MessageBubbleRow</code>; thread state + socket handlers in <code>MessagesPage</code>.</li>
+        <li><strong>ProfileAvatar</strong> — add <code>xs</code> size (~16px) for Seen state.</li>
+      </ul>
+
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Sender sees Sent immediately after send; Delivered when peer receives; Seen when peer reads — matching visuals above</li>
+        <li>Live updates via socket while connected; poll/reload still correct when disconnected</li>
+        <li>No icons on incoming bubbles or unsent tombstones</li>
+        <li>Migration applied; typecheck/build green; acceptance rollup Passed or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <p class="callout"><strong>Pending your confirmation</strong> — defaults below are recommended. Reply to revise before <code>-x</code>.</p>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice (recommended)</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Delivered definition</td>
+            <td><strong>A —</strong> Peer client acks <code>message:ack</code> on <code>message:new</code>; server sets <code>delivered_at</code>. Fallback: peer <code>listMessages</code> marks undelivered inbound rows delivered.</td>
+            <td>Honest “reached their device/browser” without guessing from socket emit alone.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Seen definition</td>
+            <td><strong>A —</strong> Reuse conversation read watermarks; <code>seen</code> when <code>message.createdAt &lt;= peerLastReadAt</code></td>
+            <td>Already persisted; no per-message read column.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Icon placement</td>
+            <td><strong>A —</strong> Every outgoing non-unsent bubble: status icon in meta row; timestamp still only when <code>showMeta</code></td>
+            <td>Confirmed by Kylie before <code>-x</code>.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Read receipts opt-out</td>
+            <td><strong>A —</strong> Always on for mutual friends (v1)</td>
+            <td>No settings surface yet; matches “they opened and read the chat.” Flag as concern if privacy matters.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>REST vs socket for ack</td>
+            <td><strong>A —</strong> Socket <code>message:ack</code> primary; batch mark on <code>listMessages</code> for offline/poll peers</td>
+            <td>One code path for live; REST covers disconnect fallback Plan 22 already has.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Seen icon subject</td>
+            <td><strong>A —</strong> Peer’s <code>ProfileAvatar</code> (the reader), not sender</td>
+            <td>Matches user intent: “the person read it.”</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Blue color</td>
+            <td><strong>A —</strong> Fixed <code>#2563eb</code> (Tailwind blue-600) for Sent/Delivered checks</td>
+            <td>Distinct from B&amp;W bubble palette; readable on light meta row.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Baseline (origin/dev)</h3>
+      <ul>
+        <li><code>messages</code> — no <code>delivered_at</code>; read state only at conversation level</li>
+        <li><code>MessageBubbleRow.tsx</code> — outgoing bubbles show timestamp on <code>showMeta</code> only; no status UI</li>
+        <li><code>MessageRealtime.conversationRead</code> — notifies <em>reader</em> only; sender never learns peer read</li>
+        <li><code>ProfileAvatar</code> — sizes <code>sm|md|lg|xl</code>; smallest is 40px (too large for Seen)</li>
+        <li>Plan 27 typing indicator (in flight) — shares <code>frontend/src/api/socket.ts</code> and <code>src/realtime/io.ts</code>; merge order: land typing first or rebase status branch before <code>-x</code></li>
+      </ul>
+      <h3>Closest analogs</h3>
+      <ul>
+        <li><strong>Follow:</strong> Plan 22 event constants mirrored in <code>socket.ts</code>; REST write + WS push; <code>MessageBubbleRow</code> meta row styling (<code>text-[11px] text-muted-foreground</code>)</li>
+        <li><strong>Follow:</strong> Plan 25 <code>ProfileAvatar</code> shared sizing pattern</li>
+        <li><strong>New:</strong> <code>MessageStatusIcon.tsx</code> — presentational; status derivation in a small util or hook</li>
+      </ul>
+      <h3>Event contract (new)</h3>
+      <table>
+        <thead><tr><th>Event</th><th>Direction</th><th>When</th><th>Payload</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>message:ack</code></td>
+            <td>client → server</td>
+            <td>Peer receives <code>message:new</code> (not own message)</td>
+            <td><code>{ messageId: string }</code></td>
+          </tr>
+          <tr>
+            <td><code>message:delivered</code></td>
+            <td>server → sender</td>
+            <td>After <code>delivered_at</code> set</td>
+            <td><code>{ messageId, deliveredAt }</code></td>
+          </tr>
+          <tr>
+            <td><code>conversation:peer-read</code></td>
+            <td>server → other participant</td>
+            <td>After <code>markRead</code></td>
+            <td><code>{ conversationId, peerLastReadAt, readerId }</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>API shape changes</h3>
+      <ul>
+        <li><code>GET .../conversations/:id</code> (list messages) — add top-level <code>peerLastReadAt: string | null</code></li>
+        <li><code>MessageView</code> — add <code>deliveredAt: string | null</code> (null for incoming or when not yet delivered)</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Show three distinct visuals matching user spec</li>
+            <li>Outgoing bubbles only</li>
+            <li>Respect participant + friendship gates on ack handler</li>
+            <li>Sender-facing read notification (not just reader inbox bump)</li>
+            <li>Keep REST send/unsend/react paths unchanged</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>Store per-message read timestamps (watermarks suffice)</li>
+            <li>Show status on unsent tombstones</li>
+            <li>Block send on ack failure</li>
+            <li>Add npm dependencies for icons (SVG / lucide)</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Out of scope</h3>
+          <ul>
+            <li>Inbox row status previews</li>
+            <li>Read-receipt privacy toggle / settings</li>
+            <li>Group chats</li>
+            <li>Push notifications</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Blast radius: message thread UI, MessageService, MessageRealtime, socket client, MessagesPage state, one migration.</p>
+      <table>
+        <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>“Delivered to phone” wording vs web delivery</td>
+            <td>Spec + UI copy use “reached their device/browser”; semantics documented above.</td>
+          </tr>
+          <tr>
+            <td>Read receipts always visible (privacy)</td>
+            <td>v1 mutual-friends-only; document as known limitation; opt-out deferred.</td>
+          </tr>
+          <tr>
+            <td>Socket handler sprawl in <code>io.ts</code></td>
+            <td>Thin handler delegates to <code>MessageDeliveryService</code> or extend <code>MessageRealtime</code> — one module owns ack + emit.</td>
+          </tr>
+          <tr>
+            <td>Merge conflict with Plan 27 typing</td>
+            <td>Rebase <code>kylie/message-status-icon</code> onto typing branch before <code>-x</code>, or serialize merges.</td>
+          </tr>
+          <tr>
+            <td>Stale Seen after paginated history</td>
+            <td>Thread response includes <code>peerLastReadAt</code>; derive status client-side for all loaded outgoing rows.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <div class="task-card" id="T1">
+        <h3>T1 — Migration <code>delivered_at</code></h3>
+        <p><strong>Do:</strong> Add nullable <code>delivered_at</code> to <code>messages</code>.</p>
+        <p><strong>Files:</strong> <code>database/migrations/20260731140000_message_delivered_at.ts</code></p>
+        <p><strong>Depends on:</strong> —</p>
+        <p><strong>Verify:</strong> <code>knex migrate:latest</code>; column present; rollback works.</p>
+      </div>
+
+      <div class="task-card" id="T2">
+        <h3>T2 — Model + delivery marking</h3>
+        <p><strong>Do:</strong> Extend <code>MessageRow</code> / <code>MessageModel</code> with <code>delivered_at</code>; <code>markDelivered(messageId)</code> idempotent; batch mark on list for peer-visible undelivered rows from the other sender.</p>
+        <p><strong>Files:</strong> <code>src/models/MessageModel.ts</code></p>
+        <p><strong>Depends on:</strong> T1</p>
+        <p><strong>Verify:</strong> Unit/integration: setting delivered_at twice is noop.</p>
+      </div>
+
+      <div class="task-card" id="T3">
+        <h3>T3 — MessageService + thread API</h3>
+        <p><strong>Do:</strong> Include <code>deliveredAt</code> in <code>MessageView</code>; add <code>peerLastReadAt</code> to listMessages response; call batch deliver on list; wire <code>markRead</code> to emit <code>conversation:peer-read</code> to the <em>other</em> participant.</p>
+        <p><strong>Files:</strong> <code>src/services/MessageService.ts</code>, <code>src/models/ConversationModel.ts</code> (helper for peer watermark)</p>
+        <p><strong>Depends on:</strong> T2</p>
+        <p><strong>Verify:</strong> API returns new fields; sender gets peer read timestamp.</p>
+      </div>
+
+      <div class="task-card" id="T4">
+        <h3>T4 — Realtime ack + delivery emit</h3>
+        <p><strong>Do:</strong> Register <code>message:ack</code> in socket layer; validate participant; set delivered; emit <code>message:delivered</code> to sender. Add <code>conversation:peer-read</code> in <code>MessageRealtime</code>.</p>
+        <p><strong>Files:</strong> <code>src/realtime/MessageRealtime.ts</code>, <code>src/realtime/io.ts</code> (or dedicated handler module)</p>
+        <p><strong>Depends on:</strong> T3</p>
+        <p><strong>Verify:</strong> Two-browser: ack upgrades sender icon without reload.</p>
+      </div>
+
+      <div class="task-card" id="T5">
+        <h3>T5 — Frontend types + socket constants</h3>
+        <p><strong>Do:</strong> Mirror events in <code>frontend/src/api/socket.ts</code>; extend <code>MessageView</code> and thread response type with <code>deliveredAt</code>, <code>peerLastReadAt</code>.</p>
+        <p><strong>Files:</strong> <code>frontend/src/api/types.ts</code>, <code>frontend/src/api/socket.ts</code></p>
+        <p><strong>Depends on:</strong> T4</p>
+        <p><strong>Verify:</strong> Typecheck passes.</p>
+      </div>
+
+      <div class="task-card" id="T6">
+        <h3>T6 — MessageStatusIcon + ProfileAvatar xs</h3>
+        <p><strong>Do:</strong> New component deriving <code>sent | delivered | seen</code> from props; Sent/Delivered SVG icons; Seen uses <code>ProfileAvatar size="xs"</code>.</p>
+        <p><strong>Files:</strong> <code>frontend/src/components/MessageStatusIcon.tsx</code>, <code>frontend/src/components/ProfileAvatar.tsx</code>, optional <code>frontend/src/lib/messageStatus.ts</code></p>
+        <p><strong>Depends on:</strong> T5</p>
+        <p><strong>Verify:</strong> Storybook-less visual check in thread; aria-label per state.</p>
+      </div>
+
+      <div class="task-card" id="T7">
+        <h3>T7 — Bubble + page integration</h3>
+        <p><strong>Do:</strong> Render icon in <code>MessageBubbleRow</code> for <code>mine &amp;&amp; !isUnsent</code>; MessagesPage holds <code>peerLastReadAt</code>, listens for delivery/read events, emits ack on <code>message:new</code>, updates message <code>deliveredAt</code> in state.</p>
+        <p><strong>Files:</strong> <code>frontend/src/components/MessageBubbleRow.tsx</code>, <code>frontend/src/pages/MessagesPage.tsx</code></p>
+        <p><strong>Depends on:</strong> T6</p>
+        <p><strong>Verify:</strong> Acceptance A1–A6.</p>
+      </div>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>Migration <code>delivered_at</code> applied on dev/staging</span></li>
+        <li><span>☑</span><span>Sent / Delivered / Seen visuals match spec on outgoing bubbles</span></li>
+        <li><span>☑</span><span>Live socket updates for Delivered and Seen</span></li>
+        <li><span>☑</span><span>REST fallback marks Delivered when peer loads thread offline</span></li>
+        <li><span>☑</span><span>No status on incoming or unsent messages</span></li>
+        <li><span>☑</span><span><code>test-results.json</code> rollup Passed or waived</span></li>
+        <li><span>☑</span><span>Build + typecheck green</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Summary</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>2026-07-31</td>
+            <td>Initial spec from <code>-s</code> on <code>kylie/message-status-icon</code>. Locked recommended defaults for delivered ack, watermark-based Seen, per-bubble icons. Planning worktree <code>plan/07312026-28-messages-status-icons</code>.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-31</td>
+            <td><code>-x</code>: Kylie confirmed placement A. Implemented migration, ack/delivery/read realtime, <code>MessageStatusIcon</code>, thread integration.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-07-31</td>
+            <td><code>-c</code>: Timestamps hidden by default; tap/click message bubble toggles timestamp for that message. Status icons unchanged (always visible on outgoing).</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>2026-07-31</td>
+            <td><code>-d</code>: Finalized; build green; acceptance waived for two-browser UI (author spot-check); v0.1.18 changelog.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

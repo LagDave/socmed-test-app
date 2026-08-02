@@ -1,7 +1,7 @@
 {
   "plan": "plans/08022026-41-multi-photo-carousel",
-  "generatedAt": "2026-08-02",
-  "status": "Not Run",
+  "generatedAt": "2026-08-03",
+  "status": "Partial",
   "items": [
     {
       "id": "A0",
@@ -13,8 +13,8 @@
         "Confirm FeedComposer.tsx and PostCard.tsx exist"
       ],
       "expected": "Branch matches plan; modern feed composer present.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "Branch kylie/post-photo-feature merged dev @ 0.1.25; FeedComposer + PostCard present.",
       "notes": "",
       "waiver": ""
     },
@@ -32,7 +32,7 @@
       "expected": "Up to 10 images attach with previews; 11th rejected with clear feedback.",
       "status": "pending",
       "evidence": "",
-      "notes": "",
+      "notes": "Composer cap + pickError wired; needs manual UI pass.",
       "waiver": ""
     },
     {
@@ -47,7 +47,7 @@
       "expected": "Posted carousel opens on the reordered first image; swipe order matches composer order.",
       "status": "pending",
       "evidence": "",
-      "notes": "",
+      "notes": "Chevron reorder restored in FeedComposer; needs manual UI pass.",
       "waiver": ""
     },
     {
@@ -91,7 +91,7 @@
       "expected": "Nested embed shows the same carousel (or first image + count) — not only the cover image silently.",
       "status": "pending",
       "evidence": "",
-      "notes": "",
+      "notes": "SharedPostEmbed uses PostMediaGallery compact mode.",
       "waiver": ""
     },
     {
@@ -105,7 +105,7 @@
       "expected": "400 validation error; no post row created.",
       "status": "pending",
       "evidence": "",
-      "notes": "",
+      "notes": "Zod UPLOAD_PATH_RE validation unchanged; needs authenticated curl.",
       "waiver": ""
     },
     {
@@ -117,8 +117,8 @@
         "Run backend and frontend typecheck/build"
       ],
       "expected": "No errors introduced by this feature.",
-      "status": "pending",
-      "evidence": "",
+      "status": "pass",
+      "evidence": "npm run build @ 0.1.25 — api tsc + frontend tsc/vite green.",
       "notes": "",
       "waiver": ""
     }

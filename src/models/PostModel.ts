@@ -1,5 +1,6 @@
 import type { Knex } from "knex";
 import { db } from "../database/connection";
+import { PostImageModel } from "./PostImageModel";
 
 export type PostRow = {
   id: string;
@@ -16,17 +17,27 @@ export class PostModel {
     authorId: string;
     body: string;
     imageUrl?: string | null;
+    imageUrls?: string[] | null;
     sharedFromPostId?: string | null;
   }): Promise<PostRow> {
-    const [row] = await db<PostRow>("posts")
-      .insert({
-        author_id: input.authorId,
-        body: input.body,
-        image_url: input.imageUrl ?? null,
-        shared_from_post_id: input.sharedFromPostId ?? null,
-      })
-      .returning("*");
-    return row;
+    const urls = input.imageUrls ?? (input.imageUrl ? [input.imageUrl] : []);
+
+    return db.transaction(async (trx) => {
+      const [row] = await trx<PostRow>("posts")
+        .insert({
+          author_id: input.authorId,
+          body: input.body,
+          image_url: urls[0] ?? null,
+          shared_from_post_id: input.sharedFromPostId ?? null,
+        })
+        .returning("*");
+
+      if (urls.length > 0) {
+        await PostImageModel.insertMany(row.id, urls, trx);
+      }
+
+      return row;
+    });
   }
 
   static async findById(id: string): Promise<PostRow | undefined> {

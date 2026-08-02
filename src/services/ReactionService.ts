@@ -16,13 +16,19 @@ import { toPublicUser } from "../types/user";
 export type { ReactionEmoji, ReactionSummary };
 export { emptyReactionSummary, REACTION_EMOJIS };
 
-export type ReactionUserView = {
-  emoji: ReactionEmoji;
+export type ReactionEntryView = {
   user: ReturnType<typeof toPublicUser>;
+  emoji: ReactionEmoji;
+  createdAt: Date;
 };
 
 const upsertSchema = z.object({
   emoji: z.enum(REACTION_EMOJIS),
+});
+
+const listQuerySchema = z.object({
+  emoji: z.enum(REACTION_EMOJIS).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
 export class ReactionService {
@@ -79,15 +85,43 @@ export class ReactionService {
     return ReactionModel.summaryForPostImage(postImageId, userId);
   }
 
-  static async listUsersForPostImage(postImageId: string): Promise<ReactionUserView[]> {
+  static async listOnPost(postId: string, rawQuery: unknown): Promise<ReactionEntryView[]> {
+    const post = await PostModel.findById(postId);
+    if (!post) throw new AppError("POST_NOT_FOUND", "Post not found.");
+    return this.hydrateList(await ReactionModel.listForPost(postId, listQuerySchema.parse(rawQuery)));
+  }
+
+  static async listOnComment(commentId: string, rawQuery: unknown): Promise<ReactionEntryView[]> {
+    const comment = await CommentModel.findById(commentId);
+    if (!comment) throw new AppError("COMMENT_NOT_FOUND", "Comment not found.");
+    return this.hydrateList(
+      await ReactionModel.listForComment(commentId, listQuerySchema.parse(rawQuery))
+    );
+  }
+
+  static async listOnPostImage(postImageId: string, rawQuery: unknown): Promise<ReactionEntryView[]> {
     const image = await PostImageModel.findById(postImageId);
     if (!image) throw new AppError("POST_IMAGE_NOT_FOUND", "Photo not found.");
-    const rows = await ReactionModel.listUsersForPostImage(postImageId);
-    const users = await Promise.all(rows.map((row) => UserModel.findById(row.userId)));
-    return rows.flatMap((row, i) => {
-      const user = users[i];
+    return this.hydrateList(
+      await ReactionModel.listForPostImage(postImageId, listQuerySchema.parse(rawQuery))
+    );
+  }
+
+  private static async hydrateList(rows: Awaited<ReturnType<typeof ReactionModel.listForPost>>) {
+    const userIds = [...new Set(rows.map((row) => row.user_id))];
+    const users = await UserModel.findByIds(userIds);
+    const userById = new Map(users.map((user) => [user.id, user]));
+
+    return rows.flatMap((row) => {
+      const user = userById.get(row.user_id);
       if (!user) return [];
-      return [{ emoji: row.emoji, user: toPublicUser(user) }];
+      return [
+        {
+          user: toPublicUser(user),
+          emoji: row.emoji,
+          createdAt: row.created_at,
+        },
+      ];
     });
   }
 }
