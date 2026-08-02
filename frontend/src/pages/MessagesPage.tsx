@@ -1,23 +1,31 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, MessageCircle } from "lucide-react";
+import { ChevronLeft, ImagePlus, MessageCircle, Palette, SendHorizontal, X } from "lucide-react";
 import { api } from "@/api/client";
 import {
+  CONVERSATION_PEER_READ,
+  CONVERSATION_THEME,
   CONVERSATION_UPDATED,
+  MESSAGE_DELIVERED,
   MESSAGE_EDITED,
   MESSAGE_NEW,
   MESSAGE_REACTION,
   MESSAGE_UNSENT,
   getMessagesSocket,
+  type ConversationPeerReadPayload,
+  type ConversationThemePayload,
   type ConversationUpdatedPayload,
+  type MessageDeliveredPayload,
   type MessageEventPayload,
 } from "@/api/socket";
-import type { ConversationListItem, MessageView, PublicUser } from "@/api/types";
+import type { ConversationListItem, ConversationThemeView, MessageView, PublicUser } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChatThemePicker } from "@/components/ChatThemePicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ConversationListRow } from "@/components/ConversationListRow";
-import { MessageComposeBar } from "@/components/MessageComposeBar";
 import { MessageBubbleRow } from "@/components/MessageBubbleRow";
+import { MessageComposerEmojiPicker } from "@/components/MessageComposerEmojiPicker";
+import { truncateQuoteText } from "@/components/MessageQuoteStrip";
 import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import {
   MessageDaySeparator,
@@ -27,20 +35,76 @@ import {
   MessagesThreadSkeleton,
 } from "@/components/MessagesUiHelpers";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { TypingIndicator } from "@/components/TypingIndicator";
+import { useCanHover } from "@/hooks/useCanHover";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
+import {
+  useInboxPeerTyping,
+  usePeerTyping,
+  useTypingEmitter,
+} from "@/hooks/useTypingIndicator";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   formatMessageDay,
   isSameCalendarDay,
   messagesShareGroup,
 } from "@/lib/formatMessageDay";
+import { submitOnEnter } from "@/lib/submitOnEnter";
+import { updateConversationTheme } from "@/api/messages";
+import {
+  chatThemeCssVars,
+  resolveConversationTheme,
+} from "@/lib/chatThemeApply";
+import type { ChatTheme } from "@/api/types";
+import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
+import { cn } from "@/lib/utils";
 
 const POLL_MS = 2500;
+
+function replyTargetPreview(
+  message: MessageView,
+  user: PublicUser,
+  peer: PublicUser
+): { name: string; snippet: string; imageUrl: string | null } {
+  const name = message.senderId === user.id ? user.displayName : peer.displayName;
+  if (message.isUnsent) {
+    return { name, snippet: "Message unavailable", imageUrl: null };
+  }
+  const snippet = message.body?.trim()
+    ? truncateQuoteText(message.body)
+    : message.imageUrl
+      ? "Photo"
+      : "Message";
+  return { name, snippet, imageUrl: message.imageUrl };
+}
+
+function patchReplyTargetsUnsent(prev: MessageView[], unsentId: string): MessageView[] {
+  return prev.map((m) => {
+    if (m.replyTo?.id !== unsentId) return m;
+    return {
+      ...m,
+      replyTo: {
+        ...m.replyTo,
+        isUnsent: true,
+        body: null,
+        imageUrl: null,
+      },
+    };
+  });
+}
 
 function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] {
   const map = new Map<string, MessageView>();
   for (const m of prev) map.set(m.id, m);
-  for (const m of incoming) map.set(m.id, m);
+  for (const m of incoming) {
+    const existing = map.get(m.id);
+    map.set(m.id, {
+      ...m,
+      deliveredAt: m.deliveredAt ?? existing?.deliveredAt ?? null,
+      editedAt: m.editedAt ?? existing?.editedAt ?? null,
+    });
+  }
   return Array.from(map.values()).sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
@@ -51,6 +115,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const navigate = useNavigate();
   const socketConnected = useSocketConnected();
   const [peer, setPeer] = useState<PublicUser | null>(null);
+  const [peerLastReadAt, setPeerLastReadAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
@@ -62,36 +127,81 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [loadingThread, setLoadingThread] = useState(true);
+  const [conversationTheme, setConversationTheme] = useState<ConversationThemeView | null>(null);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+  const [themeSaving, setThemeSaving] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState<MessageView | null>(null);
+  const [tappedMessageId, setTappedMessageId] = useState<string | null>(null);
+  const canHover = useCanHover();
+  const isPeerTyping = usePeerTyping(conversationId, user?.id);
+  const { stopTyping } = useTypingEmitter({
+    conversationId,
+    text: body,
+    connected: socketConnected,
+    active: !sending && !editingMessageId,
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const composeRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const generationRef = useRef(0);
+  const themePickerOpenRef = useRef(false);
   const stickToBottomRef = useRef(true);
+  const replyTargetIdRef = useRef<string | null>(null);
+  const peerIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    replyTargetIdRef.current = replyToMessage?.id ?? null;
+  }, [replyToMessage?.id]);
+
+  useEffect(() => {
+    peerIdRef.current = peer?.id ?? null;
+  }, [peer?.id]);
+
+  themePickerOpenRef.current = themePickerOpen;
+
+  function scrollThreadToBottom(behavior: ScrollBehavior = "auto") {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+    bottomRef.current?.scrollIntoView({ behavior, block: "end" });
+  }
 
   useEffect(() => {
     generationRef.current += 1;
     const generation = generationRef.current;
     stickToBottomRef.current = true;
     setPeer(null);
+    setPeerLastReadAt(null);
     setMessages([]);
     setHasMore(false);
     setError(null);
     setBody("");
     setEditingMessageId(null);
+    setReplyToMessage(null);
+    setTappedMessageId(null);
     setLoadingThread(true);
+    setConversationTheme(null);
+    setThemePickerOpen(false);
 
     async function loadInitial() {
       try {
         const data = await api.get<{
           conversationId: string;
           peer: PublicUser;
+          peerLastReadAt: string | null;
           messages: MessageView[];
           hasMore: boolean;
+          theme: ConversationThemeView;
         }>(`/api/messages/conversations/${conversationId}`);
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
+        setPeerLastReadAt(data.peerLastReadAt);
         setMessages(data.messages);
         setHasMore(Boolean(data.hasMore));
+        setConversationTheme(data.theme);
+        setLoadingThread(false);
         if (generation !== generationRef.current) return;
         await api.post(`/api/messages/conversations/${conversationId}/read`);
       } catch (e) {
@@ -118,12 +228,24 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           const data = await api.get<{
             conversationId: string;
             peer: PublicUser;
+            peerLastReadAt: string | null;
             messages: MessageView[];
             hasMore: boolean;
+            theme: ConversationThemeView;
           }>(`/api/messages/conversations/${conversationId}`);
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
-          setMessages((prev) => mergeById(prev, data.messages));
+          setPeerLastReadAt(data.peerLastReadAt);
+          setMessages((prev) => {
+            let merged = mergeById(prev, data.messages);
+            for (const msg of data.messages) {
+              if (msg.isUnsent) merged = patchReplyTargetsUnsent(merged, msg.id);
+            }
+            return merged;
+          });
+          if (!themePickerOpenRef.current) {
+            setConversationTheme(data.theme);
+          }
           if (generation !== generationRef.current) return;
           await api.post(`/api/messages/conversations/${conversationId}/read`);
         } catch {
@@ -142,7 +264,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const msg = payload.message;
       if (msg.conversationId !== conversationId) return;
       if (generation !== generationRef.current) return;
-      setMessages((prev) => mergeById(prev, [msg]));
+      setMessages((prev) => {
+        const merged = mergeById(prev, [msg]);
+        return msg.isUnsent ? patchReplyTargetsUnsent(merged, msg.id) : merged;
+      });
+      if (replyTargetIdRef.current === msg.id && msg.isUnsent) {
+        setReplyToMessage(null);
+      }
     };
 
     const applyInboundNewMessage = (payload: MessageEventPayload) => {
@@ -155,31 +283,125 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       void api.post(`/api/messages/conversations/${conversationId}/read`).catch(() => undefined);
     };
 
+    const applyMessageDelivered = (payload: MessageDeliveredPayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === payload.messageId ? { ...m, deliveredAt: payload.deliveredAt } : m
+        )
+      );
+    };
+
+    const applyPeerRead = (payload: ConversationPeerReadPayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      if (payload.readerId !== peerIdRef.current) return;
+      setPeerLastReadAt(payload.peerLastReadAt);
+    };
+
     socket.on(MESSAGE_NEW, applyInboundNewMessage);
     socket.on(MESSAGE_UNSENT, applyMessagePatch);
     socket.on(MESSAGE_EDITED, applyMessagePatch);
     socket.on(MESSAGE_REACTION, applyMessagePatch);
+    socket.on(MESSAGE_DELIVERED, applyMessageDelivered);
+    socket.on(CONVERSATION_PEER_READ, applyPeerRead);
+
+    const applyTheme = (payload: ConversationThemePayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setConversationTheme({
+        theme: payload.theme,
+        updatedAt: payload.updatedAt,
+        updatedBy: payload.updatedBy,
+      });
+    };
+    socket.on(CONVERSATION_THEME, applyTheme);
+
     return () => {
       socket.off(MESSAGE_NEW, applyInboundNewMessage);
       socket.off(MESSAGE_UNSENT, applyMessagePatch);
       socket.off(MESSAGE_EDITED, applyMessagePatch);
       socket.off(MESSAGE_REACTION, applyMessagePatch);
+      socket.off(MESSAGE_DELIVERED, applyMessageDelivered);
+      socket.off(CONVERSATION_PEER_READ, applyPeerRead);
+      socket.off(CONVERSATION_THEME, applyTheme);
     };
   }, [conversationId, user?.id]);
 
+  useLayoutEffect(() => {
+    if (loadingThread || !stickToBottomRef.current) return;
+    scrollThreadToBottom("auto");
+    const id = window.requestAnimationFrame(() => {
+      scrollThreadToBottom("auto");
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [loadingThread, conversationId, messages]);
+
+  useEffect(() => {
+    if (loadingThread) return;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const stickIfNeeded = () => {
+      if (!stickToBottomRef.current) return;
+      scrollThreadToBottom("auto");
+    };
+
+    const ro = new ResizeObserver(stickIfNeeded);
+    ro.observe(el);
+    const content = el.firstElementChild;
+    if (content) ro.observe(content);
+
+    return () => ro.disconnect();
+  }, [loadingThread, conversationId]);
+
+  useEffect(() => {
+    if (!replyToMessage || editingMessageId) return;
+    textareaRef.current?.focus();
+  }, [replyToMessage, editingMessageId]);
+
   useEffect(() => {
     if (!editingMessageId) return;
-    const el = composeRef.current;
+    const el = textareaRef.current;
     if (!el) return;
     el.focus();
     const len = el.value.length;
     el.setSelectionRange(len, len);
   }, [editingMessageId]);
 
-  useEffect(() => {
-    if (!stickToBottomRef.current) return;
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+  async function sendText(text: string, options?: { clearComposer?: boolean }) {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return false;
+    stopTyping();
+    const generation = generationRef.current;
+    setSending(true);
+    setError(null);
+    stickToBottomRef.current = true;
+    try {
+      const payload: { body: string; replyToMessageId?: string } = { body: trimmed };
+      if (replyToMessage) payload.replyToMessageId = replyToMessage.id;
+      const data = await api.post<{ message: MessageView }>(
+        `/api/messages/conversations/${conversationId}/messages`,
+        payload
+      );
+      if (generation !== generationRef.current) return false;
+      if (options?.clearComposer !== false) {
+        setBody("");
+        setReplyToMessage(null);
+      }
+      setMessages((prev) => mergeById(prev, [data.message]));
+      if (generation !== generationRef.current) return false;
+      await api.post(`/api/messages/conversations/${conversationId}/read`);
+      return true;
+    } catch (err) {
+      if (generation !== generationRef.current) return false;
+      setError(err instanceof Error ? err.message : "Send failed");
+      return false;
+    } finally {
+      if (generation === generationRef.current) setSending(false);
+    }
+  }
 
   async function loadEarlier() {
     if (loadingEarlier || !hasMore || messages.length === 0) return;
@@ -192,6 +414,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const data = await api.get<{
         conversationId: string;
         peer: PublicUser;
+        peerLastReadAt: string | null;
         messages: MessageView[];
         hasMore: boolean;
       }>(`/api/messages/conversations/${conversationId}?before=${encodeURIComponent(oldestId)}`);
@@ -206,42 +429,36 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     }
   }
 
-  async function onComposeSubmit(e: FormEvent) {
+  function insertComposerEmoji(emoji: string) {
+    const el = textareaRef.current;
+    if (!el) {
+      setBody((prev) => prev + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? body.length;
+    const end = el.selectionEnd ?? body.length;
+    const { nextValue, nextCursor } = insertTextAtSelection(body, emoji, start, end);
+    setBody(nextValue);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(nextCursor, nextCursor);
+    });
+  }
+
+  async function onSend(e: FormEvent) {
     e.preventDefault();
     if (editingMessageId) {
       await saveEdit();
       return;
     }
-    await sendMessage();
-  }
-
-  async function sendMessage() {
     const text = body.trim();
     if (!text || sending) return;
-    const generation = generationRef.current;
-    setSending(true);
-    setError(null);
-    stickToBottomRef.current = true;
-    try {
-      const data = await api.post<{ message: MessageView }>(
-        `/api/messages/conversations/${conversationId}/messages`,
-        { body: text }
-      );
-      if (generation !== generationRef.current) return;
-      setBody("");
-      setMessages((prev) => mergeById(prev, [data.message]));
-      if (generation !== generationRef.current) return;
-      await api.post(`/api/messages/conversations/${conversationId}/read`);
-    } catch (err) {
-      if (generation !== generationRef.current) return;
-      setError(err instanceof Error ? err.message : "Send failed");
-    } finally {
-      if (generation === generationRef.current) setSending(false);
-    }
+    await sendText(text);
   }
 
   async function onImage(file: File | null) {
     if (!file || sending || editingMessageId) return;
+    stopTyping();
     const generation = generationRef.current;
     setSending(true);
     setError(null);
@@ -250,12 +467,18 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const uploaded = await api.upload<{ url: string }>("/api/uploads", file);
       if (generation !== generationRef.current) return;
       const caption = body.trim() || undefined;
+      const payload: { body?: string; imageUrl: string; replyToMessageId?: string } = {
+        body: caption,
+        imageUrl: uploaded.url,
+      };
+      if (replyToMessage) payload.replyToMessageId = replyToMessage.id;
       const data = await api.post<{ message: MessageView }>(
         `/api/messages/conversations/${conversationId}/messages`,
-        { body: caption, imageUrl: uploaded.url }
+        payload
       );
       if (generation !== generationRef.current) return;
       setBody("");
+      setReplyToMessage(null);
       setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
@@ -279,7 +502,11 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         `/api/messages/messages/${pendingUnsendId}`
       );
       if (generation !== generationRef.current) return;
-      setMessages((prev) => prev.map((m) => (m.id === pendingUnsendId ? data.message : m)));
+      setMessages((prev) => {
+        const next = prev.map((m) => (m.id === pendingUnsendId ? data.message : m));
+        return patchReplyTargetsUnsent(next, pendingUnsendId);
+      });
+      if (replyToMessage?.id === pendingUnsendId) setReplyToMessage(null);
       setPendingUnsendId(null);
       if (editingMessageId === pendingUnsendId) cancelEdit();
     } catch (err) {
@@ -290,10 +517,17 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     }
   }
 
+  function patchMessageReaction(messageId: string, reactionSummary: MessageView["reactionSummary"]) {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, reactionSummary } : m))
+    );
+  }
+
   function startEdit(messageId: string) {
     const msg = messages.find((m) => m.id === messageId);
     if (!msg?.body?.trim()) return;
     setEditingMessageId(messageId);
+    setReplyToMessage(null);
     setBody(msg.body ?? "");
     setError(null);
     stickToBottomRef.current = true;
@@ -339,13 +573,32 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     }
   }
 
-  function patchMessageReaction(messageId: string, reactionSummary: MessageView["reactionSummary"]) {
-    setMessages((prev) =>
-      prev.map((m) => (m.id === messageId ? { ...m, reactionSummary } : m))
-    );
+  async function applyThemeChoice(payload: ChatTheme | { reset: true }) {
+    setThemeSaving(true);
+    setError(null);
+    try {
+      const updated = await updateConversationTheme(conversationId, payload);
+      setConversationTheme(updated);
+      setThemePickerOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update theme");
+    } finally {
+      setThemeSaving(false);
+    }
   }
 
+  async function sendWordEffect(word: string) {
+    setThemePickerOpen(false);
+    await sendText(word, { clearComposer: false });
+  }
+
+  const resolvedTheme = resolveConversationTheme(conversationTheme);
+  const themeVars = chatThemeCssVars(resolvedTheme);
   const peerProfilePath = peer?.username ? `/u/${peer.username}` : peer ? `/u/${peer.id}` : "#";
+  const replyPreview =
+    replyToMessage && user && peer && !editingMessageId
+      ? replyTargetPreview(replyToMessage, user, peer)
+      : null;
   const editingMessage = editingMessageId
     ? messages.find((m) => m.id === editingMessageId) ?? null
     : null;
@@ -353,7 +606,11 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
   return (
     <section className="space-y-4">
-      <div className="feed-card flex min-h-[70vh] flex-col overflow-hidden">
+      <div
+        className="feed-card relative flex h-[calc(100dvh-7rem)] min-h-[420px] flex-col overflow-hidden"
+        data-chat-theme={resolvedTheme.active ? "true" : undefined}
+        style={themeVars}
+      >
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-card/95 px-3 py-3 backdrop-blur-sm">
           <Button
             type="button"
@@ -387,9 +644,31 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               </div>
             </div>
           )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Customize chat theme"
+            onClick={() => setThemePickerOpen(true)}
+          >
+            <Palette className="h-5 w-5" />
+          </Button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div
+          ref={scrollRef}
+          className="min-h-0 flex-1 overflow-y-auto px-4 py-4"
+          style={resolvedTheme.active ? { background: resolvedTheme.background } : undefined}
+          onScroll={() => {
+            const el = scrollRef.current;
+            if (!el) return;
+            const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+            stickToBottomRef.current = distanceFromBottom < 80;
+          }}
+          onClick={() => {
+            if (!canHover) setTappedMessageId(null);
+          }}
+        >
           {loadingThread ? (
             <MessagesThreadSkeleton />
           ) : (
@@ -412,12 +691,10 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               )}
               {messages.map((m, index) => {
                 const prev = index > 0 ? messages[index - 1] : null;
-                const next = index < messages.length - 1 ? messages[index + 1] : null;
                 const mine = m.senderId === user?.id;
                 const showDay =
                   !prev || !isSameCalendarDay(prev.createdAt, m.createdAt);
                 const showAvatar = !mine && (!prev || !messagesShareGroup(prev, m));
-                const showMeta = !next || !messagesShareGroup(m, next);
 
                 return (
                   <div key={m.id} className="space-y-3">
@@ -427,13 +704,23 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       mine={mine}
                       peer={peer}
                       showAvatar={showAvatar}
-                      showMeta={showMeta}
+                      peerLastReadAt={peerLastReadAt}
                       peerProfilePath={peerProfilePath}
                       isBeingEdited={editingMessageId === m.id}
+                      canHover={canHover}
+                      touchRevealed={tappedMessageId === m.id}
+                      onToggleTouchReveal={() =>
+                        setTappedMessageId((prev) => (prev === m.id ? null : m.id))
+                      }
                       onUnsend={setPendingUnsendId}
                       onStartEdit={startEdit}
                       onReactionChange={patchMessageReaction}
+                      onReply={(msg) => {
+                        setTappedMessageId(null);
+                        setReplyToMessage(msg);
+                      }}
                       onError={setError}
+                      themed={resolvedTheme.active}
                     />
                   </div>
                 );
@@ -449,7 +736,9 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           </div>
         )}
 
-        <form onSubmit={onComposeSubmit} className="border-t border-border px-3 py-3">
+        {isPeerTyping && peer && <TypingIndicator displayName={peer.displayName} />}
+
+        <form onSubmit={onSend} className="border-t border-border px-3 py-3">
           {editingMessageId && (
             <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
               <span>Editing message</span>
@@ -465,31 +754,132 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               </Button>
             </div>
           )}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            onChange={(e) => void onImage(e.target.files?.[0] ?? null)}
-          />
-          <MessageComposeBar
-            value={body}
-            onChange={setBody}
-            user={user}
-            disabled={composeBusy}
-            showAttach={!editingMessageId}
-            onAttachClick={() => fileRef.current?.click()}
-            submitDisabled={
-              editingMessage
-                ? !editingMessage.imageUrl && !body.trim()
-                : !body.trim()
+          {replyPreview && (
+            <div className="mb-2 flex items-start justify-between gap-2 rounded-xl border border-border/70 bg-secondary/40 px-3 py-2 text-sm">
+              <div className="min-w-0">
+                <p className="text-muted-foreground">
+                  Replying to{" "}
+                  <span className="font-medium text-foreground">{replyPreview.name}</span>
+                  {" · "}
+                  <span className="text-foreground/90">{replyPreview.snippet}</span>
+                </p>
+                {replyPreview.imageUrl && (
+                  <img
+                    src={replyPreview.imageUrl}
+                    alt=""
+                    className="mt-2 h-10 w-10 rounded object-cover"
+                  />
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label="Cancel reply"
+                onClick={() => setReplyToMessage(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          <div
+            className={cn(
+              "flex items-end gap-2 rounded-2xl px-2 py-1.5",
+              !resolvedTheme.active && "bg-secondary/50"
+            )}
+            style={
+              resolvedTheme.active
+                ? {
+                    backgroundColor: "color-mix(in srgb, var(--chat-accent) 18%, transparent)",
+                  }
+                : undefined
             }
-            submitAriaLabel={editingMessageId ? "Save edit" : "Send"}
-            onTextareaKeyDown={handleComposeKeyDown}
-            textareaRef={composeRef}
-          />
+          >
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => void onImage(e.target.files?.[0] ?? null)}
+            />
+            {user && (
+              <ProfileAvatar
+                displayName={user.displayName}
+                avatarUrl={user.avatarUrl}
+                size="sm"
+              />
+            )}
+            <div className="flex shrink-0 items-center -space-x-1">
+              {!editingMessageId && (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Attach image"
+                    disabled={composeBusy}
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                  </Button>
+                  <MessageComposerEmojiPicker disabled={composeBusy} onPick={insertComposerEmoji} />
+                </>
+              )}
+            </div>
+            <Textarea
+              ref={textareaRef}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onBlur={() => stopTyping()}
+              onKeyDown={(e) => {
+                handleComposeKeyDown(e);
+                if (e.defaultPrevented) return;
+                submitOnEnter(e);
+              }}
+              placeholder={editingMessageId ? "Edit message" : "Type a message"}
+              aria-label={editingMessageId ? "Edit message" : "Message"}
+              rows={1}
+              disabled={composeBusy}
+              className="max-h-32 min-h-10 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[15px] leading-6 shadow-none focus-visible:ring-0"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="shrink-0"
+              aria-label={editingMessageId ? "Save edit" : "Send"}
+              disabled={
+                composeBusy ||
+                (editingMessage
+                  ? !editingMessage.imageUrl && !body.trim()
+                  : !body.trim())
+              }
+              style={
+                resolvedTheme.active
+                  ? {
+                      backgroundColor: "var(--chat-accent)",
+                      color: "var(--chat-accent-fg)",
+                    }
+                  : undefined
+              }
+            >
+              <SendHorizontal className="h-4 w-4" />
+            </Button>
+          </div>
         </form>
       </div>
+
+      <ChatThemePicker
+        open={themePickerOpen}
+        current={conversationTheme}
+        busy={themeSaving || composeBusy}
+        onApply={(payload) => void applyThemeChoice(payload)}
+        onWordEffectSend={(word) => void sendWordEffect(word)}
+        onClose={() => {
+          if (!themeSaving) setThemePickerOpen(false);
+        }}
+      />
 
       <ConfirmDialog
         open={pendingUnsendId !== null}
@@ -507,6 +897,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 }
 
 function InboxView() {
+  const { user } = useAuth();
+  const typingByConversation = useInboxPeerTyping(user?.id);
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -580,7 +972,11 @@ function InboxView() {
           <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
           <ul className="mt-3 space-y-1">
             {items.map((c) => (
-              <ConversationListRow key={c.id} item={c} />
+              <ConversationListRow
+                key={c.id}
+                item={c}
+                isPeerTyping={Boolean(typingByConversation[c.id])}
+              />
             ))}
           </ul>
         </div>

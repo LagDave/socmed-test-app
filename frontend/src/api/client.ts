@@ -9,7 +9,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
     ...init,
   });
-  const json = (await res.json()) as ApiSuccess<T> | ApiError;
+
+  const text = await res.text();
+  if (!text.trim()) {
+    throw new Error(
+      res.ok
+        ? "Empty response from server"
+        : `Request failed (${res.status} ${res.statusText}). Is the API running on port 3210?`
+    );
+  }
+
+  let json: ApiSuccess<T> | ApiError;
+  try {
+    json = JSON.parse(text) as ApiSuccess<T> | ApiError;
+  } catch {
+    throw new Error(`Invalid response from server (${res.status})`);
+  }
+
   if (!json.success) {
     throw new Error(json.error?.message || "Request failed");
   }

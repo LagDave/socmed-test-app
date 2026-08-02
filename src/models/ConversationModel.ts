@@ -10,6 +10,9 @@ export type ConversationRow = {
   user_a_last_read_at: Date | null;
   user_b_last_read_at: Date | null;
   last_message_at: Date | null;
+  theme: unknown | null;
+  theme_updated_at: Date | null;
+  theme_updated_by: string | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -39,6 +42,7 @@ type InboxQueryRow = ConversationRow & {
   lm_image_url: string | null;
   lm_unsent_at: Date | null;
   lm_edited_at: Date | null;
+  lm_reply_to_message_id: string | null;
   lm_created_at: Date | null;
   unread_count: string | number;
 };
@@ -92,6 +96,7 @@ export class ConversationModel {
         lm.image_url AS lm_image_url,
         lm.unsent_at AS lm_unsent_at,
         lm.edited_at AS lm_edited_at,
+        lm.reply_to_message_id AS lm_reply_to_message_id,
         lm.created_at AS lm_created_at,
         (
           SELECT COUNT(*)::int
@@ -127,6 +132,9 @@ export class ConversationModel {
       user_a_last_read_at: r.user_a_last_read_at,
       user_b_last_read_at: r.user_b_last_read_at,
       last_message_at: r.last_message_at,
+      theme: r.theme ?? null,
+      theme_updated_at: r.theme_updated_at ?? null,
+      theme_updated_by: r.theme_updated_by ?? null,
       created_at: r.created_at,
       updated_at: r.updated_at,
       peer: {
@@ -151,6 +159,8 @@ export class ConversationModel {
             image_url: r.lm_image_url,
             unsent_at: r.lm_unsent_at,
             edited_at: r.lm_edited_at,
+            reply_to_message_id: r.lm_reply_to_message_id,
+            delivered_at: null,
             created_at: r.lm_created_at!,
           }
         : null,
@@ -187,6 +197,24 @@ export class ConversationModel {
       last_message_at: at,
       updated_at: db.fn.now(),
     });
+  }
+
+  static async updateTheme(
+    id: string,
+    theme: unknown | null,
+    updatedBy: string
+  ): Promise<ConversationRow | undefined> {
+    const now = new Date();
+    const [updated] = await db<ConversationRow>("conversations")
+      .where({ id })
+      .update({
+        theme,
+        theme_updated_at: theme === null ? null : now,
+        theme_updated_by: theme === null ? null : updatedBy,
+        updated_at: db.fn.now(),
+      })
+      .returning("*");
+    return updated;
   }
 
   static async markRead(id: string, userId: string, at: Date): Promise<ConversationRow | undefined> {

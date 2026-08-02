@@ -16,11 +16,17 @@ export type ApiError = {
   error: { code: string; message: string; details: unknown };
 };
 
-export type ReactionEmoji = "like" | "heart" | "haha" | "wow";
+export type ReactionEmoji = "like" | "heart" | "haha" | "wow" | "sad" | "angry";
 
 export type ReactionSummary = {
   counts: Record<ReactionEmoji, number>;
   viewerEmoji: ReactionEmoji | null;
+};
+
+export type ReactionEntry = {
+  user: PublicUser;
+  emoji: ReactionEmoji;
+  createdAt: string;
 };
 
 export type PostView = {
@@ -45,6 +51,15 @@ export type CommentView = {
   reactionSummary: ReactionSummary;
 };
 
+export type MessageReplyToView = {
+  id: string;
+  senderId: string;
+  senderDisplayName: string;
+  body: string | null;
+  imageUrl: string | null;
+  isUnsent: boolean;
+};
+
 export type MessageView = {
   id: string;
   conversationId: string;
@@ -54,7 +69,9 @@ export type MessageView = {
   isUnsent: boolean;
   createdAt: string;
   editedAt: string | null;
+  deliveredAt: string | null;
   reactionSummary: ReactionSummary;
+  replyTo: MessageReplyToView | null;
 };
 
 export type ConversationListItem = {
@@ -67,7 +84,38 @@ export type ConversationListItem = {
     isUnsent: boolean;
     senderId: string;
     createdAt: string;
+    replyToMessageId: string | null;
   } | null;
   unreadCount: number;
   lastMessageAt: string | null;
+};
+
+export type ChatThemePreset = {
+  kind: "preset";
+  presetId: string;
+};
+
+export type ChatThemeSolid = {
+  kind: "solid";
+  background: string;
+  bubbleMine: string;
+  bubbleTheirs: string;
+  accent: string;
+};
+
+export type ChatThemeGradient = {
+  kind: "gradient";
+  stops: [string, string];
+  angle: number;
+  bubbleMine: string;
+  bubbleTheirs: string;
+  accent: string;
+};
+
+export type ChatTheme = ChatThemePreset | ChatThemeSolid | ChatThemeGradient;
+
+export type ConversationThemeView = {
+  theme: ChatTheme | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
 };

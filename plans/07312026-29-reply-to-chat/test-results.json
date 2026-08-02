@@ -1,0 +1,159 @@
+{
+  "plan": "plans/07312026-29-reply-to-chat",
+  "generatedAt": "2026-07-31",
+  "status": "Not Run",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Reply icon on hover for friend message",
+      "surface": "ui",
+      "precondition": "Signed in as user A; open thread with friend B; B has sent at least one message",
+      "steps": [
+        "Open /messages/:conversationId",
+        "Hover a friend message bubble",
+        "Confirm Reply icon appears beside react control"
+      ],
+      "expected": "Reply lucide icon visible on hover/focus for non-unsent friend messages.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Composer preview after choosing Reply",
+      "surface": "ui",
+      "precondition": "Thread open with a friend text message",
+      "steps": [
+        "Click Reply on the friend's message",
+        "Observe footer composer"
+      ],
+      "expected": "Preview bar shows friend display name + truncated original text; Cancel visible; textarea focused.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Send text reply shows quote strip in bubble",
+      "surface": "ui",
+      "precondition": "Reply preview active for a text message",
+      "steps": [
+        "Type a reply and send",
+        "Observe the new message bubble"
+      ],
+      "expected": "Flat thread order; bubble contains quote strip (sender + snippet) above reply body.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Reply to image message shows thumb in quote",
+      "surface": "ui",
+      "precondition": "Friend sent an image message (body optional)",
+      "steps": [
+        "Reply to the image message",
+        "Send a text reply",
+        "Inspect quote strip"
+      ],
+      "expected": "Quote strip includes small image thumbnail (and caption snippet if present).",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Cancel clears reply state",
+      "surface": "ui",
+      "precondition": "Reply preview active",
+      "steps": [
+        "Click Cancel on preview bar",
+        "Send a new message without re-selecting reply"
+      ],
+      "expected": "Preview gone; sent message has no quote strip.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Unsent original shows Message unavailable in quote",
+      "surface": "ui",
+      "precondition": "A reply exists quoting a message you sent",
+      "steps": [
+        "Unsend the original quoted message",
+        "Observe the reply bubble's quote strip"
+      ],
+      "expected": "Quote strip shows italic 'Message unavailable' — not the old body text.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A7",
+      "title": "Quote works when original is paginated out",
+      "surface": "ui",
+      "precondition": "Thread with 50+ messages; oldest messages require 'Load earlier'",
+      "steps": [
+        "Load earlier until a specific old message is visible",
+        "Reply to that old message and send",
+        "Scroll to newest messages without reloading thread"
+      ],
+      "expected": "Newest reply bubble still shows correct quote strip for the old message.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Validates API-embedded replyTo — not client-side lookup.",
+      "waiver": ""
+    },
+    {
+      "id": "A8",
+      "title": "Peer receives quoted reply via socket",
+      "surface": "ui",
+      "precondition": "Two browsers/sessions: user A and friend B in same thread; socket connected",
+      "steps": [
+        "As A, reply to a B message and send",
+        "Observe B's thread without manual refresh"
+      ],
+      "expected": "B sees the new reply with quote strip in real time.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A9",
+      "title": "No Reply on unsent messages",
+      "surface": "ui",
+      "precondition": "Thread contains an unsent message placeholder",
+      "steps": [
+        "Hover the unsent message row"
+      ],
+      "expected": "No Reply control on unsent placeholders.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A10",
+      "title": "Inbox shows ↩ prefix when last message is a reply",
+      "surface": "ui",
+      "precondition": "Conversation where the latest message is a reply",
+      "steps": [
+        "Open /messages inbox",
+        "Find that conversation row"
+      ],
+      "expected": "Snippet starts with ↩ followed by the reply body text (not the quoted original).",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}
