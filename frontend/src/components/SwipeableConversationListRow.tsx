@@ -10,9 +10,11 @@ const OPEN_THRESHOLD = 44;
 export function SwipeableConversationListRow({
   item,
   onDelete,
+  isPeerTyping = false,
 }: {
   item: ConversationListItem;
   onDelete: (id: string, peerName: string) => void;
+  isPeerTyping?: boolean;
 }) {
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -119,6 +121,7 @@ export function SwipeableConversationListRow({
         <ConversationListRow
           item={item}
           onDelete={onDelete}
+          isPeerTyping={isPeerTyping}
           className="rounded-xl border-b-0 bg-background"
         />
       </div>

@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Messages Typing Indicator Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:920px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .typing-demo { display:inline-flex; align-items:center; gap:4px; margin-left:6px; vertical-align:middle; }
+    .typing-demo span { width:6px; height:6px; border-radius:50%; background:var(--muted); animation: bounce 1.2s infinite ease-in-out; }
+    .typing-demo span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-demo span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity:0.4; } 30% { transform: translateY(-4px); opacity:1; } }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 27</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Messages → typing indicator (animated)</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07312026-27-messages-typing-indicator</dd></div>
+        <div><dt>Size</dt><dd>Medium (realtime handler + hook + UI component)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 (new client→server socket pattern; mitigations locked)</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07312026-27-messages-typing-indicator</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/messages-typing-indicator</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 17 friends-messenger · Plan 22 messages-websockets</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 22 shipped live message delivery over Socket.IO but explicitly deferred typing and presence. In a 1:1 chat, the gap is obvious: when your friend is composing, the thread looks idle until the message lands.</p>
+      <p>A lightweight typing indicator closes that feedback loop without touching the REST mutation path or schema — the natural follow-up to Plan 22’s realtime foundation.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>When a user is actively typing in an open thread, their mutual friend (the peer in that conversation) sees an animated “typing” cue in the thread view.</p>
+      <p><strong>Deliverables:</strong></p>
+      <ul>
+        <li><strong>Server</strong> — First client→server Socket.IO handlers: accept <code>typing:start</code> / <code>typing:stop</code>, validate participant, relay <code>typing:update</code> to the peer’s <code>user:{id}</code> room. Ephemeral in-memory TTL (~3s) so stop events aren’t required for correctness.</li>
+        <li><strong>SPA — thread</strong> — Debounced emit from the thread composer; listen for peer typing; render <code>TypingIndicator</code> above the composer with peer display name + bouncing dots.</li>
+        <li><strong>SPA — inbox</strong> — While on <code>/messages</code> (no active thread), listen for <code>typing:update</code> and replace the conversation row snippet with “{displayName} is typing…” + dots for that row.</li>
+        <li><strong>No persistence</strong> — No migration, no REST endpoints.</li>
+      </ul>
+      <p><strong>Visual intent:</strong></p>
+      <p class="callout" style="border-width:1px;">
+        <span style="color:var(--muted); font-size:0.9rem;">Alex is typing</span>
+        <span class="typing-demo" aria-hidden="true"><span></span><span></span><span></span></span>
+      </p>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Two mutuals in separate browsers on the same open thread: typer’s keystrokes show the animated indicator on the peer within ~500ms while socket is connected</li>
+        <li>Indicator clears on stop (blur / clear / send) or server TTL expiry (~3s)</li>
+        <li>Typer never sees their own indicator; non-participants never receive relay</li>
+        <li>Inbox list shows typing snippet on the matching row while peer types (even when thread is not open)</li>
+        <li>Disconnected socket: no typing indicator (messages poll fallback unchanged)</li>
+        <li>No schema migration; no new npm dependencies</li>
+        <li>Typecheck/build green; acceptance rollup Passed or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Transport</td>
+            <td><strong>A —</strong> Socket.IO client→server for typing; server→client relay only to peer</td>
+            <td>Ephemeral signal; doesn’t violate Plan 22’s “REST writes” rule for messages. Reuses existing auth + user rooms.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Placement</td>
+            <td><strong>A —</strong> Above composer, inside thread card (below scroll area)</td>
+            <td>Messenger/iMessage pattern; visible while reading recent messages. Header subtitle rejected — too easy to miss.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Inbox scope</td>
+            <td><strong>B —</strong> Open thread + inbox list snippet override while peer is typing</td>
+            <td>Grill lock (2026-07-31): user wants typing visible from inbox, not thread-only.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Animation</td>
+            <td><strong>A —</strong> Three bouncing dots + “{displayName} is typing” muted text</td>
+            <td>Universal chat affordance; CSS-only, no Lottie/asset deps.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>State storage</td>
+            <td><strong>A —</strong> In-memory Map on Node process + TTL auto-expire</td>
+            <td>PM2 single instance (Plan 22 fact); typing is discardable. No Redis.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Timing</td>
+            <td><strong>A —</strong> Client: emit start after ~300ms debounce; heartbeat refresh every ~2s while typing; emit stop on blur/clear/send. Server: TTL ~3s per (conversationId, userId).</td>
+            <td>Limits chatter; TTL covers dropped stop events.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Event names</td>
+            <td><strong>A —</strong> C→S: <code>typing:start</code>, <code>typing:stop</code>. S→C: <code>typing:update</code></td>
+            <td>Namespaced like existing <code>message:*</code> events; single relay event keeps client listener simple.</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Execution branch</td>
+            <td><strong>A —</strong> <code>kylie/messages-typing-indicator</code> from current <code>dev</code></td>
+            <td>Branch already created for this feature.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant files (baseline on dev)</h3>
+      <ul>
+        <li><code>src/realtime/io.ts</code> — Socket attach, cookie auth, <code>user:{id}</code> rooms, <code>emitToUser</code> (add C→S handlers here or via imported module)</li>
+        <li><code>src/realtime/MessageRealtime.ts</code> — Server→client emit pattern for messages (follow naming/constants style)</li>
+        <li><code>src/services/MessageService.ts</code> — <code>assertParticipant</code> + <code>peerId</code> helpers (reuse logic, don’t duplicate authz rules in socket layer beyond participant check)</li>
+        <li><code>src/models/ConversationModel.ts</code> — <code>findById</code> for participant validation</li>
+        <li><code>frontend/src/api/socket.ts</code> — Event name constants + socket singleton</li>
+        <li><code>frontend/src/pages/MessagesPage.tsx</code> — <code>ThreadView</code> composer (<code>Textarea</code> <code>onChange</code> today only updates local state)</li>
+        <li><code>frontend/src/hooks/useMessagesSocket.ts</code> — Connection lifecycle hook</li>
+      </ul>
+      <h3>Closest analogs</h3>
+      <ul>
+        <li><strong>Follow:</strong> Plan 22 — per-user room fan-out via <code>emitToUser</code>; event constants mirrored client/server; generation guards in <code>ThreadView</code> effects.</li>
+        <li><strong>Follow:</strong> <code>messages:unread</code> — lightweight ephemeral push, no DB.</li>
+        <li><strong>New pattern:</strong> First client→server socket events. Keep handlers thin: validate → relay → TTL. No business logic in React beyond debounce/emit.</li>
+      </ul>
+      <h3>Event contract</h3>
+      <table>
+        <thead><tr><th>Event</th><th>Direction</th><th>Payload</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>typing:start</code></td>
+            <td>Client → Server</td>
+            <td><code>{ conversationId: string }</code></td>
+            <td>Validate UUID + participant; refresh TTL; emit <code>typing:update</code> to peer with <code>isTyping: true</code></td>
+          </tr>
+          <tr>
+            <td><code>typing:stop</code></td>
+            <td>Client → Server</td>
+            <td><code>{ conversationId: string }</code></td>
+            <td>Clear entry; emit <code>typing:update</code> to peer with <code>isTyping: false</code></td>
+          </tr>
+          <tr>
+            <td><code>typing:update</code></td>
+            <td>Server → Client</td>
+            <td><code>{ conversationId: string; userId: string; isTyping: boolean }</code></td>
+            <td>Peer updates local state if <code>conversationId</code> matches open thread and <code>userId !== self</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Server must never <code>io.emit</code> globally. Ignore malformed payloads silently (debug log only).</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Reuse existing Socket.IO connection (<code>getMessagesSocket</code> / <code>useMessagesSocket</code>)</li>
+            <li>Validate <code>conversationId</code> + participant before relay (same gate as REST)</li>
+            <li>Emit only to the other participant’s <code>user:{id}</code> room</li>
+            <li>Clear typing on send, blur, empty composer, and server TTL</li>
+            <li>Extract UI into <code>TypingIndicator.tsx</code>; emit/listen logic in <code>useTypingIndicator.ts</code> hook</li>
+            <li>Mirror event constants in <code>frontend/src/api/socket.ts</code> and server realtime module</li>
+            <li>Constitution layering: no DB in socket handlers beyond <code>ConversationModel.findById</code>; no REST endpoints for typing</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No schema migrations</li>
+            <li>No Redis / multi-instance adapter</li>
+            <li>No typing in AppShell nav badge or notifications</li>
+            <li>No typing over REST poll fallback</li>
+            <li>No new npm dependencies</li>
+            <li>No show-self typing indicator</li>
+            <li>No moving message send onto socket events</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out of scope</h3>
+      <ul>
+        <li>Online/presence (“last seen”, green dot)</li>
+        <li>Group chat typing (only 1:1 today)</li>
+        <li>Push notifications for typing</li>
+        <li>Typing in AppShell nav badge / notifications bell</li>
+        <li>Horizontal scale / sticky sessions</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Introduces the first client→server socket handlers, but blast radius is limited to ephemeral UI in one thread surface.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Relay to wrong user</td>
+            <td>Privacy / confusion</td>
+            <td>Participant check via <code>ConversationModel</code>; emit only to computed <code>peerId</code>; never broadcast</td>
+          </tr>
+          <tr>
+            <td>Socket event spam</td>
+            <td>Server CPU / noise</td>
+            <td>300ms debounce + 2s heartbeat cap while typing; ignore duplicate starts within TTL window</td>
+          </tr>
+          <tr>
+            <td>Stuck “typing…” UI</td>
+            <td>UX annoyance</td>
+            <td>Server TTL ~3s; client clears on <code>message:new</code> from peer; stop on send/blur</td>
+          </tr>
+          <tr>
+            <td>Logic in React component</td>
+            <td>Maintainability drift</td>
+            <td>Dedicated <code>useTypingIndicator</code> hook; presentational <code>TypingIndicator</code> only</td>
+          </tr>
+          <tr>
+            <td>Disconnected socket</td>
+            <td>Feature absent offline</td>
+            <td>Accepted v1 limitation — same as Plan 22 poll fallback scope; document in acceptance A6</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Pushback:</strong> Do not add Redis, nav-badge typing, or REST endpoints in this execution. Inbox row snippet override is in scope per grill; global badge typing is not.
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T0">
+        <h3>T0 — Confirm execution branch baseline</h3>
+        <dl>
+          <div><dt>Do</dt><dd>On <code>kylie/messages-typing-indicator</code>, confirm Plan 17 + Plan 22 files present. Stash unrelated WIP (reactions) before <code>-x</code> if it would collide.</dd></div>
+          <div><dt>Files</dt><dd>git only</dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>src/realtime/io.ts</code>, <code>frontend/src/pages/MessagesPage.tsx</code>, <code>frontend/src/api/socket.ts</code> present; branch descends from <code>dev</code></dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Server typing relay + ephemeral state</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>src/realtime/TypingRelay.ts</code> (or equivalent): in-memory map keyed by <code>conversationId:userId</code>, TTL timers, handlers for <code>typing:start</code> / <code>typing:stop</code>. Wire into <code>io.ts</code> <code>connection</code> callback. Validate participant; relay <code>typing:update</code> to peer via <code>emitToUser</code>. Export event name constants alongside existing realtime module.</dd></div>
+          <div><dt>Files</dt><dd><code>src/realtime/io.ts</code>, new <code>src/realtime/TypingRelay.ts</code> (name may vary)</dd></div>
+          <div><dt>Depends on</dt><dd>T0</dd></div>
+          <div><dt>Verify</dt><dd>Two connected sockets: start/stop on A relays to B only; non-participant C ignored</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Client emit hook</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>useTypingEmitter(conversationId, body, options)</code> (or part of unified hook): debounced <code>typing:start</code>, periodic refresh while non-empty, <code>typing:stop</code> on blur/clear/send/unmount. Gate on <code>useSocketConnected()</code> — no emit when disconnected. Add constants to <code>frontend/src/api/socket.ts</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/hooks/useTypingIndicator.ts</code>, <code>frontend/src/api/socket.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>DevTools: socket emits start/stop with expected payloads; stops after send</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — TypingIndicator UI + ThreadView + InboxView integration</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Create <code>TypingIndicator.tsx</code> — muted “{name} is typing” + CSS bouncing dots (<code>aria-live="polite"</code>). In <code>ThreadView</code>: subscribe to <code>typing:update</code>; show indicator above composer when peer typing; hide on false, <code>message:new</code> from peer, or conversation change. Wire emitter hook to composer. In <code>InboxView</code>: maintain a <code>Map&lt;conversationId, boolean&gt;</code> (or similar) from the same socket event; pass <code>isPeerTyping</code> into <code>ConversationListRow</code> to override snippet with typing copy + compact dots.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/TypingIndicator.tsx</code>, <code>frontend/src/components/ConversationListRow.tsx</code>, <code>frontend/src/pages/MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Two-browser acceptance A1–A4, A8 (inbox snippet)</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Acceptance + typecheck gate</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Run typecheck/build. Execute acceptance checklist; update <code>test-results.json</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>test-results.json</code>, plan Done checklist</dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>Rollup Passed or written waivers</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled checked> T0: execution branch on dev with messenger + websockets</li>
+        <li><input type="checkbox" disabled checked> Server handles typing:start/stop; relays typing:update to peer only</li>
+        <li><input type="checkbox" disabled checked> Client debounced emit + listen hook; gated on socket connected</li>
+        <li><input type="checkbox" disabled checked> TypingIndicator above composer with animated dots</li>
+        <li><input type="checkbox" disabled checked> Inbox row snippet shows typing while peer types</li>
+        <li><input type="checkbox" disabled checked> Clears on stop, send, TTL, and peer message:new</li>
+        <li><input type="checkbox" disabled checked> No migrations; no new npm deps</li>
+        <li><input type="checkbox" disabled checked> Typecheck/build green; acceptance Passed (or written waivers)</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-07-31</td>
+            <td>Initial spec (draft). Inferred defaults before grill — placement, copy, disconnected degrade. Inbox deferred in Rev 0.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-07-31</td>
+            <td>Grill lock: placement A (above composer), copy A (name + dots), disconnected A (skip when offline). Inbox scope B — typing snippet on conversation list rows. T3 expanded; pushback on nav-badge typing unchanged.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-07-31</td>
+            <td>Finalized (<code>-d</code>): implemented TypingRelay, useTypingIndicator hooks, TypingIndicator UI, thread + inbox wiring. Typecheck pass. Interactive A1–A6/A8 waived for PR/staging two-browser verify. Changelog 0.1.18. Status → Completed.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-08-01</td>
+            <td>Remote branch repair: <code>origin/kylie/messages-typing-indicator</code> had been stacked on reaction-fix commit <code>c268b75</code> (PR #41 code) instead of typing commit <code>c45ba20</code>. Reset remote to <code>c45ba20</code> + cherry-picked review trace (<code>1ec44b4</code>). PR #42 diff now matches plan scope; no overlap with PR #41 app code.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>2026-08-01</td>
+            <td>Grill-locked reliability pass (Q1–Q7 defaults): <code>TypingRelay</code> caches peer in memory; heartbeats skip DB and re-broadcast <code>typing:update</code> <code>true</code> every ~2s; <code>typing:stop</code> uses cache (no DB). <code>usePeerTyping</code> splits reset vs socket listeners. Addresses reviewer R2 and inconsistent peer indicator (missed first event + TTL flicker).</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>2026-08-02</td>
+            <td>Socket stability (<code>-x</code> follow-up): <code>useMessagesSocketConnection</code> no longer calls <code>disconnectMessagesSocket()</code> on effect cleanup (logout only); <code>useSocketConnected</code> actively connects when signed in. Verified two-browser typing on localhost after dev restart.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

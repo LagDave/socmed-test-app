@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { TypingIndicator } from "@/components/TypingIndicator";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { cn } from "@/lib/utils";
 
@@ -16,18 +17,24 @@ function snippet(item: ConversationListItem): string {
   const last = item.lastMessage;
   if (!last) return "No messages yet";
   if (last.isUnsent) return "Unsent a message";
-  if (last.imageUrl && last.body) return last.body;
-  if (last.imageUrl) return "Sent a photo";
-  return last.body || "";
+  let text: string;
+  if (last.imageUrl && last.body) text = last.body;
+  else if (last.imageUrl) text = "Sent a photo";
+  else text = last.body || "";
+  if (last.replyToMessageId && text) return `↩ ${text}`;
+  if (last.replyToMessageId) return "↩ Reply";
+  return text;
 }
 
 export function ConversationListRow({
   item,
   onDelete,
+  isPeerTyping = false,
   className,
 }: {
   item: ConversationListItem;
   onDelete: (id: string, peerName: string) => void;
+  isPeerTyping?: boolean;
   className?: string;
 }) {
   const unread = item.unreadCount > 0;
@@ -72,14 +79,18 @@ export function ConversationListRow({
           )}
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p
-            className={cn(
-              "truncate text-sm",
-              unread ? "font-medium text-foreground" : "text-muted-foreground"
-            )}
-          >
-            {snippet(item)}
-          </p>
+          {isPeerTyping ? (
+            <TypingIndicator displayName={peer.displayName} compact className="min-w-0 flex-1" />
+          ) : (
+            <p
+              className={cn(
+                "truncate text-sm",
+                unread ? "font-medium text-foreground" : "text-muted-foreground"
+              )}
+            >
+              {snippet(item)}
+            </p>
+          )}
           {unread && (
             <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
               {item.unreadCount > 9 ? "9+" : item.unreadCount}

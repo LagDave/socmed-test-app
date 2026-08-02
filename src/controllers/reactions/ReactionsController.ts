@@ -65,4 +65,22 @@ export class ReactionsController {
       return handle(res, err);
     }
   }
+
+  static async listOnPost(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactions = await ReactionService.listOnPost(String(req.params.id), req.query);
+      return ok(res, { reactions });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async listOnComment(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactions = await ReactionService.listOnComment(String(req.params.id), req.query);
+      return ok(res, { reactions });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
 }

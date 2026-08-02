@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { MessageService } from "../../services/MessageService";
+import { ChatThemeService } from "../../services/ChatThemeService";
 import { ok, fail } from "../../utils/response";
 import { AppError, statusForCode } from "../../utils/AppError";
 import type { AuthedRequest } from "../../middleware/requireAuth";
@@ -82,6 +83,15 @@ export class MessagesController {
     }
   }
 
+  static async edit(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const message = await MessageService.edit(req.userId!, String(req.params.id), req.body);
+      return ok(res, { message });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
   static async setReaction(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const message = await MessageService.setReaction(
@@ -120,6 +130,28 @@ export class MessagesController {
         String(req.params.id)
       );
       return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async getTheme(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const theme = await ChatThemeService.getTheme(req.userId!, String(req.params.id));
+      return ok(res, theme);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async updateTheme(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const theme = await ChatThemeService.updateTheme(
+        req.userId!,
+        String(req.params.id),
+        req.body
+      );
+      return ok(res, theme);
     } catch (err) {
       return handle(res, err);
     }
