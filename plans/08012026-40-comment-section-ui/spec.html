@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comment Section UI Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 40</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Comment Section UI — Bubble Cards, Bottom Composer, Reply Rail</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08012026-40-comment-section-ui</dd></div>
+        <div><dt>Size</dt><dd>Small (5 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 — Concern</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08012026-40-comment-section-ui</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/comment-section-ui</dd></div>
+        <div><dt>Depends on</dt><dd>Existing comment API · CommentThread grouping · feed-card tokens · ReactionBar</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Comments shipped in the Jul 31 UI batch with avatar headers and threaded replies, but the section still reads utilitarian: flat text blocks, composer at the top, and a generic "Comments" heading. Feed and Friends surfaces now use elevated cards, pill inputs, and tighter meta rows — comments should match that Facebook-style conversation language without changing API behavior.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p><strong>Target layout (post detail / inline comments):</strong></p>
+      <pre class="wire">┌─ comments feed-card ───────────────────────────────────┐
+│ (💬)  3 comments                                       │
+├──────────────────────────────────────────────────────────┤
+│ (●)  ┌─ bubble ─────────────────────┐                    │
+│      │ Jane Doe @jane               │                    │
+│      │ Great post!                  │                    │
+│      └──────────────────────────────┘                    │
+│      👍 2  ↩  ·  2h                                      │
+│      │ reply rail                                             │
+│      (●)  ┌─ reply bubble ───────────┐                     │
+│           │ Bob @bob                 │                     │
+│           │ Thanks!                  │                     │
+│           └──────────────────────────┘                     │
+├──────────────────────────────────────────────────────────┤
+│ (●)  [ Write a comment ····················· ]  (↑)      │
+└──────────────────────────────────────────────────────────┘</pre>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Each comment renders as a rounded bubble card with author name inside (not a separate header row)</li>
+        <li>Meta row below bubble: reactions + reply action + relative timestamp</li>
+        <li>Reply threads show a vertical rail (<code>::before</code> line) indenting nested replies</li>
+        <li>Section header shows icon + count only — no "Comments" heading text</li>
+        <li>Primary composer sits at the bottom of the section (border-top strip), not the top</li>
+        <li>Composer uses pill shell when collapsed; icon-only send when collapsed; expands on focus</li>
+        <li>Inline reply composer appears under the parent thread with reply banner</li>
+        <li>Empty state uses icon + title + supporting copy</li>
+        <li>Light + dark parity via existing B&amp;W tokens; no backend changes</li>
+        <li>Frontend typecheck/build pass; acceptance checklist passes or carries written waivers</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Changed files (execution branch <code>kylie/comment-section-ui</code>):</strong></p>
+      <ul>
+        <li><code>frontend/src/components/CommentItem.tsx</code> — bubble layout, in-bubble author header, meta row with ReactionBar + timestamp</li>
+        <li><code>frontend/src/components/CommentsSection.tsx</code> — icon+count header, bottom composer, reply rail block, empty state</li>
+        <li><code>frontend/src/components/CommentComposer.tsx</code> — pill shell, collapsed icon send, expand-on-focus, reply banner</li>
+        <li><code>frontend/src/index.css</code> — <code>.comment-bubble</code>, <code>.comment-replies-block</code> rail, composer shell, empty state tokens</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Preserve comment submit, reply, delete, reaction, and photo attach flows</li>
+            <li>Preserve <code>CommentThread</code> grouping and orphan reply handling</li>
+            <li>Frontend-only; presentation in components + CSS per Code Constitution</li>
+            <li>Light + dark theme parity using existing tokens</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>Backend, schema, or API changes</li>
+            <li>New npm dependencies</li>
+            <li>Global AppShell or feed-card structural changes</li>
+            <li>Drive-by refactors on PostCard, Feed, or Messages</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Out of scope</h3>
+          <ul>
+            <li>Comment sorting or pagination</li>
+            <li>Realtime comment delivery</li>
+            <li>Edit comment</li>
+            <li>Mention autocomplete</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Primary hazard is composer placement regression (users expect top composer on some surfaces). Secondary: bubble max-width crowding on narrow viewports.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Bottom composer breaks scroll-to-comment UX</td>
+            <td>Post detail page</td>
+            <td>Keep <code>sectionRef</code> anchor; composer only moves within section</td>
+          </tr>
+          <tr>
+            <td>Reply rail misalignment on deep threads</td>
+            <td>Threaded replies</td>
+            <td>Fixed left margin + <code>::before</code> rail scoped to <code>.comment-replies-block</code></td>
+          </tr>
+          <tr>
+            <td>Collapsed send button inaccessible</td>
+            <td>Keyboard / screen reader</td>
+            <td><code>aria-label</code> on icon send; expand on focus</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Comment bubble + reply rail CSS</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add comment-scoped tokens in <code>index.css</code>: <code>.comment-bubble</code>, <code>.comment-bubble-reply</code>, <code>.comment-replies-block</code> with vertical rail, meta row, empty state, composer shell.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>Bubbles render rounded with border/shadow; reply rail visible; dark mode parity</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — CommentItem bubble layout</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Restructure item: avatar left, bubble contains author link + body + image; meta row below with ReactionBar, reply action, timestamp; owner overflow menu inside bubble.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/CommentItem.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Root and reply variants; hover border; delete menu; reactions unchanged</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — CommentsSection header + bottom composer</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Replace "Comments" heading with MessageSquare icon + count label. Move primary composer to bottom border-top strip. Wire reply composer inside reply rail block. Polish empty state.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/CommentsSection.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Composer at bottom when not replying; reply composer inline under parent; count label pluralizes</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — CommentComposer pill shell</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Pill input shell when collapsed; icon-only circular send; expand on focus with photo attach row and text submit label; reply banner when <code>replyingTo</code> set.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/CommentComposer.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Collapse when empty on blur; Enter submits; image preview + clear works</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — Acceptance + CHANGELOG</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Run frontend typecheck/build. Populate acceptance artifacts. Update CHANGELOG v0.1.18 with correct plan path.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>CHANGELOG.md</code>, plan acceptance artifacts</dd></div>
+          <div><dt>Depends on</dt><dd>T2–T4</dd></div>
+          <div><dt>Verify</dt><dd>Build green; acceptance Passed or waivers documented</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>Bubble cards with in-bubble author name and body</span></li>
+        <li><span>☑</span><span>Meta row: reactions + reply + relative timestamp below bubble</span></li>
+        <li><span>☑</span><span>Reply thread vertical rail indenting nested replies</span></li>
+        <li><span>☑</span><span>Section header: icon + count only (no "Comments" heading)</span></li>
+        <li><span>☑</span><span>Bottom composer with pill shell and collapsed icon send</span></li>
+        <li><span>☑</span><span>Inline reply composer with banner under parent thread</span></li>
+        <li><span>☑</span><span>Empty state with icon + title + supporting copy</span></li>
+        <li><span>☑</span><span>Frontend typecheck/build pass</span></li>
+        <li><span>☑</span><span>Acceptance checklist Passed</span></li>
+        <li><span>☑</span><span>Plan folder + spec-code parity (R1/R2 review fix)</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="acceptance">
+      <h2>Acceptance</h2>
+      <p>Runnable checklist: <code>test-results.json</code> + <code>test.html</code> in this folder. Surfaces are UI unless noted.</p>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>08032026</td>
+            <td>Post-review contributor turn: landed spec.html, test-results.json, test.html; corrected CHANGELOG plan path from <code>08022026</code> to <code>08012026-40-comment-section-ui</code>. Addresses reviewer R1/R2 (PR #55).</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
