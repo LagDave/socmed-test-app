@@ -5,6 +5,7 @@ import type { PublicUser } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { unlockNotificationSounds } from "@/lib/notificationSounds";
 
 export function RegisterPage() {
   const { setUser } = useAuth();
@@ -18,6 +19,7 @@ export function RegisterPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    unlockNotificationSounds();
     setBusy(true);
     setError(null);
     try {

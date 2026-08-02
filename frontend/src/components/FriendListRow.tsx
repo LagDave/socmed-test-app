@@ -14,20 +14,20 @@ type FriendListRowProps = {
 
 export function FriendListRow({ user, actions }: FriendListRowProps) {
   return (
-    <li className="flex items-center justify-between gap-3 py-3 transition-colors first:pt-0 last:pb-0">
+    <li className="friends-row flex items-center justify-between gap-3 px-3 py-3 sm:py-3.5">
       <Link
         to={profilePath(user)}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg outline-offset-2 hover:bg-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+        className="friends-row-link flex min-w-0 flex-1 items-center gap-3 p-1"
       >
-        <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
-        <span className="min-w-0 truncate">
-          <span className="font-semibold">{user.displayName}</span>
+        <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" className="h-11 w-11 text-base" />
+        <span className="min-w-0">
+          <span className="block truncate text-[15px] font-semibold leading-snug">{user.displayName}</span>
           {user.username ? (
-            <span className="font-normal text-muted-foreground">{` @${user.username}`}</span>
+            <span className="block truncate text-sm text-muted-foreground">@{user.username}</span>
           ) : null}
         </span>
       </Link>
-      <div className="flex shrink-0 items-center gap-2">{actions}</div>
+      <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">{actions}</div>
     </li>
   );
 }

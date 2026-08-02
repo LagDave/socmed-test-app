@@ -1,7 +1,15 @@
 import { Link } from "react-router-dom";
-import { ChevronRight, ImageIcon } from "lucide-react";
+import { ChevronRight, ImageIcon, MoreVertical, Trash2 } from "lucide-react";
 import type { ConversationListItem } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { TypingIndicator } from "@/components/TypingIndicator";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { cn } from "@/lib/utils";
 
@@ -9,64 +17,93 @@ function snippet(item: ConversationListItem): { text: string; isMedia: boolean }
   const last = item.lastMessage;
   if (!last) return { text: "No messages yet", isMedia: false };
   if (last.isUnsent) return { text: "Unsent a message", isMedia: false };
-  if (last.imageUrl && !last.body) return { text: "Photo", isMedia: true };
-  if (last.imageUrl && last.body) return { text: last.body, isMedia: true };
-  return { text: last.body || "", isMedia: false };
+
+  let text: string;
+  let isMedia = false;
+  if (last.imageUrl && !last.body) {
+    text = "Photo";
+    isMedia = true;
+  } else if (last.imageUrl && last.body) {
+    text = last.body;
+    isMedia = true;
+  } else {
+    text = last.body || "";
+  }
+
+  if (last.replyToMessageId && text) return { text: `↩ ${text}`, isMedia };
+  if (last.replyToMessageId) return { text: "↩ Reply", isMedia: false };
+  return { text, isMedia };
 }
 
-export function ConversationListRow({ item }: { item: ConversationListItem }) {
+export function ConversationListRow({
+  item,
+  onDelete,
+  isPeerTyping = false,
+  className,
+}: {
+  item: ConversationListItem;
+  onDelete: (id: string, peerName: string) => void;
+  isPeerTyping?: boolean;
+  className?: string;
+}) {
   const unread = item.unreadCount > 0;
   const peer = item.peer;
   const profilePath = peer.username ? `/u/${peer.username}` : `/u/${peer.id}`;
   const preview = snippet(item);
 
   return (
-    <li className={cn("transition-colors", unread && "bg-accent/30")}>
-      <div
-        className={cn(
-          "group flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-accent/50",
-          unread && "hover:bg-accent/40"
-        )}
+    <div
+      className={cn(
+        "group flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-accent/50",
+        unread && "bg-accent/30 hover:bg-accent/40",
+        className
+      )}
+    >
+      <Link
+        to={profilePath}
+        className="relative shrink-0"
+        aria-label={`${peer.displayName}'s profile`}
       >
-        <Link
-          to={profilePath}
-          className="relative shrink-0"
-          aria-label={`${peer.displayName}'s profile`}
-        >
-          <ProfileAvatar
-            displayName={peer.displayName}
-            avatarUrl={peer.avatarUrl}
-            size="sm"
-            className={cn(unread && "ring-2 ring-primary/30 ring-offset-2 ring-offset-card")}
+        <ProfileAvatar
+          displayName={peer.displayName}
+          avatarUrl={peer.avatarUrl}
+          size="sm"
+          className={cn(unread && "ring-2 ring-primary/30 ring-offset-2 ring-offset-card")}
+        />
+        {unread && (
+          <span
+            className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-card bg-primary"
+            aria-hidden="true"
           />
-          {unread && (
-            <span
-              className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-card bg-primary"
-              aria-hidden="true"
-            />
-          )}
-        </Link>
+        )}
+      </Link>
 
-        <Link to={`/messages/${item.id}`} className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="min-w-0 flex-1">
-            <span className="flex items-baseline justify-between gap-2">
-              <span className={cn("truncate", unread ? "font-semibold" : "font-medium")}>
-                {peer.displayName}
-              </span>
-              {item.lastMessageAt && (
-                <time
-                  className={cn(
-                    "shrink-0 text-xs",
-                    unread ? "font-medium text-foreground" : "text-muted-foreground"
-                  )}
-                  dateTime={item.lastMessageAt}
-                  title={formatAbsoluteTime(item.lastMessageAt) || undefined}
-                >
-                  {formatRelativeTime(item.lastMessageAt)}
-                </time>
+      <Link to={`/messages/${item.id}`} className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline justify-between gap-2">
+            <span className={cn("truncate", unread ? "font-semibold" : "font-medium")}>
+              {peer.displayName}
+              {peer.username && (
+                <span className="font-normal text-muted-foreground"> @{peer.username}</span>
               )}
             </span>
-            <span className="mt-0.5 flex items-center justify-between gap-2">
+            {item.lastMessageAt && (
+              <time
+                className={cn(
+                  "shrink-0 text-xs",
+                  unread ? "font-medium text-foreground" : "text-muted-foreground"
+                )}
+                dateTime={item.lastMessageAt}
+                title={formatAbsoluteTime(item.lastMessageAt) || undefined}
+              >
+                {formatRelativeTime(item.lastMessageAt)}
+              </time>
+            )}
+          </span>
+          <span className="mt-0.5 flex items-center justify-between gap-2">
+            {isPeerTyping ? (
+              <TypingIndicator displayName={peer.displayName} compact className="min-w-0 flex-1" />
+            ) : (
               <span
                 className={cn(
                   "flex min-w-0 items-center gap-1 truncate text-sm",
@@ -78,20 +115,44 @@ export function ConversationListRow({ item }: { item: ConversationListItem }) {
                 )}
                 <span className="truncate">{preview.text}</span>
               </span>
-              {unread && (
-                <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
-                  {item.unreadCount > 9 ? "9+" : item.unreadCount}
-                </span>
-              )}
-            </span>
+            )}
+            {unread && (
+              <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
+                {item.unreadCount > 9 ? "9+" : item.unreadCount}
+              </span>
+            )}
           </span>
+        </span>
 
-          <ChevronRight
-            className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground"
-            aria-hidden="true"
-          />
-        </Link>
-      </div>
-    </li>
+        <ChevronRight
+          className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground"
+          aria-hidden="true"
+        />
+      </Link>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-muted-foreground"
+            aria-label={`Conversation options for ${peer.displayName}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onSelect={() => onDelete(item.id, peer.displayName)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete conversation
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

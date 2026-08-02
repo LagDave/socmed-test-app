@@ -1,21 +1,32 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ImagePlus, SendHorizontal } from "lucide-react";
+import { ChevronLeft, ImagePlus, MoreVertical, Palette, SendHorizontal, Trash2, X } from "lucide-react";
 import { api } from "@/api/client";
+import { deleteConversation, updateConversationTheme } from "@/api/messages";
 import {
+  CONVERSATION_PEER_READ,
+  CONVERSATION_THEME,
   CONVERSATION_UPDATED,
+  MESSAGE_DELIVERED,
+  MESSAGE_EDITED,
   MESSAGE_NEW,
   MESSAGE_REACTION,
   MESSAGE_UNSENT,
   getMessagesSocket,
+  type ConversationPeerReadPayload,
+  type ConversationThemePayload,
   type ConversationUpdatedPayload,
+  type MessageDeliveredPayload,
   type MessageEventPayload,
 } from "@/api/socket";
-import type { ConversationListItem, MessageView, PublicUser } from "@/api/types";
+import type { ConversationListItem, ConversationThemeView, MessageView, PublicUser } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { ChatThemePicker } from "@/components/ChatThemePicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { ConversationListRow } from "@/components/ConversationListRow";
+import { SwipeableConversationListRow } from "@/components/SwipeableConversationListRow";
 import { MessageBubbleRow } from "@/components/MessageBubbleRow";
+import { MessageComposerEmojiPicker } from "@/components/MessageComposerEmojiPicker";
+import { truncateQuoteText } from "@/components/MessageQuoteStrip";
 import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import {
   MessageDaySeparator,
@@ -26,8 +37,21 @@ import {
   MessagesThreadSkeleton,
 } from "@/components/MessagesUiHelpers";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { TypingIndicator } from "@/components/TypingIndicator";
+import { useCanHover } from "@/hooks/useCanHover";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
+import {
+  useInboxPeerTyping,
+  usePeerTyping,
+  useTypingEmitter,
+} from "@/hooks/useTypingIndicator";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import {
   formatMessageDay,
@@ -35,13 +59,68 @@ import {
   messagesShareGroup,
 } from "@/lib/formatMessageDay";
 import { submitOnEnter } from "@/lib/submitOnEnter";
+import {
+  chatThemeCssVars,
+  resolveConversationTheme,
+} from "@/lib/chatThemeApply";
+import type { ChatTheme } from "@/api/types";
+import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
+import { cn } from "@/lib/utils";
 
 const POLL_MS = 2500;
+
+type PendingDeleteConversation = {
+  id: string;
+  peerName: string;
+};
+
+function deleteConversationDescription(peerName: string): string {
+  return `This permanently deletes the chat and all messages from your inbox. ${peerName} will still have the conversation.`;
+}
+
+function replyTargetPreview(
+  message: MessageView,
+  user: PublicUser,
+  peer: PublicUser
+): { name: string; snippet: string; imageUrl: string | null } {
+  const name = message.senderId === user.id ? user.displayName : peer.displayName;
+  if (message.isUnsent) {
+    return { name, snippet: "Message unavailable", imageUrl: null };
+  }
+  const snippet = message.body?.trim()
+    ? truncateQuoteText(message.body)
+    : message.imageUrl
+      ? "Photo"
+      : "Message";
+  return { name, snippet, imageUrl: message.imageUrl };
+}
+
+function patchReplyTargetsUnsent(prev: MessageView[], unsentId: string): MessageView[] {
+  return prev.map((m) => {
+    if (m.replyTo?.id !== unsentId) return m;
+    return {
+      ...m,
+      replyTo: {
+        ...m.replyTo,
+        isUnsent: true,
+        body: null,
+        imageUrl: null,
+      },
+    };
+  });
+}
 
 function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] {
   const map = new Map<string, MessageView>();
   for (const m of prev) map.set(m.id, m);
-  for (const m of incoming) map.set(m.id, m);
+  for (const m of incoming) {
+    const existing = map.get(m.id);
+    map.set(m.id, {
+      ...m,
+      deliveredAt: m.deliveredAt ?? existing?.deliveredAt ?? null,
+      editedAt: m.editedAt ?? existing?.editedAt ?? null,
+    });
+  }
   return Array.from(map.values()).sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
@@ -52,6 +131,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const navigate = useNavigate();
   const socketConnected = useSocketConnected();
   const [peer, setPeer] = useState<PublicUser | null>(null);
+  const [peerLastReadAt, setPeerLastReadAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
@@ -60,35 +140,86 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [sending, setSending] = useState(false);
   const [pendingUnsendId, setPendingUnsendId] = useState<string | null>(null);
   const [unsending, setUnsending] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<PendingDeleteConversation | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [loadingThread, setLoadingThread] = useState(true);
+  const [conversationTheme, setConversationTheme] = useState<ConversationThemeView | null>(null);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+  const [themeSaving, setThemeSaving] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState<MessageView | null>(null);
+  const [tappedMessageId, setTappedMessageId] = useState<string | null>(null);
+  const canHover = useCanHover();
+  const isPeerTyping = usePeerTyping(conversationId, user?.id);
+  const { stopTyping } = useTypingEmitter({
+    conversationId,
+    text: body,
+    connected: socketConnected,
+    active: !sending && !editingMessageId,
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const generationRef = useRef(0);
+  const themePickerOpenRef = useRef(false);
   const stickToBottomRef = useRef(true);
+  const replyTargetIdRef = useRef<string | null>(null);
+  const peerIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    replyTargetIdRef.current = replyToMessage?.id ?? null;
+  }, [replyToMessage?.id]);
+
+  useEffect(() => {
+    peerIdRef.current = peer?.id ?? null;
+  }, [peer?.id]);
+
+  themePickerOpenRef.current = themePickerOpen;
+
+  function scrollThreadToBottom(behavior: ScrollBehavior = "auto") {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+    bottomRef.current?.scrollIntoView({ behavior, block: "end" });
+  }
 
   useEffect(() => {
     generationRef.current += 1;
     const generation = generationRef.current;
     stickToBottomRef.current = true;
     setPeer(null);
+    setPeerLastReadAt(null);
     setMessages([]);
     setHasMore(false);
     setError(null);
     setBody("");
+    setEditingMessageId(null);
+    setReplyToMessage(null);
+    setTappedMessageId(null);
     setLoadingThread(true);
+    setConversationTheme(null);
+    setThemePickerOpen(false);
 
     async function loadInitial() {
       try {
         const data = await api.get<{
           conversationId: string;
           peer: PublicUser;
+          peerLastReadAt: string | null;
           messages: MessageView[];
           hasMore: boolean;
-        }>(`/api/messages/conversations/${conversationId}`);
+          theme: ConversationThemeView;
+        }>(`/api/messages/conversations/${conversationId}?restore=1`);
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
+        setPeerLastReadAt(data.peerLastReadAt);
         setMessages(data.messages);
         setHasMore(Boolean(data.hasMore));
+        setConversationTheme(data.theme);
+        setLoadingThread(false);
         if (generation !== generationRef.current) return;
         await api.post(`/api/messages/conversations/${conversationId}/read`);
       } catch (e) {
@@ -115,12 +246,24 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           const data = await api.get<{
             conversationId: string;
             peer: PublicUser;
+            peerLastReadAt: string | null;
             messages: MessageView[];
             hasMore: boolean;
+            theme: ConversationThemeView;
           }>(`/api/messages/conversations/${conversationId}`);
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
-          setMessages((prev) => mergeById(prev, data.messages));
+          setPeerLastReadAt(data.peerLastReadAt);
+          setMessages((prev) => {
+            let merged = mergeById(prev, data.messages);
+            for (const msg of data.messages) {
+              if (msg.isUnsent) merged = patchReplyTargetsUnsent(merged, msg.id);
+            }
+            return merged;
+          });
+          if (!themePickerOpenRef.current) {
+            setConversationTheme(data.theme);
+          }
           if (generation !== generationRef.current) return;
           await api.post(`/api/messages/conversations/${conversationId}/read`);
         } catch {
@@ -139,7 +282,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const msg = payload.message;
       if (msg.conversationId !== conversationId) return;
       if (generation !== generationRef.current) return;
-      setMessages((prev) => mergeById(prev, [msg]));
+      setMessages((prev) => {
+        const merged = mergeById(prev, [msg]);
+        return msg.isUnsent ? patchReplyTargetsUnsent(merged, msg.id) : merged;
+      });
+      if (replyTargetIdRef.current === msg.id && msg.isUnsent) {
+        setReplyToMessage(null);
+      }
     };
 
     const applyInboundNewMessage = (payload: MessageEventPayload) => {
@@ -152,20 +301,125 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       void api.post(`/api/messages/conversations/${conversationId}/read`).catch(() => undefined);
     };
 
+    const applyMessageDelivered = (payload: MessageDeliveredPayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === payload.messageId ? { ...m, deliveredAt: payload.deliveredAt } : m
+        )
+      );
+    };
+
+    const applyPeerRead = (payload: ConversationPeerReadPayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      if (payload.readerId !== peerIdRef.current) return;
+      setPeerLastReadAt(payload.peerLastReadAt);
+    };
+
     socket.on(MESSAGE_NEW, applyInboundNewMessage);
     socket.on(MESSAGE_UNSENT, applyMessagePatch);
+    socket.on(MESSAGE_EDITED, applyMessagePatch);
     socket.on(MESSAGE_REACTION, applyMessagePatch);
+    socket.on(MESSAGE_DELIVERED, applyMessageDelivered);
+    socket.on(CONVERSATION_PEER_READ, applyPeerRead);
+
+    const applyTheme = (payload: ConversationThemePayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setConversationTheme({
+        theme: payload.theme,
+        updatedAt: payload.updatedAt,
+        updatedBy: payload.updatedBy,
+      });
+    };
+    socket.on(CONVERSATION_THEME, applyTheme);
+
     return () => {
       socket.off(MESSAGE_NEW, applyInboundNewMessage);
       socket.off(MESSAGE_UNSENT, applyMessagePatch);
+      socket.off(MESSAGE_EDITED, applyMessagePatch);
       socket.off(MESSAGE_REACTION, applyMessagePatch);
+      socket.off(MESSAGE_DELIVERED, applyMessageDelivered);
+      socket.off(CONVERSATION_PEER_READ, applyPeerRead);
+      socket.off(CONVERSATION_THEME, applyTheme);
     };
   }, [conversationId, user?.id]);
 
+  useLayoutEffect(() => {
+    if (loadingThread || !stickToBottomRef.current) return;
+    scrollThreadToBottom("auto");
+    const id = window.requestAnimationFrame(() => {
+      scrollThreadToBottom("auto");
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [loadingThread, conversationId, messages]);
+
   useEffect(() => {
-    if (!stickToBottomRef.current) return;
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    if (loadingThread) return;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const stickIfNeeded = () => {
+      if (!stickToBottomRef.current) return;
+      scrollThreadToBottom("auto");
+    };
+
+    const ro = new ResizeObserver(stickIfNeeded);
+    ro.observe(el);
+    const content = el.firstElementChild;
+    if (content) ro.observe(content);
+
+    return () => ro.disconnect();
+  }, [loadingThread, conversationId]);
+
+  useEffect(() => {
+    if (!replyToMessage || editingMessageId) return;
+    textareaRef.current?.focus();
+  }, [replyToMessage, editingMessageId]);
+
+  useEffect(() => {
+    if (!editingMessageId) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.focus();
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+  }, [editingMessageId]);
+
+  async function sendText(text: string, options?: { clearComposer?: boolean }) {
+    const trimmed = text.trim();
+    if (!trimmed || sending) return false;
+    stopTyping();
+    const generation = generationRef.current;
+    setSending(true);
+    setError(null);
+    stickToBottomRef.current = true;
+    try {
+      const payload: { body: string; replyToMessageId?: string } = { body: trimmed };
+      if (replyToMessage) payload.replyToMessageId = replyToMessage.id;
+      const data = await api.post<{ message: MessageView }>(
+        `/api/messages/conversations/${conversationId}/messages`,
+        payload
+      );
+      if (generation !== generationRef.current) return false;
+      if (options?.clearComposer !== false) {
+        setBody("");
+        setReplyToMessage(null);
+      }
+      setMessages((prev) => mergeById(prev, [data.message]));
+      if (generation !== generationRef.current) return false;
+      await api.post(`/api/messages/conversations/${conversationId}/read`);
+      return true;
+    } catch (err) {
+      if (generation !== generationRef.current) return false;
+      setError(err instanceof Error ? err.message : "Send failed");
+      return false;
+    } finally {
+      if (generation === generationRef.current) setSending(false);
+    }
+  }
 
   async function loadEarlier() {
     if (loadingEarlier || !hasMore || messages.length === 0) return;
@@ -178,6 +432,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const data = await api.get<{
         conversationId: string;
         peer: PublicUser;
+        peerLastReadAt: string | null;
         messages: MessageView[];
         hasMore: boolean;
       }>(`/api/messages/conversations/${conversationId}?before=${encodeURIComponent(oldestId)}`);
@@ -192,34 +447,36 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     }
   }
 
+  function insertComposerEmoji(emoji: string) {
+    const el = textareaRef.current;
+    if (!el) {
+      setBody((prev) => prev + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? body.length;
+    const end = el.selectionEnd ?? body.length;
+    const { nextValue, nextCursor } = insertTextAtSelection(body, emoji, start, end);
+    setBody(nextValue);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(nextCursor, nextCursor);
+    });
+  }
+
   async function onSend(e: FormEvent) {
     e.preventDefault();
+    if (editingMessageId) {
+      await saveEdit();
+      return;
+    }
     const text = body.trim();
     if (!text || sending) return;
-    const generation = generationRef.current;
-    setSending(true);
-    setError(null);
-    stickToBottomRef.current = true;
-    try {
-      const data = await api.post<{ message: MessageView }>(
-        `/api/messages/conversations/${conversationId}/messages`,
-        { body: text }
-      );
-      if (generation !== generationRef.current) return;
-      setBody("");
-      setMessages((prev) => mergeById(prev, [data.message]));
-      if (generation !== generationRef.current) return;
-      await api.post(`/api/messages/conversations/${conversationId}/read`);
-    } catch (err) {
-      if (generation !== generationRef.current) return;
-      setError(err instanceof Error ? err.message : "Send failed");
-    } finally {
-      if (generation === generationRef.current) setSending(false);
-    }
+    await sendText(text);
   }
 
   async function onImage(file: File | null) {
-    if (!file || sending) return;
+    if (!file || sending || editingMessageId) return;
+    stopTyping();
     const generation = generationRef.current;
     setSending(true);
     setError(null);
@@ -228,12 +485,18 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const uploaded = await api.upload<{ url: string }>("/api/uploads", file);
       if (generation !== generationRef.current) return;
       const caption = body.trim() || undefined;
+      const payload: { body?: string; imageUrl: string; replyToMessageId?: string } = {
+        body: caption,
+        imageUrl: uploaded.url,
+      };
+      if (replyToMessage) payload.replyToMessageId = replyToMessage.id;
       const data = await api.post<{ message: MessageView }>(
         `/api/messages/conversations/${conversationId}/messages`,
-        { body: caption, imageUrl: uploaded.url }
+        payload
       );
       if (generation !== generationRef.current) return;
       setBody("");
+      setReplyToMessage(null);
       setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
@@ -257,8 +520,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         `/api/messages/messages/${pendingUnsendId}`
       );
       if (generation !== generationRef.current) return;
-      setMessages((prev) => prev.map((m) => (m.id === pendingUnsendId ? data.message : m)));
+      setMessages((prev) => {
+        const next = prev.map((m) => (m.id === pendingUnsendId ? data.message : m));
+        return patchReplyTargetsUnsent(next, pendingUnsendId);
+      });
+      if (replyToMessage?.id === pendingUnsendId) setReplyToMessage(null);
       setPendingUnsendId(null);
+      if (editingMessageId === pendingUnsendId) cancelEdit();
     } catch (err) {
       if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Unsend failed");
@@ -273,11 +541,110 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     );
   }
 
+  async function confirmDeleteConversation() {
+    if (!pendingDelete || deleting) return;
+    const { id } = pendingDelete;
+    generationRef.current += 1;
+    setDeleting(true);
+    try {
+      await deleteConversation(id);
+      setPendingDelete(null);
+      navigate("/messages");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete conversation");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  function startEdit(messageId: string) {
+    const msg = messages.find((m) => m.id === messageId);
+    if (!msg?.body?.trim()) return;
+    setEditingMessageId(messageId);
+    setReplyToMessage(null);
+    setBody(msg.body ?? "");
+    setError(null);
+    stickToBottomRef.current = true;
+  }
+
+  function cancelEdit() {
+    setEditingMessageId(null);
+    setBody("");
+  }
+
+  async function saveEdit() {
+    if (!editingMessageId || savingEdit) return;
+    const msg = messages.find((m) => m.id === editingMessageId);
+    if (!msg) return;
+    const trimmed = body.trim();
+    if (!msg.imageUrl && !trimmed) {
+      setError("Message body cannot be empty.");
+      return;
+    }
+    const generation = generationRef.current;
+    setSavingEdit(true);
+    setError(null);
+    try {
+      const data = await api.patch<{ message: MessageView }>(
+        `/api/messages/messages/${editingMessageId}`,
+        { body: trimmed }
+      );
+      if (generation !== generationRef.current) return;
+      setMessages((prev) => mergeById(prev, [data.message]));
+      cancelEdit();
+    } catch (err) {
+      if (generation !== generationRef.current) return;
+      setError(err instanceof Error ? err.message : "Edit failed");
+    } finally {
+      if (generation === generationRef.current) setSavingEdit(false);
+    }
+  }
+
+  function handleComposeKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Escape" && editingMessageId) {
+      e.preventDefault();
+      cancelEdit();
+    }
+  }
+
+  async function applyThemeChoice(payload: ChatTheme | { reset: true }) {
+    setThemeSaving(true);
+    setError(null);
+    try {
+      const updated = await updateConversationTheme(conversationId, payload);
+      setConversationTheme(updated);
+      setThemePickerOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update theme");
+    } finally {
+      setThemeSaving(false);
+    }
+  }
+
+  async function sendWordEffect(word: string) {
+    setThemePickerOpen(false);
+    await sendText(word, { clearComposer: false });
+  }
+
+  const resolvedTheme = resolveConversationTheme(conversationTheme);
+  const themeVars = chatThemeCssVars(resolvedTheme);
   const peerProfilePath = peer?.username ? `/u/${peer.username}` : peer ? `/u/${peer.id}` : "#";
+  const replyPreview =
+    replyToMessage && user && peer && !editingMessageId
+      ? replyTargetPreview(replyToMessage, user, peer)
+      : null;
+  const editingMessage = editingMessageId
+    ? messages.find((m) => m.id === editingMessageId) ?? null
+    : null;
+  const composeBusy = sending || savingEdit;
 
   return (
     <section className="messages-page space-y-4">
-      <div className="feed-card flex min-h-[70vh] flex-col overflow-hidden">
+      <div
+        className="feed-card relative flex h-[calc(100dvh-7rem)] min-h-[70vh] flex-col overflow-hidden"
+        data-chat-theme={resolvedTheme.active ? "true" : undefined}
+        style={themeVars}
+      >
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-card/95 px-4 py-3 shadow-sm backdrop-blur-sm">
           <Button
             type="button"
@@ -311,9 +678,59 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               </div>
             </div>
           )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Customize chat theme"
+            onClick={() => setThemePickerOpen(true)}
+          >
+            <Palette className="h-5 w-5" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                aria-label="Conversation options"
+                disabled={!peer}
+              >
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                disabled={!peer}
+                onSelect={() => {
+                  if (peer) {
+                    setPendingDelete({ id: conversationId, peerName: peer.displayName });
+                  }
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete conversation
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
 
-        <div className="messages-thread-pane flex-1 overflow-y-auto px-4 py-4">
+        <div
+          ref={scrollRef}
+          className="messages-thread-pane min-h-0 flex-1 overflow-y-auto px-4 py-4"
+          style={resolvedTheme.active ? { background: resolvedTheme.background } : undefined}
+          onScroll={() => {
+            const el = scrollRef.current;
+            if (!el) return;
+            const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+            stickToBottomRef.current = distanceFromBottom < 80;
+          }}
+          onClick={() => {
+            if (!canHover) setTappedMessageId(null);
+          }}
+        >
           {loadingThread ? (
             <MessagesThreadSkeleton />
           ) : (
@@ -341,7 +758,6 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                 const showDay =
                   !prev || !isSameCalendarDay(prev.createdAt, m.createdAt);
                 const showAvatar = !mine && (!prev || !messagesShareGroup(prev, m));
-                const showMeta = !next || !messagesShareGroup(m, next);
                 const groupedWithPrev = Boolean(prev && messagesShareGroup(prev, m));
                 const groupedWithNext = Boolean(next && messagesShareGroup(m, next));
 
@@ -353,13 +769,25 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       mine={mine}
                       peer={peer}
                       showAvatar={showAvatar}
-                      showMeta={showMeta}
+                      peerLastReadAt={peerLastReadAt}
                       groupedWithPrev={groupedWithPrev}
                       groupedWithNext={groupedWithNext}
                       peerProfilePath={peerProfilePath}
+                      isBeingEdited={editingMessageId === m.id}
+                      canHover={canHover}
+                      touchRevealed={tappedMessageId === m.id}
+                      onToggleTouchReveal={() =>
+                        setTappedMessageId((prev) => (prev === m.id ? null : m.id))
+                      }
                       onUnsend={setPendingUnsendId}
+                      onStartEdit={startEdit}
                       onReactionChange={patchMessageReaction}
+                      onReply={(msg) => {
+                        setTappedMessageId(null);
+                        setReplyToMessage(msg);
+                      }}
                       onError={setError}
+                      themed={resolvedTheme.active}
                     />
                   </div>
                 );
@@ -371,8 +799,66 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
         {error && <MessagesErrorBanner message={error} />}
 
+        {isPeerTyping && peer && <TypingIndicator displayName={peer.displayName} />}
+
         <form onSubmit={onSend} className="border-t border-border bg-card px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
-          <div className="messages-composer-track flex items-end gap-2 rounded-full px-2 py-1.5">
+          {editingMessageId && (
+            <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
+              <span>Editing message</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                disabled={composeBusy}
+                onClick={cancelEdit}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+          {replyPreview && (
+            <div className="mb-2 flex items-start justify-between gap-2 rounded-xl border border-border/70 bg-secondary/40 px-3 py-2 text-sm">
+              <div className="min-w-0">
+                <p className="text-muted-foreground">
+                  Replying to{" "}
+                  <span className="font-medium text-foreground">{replyPreview.name}</span>
+                  {" · "}
+                  <span className="text-foreground/90">{replyPreview.snippet}</span>
+                </p>
+                {replyPreview.imageUrl && (
+                  <img
+                    src={replyPreview.imageUrl}
+                    alt=""
+                    className="mt-2 h-10 w-10 rounded object-cover"
+                  />
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label="Cancel reply"
+                onClick={() => setReplyToMessage(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          <div
+            className={cn(
+              "messages-composer-track flex items-end gap-2 rounded-full px-2 py-1.5",
+              resolvedTheme.active && "border-transparent bg-transparent shadow-none"
+            )}
+            style={
+              resolvedTheme.active
+                ? {
+                    backgroundColor: "color-mix(in srgb, var(--chat-accent) 18%, transparent)",
+                  }
+                : undefined
+            }
+          >
             <input
               ref={fileRef}
               type="file"
@@ -387,39 +873,76 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                 size="sm"
               />
             )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              aria-label="Attach image"
-              disabled={sending}
-              onClick={() => fileRef.current?.click()}
-            >
-              <ImagePlus className="h-4 w-4" />
-            </Button>
+            <div className="flex shrink-0 items-center -space-x-1">
+              {!editingMessageId && (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Attach image"
+                    disabled={composeBusy}
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                  </Button>
+                  <MessageComposerEmojiPicker disabled={composeBusy} onPick={insertComposerEmoji} />
+                </>
+              )}
+            </div>
             <Textarea
+              ref={textareaRef}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              onKeyDown={submitOnEnter}
-              placeholder="Message"
-              aria-label="Message"
+              onBlur={() => stopTyping()}
+              onKeyDown={(e) => {
+                handleComposeKeyDown(e);
+                if (e.defaultPrevented) return;
+                submitOnEnter(e);
+              }}
+              placeholder={editingMessageId ? "Edit message" : "Type a message"}
+              aria-label={editingMessageId ? "Edit message" : "Message"}
               rows={1}
-              disabled={sending}
+              disabled={composeBusy}
               className="max-h-32 min-h-10 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[15px] leading-6 shadow-none focus-visible:ring-0"
             />
             <Button
               type="submit"
               size="icon"
               className="shrink-0"
-              aria-label="Send"
-              disabled={sending || !body.trim()}
+              aria-label={editingMessageId ? "Save edit" : "Send"}
+              disabled={
+                composeBusy ||
+                (editingMessage
+                  ? !editingMessage.imageUrl && !body.trim()
+                  : !body.trim())
+              }
+              style={
+                resolvedTheme.active
+                  ? {
+                      backgroundColor: "var(--chat-accent)",
+                      color: "var(--chat-accent-fg)",
+                    }
+                  : undefined
+              }
             >
               <SendHorizontal className="h-4 w-4" />
             </Button>
           </div>
         </form>
       </div>
+
+      <ChatThemePicker
+        open={themePickerOpen}
+        current={conversationTheme}
+        busy={themeSaving || composeBusy}
+        onApply={(payload) => void applyThemeChoice(payload)}
+        onWordEffectSend={(word) => void sendWordEffect(word)}
+        onClose={() => {
+          if (!themeSaving) setThemePickerOpen(false);
+        }}
+      />
 
       <ConfirmDialog
         open={pendingUnsendId !== null}
@@ -432,14 +955,52 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         }}
         onConfirm={() => void confirmUnsend()}
       />
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete conversation?"
+        description={
+          pendingDelete ? deleteConversationDescription(pendingDelete.peerName) : undefined
+        }
+        confirmLabel="Delete"
+        busy={deleting}
+        onCancel={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={() => void confirmDeleteConversation()}
+      />
     </section>
   );
 }
 
 function InboxView() {
+  const { user } = useAuth();
+  const typingByConversation = useInboxPeerTyping(user?.id);
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingDelete, setPendingDelete] = useState<PendingDeleteConversation | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  function requestDelete(id: string, peerName: string) {
+    setPendingDelete({ id, peerName });
+  }
+
+  async function confirmDeleteConversation() {
+    if (!pendingDelete || deleting) return;
+    const { id } = pendingDelete;
+    setDeleting(true);
+    try {
+      await deleteConversation(id);
+      setItems((prev) => prev.filter((c) => c.id !== id));
+      setPendingDelete(null);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete conversation");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function reloadInbox() {
     try {
@@ -470,10 +1031,12 @@ function InboxView() {
     socket.on(CONVERSATION_UPDATED, onUpdated);
     socket.on(MESSAGE_NEW, onMessage);
     socket.on(MESSAGE_UNSENT, onMessage);
+    socket.on(MESSAGE_EDITED, onMessage);
     return () => {
       socket.off(CONVERSATION_UPDATED, onUpdated);
       socket.off(MESSAGE_NEW, onMessage);
       socket.off(MESSAGE_UNSENT, onMessage);
+      socket.off(MESSAGE_EDITED, onMessage);
     };
   }, []);
 
@@ -518,9 +1081,14 @@ function InboxView() {
           {loading ? (
             <MessagesRowSkeleton rows={3} />
           ) : items.length > 0 ? (
-            <ul className="divide-y divide-border">
+            <ul className="space-y-2 px-4 pb-4">
               {items.map((c) => (
-                <ConversationListRow key={c.id} item={c} />
+                <SwipeableConversationListRow
+                  key={c.id}
+                  item={c}
+                  onDelete={requestDelete}
+                  isPeerTyping={Boolean(typingByConversation[c.id])}
+                />
               ))}
             </ul>
           ) : !error ? (
@@ -528,6 +1096,20 @@ function InboxView() {
           ) : null}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete conversation?"
+        description={
+          pendingDelete ? deleteConversationDescription(pendingDelete.peerName) : undefined
+        }
+        confirmLabel="Delete"
+        busy={deleting}
+        onCancel={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={() => void confirmDeleteConversation()}
+      />
     </section>
   );
 }
