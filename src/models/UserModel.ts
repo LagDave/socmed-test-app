@@ -23,6 +23,11 @@ export class UserModel {
     return db<UserRow>("users").where({ id }).first();
   }
 
+  static async findByIds(ids: string[]): Promise<UserRow[]> {
+    if (ids.length === 0) return [];
+    return db<UserRow>("users").whereIn("id", ids);
+  }
+
   static async findByEmail(email: string): Promise<UserRow | undefined> {
     return db<UserRow>("users").where({ email: email.toLowerCase() }).first();
   }

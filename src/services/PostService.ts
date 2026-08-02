@@ -4,17 +4,33 @@ import { FriendshipModel } from "../models/FriendshipModel";
 import { UserModel } from "../models/UserModel";
 import { ReactionModel, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { AppError } from "../utils/AppError";
+import { resolvePostImageUrls } from "../utils/postImages";
 import { toPublicUser } from "../types/user";
 
-const createPostSchema = z.object({
-  body: z.string().min(1).max(5000),
-  imageUrl: z.string().max(500).nullable().optional(),
-});
+const UPLOAD_PATH_RE = /^\/uploads\/[A-Za-z0-9._-]+$/;
+const MAX_POST_IMAGES = 10;
+
+const createPostSchema = z
+  .object({
+    body: z.string().min(1).max(5000),
+    imageUrl: z.string().max(500).nullable().optional(),
+    imageUrls: z.array(z.string().max(500)).max(MAX_POST_IMAGES).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const urls =
+      value.imageUrls ?? (value.imageUrl ? [value.imageUrl] : []);
+    for (const url of urls) {
+      if (!UPLOAD_PATH_RE.test(url)) {
+        ctx.addIssue({ code: "custom", message: "Invalid image URL", path: ["imageUrls"] });
+      }
+    }
+  });
 
 export type PostView = {
   id: string;
   body: string;
   imageUrl: string | null;
+  imageUrls: string[];
   createdAt: Date;
   author: ReturnType<typeof toPublicUser>;
   reactionSummary: ReactionSummary;
@@ -31,10 +47,12 @@ async function hydrateBase(posts: PostRow[], viewerId: string): Promise<PostView
   return posts.map((p, i) => {
     const author = authors[i];
     if (!author) throw new AppError("USER_NOT_FOUND", "Author missing.");
+    const imageUrls = resolvePostImageUrls(p);
     return {
       id: p.id,
       body: p.body,
-      imageUrl: p.image_url,
+      imageUrl: imageUrls[0] ?? null,
+      imageUrls,
       createdAt: p.created_at,
       author: toPublicUser(author),
       reactionSummary: summaries.get(p.id) ?? emptyReactionSummary(),
@@ -67,10 +85,12 @@ async function hydrate(posts: PostRow[], viewerId: string): Promise<PostView[]> 
 export class PostService {
   static async create(userId: string, raw: unknown): Promise<PostView> {
     const input = createPostSchema.parse(raw);
+    const imageUrls =
+      input.imageUrls ?? (input.imageUrl ? [input.imageUrl] : []);
     const row = await PostModel.create({
       authorId: userId,
       body: input.body,
-      imageUrl: input.imageUrl,
+      imageUrls,
     });
     return (await hydrate([row], userId))[0];
   }

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { PostView } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { postImageUrls } from "@/lib/postImages";
 
 type SharedPostEmbedProps = {
   sharedFrom: PostView | null;
@@ -15,6 +16,8 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
       </div>
     );
   }
+
+  const images = postImageUrls(sharedFrom);
 
   return (
     <div className={className ?? "mt-2 rounded-lg border border-border/70 bg-canvas/50 px-3 py-3"}>
@@ -43,13 +46,18 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
           {sharedFrom.body ? (
             <p className="mt-1.5 whitespace-pre-wrap text-[15px] leading-relaxed">{sharedFrom.body}</p>
           ) : null}
-          {sharedFrom.imageUrl ? (
-            <img
-              src={sharedFrom.imageUrl}
-              alt=""
-              className="mt-2.5 max-h-96 w-full rounded-lg object-cover"
-            />
-          ) : null}
+          {images.length > 0 && (
+            <div className="mt-2.5 grid gap-1.5">
+              {images.map((url, index) => (
+                <img
+                  key={`${url}-${index}`}
+                  src={url}
+                  alt=""
+                  className="max-h-96 w-full rounded-lg object-cover"
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

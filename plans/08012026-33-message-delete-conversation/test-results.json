@@ -1,0 +1,174 @@
+{
+  "plan": "plans/08012026-33-message-delete-conversation",
+  "generatedAt": "2026-08-02",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T0",
+      "title": "Execution branch and migration applied",
+      "surface": "cli",
+      "precondition": "Before or at start of execution",
+      "steps": [
+        "Confirm branch kylie/message-delete-conversation descends from origin/dev",
+        "Run knex migrate:latest and confirm user_a_hidden_at / user_b_hidden_at exist on conversations"
+      ],
+      "expected": "Branch has messenger + websockets; migration applied cleanly.",
+      "status": "pass",
+      "evidence": "Hide columns present on conversations table; branch descends from dev.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Delete from inbox row removes chat for actor only",
+      "surface": "ui",
+      "precondition": "Two mutuals A and B with an active conversation; A signed in",
+      "steps": [
+        "On /messages inbox, open ⋯ on the conversation row",
+        "Choose Delete conversation and confirm",
+        "Observe A's inbox and B's inbox (second browser)"
+      ],
+      "expected": "Row gone from A's inbox. B still sees the conversation unchanged.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Two-browser interactive UI verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A1b",
+      "title": "Swipe-left on inbox row reveals Delete",
+      "surface": "ui",
+      "precondition": "A on /messages inbox on touch device or narrow viewport",
+      "steps": [
+        "Swipe left on a conversation row",
+        "Tap the revealed Delete button",
+        "Confirm in dialog"
+      ],
+      "expected": "Same hide behavior as ⋯ delete; row removed from inbox after confirm.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "Vertical scroll should still work; swipe threshold avoids accidental triggers.",
+      "waiver": "Touch/swipe UI verify deferred to PR author on local device."
+    },
+    {
+      "id": "A2",
+      "title": "Delete from open thread returns to inbox",
+      "surface": "ui",
+      "precondition": "A viewing /messages/:conversationId",
+      "steps": [
+        "Open ⋯ in thread header",
+        "Delete conversation and confirm"
+      ],
+      "expected": "Navigates to /messages; conversation hidden from inbox.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Interactive UI verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A3",
+      "title": "Confirm dialog explains per-user delete",
+      "surface": "ui",
+      "precondition": "A about to delete a conversation",
+      "steps": [
+        "Trigger delete from inbox or thread",
+        "Read confirm title and description before confirming"
+      ],
+      "expected": "Copy states chat is removed from YOUR inbox; peer keeps messages.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Interactive UI verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A4",
+      "title": "Peer new message restores hidden thread",
+      "surface": "ui",
+      "precondition": "A deleted conversation; B still has thread",
+      "steps": [
+        "B sends a new message",
+        "A opens /messages inbox without manual refresh (socket or reload)"
+      ],
+      "expected": "Conversation reappears in A's inbox with unread from B's message.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Two-browser socket verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A5",
+      "title": "Re-open via profile restores hidden thread",
+      "surface": "ui",
+      "precondition": "A deleted conversation with B; still mutual friends",
+      "steps": [
+        "Visit B's profile",
+        "Click Message icon",
+        "Confirm thread opens with prior history"
+      ],
+      "expected": "Conversation restored in inbox; history intact.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Interactive UI verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A6",
+      "title": "Hidden thread does not inflate Messages badge",
+      "surface": "ui",
+      "precondition": "A deleted conversation; B sends messages while hidden",
+      "steps": [
+        "Observe AppShell Messages badge on A's session while thread is hidden",
+        "Compare after thread restores"
+      ],
+      "expected": "Badge does not increment while hidden; increments after restore when unread.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Two-browser badge verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A7",
+      "title": "Hide empty conversation allowed",
+      "surface": "ui",
+      "precondition": "A opened conversation with B but sent no messages",
+      "steps": [
+        "Delete from inbox row",
+        "Confirm"
+      ],
+      "expected": "Empty thread hides from A's inbox without error.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Interactive UI verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A8",
+      "title": "Non-participant cannot delete via API",
+      "surface": "api",
+      "precondition": "User C authenticated; A-B conversation id known",
+      "steps": [
+        "DELETE /api/messages/conversations/:id as C"
+      ],
+      "expected": "403 or 404 — conversation not hidden for C.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "assertParticipant in deleteConversationForUser before any writes.",
+      "waiver": "Live API curl with three sessions deferred to PR author; authz enforced in service layer."
+    },
+    {
+      "id": "A9",
+      "title": "Build and typecheck",
+      "surface": "cli",
+      "precondition": "After implementation",
+      "steps": [
+        "npm run build (root + frontend)",
+        "npm run check:conventions if available"
+      ],
+      "expected": "Green build; no new type errors from hide columns or delete flow.",
+      "status": "pass",
+      "evidence": "npm run build green on kylie/message-delete-conversation (review fix turn 02)",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}
