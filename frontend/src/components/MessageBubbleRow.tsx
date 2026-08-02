@@ -1,9 +1,11 @@
+import { useState, type MouseEvent, type TouchEvent } from "react";
 import { Link } from "react-router-dom";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Reply } from "lucide-react";
 import type { MessageView, PublicUser } from "@/api/types";
+import { MessageQuoteStrip } from "@/components/MessageQuoteStrip";
 import { ReactionBar } from "@/components/ReactionBar";
-import { REACTION_OPTIONS } from "@/lib/reactionOptions";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { MessageStatusIconForMessage } from "@/components/MessageStatusIcon";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,34 +13,97 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { REACTION_OPTIONS } from "@/lib/reactionOptions";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { cn } from "@/lib/utils";
+
+function MessageHoverActions({
+  message,
+  mine,
+  touchRevealed,
+  onReply,
+}: {
+  message: MessageView;
+  mine: boolean;
+  touchRevealed: boolean;
+  onReply: (message: MessageView) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative flex shrink-0 items-center gap-0.5 self-center transition-opacity",
+        "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+        touchRevealed && "opacity-100"
+      )}
+    >
+      <div className={cn("flex items-center gap-0.5", mine && "flex-row-reverse")}>
+        <button
+          type="button"
+          aria-label="Reply to message"
+          title="Reply"
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-background text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground"
+          onClick={() => onReply(message)}
+        >
+          <Reply className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function MessageBubbleRow({
   message,
   mine,
   peer,
   showAvatar,
-  showMeta,
+  peerLastReadAt,
   peerProfilePath,
+  canHover,
+  touchRevealed,
+  onToggleTouchReveal,
   onUnsend,
   onReactionChange,
+  onReply,
   onError,
 }: {
   message: MessageView;
   mine: boolean;
   peer: PublicUser | null;
   showAvatar: boolean;
-  showMeta: boolean;
+  peerLastReadAt: string | null;
   peerProfilePath: string;
+  canHover: boolean;
+  touchRevealed: boolean;
+  onToggleTouchReveal: () => void;
   onUnsend: (id: string) => void;
   onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
+  onReply: (message: MessageView) => void;
   onError: (message: string) => void;
 }) {
+  const [timestampVisible, setTimestampVisible] = useState(false);
   const hasReactions = REACTION_OPTIONS.some((o) => message.reactionSummary.counts[o.emoji] > 0);
 
+  function handleTouchToggle(e: MouseEvent | TouchEvent) {
+    if (canHover || message.isUnsent) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, [role='menu'], [data-radix-popper-content-wrapper]")) return;
+    e.stopPropagation();
+    onToggleTouchReveal();
+  }
+
+  function toggleTimestamp(e: MouseEvent) {
+    if (message.isUnsent) return;
+    e.stopPropagation();
+    setTimestampVisible((visible) => !visible);
+  }
+
   return (
-    <div className={cn("group/message flex gap-2", mine ? "flex-row-reverse" : "flex-row")}>
+    <div
+      className={cn("group flex gap-2", mine ? "flex-row-reverse" : "flex-row")}
+      data-message-row=""
+      data-message-id={message.id}
+      onClick={handleTouchToggle}
+    >
       {!mine &&
         (showAvatar && peer ? (
           <Link to={peerProfilePath} className="shrink-0 self-end" aria-label={`${peer.displayName}'s profile`}>
@@ -56,19 +121,31 @@ export function MessageBubbleRow({
       >
         <div className={cn("flex min-w-0 flex-col gap-0.5", mine ? "items-end" : "items-start")}>
           <div
+            role={message.isUnsent ? undefined : "button"}
+            tabIndex={message.isUnsent ? undefined : 0}
+            onClick={toggleTimestamp}
+            onKeyDown={(e) => {
+              if (message.isUnsent) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setTimestampVisible((visible) => !visible);
+              }
+            }}
             className={cn(
               "rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
               message.isUnsent
                 ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
                 : mine
-                  ? "bg-foreground text-background"
-                  : "bg-secondary text-foreground"
+                  ? "cursor-pointer bg-foreground text-background"
+                  : "cursor-pointer bg-secondary text-foreground",
+              !canHover && touchRevealed && !message.isUnsent && "ring-2 ring-border/80"
             )}
           >
             {message.isUnsent ? (
               "Unsent a message"
             ) : (
               <>
+                {message.replyTo && <MessageQuoteStrip replyTo={message.replyTo} mine={mine} />}
                 {message.imageUrl && (
                   <img
                     src={message.imageUrl}
@@ -86,7 +163,7 @@ export function MessageBubbleRow({
               className={cn(
                 "max-w-full px-0.5 transition-opacity",
                 !hasReactions &&
-                  "opacity-0 group-hover/message:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100"
+                  "opacity-0 group-hover:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100"
               )}
             >
               <ReactionBar
@@ -100,16 +177,36 @@ export function MessageBubbleRow({
             </div>
           )}
 
-          {showMeta && (
-            <time
-              className="px-1 text-[11px] text-muted-foreground"
-              dateTime={message.createdAt}
-              title={formatAbsoluteTime(message.createdAt) || undefined}
-            >
-              {formatRelativeTime(message.createdAt)}
-            </time>
+          {!message.isUnsent && (mine || timestampVisible) && (
+            <div className={cn("flex items-center gap-1 px-1", mine && "justify-end")}>
+              {mine && peer && (
+                <MessageStatusIconForMessage
+                  message={message}
+                  peerLastReadAt={peerLastReadAt}
+                  peer={peer}
+                />
+              )}
+              {timestampVisible && (
+                <time
+                  className="text-[11px] text-muted-foreground"
+                  dateTime={message.createdAt}
+                  title={formatAbsoluteTime(message.createdAt) || undefined}
+                >
+                  {formatRelativeTime(message.createdAt)}
+                </time>
+              )}
+            </div>
           )}
         </div>
+
+        {!message.isUnsent && (
+          <MessageHoverActions
+            message={message}
+            mine={mine}
+            touchRevealed={touchRevealed}
+            onReply={onReply}
+          />
+        )}
 
         {mine && !message.isUnsent && (
           <DropdownMenu>
@@ -118,7 +215,10 @@ export function MessageBubbleRow({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/message:opacity-100 focus:opacity-100 data-[state=open]:opacity-100"
+                className={cn(
+                  "h-7 w-7 shrink-0 self-center text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100",
+                  touchRevealed && "opacity-100"
+                )}
                 aria-label="Message options"
               >
                 <MoreVertical className="h-4 w-4" aria-hidden="true" />

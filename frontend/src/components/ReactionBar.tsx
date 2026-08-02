@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { api } from "@/api/client";
 import type { ReactionEmoji, ReactionSummary } from "@/api/types";
 import { ReactionIcon } from "@/components/ReactionIcon";
+import { ReactionsListPopover } from "@/components/ReactionsListPopover";
 import { REACTION_OPTIONS, reactionOption } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +60,7 @@ export function ReactionBar({
   onError,
 }: ReactionBarProps) {
   const [expanded, setExpanded] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [popEmoji, setPopEmoji] = useState<ReactionEmoji | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -81,13 +83,16 @@ export function ReactionBar({
   }
 
   useEffect(() => {
-    if (!expanded) return;
+    if (!expanded && !listOpen) return;
     function onPointerDown(e: PointerEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setExpanded(false);
+      if (!rootRef.current?.contains(e.target as Node)) {
+        setExpanded(false);
+        setListOpen(false);
+      }
     }
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [expanded]);
+  }, [expanded, listOpen]);
 
   function clearHoldTimer() {
     if (holdTimerRef.current !== null) {
@@ -111,6 +116,12 @@ export function ReactionBar({
   function collapse() {
     clearExpandTimer();
     setExpanded(false);
+  }
+
+  function toggleList() {
+    clearExpandTimer();
+    setExpanded(false);
+    setListOpen((open) => !open);
   }
 
   async function applyEmoji(emoji: ReactionEmoji) {
@@ -269,21 +280,62 @@ export function ReactionBar({
       </div>
 
       {totalCount > 0 && (
-        <div
-          className={cn("inline-flex items-center text-muted-foreground", s.summary)}
-          aria-label={summaryLabel}
-        >
-          <span className="inline-flex items-center -space-x-1" aria-hidden="true">
-            {presentTypes.map((opt) => (
-              <span
-                key={opt.emoji}
-                className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
-              >
-                <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
+        <div className="relative">
+          {targetType === "message" ? (
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full text-muted-foreground",
+                s.summary
+              )}
+              aria-label={summaryLabel}
+            >
+              <span className="inline-flex items-center -space-x-1" aria-hidden="true">
+                {presentTypes.map((opt) => (
+                  <span
+                    key={opt.emoji}
+                    className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
+                  >
+                    <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
+                  </span>
+                ))}
               </span>
-            ))}
-          </span>
-          <span>{totalCount}</span>
+              <span>{totalCount}</span>
+            </span>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex items-center rounded-full text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground",
+                  s.summary,
+                  listOpen && "bg-accent/60 text-foreground"
+                )}
+                aria-label={summaryLabel}
+                aria-haspopup="dialog"
+                aria-expanded={listOpen}
+                onClick={toggleList}
+              >
+                <span className="inline-flex items-center -space-x-1" aria-hidden="true">
+                  {presentTypes.map((opt) => (
+                    <span
+                      key={opt.emoji}
+                      className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
+                    >
+                      <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
+                    </span>
+                  ))}
+                </span>
+                <span>{totalCount}</span>
+              </button>
+              <ReactionsListPopover
+                targetType={targetType}
+                targetId={targetId}
+                summary={summary}
+                open={listOpen}
+                onClose={() => setListOpen(false)}
+              />
+            </>
+          )}
         </div>
       )}
     </div>

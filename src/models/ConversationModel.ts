@@ -38,6 +38,7 @@ type InboxQueryRow = ConversationRow & {
   lm_body: string | null;
   lm_image_url: string | null;
   lm_unsent_at: Date | null;
+  lm_reply_to_message_id: string | null;
   lm_created_at: Date | null;
   unread_count: string | number;
 };
@@ -90,6 +91,7 @@ export class ConversationModel {
         lm.body AS lm_body,
         lm.image_url AS lm_image_url,
         lm.unsent_at AS lm_unsent_at,
+        lm.reply_to_message_id AS lm_reply_to_message_id,
         lm.created_at AS lm_created_at,
         (
           SELECT COUNT(*)::int
@@ -148,6 +150,8 @@ export class ConversationModel {
             body: r.lm_body,
             image_url: r.lm_image_url,
             unsent_at: r.lm_unsent_at,
+            reply_to_message_id: r.lm_reply_to_message_id,
+            delivered_at: null,
             created_at: r.lm_created_at!,
           }
         : null,

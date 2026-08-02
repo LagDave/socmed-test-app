@@ -23,6 +23,12 @@ export type ReactionSummary = {
   viewerEmoji: ReactionEmoji | null;
 };
 
+export type ReactionEntry = {
+  user: PublicUser;
+  emoji: ReactionEmoji;
+  createdAt: string;
+};
+
 export type PostView = {
   id: string;
   body: string;
@@ -45,6 +51,15 @@ export type CommentView = {
   reactionSummary: ReactionSummary;
 };
 
+export type MessageReplyToView = {
+  id: string;
+  senderId: string;
+  senderDisplayName: string;
+  body: string | null;
+  imageUrl: string | null;
+  isUnsent: boolean;
+};
+
 export type MessageView = {
   id: string;
   conversationId: string;
@@ -53,7 +68,9 @@ export type MessageView = {
   imageUrl: string | null;
   isUnsent: boolean;
   createdAt: string;
+  deliveredAt: string | null;
   reactionSummary: ReactionSummary;
+  replyTo: MessageReplyToView | null;
 };
 
 export type ConversationListItem = {
@@ -66,6 +83,7 @@ export type ConversationListItem = {
     isUnsent: boolean;
     senderId: string;
     createdAt: string;
+    replyToMessageId: string | null;
   } | null;
   unreadCount: number;
   lastMessageAt: string | null;
