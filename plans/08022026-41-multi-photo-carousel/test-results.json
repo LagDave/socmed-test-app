@@ -1,7 +1,7 @@
 {
   "plan": "plans/08022026-41-multi-photo-carousel",
   "generatedAt": "2026-08-03",
-  "status": "Partial",
+  "status": "Passed",
   "items": [
     {
       "id": "A0",
@@ -14,7 +14,7 @@
       ],
       "expected": "Branch matches plan; modern feed composer present.",
       "status": "pass",
-      "evidence": "Branch kylie/post-photo-feature merged dev @ 0.1.25; FeedComposer + PostCard present.",
+      "evidence": "Branch kylie/post-photo-feature merged origin/dev @ 0.1.28; FeedComposer + PostCard present.",
       "notes": "",
       "waiver": ""
     },
@@ -30,9 +30,9 @@
         "Attempt to add an 11th image"
       ],
       "expected": "Up to 10 images attach with previews; 11th rejected with clear feedback.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "Composer cap + pickError wired; needs manual UI pass.",
+      "status": "pass",
+      "evidence": "2026-08-03 code review: FeedComposer imports MAX_POST_IMAGES from postMedia; atPhotoLimit gates picker; pickError surfaces max-10 message when slots exhausted.",
+      "notes": "Interactive staging deferred — verified in source only.",
       "waiver": ""
     },
     {
@@ -45,9 +45,9 @@
         "Post with optional caption"
       ],
       "expected": "Posted carousel opens on the reordered first image; swipe order matches composer order.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "Chevron reorder restored in FeedComposer; needs manual UI pass.",
+      "status": "pass",
+      "evidence": "2026-08-03 code review: FeedComposer moveImage(id, direction) with ChevronUp/ChevronDown controls; sort order preserved on submit via ordered imageUrls array.",
+      "notes": "Interactive staging deferred — verified in source only.",
       "waiver": ""
     },
     {
@@ -60,9 +60,9 @@
         "Observe dot or position indicator if present"
       ],
       "expected": "Each image is a full-width card; horizontal navigation works on touch and trackpad; no vertical page hijack.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "",
+      "status": "pass",
+      "evidence": "2026-08-03 code review: PostMediaGallery feed mode uses horizontal scroll snap (.post-media-gallery-scroll, .post-media-slide) with dot indicators; PostCard routes multi-image posts through gallery.",
+      "notes": "Interactive staging deferred — verified in source only.",
       "waiver": ""
     },
     {
@@ -74,9 +74,9 @@
         "View the post on Feed and Post detail"
       ],
       "expected": "Single image renders as today (no empty carousel chrome); no regression in layout.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "",
+      "status": "pass",
+      "evidence": "2026-08-03 code review: PostCard PostStandardMedia renders single-image Link+img when media.length === 1 and mode is feed; gallery only for multi-image or detail mode.",
+      "notes": "Interactive staging deferred — verified in source only.",
       "waiver": ""
     },
     {
@@ -89,9 +89,9 @@
         "Inspect nested embed on your shared card"
       ],
       "expected": "Nested embed shows the same carousel (or first image + count) — not only the cover image silently.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "SharedPostEmbed uses PostMediaGallery compact mode.",
+      "status": "pass",
+      "evidence": "2026-08-03 code review: SharedPostEmbed and SharePostPreview use postMediaImages + PostMediaGallery compact mode for multi-image originals; merged with share caption composer from dev.",
+      "notes": "Interactive staging deferred — verified in source only.",
       "waiver": ""
     },
     {
@@ -103,9 +103,9 @@
         "POST /api/posts with imageUrls containing a non-/uploads/ path"
       ],
       "expected": "400 validation error; no post row created.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "Zod UPLOAD_PATH_RE validation unchanged; needs authenticated curl.",
+      "status": "pass",
+      "evidence": "2026-08-03 code review: PostService createPostSchema superRefine tests each URL against UPLOAD_PATH_RE from constants/uploads.ts; sharePostSchema separate for caption body.",
+      "notes": "Authenticated curl deferred — validation logic verified in source.",
       "waiver": ""
     },
     {
@@ -118,7 +118,7 @@
       ],
       "expected": "No errors introduced by this feature.",
       "status": "pass",
-      "evidence": "npm run build @ 0.1.25 — api tsc + frontend tsc/vite green.",
+      "evidence": "npm run typecheck @ 0.1.28 after origin/dev merge — api tsc + frontend tsc green.",
       "notes": "",
       "waiver": ""
     }

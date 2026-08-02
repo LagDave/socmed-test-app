@@ -6,13 +6,24 @@ import {
   type ReactNode,
 } from "react";
 import { Link } from "react-router-dom";
-import { MessageSquare, Reply, Share2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2, MessageSquare, Reply, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SIZE = {
-  md: { btn: "h-9 w-9", icon: "h-5 w-5", badge: "min-w-[1.125rem] h-[1.125rem] text-[10px]" },
-  sm: { btn: "h-6 w-6", icon: "h-3.5 w-3.5", badge: "min-w-4 h-4 text-[9px]" },
+  md: {
+    btn: "h-9 w-9",
+    icon: "h-[1.125rem] w-[1.125rem]",
+    badge: "min-w-[1.125rem] h-[1.125rem] text-[10px]",
+    label: "text-[11px] -bottom-4",
+    gap: "gap-2",
+  },
+  sm: {
+    btn: "h-6 w-6",
+    icon: "h-3.5 w-3.5",
+    badge: "min-w-4 h-4 text-[9px]",
+    label: "text-[10px] -bottom-3.5",
+    gap: "gap-1.5",
+  },
 } as const;
 
 type ReactionBarChildProps = {
@@ -48,8 +59,87 @@ function CommentCountBadge({ count, className }: { count: number; className?: st
   );
 }
 
-const labeledBtn =
-  "md:h-9 md:w-auto md:gap-2 md:rounded-full md:px-3.5 md:text-sm md:font-medium md:text-muted-foreground md:hover:bg-accent md:hover:text-foreground";
+type PostActionIconProps = {
+  label: string;
+  size: keyof typeof SIZE;
+  busy?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  to?: string;
+  children: ReactNode;
+  showLabels?: boolean;
+  badge?: number;
+};
+
+function PostActionIcon({
+  label,
+  size,
+  busy = false,
+  disabled = false,
+  onClick,
+  to,
+  children,
+  showLabels = false,
+  badge = 0,
+}: PostActionIconProps) {
+  const s = SIZE[size];
+  const shellClass =
+    "inline-flex items-center rounded-full border border-border/80 bg-background p-px transition-shadow hover:shadow-sm";
+
+  const innerClass = cn(
+    "group relative inline-flex items-center justify-center rounded-full transition-colors hover:bg-accent",
+    showLabels ? "h-9 w-9 md:h-9 md:w-auto md:gap-2 md:px-3.5" : s.btn,
+    (busy || disabled) && "pointer-events-none opacity-70"
+  );
+
+  const iconContent = busy ? (
+    <Loader2 className={cn(s.icon, "animate-spin text-muted-foreground")} aria-hidden="true" />
+  ) : (
+    children
+  );
+
+  const labelContent = showLabels ? (
+    <span className="hidden text-sm font-medium text-muted-foreground md:inline">{label}</span>
+  ) : (
+    <span
+      className={cn(
+        "pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-muted-foreground",
+        s.label,
+        "opacity-0 transition-opacity group-hover:opacity-100"
+      )}
+    >
+      {label}
+    </span>
+  );
+
+  if (to) {
+    return (
+      <div className={shellClass}>
+        <Link to={to} aria-label={label} className={innerClass}>
+          {iconContent}
+          <CommentCountBadge count={badge} className={s.badge} />
+          {labelContent}
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className={shellClass}>
+      <button
+        type="button"
+        aria-label={label}
+        disabled={busy || disabled}
+        className={innerClass}
+        onClick={onClick}
+      >
+        {iconContent}
+        <CommentCountBadge count={badge} className={s.badge} />
+        {labelContent}
+      </button>
+    </div>
+  );
+}
 
 export function PostActionRow({
   children,
@@ -65,57 +155,40 @@ export function PostActionRow({
   shareDisabled = false,
 }: PostActionRowProps) {
   const s = SIZE[size];
-  const commentLabel =
-    commentCount > 0
-      ? `${commentCount} ${commentCount === 1 ? "comment" : "comments"}`
-      : "Comments";
-  const commentIcon = <MessageSquare className={s.icon} aria-hidden="true" />;
-  const labelClass = showLabels ? labeledBtn : "";
 
-  const commentControl = commentTo ? (
-    <Button asChild variant="ghost" size="icon" className={cn(s.btn, "relative", labelClass)}>
-      <Link to={commentTo} aria-label={commentLabel}>
-        {commentIcon}
-        <CommentCountBadge count={commentCount} className={s.badge} />
-        {showLabels ? <span className="hidden md:inline">Comment</span> : null}
-      </Link>
-    </Button>
-  ) : (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className={cn(s.btn, "relative", labelClass)}
-      aria-label={commentLabel}
-      onClick={onCommentClick}
-    >
-      {commentIcon}
-      <CommentCountBadge count={commentCount} className={s.badge} />
-      {showLabels ? <span className="hidden md:inline">Comment</span> : null}
-    </Button>
-  );
+  const commentControl =
+    commentTo || onCommentClick ? (
+      <PostActionIcon
+        label={showLabels ? "Comment" : "Comments"}
+        size={size}
+        showLabels={showLabels}
+        to={commentTo}
+        onClick={onCommentClick}
+        badge={commentCount}
+      >
+        <MessageSquare className={s.icon} aria-hidden="true" />
+      </PostActionIcon>
+    ) : null;
 
   const shareControl =
     onShare || showShare ? (
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className={cn(s.btn, labelClass)}
-        aria-label={shareDisabled ? "Share unavailable" : "Share"}
-        disabled={shareBusy || shareDisabled || !onShare}
+      <PostActionIcon
+        label="Share"
+        size={size}
+        showLabels={showLabels}
+        busy={shareBusy}
+        disabled={shareDisabled || !onShare}
         onClick={onShare}
       >
         <Share2 className={s.icon} aria-hidden="true" />
-        {showLabels ? <span className="hidden md:inline">Share</span> : null}
-      </Button>
+      </PostActionIcon>
     ) : null;
 
   const leftActions = (
-    <>
+    <div className={cn("inline-flex flex-wrap items-center", s.gap)}>
       {commentControl}
       {shareControl}
-    </>
+    </div>
   );
 
   return (
@@ -140,15 +213,28 @@ type ReplyActionButtonProps = {
 export function ReplyActionButton({ onClick, className }: ReplyActionButtonProps) {
   const s = SIZE.sm;
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className={cn(s.btn, className)}
-      aria-label="Reply"
-      onClick={onClick}
-    >
-      <Reply className={s.icon} aria-hidden="true" />
-    </Button>
+    <div className="inline-flex items-center rounded-full border border-border/80 bg-background p-px">
+      <button
+        type="button"
+        aria-label="Reply"
+        className={cn(
+          "group relative inline-flex items-center justify-center rounded-full transition-colors hover:bg-accent",
+          s.btn,
+          className
+        )}
+        onClick={onClick}
+      >
+        <Reply className={s.icon} aria-hidden="true" />
+        <span
+          className={cn(
+            "pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-muted-foreground",
+            s.label,
+            "opacity-0 transition-opacity group-hover:opacity-100"
+          )}
+        >
+          Reply
+        </span>
+      </button>
+    </div>
   );
 }

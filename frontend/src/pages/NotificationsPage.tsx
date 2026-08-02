@@ -55,11 +55,14 @@ function profilePath(user: PublicUser): string {
 
 function NotificationSkeleton() {
   return (
-    <li className="flex items-start gap-3 px-4 py-4">
-      <div className="size-10 shrink-0 animate-pulse rounded-full bg-muted" />
+    <li className="notifications-row px-4 py-4" aria-hidden="true">
+      <div className="feed-skeleton size-10 shrink-0 rounded-full" />
       <div className="min-w-0 flex-1 space-y-2 pt-0.5">
-        <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
-        <div className="h-3 w-1/4 animate-pulse rounded bg-muted" />
+        <div className="feed-skeleton h-4 w-4/5 rounded-md" />
+        <div className="feed-skeleton h-3 w-1/3 rounded-md" />
+      </div>
+      <div className="notifications-row-trailing">
+        <div className="feed-skeleton size-9 shrink-0 rounded-full" />
       </div>
     </li>
   );
@@ -103,12 +106,6 @@ function NotificationRow({
             />
           </Link>
         )}
-        {!item.isRead && (
-          <span
-            className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-card bg-primary"
-            aria-hidden="true"
-          />
-        )}
       </div>
 
       <div className="min-w-0 flex-1">
@@ -123,9 +120,10 @@ function NotificationRow({
               {item.actor.displayName}
             </Link>
           )}{" "}
-          <span className="text-foreground/90">{meta.action}</span>
+          <span className="text-foreground/85">{meta.action}</span>
         </p>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="notifications-type-pill">{meta.label}</span>
           <time
             className="text-xs text-muted-foreground"
             dateTime={item.createdAt}
@@ -134,7 +132,8 @@ function NotificationRow({
             {formatRelativeTime(item.createdAt)}
           </time>
           {!item.isRead && (
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-foreground">
+            <span className="notifications-new-badge">
+              <span className="notifications-new-badge-dot" aria-hidden="true" />
               New
             </span>
           )}
@@ -161,30 +160,33 @@ function NotificationRow({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1 self-center">
+      <div className="notifications-row-trailing">
         <span
-          className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+          className="notifications-type-icon flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground"
           aria-hidden="true"
         >
           <Icon className="size-4" strokeWidth={1.75} />
         </span>
         {destination && !isFriendRequest && (
-          <ChevronRight className="size-4 text-muted-foreground/70" aria-hidden="true" />
+          <ChevronRight
+            className="notifications-row-chevron size-4 text-muted-foreground"
+            aria-hidden="true"
+          />
         )}
       </div>
     </>
   );
 
   const rowClass = cn(
-    "flex items-start gap-3 px-4 py-4 transition-colors",
-    !item.isRead && "bg-accent/40",
-    destination && !isFriendRequest && "hover:bg-accent/60"
+    "notifications-row px-4 py-4",
+    !item.isRead && "notifications-row--unread",
+    destination && !isFriendRequest && "notifications-row--interactive"
   );
 
   if (destination && !isFriendRequest) {
     return (
-      <li className="relative">
-        <Link to={destination} className={cn(rowClass, "block")}>
+      <li>
+        <Link to={destination} className={cn(rowClass, "w-full no-underline")}>
           {content}
         </Link>
       </li>
@@ -226,61 +228,81 @@ export function NotificationsPage() {
   }
 
   const unreadCount = items.filter((n) => !n.isRead).length;
+  const showListHeading = !loading && items.length > 0 && !error;
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3 px-1">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
-          <p className="text-sm text-muted-foreground">
-            Friend requests, comments, and replies from your network.
-          </p>
-        </div>
-        {!loading && unreadCount > 0 && (
-          <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
-            {unreadCount} new
-          </span>
-        )}
-      </div>
-
-      <div className="feed-card overflow-hidden">
-        {error && (
-          <p className="border-b border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-            {error}
-          </p>
-        )}
-
-        {loading ? (
-          <ul className="divide-y divide-border">
-            {Array.from({ length: 4 }, (_, i) => (
-              <NotificationSkeleton key={i} />
-            ))}
-          </ul>
-        ) : items.length === 0 && !error ? (
-          <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
-            <span className="flex size-16 items-center justify-center rounded-full bg-secondary">
-              <Bell className="size-7 text-muted-foreground/70" aria-hidden="true" strokeWidth={1.25} />
-            </span>
-            <div className="space-y-1">
-              <p className="text-base font-medium">You&apos;re all caught up</p>
-              <p className="max-w-xs text-sm text-muted-foreground">
-                When someone sends a friend request or interacts with your posts, it will show up here.
-              </p>
+    <div className="notifications-page soft-page-canvas -mx-4 rounded-2xl">
+      <div className="notifications-page-inner mx-auto max-w-2xl space-y-4">
+        <header className="notifications-header-card rounded-xl p-6 text-card-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <span className="notifications-header-icon flex size-12 shrink-0 items-center justify-center rounded-full border border-border">
+                <Bell className="size-5 text-foreground/80" aria-hidden="true" strokeWidth={1.5} />
+              </span>
+              <div>
+                <p className="profile-section-label mb-1">Activity</p>
+                <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Friend requests, comments, and replies from your network.
+                </p>
+              </div>
             </div>
+            {!loading && unreadCount > 0 && (
+              <span className="notifications-unread-pill rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+                {unreadCount} new
+              </span>
+            )}
           </div>
-        ) : (
-          <ul className="divide-y divide-border">
-            {items.map((n) => (
-              <NotificationRow
-                key={n.id}
-                item={n}
-                busyFriendshipId={busyFriendshipId}
-                onFriendAction={(friendshipId, action) => void onFriendAction(friendshipId, action)}
-              />
-            ))}
-          </ul>
-        )}
+        </header>
+
+        <section className="notifications-list-card rounded-xl bg-card text-card-foreground">
+          {error && (
+            <p className="border-b border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+              {error}
+            </p>
+          )}
+
+          {showListHeading && (
+            <p className="notifications-list-heading">
+              Recent
+              <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground/80">
+                ({items.length})
+              </span>
+            </p>
+          )}
+
+          {loading ? (
+            <ul className="divide-y divide-border">
+              {Array.from({ length: 4 }, (_, i) => (
+                <NotificationSkeleton key={i} />
+              ))}
+            </ul>
+          ) : items.length === 0 && !error ? (
+            <div className="notifications-empty-state flex flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+              <span className="notifications-empty-icon flex size-16 items-center justify-center rounded-full border border-border">
+                <Bell className="size-7 text-muted-foreground/80" aria-hidden="true" strokeWidth={1.25} />
+              </span>
+              <div className="space-y-2">
+                <p className="text-lg font-semibold tracking-tight">You&apos;re all caught up</p>
+                <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
+                  When someone sends a friend request or interacts with your posts, it will show up here.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {items.map((n) => (
+                <NotificationRow
+                  key={n.id}
+                  item={n}
+                  busyFriendshipId={busyFriendshipId}
+                  onFriendAction={(friendshipId, action) => void onFriendAction(friendshipId, action)}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
-    </section>
+    </div>
   );
 }

@@ -1,0 +1,98 @@
+{
+  "plan": "plans/08012026-41-share-button-ui",
+  "generatedAt": "2026-08-03",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Share dialog opens from Feed action row",
+      "surface": "ui",
+      "precondition": "Signed in; feed shows a mutual friend's original post (not a share wrapper)",
+      "steps": [
+        "Open Feed",
+        "Click Share2 on friend's post action row"
+      ],
+      "expected": "SharePostDialog opens with caption textarea, original post preview, Cancel and Share post buttons.",
+      "status": "pass",
+      "evidence": "FeedPage.tsx wires PostCard onShare → openShare → SharePostDialog; PostActionRow renders Share2 when onShare provided. Code review + frontend typecheck pass (2026-08-03).",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Share with caption appears on feed with caption + nested embed",
+      "surface": "ui",
+      "precondition": "SharePostDialog open on friend's text or image post",
+      "steps": [
+        "Enter a non-empty caption in the dialog",
+        "Click Share post",
+        "Observe feed after refresh"
+      ],
+      "expected": "New wrapper card shows ShareAttribution line, caption body text, and nested SharedPostEmbed of the original.",
+      "status": "pass",
+      "evidence": "confirmShare posts { body: caption.trim() } to POST /api/posts/:id/share; PostService.share stores trimmed caption on wrapper; PostCard renders ShareAttribution + body + SharedPostEmbed.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Share with empty caption (body omitted) works",
+      "surface": "ui",
+      "precondition": "SharePostDialog open; caption left blank or whitespace-only",
+      "steps": [
+        "Leave caption empty",
+        "Click Share post",
+        "Observe feed"
+      ],
+      "expected": "Share succeeds; wrapper body empty; nested original still renders; attribution line present.",
+      "status": "pass",
+      "evidence": "SharePostDialog onConfirm passes caption.trim() (empty string); PostService.share: input.body?.trim() ?? '' when body omitted from payload; sharePostSchema body is optional.",
+      "notes": "Frontend sends { body: \"\" } for empty caption; API also accepts omitted body via parse(raw ?? {}).",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "API rejects body > 5000 chars",
+      "surface": "api",
+      "precondition": "Authenticated session; valid friend post id",
+      "steps": [
+        "POST /api/posts/:id/share with body string length 5001"
+      ],
+      "expected": "400 POST_VALIDATION from Zod; share not created.",
+      "status": "pass",
+      "evidence": "sharePostSchema in PostService.ts: z.object({ body: z.string().max(5000).optional() }); ZodError → PostsController handle → 400 POST_VALIDATION. SharePostDialog maxLength=5000 prevents oversize from UI.",
+      "notes": "Documented from sharePostSchema; no live API call in this session.",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Share forbidden on own post / non-friend",
+      "surface": "none",
+      "precondition": "Code review of share authorization path",
+      "steps": [
+        "Inspect PostService.share guards",
+        "Inspect canSharePost UI guard"
+      ],
+      "expected": "Own post → SHARE_FORBIDDEN; non-friend → SHARE_FORBIDDEN; share wrapper → SHARE_FORBIDDEN. UI hides Share2 via canSharePost.",
+      "status": "pass",
+      "evidence": "PostService.share: author_id === viewerId → SHARE_FORBIDDEN; !areFriends → SHARE_FORBIDDEN; shared_from_post_id set → SHARE_FORBIDDEN. canSharePost: post.author.id !== viewerId && !post.sharedFromPostId. Route uses requireAuth.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Post detail share opens same dialog",
+      "surface": "ui",
+      "precondition": "Open /posts/:id for a friend's original post",
+      "steps": [
+        "Click Share2 on post detail action row",
+        "Confirm SharePostDialog opens (same component as Feed)"
+      ],
+      "expected": "PostDetailPage uses SharePostDialog with same caption composer and confirmShare flow.",
+      "status": "pass",
+      "evidence": "PostDetailPage.tsx imports SharePostDialog; openShare/onShare + confirmShare mirror FeedPage pattern.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

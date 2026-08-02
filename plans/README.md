@@ -42,6 +42,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 36 | `08012026-36-feed-ui-upgrade` | Feed + post detail UI polish — composer pill, centered inset galleries, multi-photo, labeled actions |
 | 37 | `08012026-37-friends-ui-upgrade` | Friends unified dashboard card + row polish |
 | 38 | `08012026-38-messages-ui-upgrade` | Messages UI — unified inbox card + thread polish |
+| 39 | `08022026-39-notifications-ui-upgrade` | Notifications soft dashboard UI (beautiful again) |
 
 ## Branch → host (hard rule)
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.25 — 2026-08-03
+## 0.1.28 — 2026-08-03
 
 ### Added
 - Multi-photo feed posts (up to 10 images) with carousel on feed, detail, profile, and share embeds
@@ -8,11 +8,46 @@
 - Per-photo reaction list via shared `ReactionsListPopover`; `comment_on_photo` notifications
 
 ### Changed
-- Merged `dev` (#51–#53 UI upgrades); cut over from `posts.image_urls` jsonb to `post_images` as source of truth
+- Cut over from `posts.image_urls` jsonb to `post_images` as source of truth
 - `PostModel.create` owns post + child image rows in one transaction (§7.4)
+- Merged `dev` (#54–#56): share caption composer, comment bubble UI, notifications soft shell
 
 ### Plans
-- `plans/08022026-41-multi-photo-carousel` — review fixes on `kylie/post-photo-feature`
+- `plans/08022026-41-multi-photo-carousel` — merged with share + comments UI on `kylie/post-photo-feature`
+
+## 0.1.27 — 2026-08-03
+
+### Added
+- Share post composer dialog with optional caption before resharing to feed
+- `SharePostDialog`, `ShareAttribution`, and `ShareSuccessNotice` components
+- Share API caption support via `POST /api/posts/:id/share` `{ body? }`
+
+### Changed
+- Share button UI: pill action buttons, polished nested embed, and attribution links
+- Feed and post detail open share composer instead of one-click reshare
+- Shared post embeds and share preview support multi-photo originals
+
+### Plans
+- `plans/08032026-41-share-button-ui` — executed on `kylie/share-button-ui`
+
+## 0.1.26 — 2026-08-03
+
+### Changed
+- Comment section UI: Facebook-style bubble cards with author name inside, meta row (reactions + timestamp), and clearer reply thread rail
+- Comment composer: pill input shell, icon-only send when collapsed, moved to bottom of comments section
+- Section header: icon + count only (no "Comments" heading)
+
+### Plans
+- `plans/08012026-40-comment-section-ui` — executed on `kylie/comment-section-ui`
+
+## 0.1.25 — 2026-08-03
+
+### Changed
+- Notifications page: soft dashboard shell (canvas plate, hero header card, separate list card) while preserving row polish (avatars, type pills, skeletons, nested post links)
+- Notifications unread UX: soft outline New badge; removed heavy left edge bar
+
+### Plans
+- `plans/08022026-39-notifications-ui-upgrade` — Completed (execution on `kylie/notifications-ui-upgrade`)
 
 ## 0.1.24 — 2026-08-03
 

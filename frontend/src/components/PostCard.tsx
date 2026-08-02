@@ -15,7 +15,8 @@ import {
   profileActivityHasCustomCaption,
   profileActivityKind,
 } from "@/lib/profileActivityPosts";
-import { canSharePost, shareAttributionLabel } from "@/lib/sharePost";
+import { ShareAttribution } from "@/components/ShareAttribution";
+import { canSharePost } from "@/lib/sharePost";
 import { postMediaImages, postMediaUrls } from "@/lib/postMedia";
 import { cn } from "@/lib/utils";
 
@@ -142,7 +143,6 @@ export function PostCard({
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const attribution = shareAttributionLabel(currentUserId, post);
   const isShare = Boolean(post.sharedFromPostId);
   const isOwner = currentUserId === post.author.id;
   const profilePath = `/u/${post.author.username || post.author.id}`;
@@ -171,7 +171,12 @@ export function PostCard({
   }, [menuOpen]);
 
   const bodyBlock = isShare ? (
-    <SharedPostEmbed sharedFrom={post.sharedFrom} />
+    <>
+      {post.body.trim() ? (
+        <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/95">{post.body}</p>
+      ) : null}
+      <SharedPostEmbed sharedFrom={post.sharedFrom} className={post.body.trim() ? "mt-2.5" : undefined} />
+    </>
   ) : (
     <>
       {isActivity && (
@@ -235,8 +240,8 @@ export function PostCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                {attribution ? (
-                  <p className="font-semibold leading-snug">{attribution}</p>
+                {isShare ? (
+                  <ShareAttribution viewerId={currentUserId} post={post} />
                 ) : (
                   <Link
                     className="font-semibold leading-snug underline-offset-2 hover:underline"
@@ -303,7 +308,7 @@ export function PostCard({
         <div
           className={cn(
             "feed-action-row mt-2 mb-3",
-            variant === "embedded" ? cn("border-t border-border/70 pt-2", POST_MEDIA_BREAKOUT) : "mx-4"
+            variant === "standalone" ? "mx-4" : cn("border-t border-border/70 pt-2", POST_MEDIA_BREAKOUT)
           )}
         >
           <PostActionRow

@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { MessageCircle } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import type { CommentView, PublicUser, ReactionSummary } from "@/api/types";
 import { CommentComposer } from "@/components/CommentComposer";
 import { CommentItem } from "@/components/CommentItem";
@@ -46,32 +46,32 @@ export function CommentsSection({
 
   return (
     <section id={sectionId} ref={sectionRef} className="feed-card overflow-hidden">
-      <div className="border-b border-border/70 px-4 py-3.5">
-        <div className="flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          <h2 className="text-base font-semibold tracking-tight">{title}</h2>
-          {comments.length > 0 && (
-            <span className="text-sm text-muted-foreground">· {countLabel}</span>
+      <div className="border-b border-border/60 px-4 py-3" aria-label={title}>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/60">
+            <MessageSquare className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </span>
+          {comments.length > 0 ? (
+            <span className="font-medium text-foreground">{countLabel}</span>
+          ) : (
+            <span className="text-muted-foreground">Be the first to comment</span>
           )}
         </div>
       </div>
 
-      {user && !replyTo && (
-        <div className="border-b border-border/70 px-4 py-3">
-          <CommentComposer user={user} busy={busy} onSubmit={onCommentSubmit} autoFocus={composerAutoFocus} />
-        </div>
-      )}
-
       <div className="px-4 py-4">
         {comments.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/80 bg-canvas/30 px-4 py-8 text-center">
+          <div className="comment-empty-state">
+            <span className="comment-empty-icon" aria-hidden="true">
+              <MessageSquare className="h-5 w-5 text-muted-foreground" />
+            </span>
             <p className="text-sm font-medium">No comments yet</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {user ? "Start the conversation above." : "Sign in to join the conversation."}
+              {user ? "Start the conversation below." : "Sign in to join the conversation."}
             </p>
           </div>
         ) : (
-          <ul className="space-y-5">
+          <ul className="space-y-6">
             {threads.map(({ parent, replies }) => (
               <li key={parent.id} className="comment-thread">
                 <CommentItem
@@ -82,37 +82,41 @@ export function CommentsSection({
                   onReactionSummaryChange={(summary) => onReactionSummaryChange(parent.id, summary)}
                 />
 
-                {replies.length > 0 && (
-                  <ul className="comment-replies mt-3 space-y-3">
-                    {replies.map((reply) => (
-                      <li key={reply.id}>
-                        <CommentItem
-                          comment={reply}
-                          currentUserId={user?.id}
-                          isReply
-                          onDelete={() => onDeleteComment(reply, "reply")}
-                          onReactionSummaryChange={(summary) =>
-                            onReactionSummaryChange(reply.id, summary)
-                          }
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {(replies.length > 0 || (user && replyTo?.id === parent.id)) && (
+                  <div className="comment-replies-block">
+                    {replies.length > 0 && (
+                      <ul className="comment-replies space-y-4">
+                        {replies.map((reply) => (
+                          <li key={reply.id}>
+                            <CommentItem
+                              comment={reply}
+                              currentUserId={user?.id}
+                              isReply
+                              onDelete={() => onDeleteComment(reply, "reply")}
+                              onReactionSummaryChange={(summary) =>
+                                onReactionSummaryChange(reply.id, summary)
+                              }
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
 
-                {user && replyTo?.id === parent.id && (
-                  <div className="comment-replies mt-3">
-                    <CommentComposer
-                      user={user}
-                      compact
-                      busy={busy}
-                      autoFocus
-                      placeholder="Write a reply…"
-                      submitLabel="Reply"
-                      replyingTo={{ displayName: replyTo.author.displayName }}
-                      onCancel={onClearReply}
-                      onSubmit={onReplySubmit}
-                    />
+                    {user && replyTo?.id === parent.id && (
+                      <div className="comment-reply-composer">
+                        <CommentComposer
+                          user={user}
+                          compact
+                          busy={busy}
+                          autoFocus
+                          placeholder="Write a reply…"
+                          submitLabel="Reply"
+                          replyingTo={{ displayName: replyTo.author.displayName }}
+                          onCancel={onClearReply}
+                          onSubmit={onReplySubmit}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </li>
@@ -132,6 +136,17 @@ export function CommentsSection({
           </ul>
         )}
       </div>
+
+      {user && !replyTo && (
+        <div className="border-t border-border/60 bg-canvas/20 px-4 py-3.5">
+          <CommentComposer
+            user={user}
+            busy={busy}
+            onSubmit={onCommentSubmit}
+            autoFocus={composerAutoFocus}
+          />
+        </div>
+      )}
     </section>
   );
 }

@@ -1,8 +1,8 @@
 {
   "name": "socmed-test-app",
-  "version": "0.1.25",
+  "version": "0.1.28",
   "private": true,
-  "description": "Basic social media platform — auth, posts, comments, friends",
+  "description": "Basic social media platform \u2014 auth, posts, comments, friends",
   "scripts": {
     "dev": "concurrently -n api,web -c white,black \"npm run dev:api\" \"npm run dev:web\"",
     "dev:api": "tsx watch src/index.ts",
