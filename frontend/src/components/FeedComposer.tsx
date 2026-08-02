@@ -45,10 +45,12 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
   const composerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef(body);
   const imagesRef = useRef(images);
+  const pickingPhotosRef = useRef(pickingPhotos);
   const profilePath = `/u/${user.username || "me"}`;
 
   bodyRef.current = body;
   imagesRef.current = images;
+  pickingPhotosRef.current = pickingPhotos;
 
   useEffect(() => {
     if (!pickingPhotos) return;
@@ -80,10 +82,18 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
     window.setTimeout(() => {
       const active = document.activeElement;
       if (composerRef.current?.contains(active)) return;
+      if (pickingPhotosRef.current) return;
       if (!bodyRef.current.trim() && imagesRef.current.length === 0) {
         setExpanded(false);
       }
     }, 0);
+  }
+
+  function openPhotoPicker() {
+    if (photosDisabled || !fileRef.current) return;
+    fileRef.current.value = "";
+    setPickingPhotos(true);
+    fileRef.current.click();
   }
 
   function onPickImages(fileList: FileList | null) {
@@ -187,12 +197,44 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
     </>
   );
 
-  const photosButtonClass = cn(
-    "feed-composer-photos-btn inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-    images.length > 0 && "feed-composer-photos-btn-active",
-    pickingPhotos && "feed-composer-photos-btn-picking",
-    photosDisabled && "pointer-events-none opacity-50"
-  );
+  const photosButtonClass = (compact = false) =>
+    cn(
+      "feed-composer-photos-btn inline-flex items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+      compact
+        ? "feed-composer-track-photos-btn h-8 w-8 shrink-0 rounded-full"
+        : "h-9 gap-1.5 rounded-full px-3 text-sm font-medium",
+      images.length > 0 && "feed-composer-photos-btn-active",
+      pickingPhotos && "feed-composer-photos-btn-picking",
+      photosDisabled && "pointer-events-none opacity-50"
+    );
+
+  const photosControl = (compact = false) =>
+    photosDisabled ? (
+      <span
+        className={photosButtonClass(compact)}
+        aria-disabled="true"
+        aria-label={compact ? "Add photos" : undefined}
+      >
+        {photosButtonContent}
+      </span>
+    ) : (
+      <button
+        type="button"
+        className={cn(photosButtonClass(compact), "cursor-pointer")}
+        aria-label={compact ? "Add photos" : undefined}
+        onClick={openPhotoPicker}
+      >
+        {compact ? (
+          pickingPhotos ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <ImagePlus className="h-4 w-4" aria-hidden="true" />
+          )
+        ) : (
+          photosButtonContent
+        )}
+      </button>
+    );
 
   return (
     <form
@@ -214,6 +256,18 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
         </Link>
 
         <div ref={composerRef} className="min-w-0 flex-1 space-y-3">
+          <input
+            id={fileInputId}
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(e) => onPickImages(e.target.files)}
+          />
+
           <div
             className={cn(
               !expanded && "feed-composer-track",
@@ -234,7 +288,12 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
                 expanded ? "min-h-[4.5rem] py-0" : undefined
               )}
             />
-            {!expanded && postButton}
+            {!expanded && (
+              <>
+                {photosControl(true)}
+                {postButton}
+              </>
+            )}
           </div>
 
           {expanded && images.length > 0 && (
@@ -275,30 +334,7 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
 
           {expanded && (
             <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-3">
-              <div className="flex items-center gap-1">
-                <input
-                  id={fileInputId}
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="sr-only"
-                  onClick={() => {
-                    if (fileRef.current) fileRef.current.value = "";
-                    setPickingPhotos(true);
-                  }}
-                  onChange={(e) => onPickImages(e.target.files)}
-                />
-                {photosDisabled ? (
-                  <span className={photosButtonClass} aria-disabled="true">
-                    {photosButtonContent}
-                  </span>
-                ) : (
-                  <label htmlFor={fileInputId} className={cn(photosButtonClass, "cursor-pointer")}>
-                    {photosButtonContent}
-                  </label>
-                )}
-              </div>
+              <div className="flex items-center gap-1">{photosControl()}</div>
 
               <div className="flex items-center gap-3">
                 {readyToPost && images.length > 0 && !nearLimit && (

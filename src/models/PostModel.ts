@@ -26,7 +26,10 @@ export class PostModel {
         author_id: input.authorId,
         body: input.body,
         image_url: urls[0] ?? null,
-        image_urls: urls.length > 0 ? urls : null,
+        image_urls:
+          urls.length > 0
+            ? (db.raw("?::jsonb", [JSON.stringify(urls)]) as unknown as string[] | null)
+            : null,
         shared_from_post_id: input.sharedFromPostId ?? null,
       })
       .returning("*");
