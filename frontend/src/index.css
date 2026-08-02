@@ -1540,6 +1540,110 @@ body {
   animation: reaction-pop 0.28s ease-out;
 }
 
+.feed-composer-photos-list {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent;
+}
+
+.feed-composer-photos-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.feed-composer-photos-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted-foreground) 35%, transparent);
+}
+
+.post-media-stage {
+  width: 100%;
+}
+
+.post-media-grid-trigger {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.post-media-grid-trigger:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.dark .post-media-grid-trigger:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.post-media-gallery--detail {
+  animation: feed-post-in 0.28s ease-out both;
+}
+
+.post-media-gallery-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent;
+}
+
+.post-media-gallery-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.post-media-gallery-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted-foreground) 35%, transparent);
+}
+
+.post-media-grid {
+  max-height: min(420px, 72vw);
+}
+
+.post-media-grid--compact {
+  max-height: min(176px, 48vw);
+}
+
+.post-media-grid-two {
+  aspect-ratio: 2 / 1;
+}
+
+.post-media-grid-three {
+  aspect-ratio: 4 / 3;
+}
+
+.post-media-grid-four {
+  aspect-ratio: 1 / 1;
+}
+
+.post-media-single {
+  aspect-ratio: 4 / 3;
+  max-height: min(448px, 75vw);
+}
+
+.post-media-single--compact {
+  aspect-ratio: 4 / 3;
+  max-height: min(208px, 50vw);
+}
+
+.post-media-slide {
+  aspect-ratio: 4 / 3;
+  max-height: min(360px, 70vw);
+}
+
+.post-media-slide--compact {
+  aspect-ratio: 4 / 3;
+  max-height: min(200px, 45vw);
+}
+
+.comment-count-badge {
+  pointer-events: none;
+}
+
+.photo-comments-hero__header {
+  backdrop-filter: blur(8px);
+}
+
+.post-photo-action-row {
+  background: color-mix(in srgb, var(--card) 92%, var(--muted));
+}
+
+.post-photo-slide {
+  transition: box-shadow 0.2s ease;
+}
+
 /* Soft dashboard shell — NotificationsPage only */
 .soft-page-canvas {
   background: color-mix(in srgb, var(--muted) 88%, var(--background));
@@ -1728,6 +1832,7 @@ body {
     transform: none;
   }
 }
+
 
 .scrollbar-none {
   scrollbar-width: none;

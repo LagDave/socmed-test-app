@@ -19,6 +19,9 @@ type CommentsSectionProps = {
   onDeleteComment: (comment: CommentView, kind: "comment" | "reply") => void;
   onReactionSummaryChange: (commentId: string, summary: ReactionSummary) => void;
   sectionRef?: RefObject<HTMLDivElement | null>;
+  sectionId?: string;
+  title?: string;
+  composerAutoFocus?: boolean;
 };
 
 export function CommentsSection({
@@ -35,15 +38,15 @@ export function CommentsSection({
   onDeleteComment,
   onReactionSummaryChange,
   sectionRef,
+  sectionId = "comments",
+  title = "Comments",
+  composerAutoFocus = false,
 }: CommentsSectionProps) {
   const countLabel = comments.length === 1 ? "1 comment" : `${comments.length} comments`;
 
   return (
-    <section id="comments" ref={sectionRef} className="feed-card overflow-hidden">
-      <div
-        className="border-b border-border/60 px-4 py-3"
-        aria-label="Comments"
-      >
+    <section id={sectionId} ref={sectionRef} className="feed-card overflow-hidden">
+      <div className="border-b border-border/60 px-4 py-3" aria-label={title}>
         <div className="flex items-center gap-2 text-sm">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/60">
             <MessageSquare className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -136,7 +139,12 @@ export function CommentsSection({
 
       {user && !replyTo && (
         <div className="border-t border-border/60 bg-canvas/20 px-4 py-3.5">
-          <CommentComposer user={user} busy={busy} onSubmit={onCommentSubmit} />
+          <CommentComposer
+            user={user}
+            busy={busy}
+            onSubmit={onCommentSubmit}
+            autoFocus={composerAutoFocus}
+          />
         </div>
       )}
     </section>

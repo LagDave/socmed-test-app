@@ -5,7 +5,7 @@ import type { ReactionEmoji, ReactionEntry } from "@/api/types";
 export const REACTIONS_LIST_MAX_LIMIT = 100;
 
 type UseReactionsListArgs = {
-  targetType: "post" | "comment";
+  targetType: "post" | "comment" | "post_image";
   targetId: string;
   filter: ReactionEmoji | "all";
   limit: number;
@@ -39,7 +39,9 @@ export function useReactionsList({
     const path =
       targetType === "post"
         ? `/api/posts/${targetId}/reactions`
-        : `/api/comments/${targetId}/reactions`;
+        : targetType === "post_image"
+          ? `/api/post-images/${targetId}/reactions`
+          : `/api/comments/${targetId}/reactions`;
 
     const params = new URLSearchParams();
     if (filter !== "all") params.set("emoji", filter);

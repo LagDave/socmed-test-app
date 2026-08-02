@@ -23,3 +23,7 @@ postsRouter.delete("/comments/:id", requireAuth, CommentsController.remove);
 postsRouter.put("/comments/:id/reactions", requireAuth, ReactionsController.setOnComment);
 postsRouter.get("/comments/:id/reactions", requireAuth, ReactionsController.listOnComment);
 postsRouter.delete("/comments/:id/reactions", requireAuth, ReactionsController.clearOnComment);
+
+postsRouter.get("/post-images/:id/reactions", requireAuth, ReactionsController.listOnPostImage);
+postsRouter.put("/post-images/:id/reactions", requireAuth, ReactionsController.setOnPostImage);
+postsRouter.delete("/post-images/:id/reactions", requireAuth, ReactionsController.clearOnPostImage);

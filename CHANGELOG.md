@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.28 — 2026-08-03
+
+### Added
+- Multi-photo feed posts (up to 10 images) with carousel on feed, detail, profile, and share embeds
+- `post_images` table with per-photo comments, reactions, and dedicated photo comment page
+- Per-photo reaction list via shared `ReactionsListPopover`; `comment_on_photo` notifications
+
+### Changed
+- Cut over from `posts.image_urls` jsonb to `post_images` as source of truth
+- `PostModel.create` owns post + child image rows in one transaction (§7.4)
+- Merged `dev` (#54–#56): share caption composer, comment bubble UI, notifications soft shell
+
+### Plans
+- `plans/08022026-41-multi-photo-carousel` — merged with share + comments UI on `kylie/post-photo-feature`
+
 ## 0.1.27 — 2026-08-03
 
 ### Added

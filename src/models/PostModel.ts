@@ -1,12 +1,12 @@
 import type { Knex } from "knex";
 import { db } from "../database/connection";
+import { PostImageModel } from "./PostImageModel";
 
 export type PostRow = {
   id: string;
   author_id: string;
   body: string;
   image_url: string | null;
-  image_urls: string[] | null;
   shared_from_post_id: string | null;
   created_at: Date;
   updated_at: Date;
@@ -21,19 +21,23 @@ export class PostModel {
     sharedFromPostId?: string | null;
   }): Promise<PostRow> {
     const urls = input.imageUrls ?? (input.imageUrl ? [input.imageUrl] : []);
-    const [row] = await db<PostRow>("posts")
-      .insert({
-        author_id: input.authorId,
-        body: input.body,
-        image_url: urls[0] ?? null,
-        image_urls:
-          urls.length > 0
-            ? (db.raw("?::jsonb", [JSON.stringify(urls)]) as unknown as string[] | null)
-            : null,
-        shared_from_post_id: input.sharedFromPostId ?? null,
-      })
-      .returning("*");
-    return row;
+
+    return db.transaction(async (trx) => {
+      const [row] = await trx<PostRow>("posts")
+        .insert({
+          author_id: input.authorId,
+          body: input.body,
+          image_url: urls[0] ?? null,
+          shared_from_post_id: input.sharedFromPostId ?? null,
+        })
+        .returning("*");
+
+      if (urls.length > 0) {
+        await PostImageModel.insertMany(row.id, urls, trx);
+      }
+
+      return row;
+    });
   }
 
   static async findById(id: string): Promise<PostRow | undefined> {

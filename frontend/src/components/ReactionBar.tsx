@@ -37,13 +37,11 @@ const SIZE = {
 } as const;
 
 type ReactionBarProps = {
-  targetType: "post" | "comment" | "message";
+  targetType: "post" | "comment" | "post_image" | "message";
   targetId: string;
   summary: ReactionSummary;
   onSummaryChange: (summary: ReactionSummary) => void;
-  /** Post reactions use md; comments/replies and messages use sm. */
   size?: keyof typeof SIZE;
-  /** Controls rendered immediately after the trigger (comment / reply). */
   actions?: ReactNode;
   className?: string;
   onError?: (message: string) => void;
@@ -72,9 +70,11 @@ export function ReactionBar({
   const path =
     targetType === "post"
       ? `/api/posts/${targetId}/reactions`
-      : targetType === "comment"
-        ? `/api/comments/${targetId}/reactions`
-        : `/api/messages/messages/${targetId}/reaction`;
+      : targetType === "post_image"
+        ? `/api/post-images/${targetId}/reactions`
+        : targetType === "comment"
+          ? `/api/comments/${targetId}/reactions`
+          : `/api/messages/messages/${targetId}/reaction`;
 
   function parseReactionResponse(
     data: { reactionSummary: ReactionSummary } | { message: { reactionSummary: ReactionSummary } }

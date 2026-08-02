@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import type { PostView } from "@/api/types";
+import { PostMediaGallery } from "@/components/PostMediaGallery";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { postImageUrls } from "@/lib/postImages";
+import { postMediaImages } from "@/lib/postMedia";
 import { cn } from "@/lib/utils";
 
 type SharePostPreviewProps = {
@@ -11,7 +12,7 @@ type SharePostPreviewProps = {
 
 /** Read-only preview of a post inside the share composer. */
 export function SharePostPreview({ post, className }: SharePostPreviewProps) {
-  const images = postImageUrls(post);
+  const media = postMediaImages(post);
 
   return (
     <div className={cn("shared-post-embed shared-post-embed--preview", className)} aria-hidden="true">
@@ -33,24 +34,13 @@ export function SharePostPreview({ post, className }: SharePostPreviewProps) {
               {post.body}
             </p>
           ) : null}
-          {images.length > 0 && (
+          {media.length > 1 ? (
+            <PostMediaGallery media={media} mode="compact" className="mt-2.5" />
+          ) : media.length === 1 ? (
             <div className="shared-post-embed-media mt-2.5 overflow-hidden rounded-lg">
-              {images.length === 1 ? (
-                <img src={images[0]} alt="" className="max-h-48 w-full object-cover sm:max-h-56" />
-              ) : (
-                <div className="grid gap-1.5">
-                  {images.map((url, index) => (
-                    <img
-                      key={`${url}-${index}`}
-                      src={url}
-                      alt=""
-                      className="max-h-48 w-full object-cover sm:max-h-56"
-                    />
-                  ))}
-                </div>
-              )}
+              <img src={media[0].url} alt="" className="max-h-48 w-full object-cover sm:max-h-56" />
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
@@ -73,7 +63,7 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
 
   const profilePath = `/u/${sharedFrom.author.username || sharedFrom.author.id}`;
   const postPath = `/posts/${sharedFrom.id}`;
-  const images = postImageUrls(sharedFrom);
+  const media = postMediaImages(sharedFrom);
 
   return (
     <div className={cn("shared-post-embed", className)}>
@@ -108,28 +98,22 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
                 {sharedFrom.body}
               </p>
             ) : null}
-            {images.length > 0 && (
+            {media.length > 1 ? (
+              <PostMediaGallery
+                media={media}
+                postPath={postPath}
+                mode="compact"
+                className="mt-2.5"
+              />
+            ) : media.length === 1 ? (
               <div className="shared-post-embed-media mt-2.5 overflow-hidden rounded-lg">
-                {images.length === 1 ? (
-                  <img
-                    src={images[0]}
-                    alt=""
-                    className="max-h-96 w-full object-cover transition-transform duration-300 group-hover/embed:scale-[1.01]"
-                  />
-                ) : (
-                  <div className="grid gap-1.5">
-                    {images.map((url, index) => (
-                      <img
-                        key={`${url}-${index}`}
-                        src={url}
-                        alt=""
-                        className="max-h-96 w-full rounded-lg object-cover transition-transform duration-300 group-hover/embed:scale-[1.01]"
-                      />
-                    ))}
-                  </div>
-                )}
+                <img
+                  src={media[0].url}
+                  alt=""
+                  className="max-h-96 w-full object-cover transition-transform duration-300 group-hover/embed:scale-[1.01]"
+                />
               </div>
-            )}
+            ) : null}
           </Link>
         </div>
       </div>

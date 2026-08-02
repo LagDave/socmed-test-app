@@ -13,12 +13,14 @@ const SIZE = {
   md: {
     btn: "h-9 w-9",
     icon: "h-[1.125rem] w-[1.125rem]",
+    badge: "min-w-[1.125rem] h-[1.125rem] text-[10px]",
     label: "text-[11px] -bottom-4",
     gap: "gap-2",
   },
   sm: {
     btn: "h-6 w-6",
     icon: "h-3.5 w-3.5",
+    badge: "min-w-4 h-4 text-[9px]",
     label: "text-[10px] -bottom-3.5",
     gap: "gap-1.5",
   },
@@ -33,35 +35,52 @@ type PostActionRowProps = {
   children: ReactNode;
   size?: keyof typeof SIZE;
   className?: string;
-  /** Feed + detail: icon + label at md+ breakpoints. */
   showLabels?: boolean;
-  /** Feed: navigate to post comments. */
   commentTo?: string;
-  /** Detail: scroll / focus comments. */
+  commentCount?: number;
   onCommentClick?: () => void;
-  /** Friends' original posts only — omit to hide Share. */
   onShare?: () => void;
   shareBusy?: boolean;
+  showShare?: boolean;
+  shareDisabled?: boolean;
 };
+
+function CommentCountBadge({ count, className }: { count: number; className?: string }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      className={cn(
+        "comment-count-badge absolute -right-1 -top-1 inline-flex items-center justify-center rounded-full bg-primary px-1 font-semibold tabular-nums leading-none text-primary-foreground ring-2 ring-background",
+        className
+      )}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 type PostActionIconProps = {
   label: string;
   size: keyof typeof SIZE;
   busy?: boolean;
+  disabled?: boolean;
   onClick?: () => void;
   to?: string;
   children: ReactNode;
   showLabels?: boolean;
+  badge?: number;
 };
 
 function PostActionIcon({
   label,
   size,
   busy = false,
+  disabled = false,
   onClick,
   to,
   children,
   showLabels = false,
+  badge = 0,
 }: PostActionIconProps) {
   const s = SIZE[size];
   const shellClass =
@@ -70,7 +89,7 @@ function PostActionIcon({
   const innerClass = cn(
     "group relative inline-flex items-center justify-center rounded-full transition-colors hover:bg-accent",
     showLabels ? "h-9 w-9 md:h-9 md:w-auto md:gap-2 md:px-3.5" : s.btn,
-    busy && "pointer-events-none opacity-70"
+    (busy || disabled) && "pointer-events-none opacity-70"
   );
 
   const iconContent = busy ? (
@@ -98,6 +117,7 @@ function PostActionIcon({
       <div className={shellClass}>
         <Link to={to} aria-label={label} className={innerClass}>
           {iconContent}
+          <CommentCountBadge count={badge} className={s.badge} />
           {labelContent}
         </Link>
       </div>
@@ -109,11 +129,12 @@ function PostActionIcon({
       <button
         type="button"
         aria-label={label}
-        disabled={busy}
+        disabled={busy || disabled}
         className={innerClass}
         onClick={onClick}
       >
         {iconContent}
+        <CommentCountBadge count={badge} className={s.badge} />
         {labelContent}
       </button>
     </div>
@@ -126,9 +147,12 @@ export function PostActionRow({
   className,
   showLabels = false,
   commentTo,
+  commentCount = 0,
   onCommentClick,
   onShare,
   shareBusy = false,
+  showShare = false,
+  shareDisabled = false,
 }: PostActionRowProps) {
   const s = SIZE[size];
 
@@ -140,22 +164,25 @@ export function PostActionRow({
         showLabels={showLabels}
         to={commentTo}
         onClick={onCommentClick}
+        badge={commentCount}
       >
         <MessageSquare className={s.icon} aria-hidden="true" />
       </PostActionIcon>
     ) : null;
 
-  const shareControl = onShare ? (
-    <PostActionIcon
-      label="Share"
-      size={size}
-      showLabels={showLabels}
-      busy={shareBusy}
-      onClick={onShare}
-    >
-      <Share2 className={s.icon} aria-hidden="true" />
-    </PostActionIcon>
-  ) : null;
+  const shareControl =
+    onShare || showShare ? (
+      <PostActionIcon
+        label="Share"
+        size={size}
+        showLabels={showLabels}
+        busy={shareBusy}
+        disabled={shareDisabled || !onShare}
+        onClick={onShare}
+      >
+        <Share2 className={s.icon} aria-hidden="true" />
+      </PostActionIcon>
+    ) : null;
 
   const leftActions = (
     <div className={cn("inline-flex flex-wrap items-center", s.gap)}>

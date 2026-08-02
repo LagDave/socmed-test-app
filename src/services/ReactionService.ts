@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CommentModel } from "../models/CommentModel";
+import { PostImageModel } from "../models/PostImageModel";
 import { PostModel } from "../models/PostModel";
 import {
   REACTION_EMOJIS,
@@ -65,6 +66,25 @@ export class ReactionService {
     return ReactionModel.summaryForComment(commentId, userId);
   }
 
+  static async setOnPostImage(
+    userId: string,
+    postImageId: string,
+    raw: unknown
+  ): Promise<ReactionSummary> {
+    const image = await PostImageModel.findById(postImageId);
+    if (!image) throw new AppError("POST_IMAGE_NOT_FOUND", "Photo not found.");
+    const { emoji } = upsertSchema.parse(raw);
+    await ReactionModel.upsertForPostImage(userId, postImageId, emoji);
+    return ReactionModel.summaryForPostImage(postImageId, userId);
+  }
+
+  static async clearOnPostImage(userId: string, postImageId: string): Promise<ReactionSummary> {
+    const image = await PostImageModel.findById(postImageId);
+    if (!image) throw new AppError("POST_IMAGE_NOT_FOUND", "Photo not found.");
+    await ReactionModel.deleteForPostImage(userId, postImageId);
+    return ReactionModel.summaryForPostImage(postImageId, userId);
+  }
+
   static async listOnPost(postId: string, rawQuery: unknown): Promise<ReactionEntryView[]> {
     const post = await PostModel.findById(postId);
     if (!post) throw new AppError("POST_NOT_FOUND", "Post not found.");
@@ -76,6 +96,14 @@ export class ReactionService {
     if (!comment) throw new AppError("COMMENT_NOT_FOUND", "Comment not found.");
     return this.hydrateList(
       await ReactionModel.listForComment(commentId, listQuerySchema.parse(rawQuery))
+    );
+  }
+
+  static async listOnPostImage(postImageId: string, rawQuery: unknown): Promise<ReactionEntryView[]> {
+    const image = await PostImageModel.findById(postImageId);
+    if (!image) throw new AppError("POST_IMAGE_NOT_FOUND", "Photo not found.");
+    return this.hydrateList(
+      await ReactionModel.listForPostImage(postImageId, listQuerySchema.parse(rawQuery))
     );
   }
 

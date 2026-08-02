@@ -6,10 +6,10 @@ import { PostActionRow } from "@/components/PostActionRow";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ReactionBar } from "@/components/ReactionBar";
 import { SharedPostEmbed } from "@/components/SharedPostEmbed";
+import { PostMediaGallery } from "@/components/PostMediaGallery";
 import { Button } from "@/components/ui/button";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import {
-  isProfileActivityPost,
   isProfilePicturePost,
   profileActivityDisplayBody,
   profileActivityHasCustomCaption,
@@ -17,7 +17,7 @@ import {
 } from "@/lib/profileActivityPosts";
 import { ShareAttribution } from "@/components/ShareAttribution";
 import { canSharePost } from "@/lib/sharePost";
-import { postImageUrls } from "@/lib/postImages";
+import { postMediaImages, postMediaUrls } from "@/lib/postMedia";
 import { cn } from "@/lib/utils";
 
 /** Full card width — offsets the header avatar column (sm + gap-2.5). */
@@ -54,111 +54,61 @@ function ProfileActivityMedia({ body, imageUrl }: { body: string; imageUrl: stri
   );
 }
 
-function PostActivityImage({
-  body,
-  imageUrl,
+function PostStandardMedia({
+  post,
   postPath,
+  mediaMode = "feed",
+  onReactionSummaryChange,
+  onPhotoReactionSummaryChange,
+  onShare,
+  sharingPostId = null,
+  currentUserId,
 }: {
-  body: string;
-  imageUrl: string;
+  post: PostView;
   postPath: string;
+  mediaMode?: "feed" | "detail";
+  currentUserId: string;
+  onReactionSummaryChange: (postId: string, summary: ReactionSummary) => void;
+  onPhotoReactionSummaryChange?: (postImageId: string, summary: ReactionSummary) => void;
+  onShare?: (postId: string) => void;
+  sharingPostId?: string | null;
 }) {
-  if (isProfileActivityPost(body)) {
-    return <ProfileActivityMedia body={body} imageUrl={imageUrl} />;
+  const media = postMediaImages(post);
+  if (media.length === 0) return null;
+
+  const detailActions =
+    mediaMode === "detail"
+      ? {
+          postId: post.id,
+          postReactionSummary: post.reactionSummary,
+          onPostReactionSummaryChange: (summary: ReactionSummary) =>
+            onReactionSummaryChange(post.id, summary),
+          onPhotoReactionSummaryChange: (postImageId: string, summary: ReactionSummary) =>
+            onPhotoReactionSummaryChange?.(postImageId, summary),
+          onShare,
+          sharingPostId,
+          canShare: canSharePost(currentUserId, post),
+        }
+      : undefined;
+
+  if (media.length > 1 || mediaMode === "detail") {
+    return (
+      <PostMediaGallery
+        media={media}
+        postPath={postPath}
+        mode={mediaMode === "detail" ? "detail" : "feed"}
+        postActions={detailActions}
+      />
+    );
   }
   return (
-    <Link
-      to={postPath}
-      className="post-media-gallery post-media-single block overflow-hidden rounded-xl ring-1 ring-border/60"
-    >
-        <img
-          src={imageUrl}
-          alt=""
-          className="max-h-80 w-full object-cover sm:max-h-96 transition-transform duration-300 hover:scale-[1.02]"
-        />
+    <Link to={postPath} className="mt-3 block overflow-hidden rounded-xl border border-border/60">
+      <img
+        src={media[0].url}
+        alt=""
+        className="max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]"
+      />
     </Link>
-  );
-}
-
-function PostMediaGallery({
-  urls,
-  postPath,
-  isActivity,
-  body,
-}: {
-  urls: string[];
-  postPath: string;
-  isActivity: boolean;
-  body: string;
-}) {
-  if (urls.length === 0) return null;
-
-  if (isActivity && urls.length === 1) {
-    return <PostActivityImage body={body} imageUrl={urls[0]} postPath={postPath} />;
-  }
-
-  const imgClass =
-    "h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]";
-
-  if (urls.length === 1) {
-    return (
-      <Link
-        to={postPath}
-        className="post-media-gallery post-media-single block overflow-hidden rounded-xl ring-1 ring-border/60"
-      >
-        <img src={urls[0]} alt="" className="max-h-80 w-full object-cover sm:max-h-96" />
-      </Link>
-    );
-  }
-
-  if (urls.length === 2) {
-    return (
-      <div className="post-media-gallery post-media-duo grid grid-cols-2 gap-1.5 overflow-hidden rounded-xl ring-1 ring-border/60">
-        {urls.map((url, index) => (
-          <Link key={`${url}-${index}`} to={postPath} className="aspect-[4/3] overflow-hidden">
-            <img src={url} alt="" className={imgClass} />
-          </Link>
-        ))}
-      </div>
-    );
-  }
-
-  if (urls.length === 3) {
-    return (
-      <div className="post-media-gallery post-media-trio grid grid-cols-2 grid-rows-2 gap-1.5 overflow-hidden rounded-xl ring-1 ring-border/60">
-        <Link to={postPath} className="row-span-2 overflow-hidden">
-          <img src={urls[0]} alt="" className={cn(imgClass, "min-h-[12rem]")} />
-        </Link>
-        <Link to={postPath} className="overflow-hidden">
-          <img src={urls[1]} alt="" className={cn(imgClass, "aspect-[4/3]")} />
-        </Link>
-        <Link to={postPath} className="overflow-hidden">
-          <img src={urls[2]} alt="" className={cn(imgClass, "aspect-[4/3]")} />
-        </Link>
-      </div>
-    );
-  }
-
-  const visible = urls.slice(0, 4);
-  const extra = urls.length - 4;
-
-  return (
-    <div className="post-media-gallery post-media-grid grid grid-cols-2 gap-1.5 overflow-hidden rounded-xl ring-1 ring-border/60">
-      {visible.map((url, index) => (
-        <Link
-          key={`${url}-${index}`}
-          to={postPath}
-          className="relative aspect-square overflow-hidden"
-        >
-          <img src={url} alt="" className={imgClass} />
-          {index === 3 && extra > 0 && (
-            <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-lg font-semibold text-white">
-              +{extra}
-            </span>
-          )}
-        </Link>
-      ))}
-    </div>
   );
 }
 
@@ -167,10 +117,13 @@ type PostCardProps = {
   currentUserId: string;
   onDelete: (postId: string) => void;
   onReactionSummaryChange: (postId: string, summary: ReactionSummary) => void;
+  onPhotoReactionSummaryChange?: (postImageId: string, summary: ReactionSummary) => void;
   onShare?: (postId: string) => void;
+  sharingPostId?: string | null;
   /** When embedded inside an outer feed-card (e.g. profile timeline). */
   variant?: "standalone" | "embedded";
-  /** Icon + label action row at md+ — feed and post detail only. */
+  /** Full photo album on post detail; grid + link on feed. */
+  postMediaMode?: "feed" | "detail";
   showActionLabels?: boolean;
   className?: string;
 };
@@ -180,8 +133,11 @@ export function PostCard({
   currentUserId,
   onDelete,
   onReactionSummaryChange,
+  onPhotoReactionSummaryChange,
   onShare,
+  sharingPostId = null,
   variant = "standalone",
+  postMediaMode = "feed",
   showActionLabels = false,
   className,
 }: PostCardProps) {
@@ -195,7 +151,8 @@ export function PostCard({
   const isActivity = activityKind !== null;
   const displayBody = profileActivityDisplayBody(post.body);
   const hasCustomCaption = profileActivityHasCustomCaption(post.body);
-  const mediaUrls = isShare ? [] : postImageUrls(post);
+  const mediaUrls = postMediaUrls(post);
+  const perPhotoActions = postMediaMode === "detail" && mediaUrls.length > 0;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -249,6 +206,21 @@ export function PostCard({
             </p>
           </Link>
         )
+      ) : null}
+      {!isActivity && mediaUrls.length > 0 ? (
+        <PostStandardMedia
+          post={post}
+          postPath={postPath}
+          mediaMode={postMediaMode}
+          currentUserId={currentUserId}
+          onReactionSummaryChange={onReactionSummaryChange}
+          onPhotoReactionSummaryChange={onPhotoReactionSummaryChange}
+          onShare={onShare}
+          sharingPostId={sharingPostId}
+        />
+      ) : null}
+      {isActivity && post.imageUrl ? (
+        <ProfileActivityMedia body={post.body} imageUrl={post.imageUrl} />
       ) : null}
     </>
   );
@@ -327,38 +299,35 @@ export function PostCard({
               )}
             </div>
 
-            <div className={cn("mt-2", displayBody && "mt-2.5")}>{bodyBlock}</div>
+            <div className="mt-2.5">{bodyBlock}</div>
           </div>
         </div>
-
-        {mediaUrls.length > 0 && (
-          <div className="post-media-stage">
-            <PostMediaGallery
-              urls={mediaUrls}
-              postPath={postPath}
-              isActivity={isActivity}
-              body={post.body}
-            />
-          </div>
-        )}
       </div>
 
-      <div className={cn("feed-action-row mt-2 mb-3", variant === "standalone" && "mx-4")}>
-        <PostActionRow
-          size="md"
-          showLabels={showActionLabels}
-          commentTo={`/posts/${post.id}#comments`}
-          onShare={onShare && canSharePost(currentUserId, post) ? () => onShare(post.id) : undefined}
+      {perPhotoActions ? null : (
+        <div
+          className={cn(
+            "feed-action-row mt-2 mb-3",
+            variant === "standalone" ? "mx-4" : cn("border-t border-border/70 pt-2", POST_MEDIA_BREAKOUT)
+          )}
         >
-          <ReactionBar
+          <PostActionRow
             size="md"
-            targetType="post"
-            targetId={post.id}
-            summary={post.reactionSummary}
-            onSummaryChange={(reactionSummary) => onReactionSummaryChange(post.id, reactionSummary)}
-          />
-        </PostActionRow>
-      </div>
+            showLabels={showActionLabels}
+            commentTo={`/posts/${post.id}#comments`}
+            onShare={onShare && canSharePost(currentUserId, post) ? () => onShare(post.id) : undefined}
+            shareBusy={sharingPostId === post.id}
+          >
+            <ReactionBar
+              size="md"
+              targetType="post"
+              targetId={post.id}
+              summary={post.reactionSummary}
+              onSummaryChange={(reactionSummary) => onReactionSummaryChange(post.id, reactionSummary)}
+            />
+          </PostActionRow>
+        </div>
+      )}
     </>
   );
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, ChevronRight, MessageSquare, Reply, UserPlus } from "lucide-react";
+import { Bell, Camera, ChevronRight, MessageSquare, Reply, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import type { PublicUser } from "@/api/types";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { cn } from "@/lib/utils";
 
-type NotificationType = "friend_request" | "comment_on_post" | "comment_reply";
+type NotificationType = "friend_request" | "comment_on_post" | "comment_on_photo" | "comment_reply";
 
 type NotificationItem = {
   id: string;
@@ -18,6 +18,7 @@ type NotificationItem = {
   actor: PublicUser;
   postId: string | null;
   commentId: string | null;
+  postImageId: string | null;
   friendshipId: string | null;
   message: string;
 };
@@ -35,6 +36,11 @@ const TYPE_META: Record<
     icon: MessageSquare,
     label: "Comment",
     action: "commented on your post",
+  },
+  comment_on_photo: {
+    icon: Camera,
+    label: "Photo comment",
+    action: "commented on your photo",
   },
   comment_reply: {
     icon: Reply,
@@ -74,7 +80,11 @@ function NotificationRow({
   const meta = TYPE_META[item.type];
   const Icon = meta.icon;
   const isFriendRequest = item.type === "friend_request" && item.friendshipId;
-  const destination = item.postId ? `/posts/${item.postId}${item.commentId ? "#comments" : ""}` : null;
+  const destination = item.postId
+    ? item.postImageId
+      ? `/posts/${item.postId}/photos/${item.postImageId}`
+      : `/posts/${item.postId}${item.commentId ? "#comments" : ""}`
+    : null;
   const actorHref = profilePath(item.actor);
   const rowLinksToPost = Boolean(destination && !isFriendRequest);
 

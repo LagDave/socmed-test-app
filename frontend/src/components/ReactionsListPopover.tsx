@@ -8,7 +8,7 @@ import { REACTION_OPTIONS } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
 
 type ReactionsListPopoverProps = {
-  targetType: "post" | "comment";
+  targetType: "post" | "comment" | "post_image";
   targetId: string;
   summary: ReactionSummary;
   open: boolean;
