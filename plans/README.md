@@ -41,6 +41,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 35 | `08012026-35-navbar-upgrade` | Navbar visual polish — pill cluster, SocMed wordmark, avatar profile trigger |
 | 36 | `08012026-36-feed-ui-upgrade` | Feed + post detail UI polish — composer pill, centered inset galleries, multi-photo, labeled actions |
 | 37 | `08012026-37-friends-ui-upgrade` | Friends unified dashboard card + row polish |
+| 38 | `08012026-38-messages-ui-upgrade` | Messages UI — unified inbox card + thread polish |
 
 ## Branch → host (hard rule)
 

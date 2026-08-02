@@ -58,6 +58,8 @@ export function MessageBubbleRow({
   peer,
   showAvatar,
   peerLastReadAt,
+  groupedWithPrev,
+  groupedWithNext,
   peerProfilePath,
   isBeingEdited,
   canHover,
@@ -75,6 +77,8 @@ export function MessageBubbleRow({
   peer: PublicUser | null;
   showAvatar: boolean;
   peerLastReadAt: string | null;
+  groupedWithPrev?: boolean;
+  groupedWithNext?: boolean;
   peerProfilePath: string;
   isBeingEdited?: boolean;
   canHover: boolean;
@@ -107,7 +111,11 @@ export function MessageBubbleRow({
 
   return (
     <div
-      className={cn("group flex gap-2", mine ? "flex-row-reverse" : "flex-row")}
+      className={cn(
+        "group flex gap-2",
+        mine ? "flex-row-reverse" : "flex-row",
+        groupedWithNext ? "mb-0.5" : "mb-1"
+      )}
       data-message-row=""
       data-message-id={message.id}
       onClick={handleTouchToggle}
@@ -140,18 +148,23 @@ export function MessageBubbleRow({
               }
             }}
             className={cn(
-              "relative overflow-visible rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
+              "relative overflow-visible px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
               message.isUnsent
-                ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
-                : themed
-                  ? mine
-                    ? "cursor-pointer bg-[var(--chat-bubble-mine)] text-[var(--chat-bubble-mine-fg)]"
-                    : "cursor-pointer bg-[var(--chat-bubble-theirs)] text-[var(--chat-bubble-theirs-fg)]"
-                  : mine
-                    ? "cursor-pointer bg-foreground text-background"
-                    : "cursor-pointer bg-secondary text-foreground",
-              isBeingEdited && "ring-2 ring-ring ring-offset-2 ring-offset-background",
-              !canHover && touchRevealed && !message.isUnsent && "ring-2 ring-border/80"
+                ? "rounded-2xl border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
+                : cn(
+                    "rounded-2xl shadow-sm",
+                    themed
+                      ? mine
+                        ? "cursor-pointer bg-[var(--chat-bubble-mine)] text-[var(--chat-bubble-mine-fg)]"
+                        : "cursor-pointer bg-[var(--chat-bubble-theirs)] text-[var(--chat-bubble-theirs-fg)]"
+                      : mine
+                        ? "cursor-pointer bg-foreground text-background shadow-foreground/10"
+                        : "cursor-pointer bg-card text-foreground ring-1 ring-border/60",
+                    groupedWithPrev && (mine ? "rounded-tr-lg" : "rounded-tl-lg"),
+                    groupedWithNext && (mine ? "rounded-br-lg" : "rounded-bl-lg"),
+                    isBeingEdited && "ring-2 ring-ring ring-offset-2 ring-offset-background",
+                    !canHover && touchRevealed && !message.isUnsent && "ring-2 ring-border/80"
+                  )
             )}
           >
             {message.isUnsent ? (

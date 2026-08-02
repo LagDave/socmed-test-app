@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.24 — 2026-08-03
+
+### Changed
+- Messages inbox: unified dashboard card with muted compose panel, unread header badge, and Notifications-style conversation rows (preview-only snippet, chevron, unread ring)
+- Messages compose: horizontal avatar strip for friends without existing threads; search pill when all friends already have conversations
+- Messages thread: tinted message pane, elevated composer bar, grouped bubble radii, incoming bubble card styling layered on chat themes, reply, edit, status icons, and typing
+- Messages page enter animation (`.messages-page`) and scoped CSS tokens; swipe-delete and delete-menu preserved on inbox rows
+
+### Plans
+- `plans/08012026-38-messages-ui-upgrade` — Completed (execution on `kylie/messages-ui-upgrade`, PR #53 → `dev`)
+
 ## 0.1.23 — 2026-08-03
 
 ### Changed

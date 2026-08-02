@@ -1,6 +1,6 @@
 {
   "name": "socmed-test-app",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "private": true,
   "description": "Basic social media platform — auth, posts, comments, friends",
   "scripts": {
