@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reply to Chat — Messenger-style Quote Replies Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:920px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.92rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 29</p>
+        <span class="status-pill">Pending Execution</span>
+      </div>
+      <h1>Reply to Chat — Messenger-style Quote Replies</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Pending Execution</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/07312026-29-reply-to-chat</dd></div>
+        <div><dt>Size</dt><dd>Medium (6 tasks, FE + BE + migration)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/07312026-29-reply-to-chat</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/reply-to-chat</dd></div>
+        <div><dt>Depends on</dt><dd>17 messenger · 22 websockets · 20 reactions</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>1:1 chat is a flat chronological thread. When a friend sends something you want to respond to specifically, there is no way to anchor your reply to that message. Messenger-style quote replies fix context drift in busy threads — you tap a message, see a preview in the composer, send, and the reply bubble embeds the quoted original.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li>Hover/focus on any <strong>non-unsent</strong> message (yours or theirs) reveals a <strong>Reply</strong> control beside the existing react affordance.</li>
+        <li>Choosing Reply sets composer state: a preview bar above the thread textarea shows the quoted sender name + truncated body and/or a small image thumb + <strong>Cancel</strong>.</li>
+        <li>Submit sends a normal new message with optional <code>replyToMessageId</code>; the thread stays flat (no nesting).</li>
+        <li>Reply bubbles render a <strong>quote strip</strong> above the reply body — sender name + truncated original text or image thumb; unsent originals show <em>Message unavailable</em>.</li>
+        <li>Socket + REST list/create responses include embedded <code>replyTo</code> so quotes work even when the original is not in the loaded page window.</li>
+      </ul>
+      <pre class="wire">Thread (flat order preserved):
+
+  Friend:  "Are we still on for Saturday?"
+  You:     ┌ quoted strip ─────────────────────┐
+           │ Friend · Are we still on for…       │
+           └─────────────────────────────────────┘
+           "Yes! See you at 2."
+
+Composer while replying:
+┌─ reply preview bar ────────────────────────────┐
+│ Replying to Friend · Are we still on for…  [×] │
+└────────────────────────────────────────────────┘
+[ textarea … ]                          [ Send ]</pre>
+      <p><strong>Done when:</strong> Reply control on messages; composer preview + cancel; send persists <code>reply_to_message_id</code>; bubbles show quote strip; unsent-original edge case handled; socket merge works; migrate + typecheck/build green; acceptance Passed.</p>
+      <div class="callout">
+        <strong>Grill locked (2026-07-31, kylie):</strong>
+        Q1 <strong>Messenger quote in bubble</strong> (flat time order — not indented comment threads) ·
+        Q2 <strong>Hover Reply icon</strong> beside react to start ·
+        Q3 Reply to <strong>any non-unsent</strong> message (yours or theirs) ·
+        Q4 Composer preview = <strong>name + snippet/thumb</strong> + Cancel ·
+        Q5 Tap quote strip → <strong>no scroll/jump in v1</strong> (display-only; polish later) ·
+        Q6 <strong>Reply-to-reply allowed</strong> (yes — Messenger does this; flat chain of quotes) ·
+        Q7 Unsent original → <strong>“Message unavailable”</strong> in quote strip ·
+        Q8 Inbox snippet → <strong>“↩ ” prefix</strong> + reply body snippet.
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today:</strong></p>
+      <ul>
+        <li><code>messages</code> table — <code>body</code>, <code>image_url</code>, <code>unsent_at</code>; no reply FK (<code>database/migrations/20260729140000_friends_messenger.ts</code>).</li>
+        <li><code>MessageService.send</code> accepts <code>{ body?, imageUrl? }</code>; <code>MessageView</code> has no reply fields.</li>
+        <li><code>MessageBubbleRow</code> — bubble + hover react + unsend menu; no reply trigger or quote UI.</li>
+        <li><code>MessagesPage</code> <code>ThreadView</code> — inline footer composer (textarea + image attach); reply state lives here.</li>
+        <li>Realtime — <code>message:new</code> carries full <code>MessageView</code>; no new event needed once view includes <code>replyTo</code>.</li>
+      </ul>
+      <p><strong>Closest analog:</strong> post comment replies use <code>parentId</code> + <code>CommentComposer</code> “Replying to {name}” banner — reuse the composer-banner pattern but add snippet/thumb and in-bubble quote rendering (Messenger, not indented comment threads).</p>
+      <p><strong>Reference files:</strong></p>
+      <ul>
+        <li><code>frontend/src/components/CommentComposer.tsx</code> — reply preview bar pattern</li>
+        <li><code>frontend/src/components/PostActionRow.tsx</code> — <code>ReplyActionButton</code></li>
+        <li><code>frontend/src/components/MessageBubbleRow.tsx</code> — bubble + hover controls</li>
+        <li><code>src/services/MessageService.ts</code> — validation + <code>toMessageView</code></li>
+        <li><code>src/models/MessageModel.ts</code> — create + list</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Add nullable <code>reply_to_message_id UUID REFERENCES messages(id) ON DELETE SET NULL</code> on <code>messages</code></li>
+            <li><code>sendMessageSchema</code> accepts optional <code>replyToMessageId</code> UUID; when set, target must exist, belong to same conversation, and <code>unsent_at IS NULL</code> at send time</li>
+            <li><code>MessageView.replyTo</code>: <code>{ id, senderId, senderDisplayName, body, imageUrl, isUnsent } | null</code> — hydrated via join on list/create/socket (live unsent state)</li>
+            <li>Quote strip inside bubble; composer preview bar with Cancel; clear reply state on send, cancel, and conversation change</li>
+            <li>Reply control hidden on unsent messages</li>
+            <li>Auth unchanged — participants only</li>
+            <li>No new npm dependencies</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>Nested/indented thread UI (comment-style tree)</li>
+            <li>Modal reply composer</li>
+            <li>Notifications for replies</li>
+            <li>Denormalized quote snapshot columns (join is enough for v1)</li>
+            <li>Scroll-to-original on quote tap (deferred)</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Swipe-to-reply (mobile gesture)</li>
+        <li>Forward message</li>
+        <li>Edit reply / edit quote</li>
+        <li>Reply from inbox list (thread-only)</li>
+        <li>Tap quote → scroll to original (deferred to post-v1)</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Schema + API contract change on a live messaging path; quote rendering depends on join correctness and unsent edge cases.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Invalid reply target (wrong conversation / unsent)</td>
+            <td>Broken references, confusing UI</td>
+            <td>Service validates before insert; 4xx on bad <code>replyToMessageId</code></td>
+          </tr>
+          <tr>
+            <td>Original unsent after reply sent</td>
+            <td>Stale quote text</td>
+            <td>Join at read time; <code>replyTo.isUnsent</code> → “Message unavailable” strip</td>
+          </tr>
+          <tr>
+            <td>Quoted message not in loaded window</td>
+            <td>Missing quote in bubble</td>
+            <td>Always embed <code>replyTo</code> on API/socket payloads — never client lookup by id alone</td>
+          </tr>
+          <tr>
+            <td>Composer state leak</td>
+            <td>Next send wrongly quotes prior message</td>
+            <td>Clear <code>replyTo</code> on success, cancel, and <code>conversationId</code> change</td>
+          </tr>
+          <tr>
+            <td>N+1 on message list</td>
+            <td>Slower thread load</td>
+            <td>Single query with left join to parent message + sender display name (or batched parent fetch)</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Consumers:</strong> <code>MessageModel</code>, <code>MessageService</code>, <code>ConversationModel</code> (inbox last message), <code>MessageRealtime</code>, <code>MessagesController</code>, FE <code>MessageView</code>, <code>MessageBubbleRow</code>, <code>MessagesPage</code>, migration.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Migration <code>reply_to_message_id</code></h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add nullable <code>reply_to_message_id</code> UUID FK → <code>messages(id) ON DELETE SET NULL</code>. Index <code>(conversation_id, reply_to_message_id)</code> optional. Existing rows remain non-replies (<code>NULL</code>).</dd></div>
+          <div><dt>Files</dt><dd><code>database/migrations/*_message_reply_to.ts</code> (new), <code>plans/07312026-29-reply-to-chat/migrations/README.md</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>npm run migrate</code> on clean + existing DB</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Model + service + types</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extend <code>MessageRow</code> / <code>create</code> with <code>reply_to_message_id</code>. List/create hydrate parent via join (parent message + sender display name). Zod optional <code>replyToMessageId</code>. Map to <code>MessageView.replyTo</code>. Mirror types in <code>frontend/src/api/types.ts</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>src/models/MessageModel.ts</code>, <code>src/services/MessageService.ts</code>, <code>frontend/src/api/types.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>POST with/without <code>replyToMessageId</code>; invalid/unsent parent → 4xx; GET thread returns embedded <code>replyTo</code></dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Quote strip + Reply trigger on bubbles</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add hover/focus <code>Reply</code> icon on non-unsent messages (both sides). New presentational <code>MessageQuoteStrip</code> (or inline in row): sender name + truncated body (≈80 chars) or small image thumb; unsent → italic “Message unavailable”. Wire <code>onReply(message)</code> from <code>ThreadView</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/MessageBubbleRow.tsx</code>, optional <code>frontend/src/components/MessageQuoteStrip.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Visual: quote above body on reply messages; Reply icon appears on hover; unsent originals show unavailable strip</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Thread composer reply state</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Track <code>replyToMessage: MessageView | null</code> in <code>ThreadView</code>. Preview bar above footer textarea (sender + snippet/thumb + Cancel). Include <code>replyToMessageId</code> in send/image POST bodies. Clear on success, cancel, conversation change. Focus textarea when reply starts.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>Reply → preview → send → bubble shows quote; Cancel clears; switching threads clears</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — Realtime + inbox parity</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Confirm <code>message:new</code> / unsent / reaction payloads include <code>replyTo</code> after service change. Inbox <code>lastMessage</code> snippet: when message has <code>replyTo</code>, prefix with <code>↩ </code> then truncated reply body (not the quoted original text).</dd></div>
+          <div><dt>Files</dt><dd><code>src/realtime/MessageRealtime.ts</code>, <code>src/models/ConversationModel.ts</code>, <code>frontend/src/components/ConversationListRow.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Second browser/tab sees quoted reply via socket without reload</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T6">
+        <h3>T6 — Gates + acceptance</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Root + frontend typecheck; frontend build; update <code>test-results.json</code> from checklist.</dd></div>
+          <div><dt>Files</dt><dd>—</dd></div>
+          <div><dt>Depends on</dt><dd>T4, T5</dd></div>
+          <div><dt>Verify</dt><dd>typecheck/build exit 0; acceptance items pass or carry waivers</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☐</span><span>Migration adds <code>reply_to_message_id</code> with SET NULL on delete</span></li>
+        <li><span>☐</span><span>Send accepts optional <code>replyToMessageId</code> with same-conversation + not-unsent validation</span></li>
+        <li><span>☐</span><span><code>MessageView.replyTo</code> embedded on list, create, and socket payloads</span></li>
+        <li><span>☐</span><span>Reply icon on hover for non-unsent messages (mine and theirs)</span></li>
+        <li><span>☐</span><span>Composer preview bar + Cancel; state clears on send/cancel/thread change</span></li>
+        <li><span>☐</span><span>Reply bubbles show quote strip; unsent original → “Message unavailable”</span></li>
+        <li><span>☐</span><span>Reply works when quoted message is outside loaded pagination window</span></li>
+        <li><span>☐</span><span>Peer receives quoted reply live via socket</span></li>
+        <li><span>☐</span><span>Typecheck + frontend build pass</span></li>
+        <li><span>☐</span><span>Acceptance checklist Passed</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Rev 1</td><td>2026-07-31</td><td>Initial spec — Messenger-style flat quote replies; hover Reply trigger; composer preview with snippet; join-hydrated <code>replyTo</code>; unsent-original edge case; scroll-to-original deferred.</td></tr>
+          <tr><td>Rev 2</td><td>2026-07-31</td><td>Grill with kylie: locked Q1–Q8; inbox snippet now <code>↩</code> prefix on replies; reply-to-reply explicitly Messenger-aligned.</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

@@ -5,6 +5,7 @@ import { getMessagesSocket, MESSAGES_UNREAD, type UnreadPayload } from "@/api/so
 import { AppNavbar } from "@/components/nav/AppNavbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useMessageNotificationSound } from "@/hooks/useMessageNotificationSound";
 import { useMessagesSocketConnection } from "@/hooks/useMessagesSocket";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -12,6 +13,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { toggleTheme } = useTheme();
   const location = useLocation();
   const socketConnected = useMessagesSocketConnection();
+  useMessageNotificationSound();
   const [notificationCount, setNotificationCount] = useState(0);
   const [feedCount, setFeedCount] = useState(0);
   const [messagesCount, setMessagesCount] = useState(0);
