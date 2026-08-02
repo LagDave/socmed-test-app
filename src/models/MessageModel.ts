@@ -94,14 +94,14 @@ export class MessageModel {
 
   static async listByConversation(
     conversationId: string,
-    opts: { limit: number; before?: string }
+    opts: { limit: number; before?: string; viewerId?: string }
   ): Promise<MessageRowWithReply[]> {
     return this.listWithReplyContext(conversationId, opts);
   }
 
   private static async listWithReplyContext(
     conversationId: string,
-    opts: { limit: number; before?: string; ids?: string[] }
+    opts: { limit: number; before?: string; ids?: string[]; viewerId?: string }
   ): Promise<MessageRowWithReply[]> {
     let q = db<MessageListQueryRow>("messages as m")
       .select(
@@ -117,6 +117,15 @@ export class MessageModel {
       .leftJoin("users as parent_user", "parent_user.id", "parent.sender_id")
       .orderBy("m.created_at", "desc")
       .limit(opts.limit);
+
+    if (opts.viewerId) {
+      q = q.whereNotExists(function () {
+        this.select(1)
+          .from("message_user_deletions as d")
+          .whereRaw("d.message_id = m.id")
+          .andWhere("d.user_id", opts.viewerId!);
+      });
+    }
 
     if (opts.ids?.length) {
       q = q.whereIn("m.id", opts.ids);
@@ -200,12 +209,18 @@ export class MessageModel {
     viewerId: string,
     lastReadAt: Date | null
   ): Promise<number> {
-    let q = db("messages")
-      .where({ conversation_id: conversationId })
-      .whereNot({ sender_id: viewerId })
-      .whereNull("unsent_at");
+    let q = db("messages as m")
+      .where({ "m.conversation_id": conversationId })
+      .whereNot({ "m.sender_id": viewerId })
+      .whereNull("m.unsent_at")
+      .whereNotExists(function () {
+        this.select(1)
+          .from("message_user_deletions as d")
+          .whereRaw("d.message_id = m.id")
+          .andWhere("d.user_id", viewerId);
+      });
     if (lastReadAt) {
-      q = q.andWhere("created_at", ">", lastReadAt);
+      q = q.andWhere("m.created_at", ">", lastReadAt);
     }
     const result = await q.count<{ count: string }>("* as count").first();
     return Number(result?.count ?? 0);

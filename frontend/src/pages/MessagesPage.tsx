@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ImagePlus, MessageCircle, Palette, SendHorizontal, X } from "lucide-react";
+import { ChevronLeft, ImagePlus, MessageCircle, MoreVertical, Palette, SendHorizontal, Trash2, X } from "lucide-react";
 import { api } from "@/api/client";
+import { deleteConversation, updateConversationTheme } from "@/api/messages";
 import {
   CONVERSATION_PEER_READ,
   CONVERSATION_THEME,
@@ -22,7 +23,7 @@ import type { ConversationListItem, ConversationThemeView, MessageView, PublicUs
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatThemePicker } from "@/components/ChatThemePicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { ConversationListRow } from "@/components/ConversationListRow";
+import { SwipeableConversationListRow } from "@/components/SwipeableConversationListRow";
 import { MessageBubbleRow } from "@/components/MessageBubbleRow";
 import { MessageComposerEmojiPicker } from "@/components/MessageComposerEmojiPicker";
 import { truncateQuoteText } from "@/components/MessageQuoteStrip";
@@ -44,6 +45,12 @@ import {
   useTypingEmitter,
 } from "@/hooks/useTypingIndicator";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import {
   formatMessageDay,
@@ -51,7 +58,6 @@ import {
   messagesShareGroup,
 } from "@/lib/formatMessageDay";
 import { submitOnEnter } from "@/lib/submitOnEnter";
-import { updateConversationTheme } from "@/api/messages";
 import {
   chatThemeCssVars,
   resolveConversationTheme,
@@ -61,6 +67,15 @@ import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
 import { cn } from "@/lib/utils";
 
 const POLL_MS = 2500;
+
+type PendingDeleteConversation = {
+  id: string;
+  peerName: string;
+};
+
+function deleteConversationDescription(peerName: string): string {
+  return `This permanently deletes the chat and all messages from your inbox. ${peerName} will still have the conversation.`;
+}
 
 function replyTargetPreview(
   message: MessageView,
@@ -124,6 +139,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [sending, setSending] = useState(false);
   const [pendingUnsendId, setPendingUnsendId] = useState<string | null>(null);
   const [unsending, setUnsending] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<PendingDeleteConversation | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [loadingThread, setLoadingThread] = useState(true);
@@ -194,7 +211,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           messages: MessageView[];
           hasMore: boolean;
           theme: ConversationThemeView;
-        }>(`/api/messages/conversations/${conversationId}`);
+        }>(`/api/messages/conversations/${conversationId}?restore=1`);
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
         setPeerLastReadAt(data.peerLastReadAt);
@@ -523,6 +540,22 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     );
   }
 
+  async function confirmDeleteConversation() {
+    if (!pendingDelete || deleting) return;
+    const { id } = pendingDelete;
+    generationRef.current += 1;
+    setDeleting(true);
+    try {
+      await deleteConversation(id);
+      setPendingDelete(null);
+      navigate("/messages");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete conversation");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   function startEdit(messageId: string) {
     const msg = messages.find((m) => m.id === messageId);
     if (!msg?.body?.trim()) return;
@@ -653,6 +686,34 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           >
             <Palette className="h-5 w-5" />
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0"
+                aria-label="Conversation options"
+                disabled={!peer}
+              >
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                disabled={!peer}
+                onSelect={() => {
+                  if (peer) {
+                    setPendingDelete({ id: conversationId, peerName: peer.displayName });
+                  }
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete conversation
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
 
         <div
@@ -892,6 +953,20 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         }}
         onConfirm={() => void confirmUnsend()}
       />
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete conversation?"
+        description={
+          pendingDelete ? deleteConversationDescription(pendingDelete.peerName) : undefined
+        }
+        confirmLabel="Delete"
+        busy={deleting}
+        onCancel={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={() => void confirmDeleteConversation()}
+      />
     </section>
   );
 }
@@ -902,6 +977,28 @@ function InboxView() {
   const [items, setItems] = useState<ConversationListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingDelete, setPendingDelete] = useState<PendingDeleteConversation | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  function requestDelete(id: string, peerName: string) {
+    setPendingDelete({ id, peerName });
+  }
+
+  async function confirmDeleteConversation() {
+    if (!pendingDelete || deleting) return;
+    const { id } = pendingDelete;
+    setDeleting(true);
+    try {
+      await deleteConversation(id);
+      setItems((prev) => prev.filter((c) => c.id !== id));
+      setPendingDelete(null);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete conversation");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function reloadInbox() {
     try {
@@ -970,11 +1067,12 @@ function InboxView() {
       {!loading && items.length > 0 && (
         <div className="feed-card p-5">
           <h2 className="text-sm font-semibold tracking-wide text-foreground">Conversations</h2>
-          <ul className="mt-3 space-y-1">
+          <ul className="mt-3 space-y-2">
             {items.map((c) => (
-              <ConversationListRow
+              <SwipeableConversationListRow
                 key={c.id}
                 item={c}
+                onDelete={requestDelete}
                 isPeerTyping={Boolean(typingByConversation[c.id])}
               />
             ))}
@@ -996,6 +1094,19 @@ function InboxView() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete conversation?"
+        description={
+          pendingDelete ? deleteConversationDescription(pendingDelete.peerName) : undefined
+        }
+        confirmLabel="Delete"
+        busy={deleting}
+        onCancel={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={() => void confirmDeleteConversation()}
+      />
     </section>
   );
 }

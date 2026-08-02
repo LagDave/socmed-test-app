@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { db } from "../database/connection";
 import {
   ConversationModel,
   type ConversationInboxRow,
@@ -12,6 +13,7 @@ import {
   type MessageRowWithReply,
 } from "../models/MessageModel";
 import { MessageReactionModel } from "../models/MessageReactionModel";
+import { MessageUserDeletionModel } from "../models/MessageUserDeletionModel";
 import { REACTION_EMOJIS, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
@@ -222,6 +224,7 @@ export class MessageService {
         if (!conversation) throw new AppError("MESSAGE_CONFLICT", "Could not open conversation.");
       }
     }
+    await ConversationModel.clearHidden(conversation.id, userId);
     return { conversation: await this.toListItem(conversation, userId), created };
   }
 
@@ -233,7 +236,8 @@ export class MessageService {
   static async listMessages(
     userId: string,
     conversationId: string,
-    before?: string
+    before?: string,
+    options?: { restoreIfHidden?: boolean }
   ): Promise<{
     conversationId: string;
     peer: ReturnType<typeof toPublicUser>;
@@ -245,6 +249,9 @@ export class MessageService {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
     assertParticipant(conversation, userId);
+    if (options?.restoreIfHidden) {
+      await ConversationModel.clearHidden(conversationId, userId);
+    }
 
     const peerUser = await UserModel.findById(peerId(conversation, userId));
     if (!peerUser) throw new AppError("USER_NOT_FOUND", "Peer missing.");
@@ -271,6 +278,7 @@ export class MessageService {
     const rows = await MessageModel.listByConversation(conversationId, {
       limit: MESSAGE_PAGE_SIZE,
       before,
+      viewerId: userId,
     });
     const mergedRows = rows.map((r) => {
       const delivered = deliveredAtById.get(r.id);
@@ -346,6 +354,8 @@ export class MessageService {
       replyToMessageId: input.replyToMessageId ?? null,
     });
     await ConversationModel.touchLastMessage(conversationId, row.created_at);
+    // Restore inbox for recipient when they previously deleted the chat (old messages stay deleted).
+    await ConversationModel.clearHidden(conversationId, otherId);
 
     const withReply = await MessageModel.findByIdWithReply(row.id);
     if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found after send.");
@@ -478,6 +488,24 @@ export class MessageService {
   static async unreadCount(userId: string): Promise<{ unread: number }> {
     const unread = await ConversationModel.countUnreadConversations(userId);
     return { unread };
+  }
+
+  static async deleteConversationForUser(
+    userId: string,
+    conversationId: string
+  ): Promise<{ ok: true }> {
+    const conversation = await ConversationModel.findById(conversationId);
+    if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    assertParticipant(conversation, userId);
+
+    const updated = await db.transaction(async (trx) => {
+      await MessageUserDeletionModel.markAllInConversationForUser(conversationId, userId, trx);
+      return ConversationModel.setHidden(conversationId, userId, new Date(), trx);
+    });
+
+    if (!updated) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    await publishRealtime(() => MessageRealtime.conversationHidden(updated, userId));
+    return { ok: true };
   }
 
   private static async requireMessageAccess(userId: string, messageId: string) {

@@ -88,6 +88,11 @@ export const MessageRealtime = {
     await emitUnreadForUser(readerId);
   },
 
+  async conversationHidden(conversation: ConversationRow, userId: string): Promise<void> {
+    emitToUser(userId, CONVERSATION_UPDATED, { conversationId: conversation.id });
+    await emitUnreadForUser(userId);
+  },
+
   async conversationTheme(
     conversation: ConversationRow,
     theme: ConversationThemeView
