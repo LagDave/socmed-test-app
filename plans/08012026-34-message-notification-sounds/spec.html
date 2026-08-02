@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Message Notification Sounds Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--paper); color:var(--ink); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:920px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 34</p>
+        <span class="status-pill">In Progress</span>
+      </div>
+      <h1>Message notification sounds (v1)</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>In Progress</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08012026-34-message-notification-sounds</dd></div>
+        <div><dt>Size</dt><dd>Small (frontend-only, ~5 files)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08012026-34-notification-sounds</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/message-notification-features</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 22 messages-websockets (Socket.IO live delivery on origin/dev)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 22 shipped live message delivery over Socket.IO — peers see new messages without polling. The UI still only updates badges and thread content silently. Users who are elsewhere in the app (Feed, Profile, another thread) have no audible cue that a friend messaged them.</p>
+      <p>Activity notifications (bell: friend requests, comments, replies) remain REST-only with no realtime push. This plan deliberately ships <strong>message sounds first</strong> because the delivery hook already exists; bell sounds belong in a follow-up plan with socket push.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Play a short in-app sound when an inbound DM arrives via <code>message:new</code>, with sensible suppress rules and a user mute toggle.</p>
+      <p><strong>Deliverables:</strong></p>
+      <ul>
+        <li><strong>Sound assets</strong> — bundled under <code>frontend/public/sounds/</code>: <code>message.wav</code> (shipped) and <code>activity.wav</code> (bundled for future bell sounds; not wired in v1).</li>
+        <li><strong>Sound module</strong> — small frontend helper with a typed <code>SoundKind</code> (<code>message</code> | <code>activity</code>), preload, autoplay-unlock, and <code>play(kind)</code>.</li>
+        <li><strong>Global listener</strong> — hook mounted from <code>AppShell</code> (or equivalent signed-in shell) on the existing messages socket: play on inbound <code>message:new</code> when rules pass.</li>
+        <li><strong>Suppress rules</strong> — no sound for own messages; no sound when the user is already viewing that conversation thread (<code>/messages/:conversationId</code>).</li>
+        <li><strong>Preference toggle</strong> — Account Settings → General: “Play notification sounds” (default <strong>on</strong>), persisted in <code>localStorage</code> only.</li>
+        <li><strong>Autoplay unlock</strong> — unlock audio on first user interaction after sign-in (click/keydown), so browsers do not silently block playback.</li>
+      </ul>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Two mutuals: B on Feed hears a sound when A sends a DM; B on the open thread with A does <em>not</em> hear it</li>
+        <li>Own outbound messages never trigger a sound</li>
+        <li>Toggle off → no sounds until toggled back on (survives refresh on same browser)</li>
+        <li>Toggle on → sounds resume after unlock interaction</li>
+        <li>No backend / schema changes</li>
+        <li>Typecheck/build green; acceptance rollup Passed or waived in writing</li>
+      </ul>
+      <div class="callout">
+        <strong>Grill locked (2026-08-01):</strong>
+        Q1=A message sounds only · Q2=A suppress on open thread · Q3=B distinct sound kinds (message vs activity asset; activity unwired) · Q4=A bundled assets · Q5=A localStorage mute toggle · Q7=A feed badge out of scope · Q8=A in-app audio only (no browser Notification API).
+      </div>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Scope v1</td>
+            <td><strong>A — message sounds only</strong></td>
+            <td>Socket hook exists; bell needs follow-up realtime plan.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>When to play</td>
+            <td><strong>A — suppress on relevant page</strong></td>
+            <td>No sound in the open thread; play elsewhere in app (Feed, Profile, inbox list, other thread).</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Sound kinds</td>
+            <td><strong>B — different assets per kind</strong></td>
+            <td>Ship <code>message.mp3</code> now; bundle <code>activity.mp3</code> for future bell plan without refactor.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Asset source</td>
+            <td><strong>A — bundled in public/sounds</strong></td>
+            <td>Simple, swappable, no runtime generation.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Mute toggle</td>
+            <td><strong>A — localStorage, default on</strong></td>
+            <td>Matches Account Settings stub; no migration.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Trigger event</td>
+            <td><strong>message:new only</strong> (socket connected)</td>
+            <td>Unread-count bump without payload is insufficient for suppress-by-conversation; poll fallback silent in v1.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Feed badge sound</td>
+            <td><strong>Out of scope</strong></td>
+            <td>Low urgency; would be noisy.</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Browser Notification API</td>
+            <td><strong>Out of scope</strong></td>
+            <td>Separate permission UX; in-app audio only.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant files (baseline on kylie/message-notification-features)</h3>
+      <ul>
+        <li><code>frontend/src/api/socket.ts</code> — <code>MESSAGE_NEW</code>, <code>getMessagesSocket()</code>, credentialed Socket.IO client</li>
+        <li><code>frontend/src/hooks/useMessagesSocket.ts</code> — keeps socket connected while signed in</li>
+        <li><code>frontend/src/components/AppShell.tsx</code> — global shell; already listens for <code>messages:unread</code>; natural home for sound hook</li>
+        <li><code>frontend/src/pages/MessagesPage.tsx</code> — thread already handles <code>message:new</code> per conversation; suppress rule must align with <code>/messages/:conversationId</code> route</li>
+        <li><code>frontend/src/pages/AccountSettingsPage.tsx</code> — General section stub; wire real toggle here</li>
+        <li><code>src/realtime/MessageRealtime.ts</code> — server emits <code>message:new</code> to both participants (no server changes in this plan)</li>
+      </ul>
+      <h3>Closest analogs</h3>
+      <ul>
+        <li><strong>Follow:</strong> Plan 22 socket client patterns — listen in shell, ignore events you cannot act on, no business logic in components beyond presentation.</li>
+        <li><strong>New module home:</strong> <code>frontend/src/lib/notificationSounds.ts</code> (playback + unlock + preference read/write) and <code>frontend/src/hooks/useMessageNotificationSound.ts</code> (route-aware listener). Keep UI toggle thin in Account Settings.</li>
+      </ul>
+      <h3>Playback contract (v1)</h3>
+      <table>
+        <thead><tr><th>Input</th><th>Play?</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>message:new</code>, sender ≠ self, not on <code>/messages/:id</code></td>
+            <td>Yes</td>
+            <td>Primary case — user elsewhere in app</td>
+          </tr>
+          <tr>
+            <td><code>message:new</code>, sender ≠ self, on <code>/messages/:id</code> matching conversation</td>
+            <td>No</td>
+            <td>User already in thread; MessagesPage auto-reads</td>
+          </tr>
+          <tr>
+            <td><code>message:new</code>, sender = self</td>
+            <td>No</td>
+            <td>Outbound echo</td>
+          </tr>
+          <tr>
+            <td>Preference off</td>
+            <td>No</td>
+            <td>localStorage gate</td>
+          </tr>
+          <tr>
+            <td>Audio not yet unlocked</td>
+            <td>No</td>
+            <td>Until post-login interaction</td>
+          </tr>
+          <tr>
+            <td>Socket disconnected (poll fallback only)</td>
+            <td>No (v1)</td>
+            <td>Known limitation — document; optional follow-up</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>localStorage keys (locked):</strong></p>
+      <ul>
+        <li><code>socmed.sounds.enabled</code> — <code>"true"</code> | <code>"false"</code>, default <code>true</code> when absent</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Frontend-only — no API, service, or migration changes</li>
+            <li>Listen on existing <code>message:new</code> socket event; do not add server emits</li>
+            <li>Respect suppress rules (self, open thread)</li>
+            <li>Provide mute toggle in Account Settings with localStorage persistence</li>
+            <li>Unlock audio after user gesture (browser autoplay policy)</li>
+            <li>Sound module typed for <code>message</code> and <code>activity</code> kinds even if only message is wired</li>
+            <li>Keep sounds short (~0.3–1.0s); moderate volume; no looping</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No bell/activity notification sounds in v1 (asset may ship dormant)</li>
+            <li>No feed-badge sounds</li>
+            <li>No browser <code>Notification</code> API / OS toasts</li>
+            <li>No server-persisted preferences or new npm deps</li>
+            <li>No sound on <code>message:unsent</code>, reactions, or unread-only bumps</li>
+            <li>No always-on polling to detect messages when socket is down</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out of scope</h3>
+      <ul>
+        <li>Bell notification sounds + Socket.IO <code>notification:new</code> push (follow-up plan)</li>
+        <li>Per-conversation mute, custom user-uploaded sounds, volume slider</li>
+        <li>Mobile push / email</li>
+        <li>Sounds while tab is background-only (Q2=A plays on any non-thread page, not hidden-tab-only)</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Frontend-only, but autoplay policy and suppress-rule bugs can make the feature feel broken or annoying.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Browser autoplay block</td>
+            <td>“Sounds never work” reports</td>
+            <td>Unlock on first click/keydown after sign-in; preload <code>Audio</code> on unlock; document in acceptance</td>
+          </tr>
+          <tr>
+            <td>Sound in active thread</td>
+            <td>Annoying UX</td>
+            <td>Strict route match on <code>/messages/:conversationId</code>; acceptance case A2</td>
+          </tr>
+          <tr>
+            <td>Socket disconnected</td>
+            <td>No sound during poll fallback</td>
+            <td>Document as v1 limitation; do not half-add unread-delta sounds without spec</td>
+          </tr>
+          <tr>
+            <td>Asset licensing / size</td>
+            <td>Repo hygiene</td>
+            <td>Use small royalty-free clips or project-owned tones; keep each file &lt; 50KB if possible</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Follow-up plan (not this execution):</strong> Bell notification sounds require <code>NotificationRealtime</code> (emit on <code>NotificationService.notify</code>) + wiring <code>activity</code> sound kind. Do not scope-creep into that here.
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Sound assets + playback module</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>frontend/public/sounds/message.mp3</code> and <code>activity.mp3</code>. Create <code>frontend/src/lib/notificationSounds.ts</code> with <code>SoundKind</code>, preload, <code>unlockNotificationSounds()</code>, <code>playNotificationSound(kind)</code>, and localStorage helpers for <code>socmed.sounds.enabled</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/public/sounds/*</code>, <code>frontend/src/lib/notificationSounds.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>Manual: after unlock, <code>playNotificationSound('message')</code> audibly plays in dev console hook or temporary button removed before merge</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Autoplay unlock wiring</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Mount a one-time unlock listener (click/keydown) while signed in — e.g. in <code>AppShell</code> or the sound hook — calling <code>unlockNotificationSounds()</code>. Idempotent; remove listeners after first successful unlock.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/AppShell.tsx</code> and/or <code>frontend/src/hooks/useMessageNotificationSound.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Fresh session: first click anywhere, then inbound message plays (A3)</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Global message:new listener with suppress rules</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>useMessageNotificationSound()</code> used from <code>AppShell</code>. On <code>message:new</code>: check preference, unlock state, sender ≠ self, and current route ≠ <code>/messages/{conversationId}</code>. Call <code>playNotificationSound('message')</code>. Clean up socket listener on unmount/sign-out.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/hooks/useMessageNotificationSound.ts</code>, <code>frontend/src/components/AppShell.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd>Two-browser acceptance A1–A2</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Account Settings mute toggle</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Replace General stub copy with a working switch/checkbox: “Play notification sounds”. Reads/writes <code>socmed.sounds.enabled</code>. Default on. Optional: brief note that message sounds require an interaction after sign-in (autoplay).</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/AccountSettingsPage.tsx</code> (reuse existing shadcn switch if present, else checkbox pattern from codebase)</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Toggle off blocks sounds; toggle on restores (A4)</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — Acceptance + build gate</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Run <code>npm run typecheck</code> and <code>npm run build</code>. Fill <code>test-results.json</code> for A1–A5.</dd></div>
+          <div><dt>Files</dt><dd><code>plans/08012026-34-message-notification-sounds/test-results.json</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1–T4</dd></div>
+          <div><dt>Verify</dt><dd>Rollup Passed or documented waivers</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> Bundled <code>message.mp3</code> (+ dormant <code>activity.mp3</code>) and playback module</li>
+        <li><input type="checkbox" disabled> Autoplay unlock on user interaction after sign-in</li>
+        <li><input type="checkbox" disabled> Inbound <code>message:new</code> plays sound with suppress rules</li>
+        <li><input type="checkbox" disabled> Account Settings mute toggle (localStorage, default on)</li>
+        <li><input type="checkbox" disabled> No backend or migration changes</li>
+        <li><input type="checkbox" disabled> Typecheck/build green; acceptance rollup Passed or waived</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-08-01</td>
+            <td>Initial spec. Grill lock Q1=A, Q2=A, Q3=B, Q4=A, Q5=A, Q7=A, Q8=A. Message sounds v1 only; activity asset bundled but unwired. Execution branch <code>kylie/message-notification-features</code>.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-08-01</td>
+            <td>Execution (-x): frontend-only message sounds. Assets shipped as <code>.wav</code> (afconvert mp3 unavailable on box). Hook <code>useMessageNotificationSound</code> in AppShell; <code>notificationSounds.ts</code>; Account Settings toggle. Activity sound asset bundled, unwired.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

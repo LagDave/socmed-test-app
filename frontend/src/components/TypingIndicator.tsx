@@ -1,0 +1,30 @@
+import { cn } from "@/lib/utils";
+
+type TypingIndicatorProps = {
+  displayName: string;
+  compact?: boolean;
+  className?: string;
+};
+
+export function TypingIndicator({ displayName, compact = false, className }: TypingIndicatorProps) {
+  return (
+    <div
+      aria-live="polite"
+      className={cn(
+        "flex items-center gap-1.5 text-muted-foreground",
+        compact ? "text-sm" : "px-4 py-2 text-xs",
+        className
+      )}
+    >
+      <span className={cn("truncate", compact && "italic")}>
+        {displayName} is typing
+        {compact ? "…" : ""}
+      </span>
+      <span className="inline-flex shrink-0 items-center gap-0.5" aria-hidden="true">
+        <span className="typing-dot" />
+        <span className="typing-dot typing-dot-delay-1" />
+        <span className="typing-dot typing-dot-delay-2" />
+      </span>
+    </div>
+  );
+}

@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Messages UI Upgrade Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    .callout.pending { border-style:dashed; border-color:var(--muted); }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 38</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Messages UI Upgrade — Unified Inbox Card + Thread Polish</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08012026-38-messages-ui-upgrade</dd></div>
+        <div><dt>Size</dt><dd>Medium (7 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 — Concern</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08012026-38-messages-ui-upgrade</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/messages-ui-upgrade</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 17 messenger · Plan 22 websockets · Plan 23 friend picker · existing feed-card tokens</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plans 17–23 shipped a working 1:1 messenger with realtime delivery and a friend picker, but the Messages surface still reads utilitarian next to Notifications and the in-flight Feed (Plan 36) and Friends (Plan 37) upgrades. The inbox stacks three separate <code>feed-card</code> shells; errors sit outside the card; conversation rows lack the unread dot and row density of <code>NotificationRow</code>. The thread view works but the composer and bubbles feel like bare form controls rather than a cohesive chat product.</p>
+      <p>This is a <strong>visual polish pass</strong> on <code>/messages</code> and <code>/messages/:conversationId</code>. No new features, no API or socket behavior changes.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p><strong>Target inbox (<code>/messages</code>):</strong></p>
+      <pre class="wire">Messages                              [3 unread]
+Chat with friends.
+
+┌─ unified messages card ────────────────────────────────┐
+│ New message                                         [🔍] │
+│   (●) Alice  @alice                                      │
+│   (●) Bob    @bob                                        │
+│ Manage friends →                                         │
+├──────────────────────────────────────────────────────────┤
+│ Conversations (2)                                        │
+│   (●)● Carol — Hey, are you free…              2m        │
+│   (●)  Dave  — Sent a photo                    1h        │
+└──────────────────────────────────────────────────────────┘</pre>
+      <p><strong>Target thread (<code>/messages/:id</code>):</strong></p>
+      <pre class="wire">┌─ thread card (min-height viewport) ────────────────────┐
+│ ← (●) Carol Doe  @carol                                  │
+├──────────────────────────────────────────────────────────┤
+│              — Today —                                   │
+│   (●) Hey!                                               │
+│                              Sure, see you there ─┐      │
+│                                                   │      │
+│ (●) [ What's on your mind? ········· ] 📎  ➤             │
+└──────────────────────────────────────────────────────────┘</pre>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Inbox uses one primary <code>feed-card overflow-hidden</code> with internal section dividers (New message + Conversations)</li>
+        <li>Page header shows unread badge when total unread &gt; 0 (mirrors Notifications “X new”)</li>
+        <li>Errors render as in-card banner (border-bottom + muted background)</li>
+        <li>Conversation rows match NotificationRow polish: <code>divide-y</code>, py-4 padding, unread dot on avatar, hover surface</li>
+        <li>Empty states use icon circle + title + supporting line</li>
+        <li>Thread composer uses muted pill track aligned with Feed composer language</li>
+        <li>Message bubbles get refined radii, shadows, and grouped spacing; mine/theirs/unsent states stay distinct</li>
+        <li>Friend picker search, open-chat, socket/poll, send/attach/unsend/reactions unchanged</li>
+        <li>Light + dark parity via existing B&amp;W tokens; <code>prefers-reduced-motion</code> respected</li>
+        <li>Frontend typecheck/build pass; acceptance checklist passes or carries written waivers</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <div class="callout">
+        <strong>Grill locked 08012026:</strong> 1A unified inbox card · 2A inbox+thread · 3A composer pill · 4A bubble refine · 5A no hook extraction · 6B B&amp;W tokens only.
+      </div>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Recommended</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Inbox card layout</td>
+            <td><strong>A — Single unified card</strong></td>
+            <td>Matches <code>NotificationsPage</code> and Friends Plan 37; removes visual stacking noise from 3–4 separate cards.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Thread scope</td>
+            <td><strong>A — Inbox + thread in one pass</strong></td>
+            <td>Composer and bubbles are half the “Messages feels cheap” problem; inbox-only would leave thread jarring after upgrade.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Composer styling</td>
+            <td><strong>A — Muted pill track (Feed-aligned)</strong></td>
+            <td>Reuses Plan 36 composer language; keeps real <code>Textarea</code> for a11y.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Bubble styling depth</td>
+            <td><strong>A — Refine bubbles + grouping</strong></td>
+            <td>Subtle shadow/radius tuning and tighter group spacing — not a full iMessage clone or tail SVGs.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Hook extraction</td>
+            <td><strong>A — Out of scope</strong></td>
+            <td><code>MessagesPage.tsx</code> orchestration refactor is separate tech-debt; this plan is presentation-only.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Color strategy</td>
+            <td><strong>B — B&amp;W tokens only</strong></td>
+            <td>Consistent with Feed/Friends upgrades; no Meta blue or chat-theme colors (Plan 31 stays separate).</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today (execution base <code>kylie/messages-ui-upgrade</code> @ <code>312e03a</code>):</strong></p>
+      <ul>
+        <li><code>frontend/src/pages/MessagesPage.tsx</code> — <code>InboxView</code> + <code>ThreadView</code> (~540 lines); inline state, socket handlers, polling.</li>
+        <li><code>frontend/src/components/MessagesFriendPicker.tsx</code> — mutuals list + icon search (Plan 23).</li>
+        <li><code>frontend/src/components/ConversationListRow.tsx</code> — inbox row with unread badge pill.</li>
+        <li><code>frontend/src/components/MessageBubbleRow.tsx</code> — bubble, reactions, unsend menu.</li>
+        <li><code>frontend/src/components/MessagesUiHelpers.tsx</code> — skeletons, day separator, empty thread, error banner.</li>
+        <li><code>frontend/src/pages/NotificationsPage.tsx</code> — closest polished analog (unified card, badge, banner, row density).</li>
+        <li><code>frontend/src/components/FeedComposer.tsx</code> — composer pill pattern from Plan 25/36.</li>
+        <li><code>frontend/src/index.css</code> — <code>.feed-card</code>, <code>.feed-page</code>, <code>.friends-page</code> animations; no <code>.messages-page</code> yet.</li>
+      </ul>
+      <p><strong>Closest analog:</strong> Notifications dashboard card + Feed composer pill + Friends friend-picker search UX.</p>
+      <p><strong>Consumers / blast radius:</strong> Messages routes primary; shared <code>feed-card</code> tokens — scope new CSS to <code>.messages-page</code> or messages-specific class names. Entry points from Friends/Profile via <code>openConversationWithUsername</code> unchanged.</p>
+      <p><strong>Parallel plans (do not merge here):</strong> Plans 27–33 (typing, status icons, reply, stickers, themes, edit, delete conversation) and Plan 34 (notification sounds) are separate feature work.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Preserve all message API, socket, and poll behaviors</li>
+            <li>Preserve friend picker, search toggle, Esc-to-close, Manage friends link</li>
+            <li>Preserve send/attach/unsend/reactions/mark-read flows</li>
+            <li>Light + dark theme parity using existing tokens</li>
+            <li><code>prefers-reduced-motion: reduce</code> disables or shortens new motion</li>
+            <li>Frontend-only; presentation in page/components per Code Constitution</li>
+            <li>Update <code>plans/README.md</code> with seq 38</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>Backend, schema, or API changes</li>
+            <li>New npm dependencies</li>
+            <li>Global <code>feed-card</code> CSS changes that shift Feed/Friends/Notifications</li>
+            <li>Split-pane desktop layout (AppShell stays max-w 680px)</li>
+            <li>Hook extraction or inbox incremental socket patching (tech-debt, not UI)</li>
+            <li>Drive-by refactors on Feed, Friends, Notifications, Profile</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Out of scope</h3>
+          <ul>
+            <li>Typing indicators, read receipts, delivery status (Plan 27–28)</li>
+            <li>Reply-to-message, stickers, chat themes (Plans 29–31)</li>
+            <li>Edit message, delete conversation (Plans 32–33)</li>
+            <li>Notification sounds (Plan 34)</li>
+            <li>Infinite scroll / Intersection Observer pagination</li>
+            <li>Message search, groups, presence</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Primary hazard is styling shared <code>feed-card</code> utilities and unintentionally shifting other pages. Secondary: thread layout regressions if composer/bubble changes break scroll-to-bottom or reaction hover affordances.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Global CSS leak</td>
+            <td>Feed, Friends, Notifications</td>
+            <td>Scope new utilities to <code>.messages-page</code> / messages-specific classes only</td>
+          </tr>
+          <tr>
+            <td>Scroll-to-bottom break</td>
+            <td>ThreadView</td>
+            <td>Do not change message list DOM hierarchy; verify send + inbound scroll after polish</td>
+          </tr>
+          <tr>
+            <td>Reaction/unsend hover regression</td>
+            <td>MessageBubbleRow</td>
+            <td>Keep <code>group/message</code> hover pattern; acceptance covers react + unsend</td>
+          </tr>
+          <tr>
+            <td>Parallel Plan 36/37 merge conflicts</td>
+            <td>index.css, shared tokens</td>
+            <td>Rebase onto latest <code>dev</code> before <code>-x</code>; touch messages-scoped files first</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Required pushback:</strong> Do not widen to “whole app UI refresh.” Do not bundle feature plans 27–34. Do not add animation libraries.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Messages page tokens + rhythm</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add <code>.messages-page</code> to <code>index.css</code> (reuse <code>feed-page-in</code> animation). Add messages-scoped helpers if needed: <code>.messages-dashboard-card</code>, <code>.messages-section-divider</code>, optional composer pill utility. Respect reduced-motion.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>Locked decisions</dd></div>
+          <div><dt>Verify</dt><dd>Page enter animation runs; Feed/Friends animations unchanged</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Inbox unified shell + header badge</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Restructure <code>InboxView</code>: wrap page in <code>messages-page</code>; header row with title, subtitle, conditional unread badge (sum of <code>item.unreadCount</code>). Single <code>feed-card overflow-hidden</code> for all inbox content. Move error to in-card banner (Notifications pattern). Remove outer standalone error + extra card wrappers.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>One card on populated + loading + empty states; badge shows/hides correctly</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Friend picker + conversations sections</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Integrate <code>MessagesFriendPicker</code> as top section inside unified card with bottom divider. Conversations section below with count label when non-empty. Align friend-picker errors to in-card banner style (not loose paragraph). Preserve search/open-chat behavior.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code>, <code>frontend/src/components/MessagesFriendPicker.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Section dividers clear; friend picker + list coexist; zero-conversations empty state inside card</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — ConversationListRow + empty states</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Refactor row to list-item inside <code>divide-y divide-border</code> (drop per-row border-b). Add unread dot on avatar (Notifications pattern). Tune padding/hover/unread background. Upgrade inbox empty + <code>MessagesEmptyThread</code> to icon circle + title + supporting copy. Tune skeletons to unified card padding.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ConversationListRow.tsx</code>, <code>frontend/src/components/MessagesUiHelpers.tsx</code>, <code>frontend/src/pages/MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>Unread/read rows visually distinct; empty states professional; navigation to thread works</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — Thread composer pill polish</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Restyle thread composer form: muted rounded track wrapping avatar + attach + textarea + send (Feed composer language). Sticky header gets subtle backdrop unchanged functionally. Preserve submitOnEnter, file upload, busy/disabled states.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code>, optional <code>index.css</code> composer utility</dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Text + image send work; composer visually cohesive in light/dark</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T6">
+        <h3>T6 — Message bubble visual polish</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Refine <code>MessageBubbleRow</code>: bubble shadow/radius, grouped vertical rhythm, image rounding consistency. Keep reaction picker + unsend menu hover behavior. Day separator can get subtle polish if it fits tokens.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/MessageBubbleRow.tsx</code>, <code>frontend/src/components/MessagesUiHelpers.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T5</dd></div>
+          <div><dt>Verify</dt><dd>Grouped messages read cleanly; react/unsend still work; unsent state distinct</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T7">
+        <h3>T7 — Acceptance + plans index</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Run frontend typecheck/build. Execute acceptance items in <code>test-results.json</code> (or record waivers). Append seq 38 to <code>plans/README.md</code>.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>plans/README.md</code>, plan acceptance artifacts</dd></div>
+          <div><dt>Depends on</dt><dd>T4–T6</dd></div>
+          <div><dt>Verify</dt><dd>Build green; acceptance Passed or waivers documented</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>Grill decisions locked in Revision Log</span></li>
+        <li><span>☑</span><span>Unified inbox card with internal section dividers</span></li>
+        <li><span>☑</span><span>Header unread badge + in-card error banner</span></li>
+        <li><span>☑</span><span>Conversation rows match Notifications density</span></li>
+        <li><span>☑</span><span>Empty states use icon + title + supporting copy</span></li>
+        <li><span>☑</span><span>Thread composer pill + bubble polish</span></li>
+        <li><span>☑</span><span>Realtime, send, attach, unsend, reactions preserved (no handler changes)</span></li>
+        <li><span>☑</span><span>Light + dark + reduced-motion via scoped tokens</span></li>
+        <li><span>☑</span><span>Frontend typecheck/build pass</span></li>
+        <li><span>☑</span><span>Acceptance checklist Passed (UI reviewed in session; build gate CLI)</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="acceptance">
+      <h2>Acceptance</h2>
+      <p>Runnable checklist: <code>test-results.json</code> + <code>test.html</code> in this folder. Surfaces are UI unless noted.</p>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>08012026</td>
+            <td>Initial spec from <code>-s</code> on <code>kylie/messages-ui-upgrade</code>. Grill defaults proposed (unified inbox card, inbox+thread scope, composer pill, bubble refine, no hook extraction, B&amp;W tokens). Planning worktree <code>plan/08012026-38-messages-ui-upgrade</code>.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>08012026</td>
+            <td>Grill locked (1A/2A/3A/4A/5A/6B). Executing on <code>kylie/messages-ui-upgrade</code>: unified inbox card, unread badge, row polish, composer pill, bubble grouping radii, <code>.messages-page</code> animation.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>08012026</td>
+            <td><code>-c</code> refinement: removed orphaned “Manage friends” footer link when mutuals exist; moved affordance to header UserPlus icon; friend rows use two-line layout + full-width dividers aligned with Conversations section; section title shows friend count.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>08012026</td>
+            <td><code>-c</code> pass 2: horizontal compose strip when conversations exist (hides friends already in inbox); search pill when all friends have threads; conversation rows show message preview only + chevron; muted compose panel + thread pane tint.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>08012026</td>
+            <td><code>-d</code> finalized on <code>kylie/messages-ui-upgrade</code>. Typecheck/build green. Acceptance rolled up Passed; changelog 0.1.18.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

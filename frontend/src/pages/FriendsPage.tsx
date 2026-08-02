@@ -1,41 +1,61 @@
 import { useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Search, UserMinus, X } from "lucide-react";
+import { Check, MessageCircle, Search, UserMinus, X, XCircle } from "lucide-react";
 import { openConversationWithUsername } from "@/api/messages";
 import type { PublicUser } from "@/api/types";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { FriendListRow } from "@/components/FriendListRow";
-import { FriendsEmptyState, FriendsSectionSkeleton } from "@/components/FriendsEmptyState";
+import { FriendsDashboardSkeleton, FriendsEmptyState } from "@/components/FriendsEmptyState";
 import { FriendsRequestForm } from "@/components/FriendsRequestForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFriendsInbox } from "@/hooks/useFriendsInbox";
 import { matchesUserQuery } from "@/lib/matchesUserQuery";
+import { cn } from "@/lib/utils";
 
 function FriendsSection({
   title,
   count,
   searchSlot,
+  divided = true,
   children,
 }: {
   title: string;
   count?: number;
   searchSlot?: ReactNode;
+  divided?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section className="feed-card p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold tracking-wide text-foreground">
+    <section className={cn(divided && "friends-section-divider")}>
+      <div className="friends-section-header">
+        <h2 className="friends-section-eyebrow">
           {title}
           {typeof count === "number" ? (
-            <span className="ml-1.5 font-normal text-muted-foreground">({count})</span>
+            <span className="ml-1.5 font-semibold text-foreground/80">({count})</span>
           ) : null}
         </h2>
         {searchSlot}
       </div>
-      <div className="mt-3">{children}</div>
+      <div className="friends-section-body">{children}</div>
     </section>
+  );
+}
+
+function LabeledActionButton({
+  label,
+  icon: Icon,
+  className,
+  ...props
+}: React.ComponentProps<typeof Button> & {
+  label: string;
+  icon: typeof Check;
+}) {
+  return (
+    <Button size="sm" className={cn("rounded-full", className)} aria-label={label} {...props}>
+      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <span className="hidden md:inline">{label}</span>
+    </Button>
   );
 }
 
@@ -66,6 +86,7 @@ export function FriendsPage() {
 
   const filteredMutuals = mutuals.filter((user) => matchesUserQuery(user, query));
   const displayError = actionError ?? error;
+  const pendingCount = incoming.length;
 
   function closeSearch() {
     setSearchOpen(false);
@@ -112,33 +133,52 @@ export function FriendsPage() {
 
   return (
     <section className="friends-page space-y-4">
-      <div className="px-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Friends</h1>
-        <p className="text-sm text-muted-foreground">Send requests, manage incoming invites, and message mutuals.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3 px-1">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Friends</h1>
+          <p className="text-sm text-muted-foreground">
+            Send requests, manage incoming invites, and message mutuals.
+          </p>
+        </div>
+        {!loading && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="friends-stat-chip">
+              {mutuals.length} <span className="friends-stat-chip-muted">friends</span>
+            </span>
+            {pendingCount > 0 && (
+              <span className="friends-stat-chip bg-primary text-primary-foreground">
+                {pendingCount} pending
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      <FriendsRequestForm
-        onSubmit={async (username) => {
-          setActionError(null);
-          setError(null);
-          await sendRequest(username);
-        }}
-      />
-
-      {displayError && <p className="px-1 text-sm text-muted-foreground">{displayError}</p>}
-
       {loading ? (
-        <div className="space-y-4">
-          <FriendsSectionSkeleton rows={2} />
-          <FriendsSectionSkeleton rows={4} />
-        </div>
+        <FriendsDashboardSkeleton />
       ) : (
-        <>
+        <div className="friends-page-canvas">
+          <div className="feed-card friends-dashboard-card overflow-hidden">
+          {displayError && (
+            <p className="border-b border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+              {displayError}
+            </p>
+          )}
+
+          <FriendsRequestForm
+            onSubmit={async (username) => {
+              setActionError(null);
+              setError(null);
+              await sendRequest(username);
+            }}
+          />
+
           <FriendsSection title="Friend Requests" count={incoming.length}>
             {incoming.length === 0 ? (
               <FriendsEmptyState
                 icon="request"
-                message="No pending requests. When someone adds you, they will show up here."
+                title="No pending requests"
+                description="When someone adds you, they'll show up here."
               />
             ) : (
               <ul className="divide-y divide-border">
@@ -148,12 +188,17 @@ export function FriendsPage() {
                     user={item.user}
                     actions={
                       <>
-                        <Button size="sm" onClick={() => void acceptRequest(item.id)}>
-                          Confirm
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => void declineRequest(item.id)}>
-                          Decline
-                        </Button>
+                        <LabeledActionButton
+                          label="Confirm"
+                          icon={Check}
+                          onClick={() => void acceptRequest(item.id)}
+                        />
+                        <LabeledActionButton
+                          label="Decline"
+                          icon={XCircle}
+                          variant="outline"
+                          onClick={() => void declineRequest(item.id)}
+                        />
                       </>
                     }
                   />
@@ -170,9 +215,12 @@ export function FriendsPage() {
                     key={item.id}
                     user={item.user}
                     actions={
-                      <Button size="sm" variant="outline" onClick={() => void cancelRequest(item.id)}>
-                        Cancel
-                      </Button>
+                      <LabeledActionButton
+                        label="Cancel"
+                        icon={X}
+                        variant="outline"
+                        onClick={() => void cancelRequest(item.id)}
+                      />
                     }
                   />
                 ))}
@@ -190,6 +238,7 @@ export function FriendsPage() {
                   type="button"
                   size="icon"
                   variant="ghost"
+                  className="h-8 w-8"
                   aria-expanded={searchOpen}
                   aria-label={searchOpen ? "Close search" : "Search friends"}
                   onClick={toggleSearch}
@@ -204,9 +253,10 @@ export function FriendsPage() {
             }
           >
             {searchOpen && mutuals.length > 0 && (
-              <div className="mb-3">
+              <div className="friends-search-track mb-3">
                 <Input
                   ref={searchInputRef}
+                  className="h-10 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -224,10 +274,11 @@ export function FriendsPage() {
             {mutuals.length === 0 ? (
               <FriendsEmptyState
                 icon="users"
-                message="Your friends will appear here once you connect with people on SocMed."
+                title="No friends yet"
+                description="Your friends will appear here once you connect with people on SocMed."
               />
             ) : filteredMutuals.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No matching friends</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">No matching friends</p>
             ) : (
               <ul className="divide-y divide-border">
                 {filteredMutuals.map((user) => (
@@ -239,7 +290,8 @@ export function FriendsPage() {
                         <Button
                           type="button"
                           size="icon"
-                          variant="ghost"
+                          variant="outline"
+                          className="h-9 w-9 rounded-full"
                           aria-label={`Message ${user.displayName}`}
                           title="Message"
                           disabled={openingChat || !user.username}
@@ -251,6 +303,7 @@ export function FriendsPage() {
                           type="button"
                           size="icon"
                           variant="ghost"
+                          className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive"
                           aria-label={`Unfriend ${user.displayName}`}
                           title="Unfriend"
                           onClick={() => setPendingUnfriend(user)}
@@ -264,7 +317,8 @@ export function FriendsPage() {
               </ul>
             )}
           </FriendsSection>
-        </>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog

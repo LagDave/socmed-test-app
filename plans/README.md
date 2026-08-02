@@ -30,6 +30,18 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 24 | `07292026-24-reaction-summary-layout` | Reaction summary right-aligned cluster + total count |
 | 25 | `07302026-25-feed-composer-avatar` | Facebook-style feed composer + shared ProfileAvatar |
 | 26 | `07302026-26-share-button` | Facebook-style share button for friends' posts |
+| 27 | `07312026-27-messages-typing-indicator` | Messages thread typing indicator (animated dots) |
+| 28 | `07312026-28-messages-status-icons` | Outgoing message status icons (Sent · Delivered · Seen) |
+| 29 | `07312026-29-reply-to-chat` | Messenger-style reply to chat (quote strip + composer preview) |
+| 30 | `07312026-30-default-message-stickers` | Messenger six reactions + composer emoji picker (thread) |
+| 31 | `08012026-31-chat-themes` | Messenger-style chat themes, colors/gradients, word effects |
+| 32 | `08012026-32-edit-message` | Edit message |
+| 33 | `08012026-33-message-delete-conversation` | Delete conversation |
+| 34 | `08012026-34-message-notification-sounds` | Message notification sounds |
+| 35 | `08012026-35-navbar-upgrade` | Navbar visual polish — pill cluster, SocMed wordmark, avatar profile trigger |
+| 36 | `08012026-36-feed-ui-upgrade` | Feed + post detail UI polish — composer pill, centered inset galleries, multi-photo, labeled actions |
+| 37 | `08012026-37-friends-ui-upgrade` | Friends unified dashboard card + row polish |
+| 38 | `08012026-38-messages-ui-upgrade` | Messages UI — unified inbox card + thread polish |
 | 39 | `08022026-39-notifications-ui-upgrade` | Notifications soft dashboard UI (beautiful again) |
 
 ## Branch → host (hard rule)
