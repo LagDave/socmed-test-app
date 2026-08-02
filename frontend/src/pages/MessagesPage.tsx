@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ImagePlus, MessageCircle, SendHorizontal } from "lucide-react";
+import { ChevronLeft, ImagePlus, MessageCircle, SendHorizontal, X } from "lucide-react";
 import { api } from "@/api/client";
 import {
   CONVERSATION_PEER_READ,
@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ConversationListRow } from "@/components/ConversationListRow";
 import { MessageBubbleRow } from "@/components/MessageBubbleRow";
+import { truncateQuoteText } from "@/components/MessageQuoteStrip";
 import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import {
   MessageDaySeparator,
@@ -30,6 +31,7 @@ import {
 } from "@/components/MessagesUiHelpers";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { TypingIndicator } from "@/components/TypingIndicator";
+import { useCanHover } from "@/hooks/useCanHover";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
 import {
   useInboxPeerTyping,
@@ -46,6 +48,38 @@ import {
 import { submitOnEnter } from "@/lib/submitOnEnter";
 
 const POLL_MS = 2500;
+
+function replyTargetPreview(
+  message: MessageView,
+  user: PublicUser,
+  peer: PublicUser
+): { name: string; snippet: string; imageUrl: string | null } {
+  const name = message.senderId === user.id ? user.displayName : peer.displayName;
+  if (message.isUnsent) {
+    return { name, snippet: "Message unavailable", imageUrl: null };
+  }
+  const snippet = message.body?.trim()
+    ? truncateQuoteText(message.body)
+    : message.imageUrl
+      ? "Photo"
+      : "Message";
+  return { name, snippet, imageUrl: message.imageUrl };
+}
+
+function patchReplyTargetsUnsent(prev: MessageView[], unsentId: string): MessageView[] {
+  return prev.map((m) => {
+    if (m.replyTo?.id !== unsentId) return m;
+    return {
+      ...m,
+      replyTo: {
+        ...m.replyTo,
+        isUnsent: true,
+        body: null,
+        imageUrl: null,
+      },
+    };
+  });
+}
 
 function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] {
   const map = new Map<string, MessageView>();
@@ -77,6 +111,9 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [pendingUnsendId, setPendingUnsendId] = useState<string | null>(null);
   const [unsending, setUnsending] = useState(false);
   const [loadingThread, setLoadingThread] = useState(true);
+  const [replyToMessage, setReplyToMessage] = useState<MessageView | null>(null);
+  const [tappedMessageId, setTappedMessageId] = useState<string | null>(null);
+  const canHover = useCanHover();
   const isPeerTyping = usePeerTyping(conversationId, user?.id);
   const { stopTyping } = useTypingEmitter({
     conversationId,
@@ -86,9 +123,15 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   });
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const generationRef = useRef(0);
   const stickToBottomRef = useRef(true);
+  const replyTargetIdRef = useRef<string | null>(null);
   const peerIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    replyTargetIdRef.current = replyToMessage?.id ?? null;
+  }, [replyToMessage?.id]);
 
   useEffect(() => {
     peerIdRef.current = peer?.id ?? null;
@@ -104,6 +147,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     setHasMore(false);
     setError(null);
     setBody("");
+    setReplyToMessage(null);
+    setTappedMessageId(null);
     setLoadingThread(true);
 
     async function loadInitial() {
@@ -153,7 +198,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
           setPeerLastReadAt(data.peerLastReadAt);
-          setMessages((prev) => mergeById(prev, data.messages));
+          setMessages((prev) => {
+            let merged = mergeById(prev, data.messages);
+            for (const msg of data.messages) {
+              if (msg.isUnsent) merged = patchReplyTargetsUnsent(merged, msg.id);
+            }
+            return merged;
+          });
           if (generation !== generationRef.current) return;
           await api.post(`/api/messages/conversations/${conversationId}/read`);
         } catch {
@@ -172,7 +223,13 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const msg = payload.message;
       if (msg.conversationId !== conversationId) return;
       if (generation !== generationRef.current) return;
-      setMessages((prev) => mergeById(prev, [msg]));
+      setMessages((prev) => {
+        const merged = mergeById(prev, [msg]);
+        return msg.isUnsent ? patchReplyTargetsUnsent(merged, msg.id) : merged;
+      });
+      if (replyTargetIdRef.current === msg.id && msg.isUnsent) {
+        setReplyToMessage(null);
+      }
     };
 
     const applyInboundNewMessage = (payload: MessageEventPayload) => {
@@ -217,6 +274,11 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   }, [conversationId, user?.id]);
 
   useEffect(() => {
+    if (!replyToMessage) return;
+    textareaRef.current?.focus();
+  }, [replyToMessage]);
+
+  useEffect(() => {
     if (!stickToBottomRef.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
@@ -257,12 +319,15 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     setError(null);
     stickToBottomRef.current = true;
     try {
+      const payload: { body: string; replyToMessageId?: string } = { body: text };
+      if (replyToMessage) payload.replyToMessageId = replyToMessage.id;
       const data = await api.post<{ message: MessageView }>(
         `/api/messages/conversations/${conversationId}/messages`,
-        { body: text }
+        payload
       );
       if (generation !== generationRef.current) return;
       setBody("");
+      setReplyToMessage(null);
       setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
@@ -285,12 +350,18 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const uploaded = await api.upload<{ url: string }>("/api/uploads", file);
       if (generation !== generationRef.current) return;
       const caption = body.trim() || undefined;
+      const payload: { body?: string; imageUrl: string; replyToMessageId?: string } = {
+        body: caption,
+        imageUrl: uploaded.url,
+      };
+      if (replyToMessage) payload.replyToMessageId = replyToMessage.id;
       const data = await api.post<{ message: MessageView }>(
         `/api/messages/conversations/${conversationId}/messages`,
-        { body: caption, imageUrl: uploaded.url }
+        payload
       );
       if (generation !== generationRef.current) return;
       setBody("");
+      setReplyToMessage(null);
       setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
@@ -314,7 +385,11 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         `/api/messages/messages/${pendingUnsendId}`
       );
       if (generation !== generationRef.current) return;
-      setMessages((prev) => prev.map((m) => (m.id === pendingUnsendId ? data.message : m)));
+      setMessages((prev) => {
+        const next = prev.map((m) => (m.id === pendingUnsendId ? data.message : m));
+        return patchReplyTargetsUnsent(next, pendingUnsendId);
+      });
+      if (replyToMessage?.id === pendingUnsendId) setReplyToMessage(null);
       setPendingUnsendId(null);
     } catch (err) {
       if (generation !== generationRef.current) return;
@@ -331,6 +406,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   }
 
   const peerProfilePath = peer?.username ? `/u/${peer.username}` : peer ? `/u/${peer.id}` : "#";
+  const replyPreview =
+    replyToMessage && user && peer ? replyTargetPreview(replyToMessage, user, peer) : null;
 
   return (
     <section className="space-y-4">
@@ -370,7 +447,12 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           )}
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div
+          className="flex-1 overflow-y-auto px-4 py-4"
+          onClick={() => {
+            if (!canHover) setTappedMessageId(null);
+          }}
+        >
           {loadingThread ? (
             <MessagesThreadSkeleton />
           ) : (
@@ -408,8 +490,17 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       showAvatar={showAvatar}
                       peerLastReadAt={peerLastReadAt}
                       peerProfilePath={peerProfilePath}
+                      canHover={canHover}
+                      touchRevealed={tappedMessageId === m.id}
+                      onToggleTouchReveal={() =>
+                        setTappedMessageId((prev) => (prev === m.id ? null : m.id))
+                      }
                       onUnsend={setPendingUnsendId}
                       onReactionChange={patchMessageReaction}
+                      onReply={(msg) => {
+                        setTappedMessageId(null);
+                        setReplyToMessage(msg);
+                      }}
                       onError={setError}
                     />
                   </div>
@@ -429,6 +520,35 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         {isPeerTyping && peer && <TypingIndicator displayName={peer.displayName} />}
 
         <form onSubmit={onSend} className="border-t border-border px-3 py-3">
+          {replyPreview && (
+            <div className="mb-2 flex items-start justify-between gap-2 rounded-xl border border-border/70 bg-secondary/40 px-3 py-2 text-sm">
+              <div className="min-w-0">
+                <p className="text-muted-foreground">
+                  Replying to{" "}
+                  <span className="font-medium text-foreground">{replyPreview.name}</span>
+                  {" · "}
+                  <span className="text-foreground/90">{replyPreview.snippet}</span>
+                </p>
+                {replyPreview.imageUrl && (
+                  <img
+                    src={replyPreview.imageUrl}
+                    alt=""
+                    className="mt-2 h-10 w-10 rounded object-cover"
+                  />
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                aria-label="Cancel reply"
+                onClick={() => setReplyToMessage(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <div className="flex items-end gap-2 rounded-2xl bg-secondary/50 px-2 py-1.5">
             <input
               ref={fileRef}
@@ -456,6 +576,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
               <ImagePlus className="h-4 w-4" />
             </Button>
             <Textarea
+              ref={textareaRef}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               onBlur={() => stopTyping()}

@@ -9,9 +9,13 @@ function snippet(item: ConversationListItem): string {
   const last = item.lastMessage;
   if (!last) return "No messages yet";
   if (last.isUnsent) return "Unsent a message";
-  if (last.imageUrl && last.body) return last.body;
-  if (last.imageUrl) return "Sent a photo";
-  return last.body || "";
+  let text: string;
+  if (last.imageUrl && last.body) text = last.body;
+  else if (last.imageUrl) text = "Sent a photo";
+  else text = last.body || "";
+  if (last.replyToMessageId && text) return `↩ ${text}`;
+  if (last.replyToMessageId) return "↩ Reply";
+  return text;
 }
 
 export function ConversationListRow({

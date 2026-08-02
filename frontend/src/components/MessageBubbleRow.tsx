@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, type MouseEvent, type TouchEvent } from "react";
 import { Link } from "react-router-dom";
-import { MoreVertical, SmilePlus } from "lucide-react";
+import { MoreVertical, Reply, SmilePlus } from "lucide-react";
 import type { MessageView, PublicUser } from "@/api/types";
 import {
   MessageReactionPicker,
   MessageReactionSummary,
 } from "@/components/MessageReactionBar";
+import { MessageQuoteStrip } from "@/components/MessageQuoteStrip";
 import { ReactionIcon } from "@/components/ReactionIcon";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { MessageStatusIconForMessage } from "@/components/MessageStatusIcon";
@@ -19,6 +20,76 @@ import {
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { cn } from "@/lib/utils";
 
+function MessageHoverActions({
+  message,
+  mine,
+  reactionsOpen,
+  touchRevealed,
+  onReactionsOpenChange,
+  onReply,
+  onReactionChange,
+  onError,
+}: {
+  message: MessageView;
+  mine: boolean;
+  reactionsOpen: boolean;
+  touchRevealed: boolean;
+  onReactionsOpenChange: (open: boolean) => void;
+  onReply: (message: MessageView) => void;
+  onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
+  onError: (message: string) => void;
+}) {
+  const showActions = touchRevealed || reactionsOpen;
+
+  return (
+    <div
+      className={cn(
+        "relative flex shrink-0 items-center gap-0.5 self-center transition-opacity",
+        "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+        showActions && "opacity-100"
+      )}
+    >
+      <div className={cn("flex items-center gap-0.5", mine && "flex-row-reverse")}>
+        <button
+          type="button"
+          aria-label="Reply to message"
+          title="Reply"
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-background text-muted-foreground shadow-sm hover:bg-accent hover:text-foreground"
+          onClick={() => onReply(message)}
+        >
+          <Reply className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          aria-label="React to message"
+          title="React"
+          aria-expanded={reactionsOpen}
+          className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm hover:bg-accent",
+            reactionsOpen && "ring-1 ring-border"
+          )}
+          onClick={() => onReactionsOpenChange(!reactionsOpen)}
+        >
+          {message.reactionSummary.viewerEmoji ? (
+            <ReactionIcon emoji={message.reactionSummary.viewerEmoji} className="text-sm" />
+          ) : (
+            <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+          )}
+        </button>
+        <MessageReactionPicker
+          messageId={message.id}
+          summary={message.reactionSummary}
+          onSummaryChange={(summary) => onReactionChange(message.id, summary)}
+          onError={onError}
+          open={reactionsOpen}
+          onOpenChange={onReactionsOpenChange}
+          className={mine ? "right-0" : "left-0"}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function MessageBubbleRow({
   message,
   mine,
@@ -26,8 +97,12 @@ export function MessageBubbleRow({
   showAvatar,
   peerLastReadAt,
   peerProfilePath,
+  canHover,
+  touchRevealed,
+  onToggleTouchReveal,
   onUnsend,
   onReactionChange,
+  onReply,
   onError,
 }: {
   message: MessageView;
@@ -36,20 +111,39 @@ export function MessageBubbleRow({
   showAvatar: boolean;
   peerLastReadAt: string | null;
   peerProfilePath: string;
+  canHover: boolean;
+  touchRevealed: boolean;
+  onToggleTouchReveal: () => void;
   onUnsend: (id: string) => void;
   onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
+  onReply: (message: MessageView) => void;
   onError: (message: string) => void;
 }) {
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [timestampVisible, setTimestampVisible] = useState(false);
+  const showTouchActions = touchRevealed || reactionsOpen;
 
-  function toggleTimestamp() {
+  function handleTouchToggle(e: MouseEvent | TouchEvent) {
+    if (canHover || message.isUnsent) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, [role='menu'], [data-radix-popper-content-wrapper]")) return;
+    e.stopPropagation();
+    onToggleTouchReveal();
+  }
+
+  function toggleTimestamp(e: MouseEvent) {
     if (message.isUnsent) return;
+    e.stopPropagation();
     setTimestampVisible((visible) => !visible);
   }
 
   return (
-    <div className={cn("group/message flex gap-2", mine ? "flex-row-reverse" : "flex-row")}>
+    <div
+      className={cn("group flex gap-2", mine ? "flex-row-reverse" : "flex-row")}
+      data-message-row=""
+      data-message-id={message.id}
+      onClick={handleTouchToggle}
+    >
       {!mine &&
         (showAvatar && peer ? (
           <Link to={peerProfilePath} className="shrink-0 self-end" aria-label={`${peer.displayName}'s profile`}>
@@ -66,83 +160,45 @@ export function MessageBubbleRow({
         )}
       >
         <div className={cn("flex min-w-0 flex-col gap-0.5", mine ? "items-end" : "items-start")}>
-          <div className="relative">
-            <div
-              role={message.isUnsent ? undefined : "button"}
-              tabIndex={message.isUnsent ? undefined : 0}
-              onClick={toggleTimestamp}
-              onKeyDown={(e) => {
-                if (message.isUnsent) return;
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  toggleTimestamp();
-                }
-              }}
-              className={cn(
-                "rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
-                message.isUnsent
-                  ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
-                  : mine
-                    ? "cursor-pointer bg-foreground text-background"
-                    : "cursor-pointer bg-secondary text-foreground"
-              )}
-            >
-              {message.isUnsent ? (
-                "Unsent a message"
-              ) : (
-                <>
-                  {message.imageUrl && (
-                    <img
-                      src={message.imageUrl}
-                      alt=""
-                      className="mb-2 max-h-72 w-full rounded-lg object-cover"
-                    />
-                  )}
-                  {message.body}
-                </>
-              )}
-            </div>
-
-            {!message.isUnsent && (
+          <div
+            role={message.isUnsent ? undefined : "button"}
+            tabIndex={message.isUnsent ? undefined : 0}
+            onClick={toggleTimestamp}
+            onKeyDown={(e) => {
+              if (message.isUnsent) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setTimestampVisible((visible) => !visible);
+              }
+            }}
+            className={cn(
+              "rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed shadow-sm",
+              message.isUnsent
+                ? "border border-dashed border-border bg-transparent italic text-muted-foreground shadow-none"
+                : mine
+                  ? "cursor-pointer bg-foreground text-background"
+                  : "cursor-pointer bg-secondary text-foreground",
+              !canHover && touchRevealed && !message.isUnsent && "ring-2 ring-border/80"
+            )}
+          >
+            {message.isUnsent ? (
+              "Unsent a message"
+            ) : (
               <>
-                <button
-                  type="button"
-                  aria-label="React to message"
-                  aria-expanded={reactionsOpen}
-                  className={cn(
-                    "absolute -bottom-1 flex h-6 w-6 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm transition-opacity",
-                    mine ? "-left-1" : "-right-1",
-                    reactionsOpen
-                      ? "opacity-100"
-                      : "opacity-0 group-hover/message:opacity-100 focus:opacity-100"
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setReactionsOpen((open) => !open);
-                  }}
-                >
-                  {message.reactionSummary.viewerEmoji ? (
-                    <ReactionIcon emoji={message.reactionSummary.viewerEmoji} className="text-sm" />
-                  ) : (
-                    <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                  )}
-                </button>
-                <MessageReactionPicker
-                  messageId={message.id}
-                  summary={message.reactionSummary}
-                  onSummaryChange={(summary) => onReactionChange(message.id, summary)}
-                  onError={onError}
-                  open={reactionsOpen}
-                  onOpenChange={setReactionsOpen}
-                  className={mine ? "right-0" : "left-0"}
-                />
+                {message.replyTo && <MessageQuoteStrip replyTo={message.replyTo} mine={mine} />}
+                {message.imageUrl && (
+                  <img
+                    src={message.imageUrl}
+                    alt=""
+                    className="mb-2 max-h-72 w-full rounded-lg object-cover"
+                  />
+                )}
+                {message.body}
               </>
             )}
           </div>
 
-          {!message.isUnsent && (
-            <MessageReactionSummary summary={message.reactionSummary} />
-          )}
+          {!message.isUnsent && <MessageReactionSummary summary={message.reactionSummary} />}
 
           {!message.isUnsent && (mine || timestampVisible) && (
             <div className={cn("flex items-center gap-1 px-1", mine && "justify-end")}>
@@ -166,6 +222,19 @@ export function MessageBubbleRow({
           )}
         </div>
 
+        {!message.isUnsent && (
+          <MessageHoverActions
+            message={message}
+            mine={mine}
+            reactionsOpen={reactionsOpen}
+            touchRevealed={touchRevealed}
+            onReactionsOpenChange={setReactionsOpen}
+            onReply={onReply}
+            onReactionChange={onReactionChange}
+            onError={onError}
+          />
+        )}
+
         {mine && !message.isUnsent && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -173,7 +242,10 @@ export function MessageBubbleRow({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/message:opacity-100 focus:opacity-100 data-[state=open]:opacity-100"
+                className={cn(
+                  "h-7 w-7 shrink-0 self-center text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100",
+                  showTouchActions && "opacity-100"
+                )}
                 aria-label="Message options"
               >
                 <MoreVertical className="h-4 w-4" aria-hidden="true" />
