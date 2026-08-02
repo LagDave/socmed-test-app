@@ -13,6 +13,8 @@ export const REACTION_OPTIONS: {
   { emoji: "heart", label: "Heart", glyph: "❤️" },
   { emoji: "haha", label: "Haha", glyph: "😂" },
   { emoji: "wow", label: "Wow", glyph: "😮" },
+  { emoji: "sad", label: "Sad", glyph: "😢" },
+  { emoji: "angry", label: "Angry", glyph: "😡" },
 ];
 
 export function reactionOption(emoji: ReactionEmoji | null) {

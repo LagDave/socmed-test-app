@@ -1,8 +1,11 @@
 # Changelog
 
-## 0.1.18 — 2026-07-31
+## 0.1.18 — 2026-08-02
 
 ### Added
+- Facebook/Messenger six reaction stickers (Sad 😢, Angry 😡) on posts, comments, and messages
+- Message thread compose emoji picker — curated grid inserts emoji at cursor
+- Migration `20260731180000_reaction_emoji_sad_angry` extends `reaction_emoji` enum
 - Messenger-style **reply to chat**: quote strip in reply bubbles, composer preview bar, `reply_to_message_id` migration
 - Hover-to-reveal ↩ Reply / 😊 React / ⋮ Unsend on desktop; **tap message bubble** to show actions on phone/tablet
 - Inbox snippet `↩` prefix when the latest message is a reply
@@ -15,6 +18,8 @@
 - Click reaction summary on posts and comments to see who reacted (`GET /api/posts/:id/reactions`, `GET /api/comments/:id/reactions`)
 
 ### Changed
+- Message reactions use shared `ReactionBar` (hover/hold expand) instead of `MessageReactionBar`
+- Compose bar: image attach + emoji buttons grouped tightly
 - `MessageView.replyTo` embedded on list, create, and socket payloads (works when quoted message is paginated out)
 - API client: clearer errors when the server returns an empty body (common when API is down or migrate was skipped)
 - Message timestamps hidden by default; tap/click bubble toggles timestamp for that message
@@ -27,6 +32,7 @@
 - Profile timeline post action row: reaction trigger no longer overflows the card (`POST_MEDIA_BREAKOUT` removed from embedded action row)
 
 ### Plans
+- `plans/07312026-30-default-message-stickers` — Completed (execution on `kylie/default-stickers`)
 - `plans/07312026-29-reply-to-chat` — Completed (execution on `kylie/reply-to-chat`, PR #44 → `dev`)
 - `plans/07312026-28-messages-status-icons` — Completed (execution on `kylie/message-status-icon`)
 - `plans/07312026-27-messages-typing-indicator` — Completed (execution on `kylie/messages-typing-indicator`)

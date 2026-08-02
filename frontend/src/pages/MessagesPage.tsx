@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ConversationListRow } from "@/components/ConversationListRow";
 import { MessageBubbleRow } from "@/components/MessageBubbleRow";
+import { MessageComposerEmojiPicker } from "@/components/MessageComposerEmojiPicker";
 import { truncateQuoteText } from "@/components/MessageQuoteStrip";
 import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import {
@@ -46,6 +47,7 @@ import {
   messagesShareGroup,
 } from "@/lib/formatMessageDay";
 import { submitOnEnter } from "@/lib/submitOnEnter";
+import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
 
 const POLL_MS = 2500;
 
@@ -309,6 +311,22 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     }
   }
 
+  function insertComposerEmoji(emoji: string) {
+    const el = textareaRef.current;
+    if (!el) {
+      setBody((prev) => prev + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? body.length;
+    const end = el.selectionEnd ?? body.length;
+    const { nextValue, nextCursor } = insertTextAtSelection(body, emoji, start, end);
+    setBody(nextValue);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(nextCursor, nextCursor);
+    });
+  }
+
   async function onSend(e: FormEvent) {
     e.preventDefault();
     const text = body.trim();
@@ -564,17 +582,20 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                 size="sm"
               />
             )}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              aria-label="Attach image"
-              disabled={sending}
-              onClick={() => fileRef.current?.click()}
-            >
-              <ImagePlus className="h-4 w-4" />
-            </Button>
+            <div className="flex shrink-0 items-center -space-x-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                aria-label="Attach image"
+                disabled={sending}
+                onClick={() => fileRef.current?.click()}
+              >
+                <ImagePlus className="h-4 w-4" />
+              </Button>
+              <MessageComposerEmojiPicker disabled={sending} onPick={insertComposerEmoji} />
+            </div>
             <Textarea
               ref={textareaRef}
               value={body}

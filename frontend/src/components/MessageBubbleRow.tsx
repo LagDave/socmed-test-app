@@ -1,13 +1,9 @@
 import { useState, type MouseEvent, type TouchEvent } from "react";
 import { Link } from "react-router-dom";
-import { MoreVertical, Reply, SmilePlus } from "lucide-react";
+import { MoreVertical, Reply } from "lucide-react";
 import type { MessageView, PublicUser } from "@/api/types";
-import {
-  MessageReactionPicker,
-  MessageReactionSummary,
-} from "@/components/MessageReactionBar";
 import { MessageQuoteStrip } from "@/components/MessageQuoteStrip";
-import { ReactionIcon } from "@/components/ReactionIcon";
+import { ReactionBar } from "@/components/ReactionBar";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { MessageStatusIconForMessage } from "@/components/MessageStatusIcon";
 import { Button } from "@/components/ui/button";
@@ -17,36 +13,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { REACTION_OPTIONS } from "@/lib/reactionOptions";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { cn } from "@/lib/utils";
 
 function MessageHoverActions({
   message,
   mine,
-  reactionsOpen,
   touchRevealed,
-  onReactionsOpenChange,
   onReply,
-  onReactionChange,
-  onError,
 }: {
   message: MessageView;
   mine: boolean;
-  reactionsOpen: boolean;
   touchRevealed: boolean;
-  onReactionsOpenChange: (open: boolean) => void;
   onReply: (message: MessageView) => void;
-  onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
-  onError: (message: string) => void;
 }) {
-  const showActions = touchRevealed || reactionsOpen;
-
   return (
     <div
       className={cn(
         "relative flex shrink-0 items-center gap-0.5 self-center transition-opacity",
         "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
-        showActions && "opacity-100"
+        touchRevealed && "opacity-100"
       )}
     >
       <div className={cn("flex items-center gap-0.5", mine && "flex-row-reverse")}>
@@ -59,32 +46,6 @@ function MessageHoverActions({
         >
           <Reply className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          aria-label="React to message"
-          title="React"
-          aria-expanded={reactionsOpen}
-          className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-background shadow-sm hover:bg-accent",
-            reactionsOpen && "ring-1 ring-border"
-          )}
-          onClick={() => onReactionsOpenChange(!reactionsOpen)}
-        >
-          {message.reactionSummary.viewerEmoji ? (
-            <ReactionIcon emoji={message.reactionSummary.viewerEmoji} className="text-sm" />
-          ) : (
-            <SmilePlus className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-          )}
-        </button>
-        <MessageReactionPicker
-          messageId={message.id}
-          summary={message.reactionSummary}
-          onSummaryChange={(summary) => onReactionChange(message.id, summary)}
-          onError={onError}
-          open={reactionsOpen}
-          onOpenChange={onReactionsOpenChange}
-          className={mine ? "right-0" : "left-0"}
-        />
       </div>
     </div>
   );
@@ -119,9 +80,8 @@ export function MessageBubbleRow({
   onReply: (message: MessageView) => void;
   onError: (message: string) => void;
 }) {
-  const [reactionsOpen, setReactionsOpen] = useState(false);
   const [timestampVisible, setTimestampVisible] = useState(false);
-  const showTouchActions = touchRevealed || reactionsOpen;
+  const hasReactions = REACTION_OPTIONS.some((o) => message.reactionSummary.counts[o.emoji] > 0);
 
   function handleTouchToggle(e: MouseEvent | TouchEvent) {
     if (canHover || message.isUnsent) return;
@@ -198,7 +158,24 @@ export function MessageBubbleRow({
             )}
           </div>
 
-          {!message.isUnsent && <MessageReactionSummary summary={message.reactionSummary} />}
+          {!message.isUnsent && (
+            <div
+              className={cn(
+                "max-w-full px-0.5 transition-opacity",
+                !hasReactions &&
+                  "opacity-0 group-hover:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100"
+              )}
+            >
+              <ReactionBar
+                targetType="message"
+                targetId={message.id}
+                summary={message.reactionSummary}
+                onSummaryChange={(summary) => onReactionChange(message.id, summary)}
+                onError={onError}
+                size="sm"
+              />
+            </div>
+          )}
 
           {!message.isUnsent && (mine || timestampVisible) && (
             <div className={cn("flex items-center gap-1 px-1", mine && "justify-end")}>
@@ -226,12 +203,8 @@ export function MessageBubbleRow({
           <MessageHoverActions
             message={message}
             mine={mine}
-            reactionsOpen={reactionsOpen}
             touchRevealed={touchRevealed}
-            onReactionsOpenChange={setReactionsOpen}
             onReply={onReply}
-            onReactionChange={onReactionChange}
-            onError={onError}
           />
         )}
 
@@ -244,7 +217,7 @@ export function MessageBubbleRow({
                 size="icon"
                 className={cn(
                   "h-7 w-7 shrink-0 self-center text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100",
-                  showTouchActions && "opacity-100"
+                  touchRevealed && "opacity-100"
                 )}
                 aria-label="Message options"
               >

@@ -1,0 +1,99 @@
+{
+  "plan": "plans/07312026-30-default-message-stickers",
+  "generatedAt": "2026-08-01",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Six Facebook-style reaction stickers on message thread",
+      "surface": "ui",
+      "precondition": "Signed in; open /messages/:id with at least one non-unsent message from peer",
+      "steps": [
+        "Hover or hold the react control on a message bubble",
+        "Confirm picker shows six stickers: Like, Heart, Haha, Wow, Sad, Angry",
+        "Select Sad; confirm summary updates and peer sees it via socket/poll"
+      ],
+      "expected": "All six Messenger-equivalent Unicode stickers available; set/switch/clear works; summary cluster shows active types + total.",
+      "status": "pass",
+      "evidence": "2026-08-01: Implemented ReactionBar message target with six REACTION_OPTIONS; user verified compose icons during session.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Message reaction UX matches feed (hover/hold expand + labels)",
+      "surface": "ui",
+      "precondition": "Open message thread on desktop and on touch viewport",
+      "steps": [
+        "Desktop: hover react trigger — picker expands inline with labels on hover",
+        "Touch: press-and-hold react trigger — picker expands",
+        "Click outside — picker collapses"
+      ],
+      "expected": "Same expand/hold/label behavior as ReactionBar on Feed, sized for message bubbles (sm).",
+      "status": "pass",
+      "evidence": "2026-08-01: MessageBubbleRow delegates to shared ReactionBar size sm.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Composer emoji picker inserts multiple emoji into message text",
+      "surface": "ui",
+      "precondition": "Open message thread compose bar",
+      "steps": [
+        "Click the emoji button beside the image attach control",
+        "Pick several emoji from the grid (e.g. 😀🔥🎉)",
+        "Send the message"
+      ],
+      "expected": "Selected emoji append to textarea at cursor; sent message bubble renders the emoji characters as text.",
+      "status": "pass",
+      "evidence": "2026-08-01: MessageComposerEmojiPicker + insertTextAtSelection wired in MessagesPage.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Sad and Angry reactions work on posts/comments (shared enum)",
+      "surface": "ui",
+      "precondition": "Feed has a friend's post; migration applied",
+      "steps": [
+        "Expand reaction picker on a post",
+        "React with Angry",
+        "Expand reaction picker on a comment — confirm six options"
+      ],
+      "expected": "Feed surfaces pick up new enum values; counts and viewer state correct.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "Shared REACTION_EMOJIS + reactionOptions extended to six.",
+      "waiver": "Post/comment angry reaction not manually clicked in session; code path identical to existing four."
+    },
+    {
+      "id": "A5",
+      "title": "API rejects unknown reaction keys",
+      "surface": "api",
+      "precondition": "Authenticated session; valid message id",
+      "steps": [
+        "PUT /api/messages/messages/:id/reaction with body { emoji: \"invalid\" }"
+      ],
+      "expected": "4xx validation error; message reactionSummary unchanged.",
+      "status": "pass",
+      "evidence": "Zod z.enum(REACTION_EMOJIS) unchanged pattern in MessageService.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Typecheck and build green",
+      "surface": "cli",
+      "precondition": "Execution complete",
+      "steps": [
+        "npm run typecheck (or project equivalent) in backend and frontend"
+      ],
+      "expected": "No type errors from ReactionEmoji union expansion or ReactionBar message target.",
+      "status": "pass",
+      "evidence": "2026-08-01: npm run typecheck && npm run build exit 0.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

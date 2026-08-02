@@ -16,7 +16,7 @@ export type ApiError = {
   error: { code: string; message: string; details: unknown };
 };
 
-export type ReactionEmoji = "like" | "heart" | "haha" | "wow";
+export type ReactionEmoji = "like" | "heart" | "haha" | "wow" | "sad" | "angry";
 
 export type ReactionSummary = {
   counts: Record<ReactionEmoji, number>;

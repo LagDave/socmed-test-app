@@ -1,6 +1,6 @@
 import { db } from "../database/connection";
 
-export const REACTION_EMOJIS = ["like", "heart", "haha", "wow"] as const;
+export const REACTION_EMOJIS = ["like", "heart", "haha", "wow", "sad", "angry"] as const;
 export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 
 export type ReactionRow = {
@@ -21,10 +21,10 @@ export type ReactionSummary = {
 };
 
 export function emptyReactionSummary(): ReactionSummary {
-  return {
-    counts: { like: 0, heart: 0, haha: 0, wow: 0 },
-    viewerEmoji: null,
-  };
+  const counts = Object.fromEntries(
+    REACTION_EMOJIS.map((emoji) => [emoji, 0])
+  ) as ReactionCounts;
+  return { counts, viewerEmoji: null };
 }
 
 type AggregateRow = {
