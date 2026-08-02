@@ -65,4 +65,38 @@ export class ReactionsController {
       return handle(res, err);
     }
   }
+
+  static async setOnPostImage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactionSummary = await ReactionService.setOnPostImage(
+        req.userId!,
+        String(req.params.id),
+        req.body
+      );
+      return ok(res, { reactionSummary });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async clearOnPostImage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactionSummary = await ReactionService.clearOnPostImage(
+        req.userId!,
+        String(req.params.id)
+      );
+      return ok(res, { reactionSummary });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async listUsersForPostImage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactors = await ReactionService.listUsersForPostImage(String(req.params.id));
+      return ok(res, { reactors });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
 }

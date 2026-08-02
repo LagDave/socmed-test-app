@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const SIZE = {
-  md: { btn: "h-9 w-9", icon: "h-5 w-5" },
-  sm: { btn: "h-6 w-6", icon: "h-3.5 w-3.5" },
+  md: { btn: "h-9 w-9", icon: "h-5 w-5", badge: "min-w-[1.125rem] h-[1.125rem] text-[10px]" },
+  sm: { btn: "h-6 w-6", icon: "h-3.5 w-3.5", badge: "min-w-4 h-4 text-[9px]" },
 } as const;
 
 type ReactionBarChildProps = {
@@ -24,31 +24,53 @@ type PostActionRowProps = {
   children: ReactNode;
   size?: keyof typeof SIZE;
   className?: string;
-  /** Feed: navigate to post comments. */
   commentTo?: string;
-  /** Detail: scroll / focus comments. */
+  commentCount?: number;
   onCommentClick?: () => void;
-  /** Friends' original posts only — omit to hide Share. */
   onShare?: () => void;
   shareBusy?: boolean;
+  showShare?: boolean;
+  shareDisabled?: boolean;
 };
+
+function CommentCountBadge({ count, className }: { count: number; className?: string }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      className={cn(
+        "comment-count-badge absolute -right-1 -top-1 inline-flex items-center justify-center rounded-full bg-primary px-1 font-semibold tabular-nums leading-none text-primary-foreground ring-2 ring-background",
+        className
+      )}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 export function PostActionRow({
   children,
   size = "md",
   className,
   commentTo,
+  commentCount = 0,
   onCommentClick,
   onShare,
   shareBusy = false,
+  showShare = false,
+  shareDisabled = false,
 }: PostActionRowProps) {
   const s = SIZE[size];
+  const commentLabel =
+    commentCount > 0
+      ? `${commentCount} ${commentCount === 1 ? "comment" : "comments"}`
+      : "Comments";
   const commentIcon = <MessageSquare className={s.icon} aria-hidden="true" />;
 
   const commentControl = commentTo ? (
-    <Button asChild variant="ghost" size="icon" className={s.btn}>
-      <Link to={commentTo} aria-label="Comments">
+    <Button asChild variant="ghost" size="icon" className={cn(s.btn, "relative")}>
+      <Link to={commentTo} aria-label={commentLabel}>
         {commentIcon}
+        <CommentCountBadge count={commentCount} className={s.badge} />
       </Link>
     </Button>
   ) : (
@@ -56,27 +78,29 @@ export function PostActionRow({
       type="button"
       variant="ghost"
       size="icon"
-      className={s.btn}
-      aria-label="Comments"
+      className={cn(s.btn, "relative")}
+      aria-label={commentLabel}
       onClick={onCommentClick}
     >
       {commentIcon}
+      <CommentCountBadge count={commentCount} className={s.badge} />
     </Button>
   );
 
-  const shareControl = onShare ? (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className={s.btn}
-      aria-label="Share"
-      disabled={shareBusy}
-      onClick={onShare}
-    >
-      <Share2 className={s.icon} aria-hidden="true" />
-    </Button>
-  ) : null;
+  const shareControl =
+    onShare || showShare ? (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className={s.btn}
+        aria-label={shareDisabled ? "Share unavailable" : "Share"}
+        disabled={shareBusy || shareDisabled || !onShare}
+        onClick={onShare}
+      >
+        <Share2 className={s.icon} aria-hidden="true" />
+      </Button>
+    ) : null;
 
   const leftActions = (
     <>

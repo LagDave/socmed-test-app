@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "@/api/client";
 import type { ReactionEmoji, ReactionSummary } from "@/api/types";
 import { ReactionIcon } from "@/components/ReactionIcon";
+import { ReactionUsersPanel } from "@/components/ReactionUsersPanel";
 import { REACTION_OPTIONS, reactionOption } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
 
@@ -36,13 +37,11 @@ const SIZE = {
 } as const;
 
 type ReactionBarProps = {
-  targetType: "post" | "comment";
+  targetType: "post" | "comment" | "post_image";
   targetId: string;
   summary: ReactionSummary;
   onSummaryChange: (summary: ReactionSummary) => void;
-  /** Post reactions use md; comments/replies use sm. */
   size?: keyof typeof SIZE;
-  /** Controls rendered immediately after the trigger (comment / reply). */
   actions?: ReactNode;
   className?: string;
 };
@@ -58,8 +57,10 @@ export function ReactionBar({
 }: ReactionBarProps) {
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [usersOpen, setUsersOpen] = useState(false);
   const [popEmoji, setPopEmoji] = useState<ReactionEmoji | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLButtonElement>(null);
   const holdTimerRef = useRef<number | null>(null);
   const expandTimerRef = useRef<number | null>(null);
   const s = SIZE[size];
@@ -67,7 +68,9 @@ export function ReactionBar({
   const path =
     targetType === "post"
       ? `/api/posts/${targetId}/reactions`
-      : `/api/comments/${targetId}/reactions`;
+      : targetType === "post_image"
+        ? `/api/post-images/${targetId}/reactions`
+        : `/api/comments/${targetId}/reactions`;
 
   useEffect(() => {
     if (!expanded) return;
@@ -133,6 +136,7 @@ export function ReactionBar({
           .map((o) => o.label)
           .join(", ")}`
       : undefined;
+  const showPhotoReactors = targetType === "post_image" && totalCount > 0;
 
   const shellClass = cn(
     "inline-flex items-center rounded-full border border-border/80 bg-background",
@@ -246,21 +250,57 @@ export function ReactionBar({
       </div>
 
       {totalCount > 0 && (
-        <div
-          className={cn("inline-flex items-center text-muted-foreground", s.summary)}
-          aria-label={summaryLabel}
-        >
-          <span className="inline-flex items-center -space-x-1" aria-hidden="true">
-            {presentTypes.map((opt) => (
-              <span
-                key={opt.emoji}
-                className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
-              >
-                <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
+        <div className="relative">
+          {showPhotoReactors ? (
+            <ReactionUsersPanel
+              postImageId={targetId}
+              open={usersOpen}
+              onClose={() => setUsersOpen(false)}
+              anchorRef={summaryRef}
+            />
+          ) : null}
+          {showPhotoReactors ? (
+            <button
+              ref={summaryRef}
+              type="button"
+              aria-label={summaryLabel}
+              aria-expanded={usersOpen}
+              className={cn(
+                "inline-flex items-center rounded-full px-1.5 py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                s.summary
+              )}
+              onClick={() => setUsersOpen((open) => !open)}
+            >
+              <span className="inline-flex items-center -space-x-1" aria-hidden="true">
+                {presentTypes.map((opt) => (
+                  <span
+                    key={opt.emoji}
+                    className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
+                  >
+                    <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
+                  </span>
+                ))}
               </span>
-            ))}
-          </span>
-          <span>{totalCount}</span>
+              <span className="tabular-nums">{totalCount}</span>
+            </button>
+          ) : (
+            <div
+              className={cn("inline-flex items-center text-muted-foreground", s.summary)}
+              aria-label={summaryLabel}
+            >
+              <span className="inline-flex items-center -space-x-1" aria-hidden="true">
+                {presentTypes.map((opt) => (
+                  <span
+                    key={opt.emoji}
+                    className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
+                  >
+                    <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
+                  </span>
+                ))}
+              </span>
+              <span>{totalCount}</span>
+            </div>
+          )}
         </div>
       )}
     </div>

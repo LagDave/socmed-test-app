@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi-Photo Carousel Posts Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:#5c4a00; color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:920px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.92rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 41</p>
+        <span class="status-pill">In Progress</span>
+      </div>
+      <h1>Multi-Photo Carousel Posts</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>In Progress — code landed; acceptance pending</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08022026-41-multi-photo-carousel</dd></div>
+        <div><dt>Size</dt><dd>Medium–Large (6 tasks, FE + BE + migration)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08022026-41-multi-photo-carousel</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/post-photo-feature</dd></div>
+        <div><dt>Depends on</dt><dd>Media uploads (plan 08), FeedComposer (plan 25), Share embed (plan 26)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Posts today accept at most one optional photo (<code>posts.image_url</code>). Users want Facebook-style albums in the feed — pick several photos when composing, control their order, and browse them horizontally in the card. Plan 08 explicitly excluded multi-image galleries; this plan supersedes that constraint for <strong>feed posts only</strong>.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li><strong>Select up to 10 images</strong> from the device when creating a standard feed post via <code>FeedComposer</code>.</li>
+        <li><strong>Order before posting</strong> — horizontal thumbnail strip in the composer with move-left / move-right (and remove) per image.</li>
+        <li><strong>Carousel on the feed</strong> — images render as full-width cards in a horizontal scroll-snap track; swipe on touch, drag-scroll on desktop; dot indicator for position when count &gt; 1.</li>
+        <li><strong>Backward compatible</strong> — existing single-image posts keep working; API continues to expose <code>imageUrl</code> (first/cover) plus new <code>imageUrls: string[]</code>.</li>
+        <li><strong>Share embeds</strong> — reshared originals with multiple images show the same carousel inside <code>SharedPostEmbed</code>.</li>
+      </ul>
+      <pre class="wire">Composer (expanded):
+┌─ feed-composer ────────────────────────────────────────┐
+│  (avatar)  What's on your mind…                        │
+│           [thumb1][thumb2][thumb3]…  ← horizontal strip│
+│           ◀ ▶ remove per thumb                         │
+│  ─────────────────────────────────────────────────     │
+│  Photo                          [ Post ]               │
+└────────────────────────────────────────────────────────┘
+
+Feed card (2+ images):
+┌─ feed-card ────────────────────────────────────────────┐
+│  (author)  caption…                                    │
+│  ┌─ carousel (scroll-snap) ──────────────────────────┐ │
+│  │  [ img 1 full width ] │ [ img 2 ] │ [ img 3 ] …  │ │
+│  └───────────────────────────────────────────────────┘ │
+│  ● ○ ○  (dots)                                         │
+│  [ reactions ] [ comment ] [ share? ]                  │
+└────────────────────────────────────────────────────────┘</pre>
+      <p><strong>Done when:</strong> User can attach 1–10 ordered images in FeedComposer; feed/detail/profile cards swipe through them; single-image posts unchanged; share embeds multi-image originals; migrate + typecheck/build green; acceptance Passed.</p>
+      <div class="callout">
+        <strong>Grill locked — Rev 1 (08022026, kylie):</strong>
+        <table>
+          <thead><tr><th>Q</th><th>Lock</th></tr></thead>
+          <tbody>
+            <tr><td>1A</td><td><code>FeedComposer</code> only — no page publishing tool in v1</td></tr>
+            <tr><td>2A</td><td>Max <strong>10</strong> images (<code>MAX_POST_IMAGES</code>)</td></tr>
+            <tr><td>3A</td><td>Composer reorder via thumbnail chevrons + remove (no DnD library)</td></tr>
+            <tr><td>4A</td><td>Viewer carousel: CSS <code>scroll-snap</code> + dot indicators only — swipe / horizontal scroll; <strong>no prev/next arrow buttons</strong>; no npm carousel lib</td></tr>
+            <tr><td>5A</td><td>Carousel on Feed, post detail, profile timeline, and <code>SharedPostEmbed</code></td></tr>
+            <tr><td>6A</td><td>Single-image posts: existing layout — no dots or carousel chrome</td></tr>
+            <tr><td>7A</td><td>Image-only posts allowed — empty caption sends <code>body: " "</code> (preserve today)</td></tr>
+            <tr><td>8A</td><td>Any upload failure → fail whole post; no partial create</td></tr>
+            <tr><td>9A</td><td>Share embed: full scroll-snap carousel for multi-image originals</td></tr>
+            <tr><td>10B</td><td><strong>No post-publish edit</strong> in v1 — reorder/add/remove after publish deferred to a <strong>follow-up plan</strong></td></tr>
+            <tr><td>11</td><td>Excluded: multi-image comments, DMs, profile-activity posts, video</td></tr>
+            <tr><td>12A</td><td><code>post_images</code> table + <code>imageUrls[]</code>; keep <code>imageUrl</code> = cover/first</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Today (execution base <code>kylie/post-photo-feature</code> @ dev tip):</strong></p>
+      <ul>
+        <li><code>frontend/src/components/FeedComposer.tsx</code> — single <code>imageFile</code> / preview; <code>files?.[0]</code>; upload then <code>POST /api/posts</code> with <code>imageUrl</code>.</li>
+        <li><code>frontend/src/components/PostCard.tsx</code> — <code>PostActivityImage</code> renders one linked <code>&lt;img&gt;</code> when <code>post.imageUrl</code> set.</li>
+        <li><code>src/services/PostService.ts</code> — Zod create schema: <code>body</code> + optional <code>imageUrl</code>; hydrate maps <code>image_url</code> only.</li>
+        <li><code>POST /api/uploads</code> — multer single file, 5MB, image MIME allowlist; returns <code>{ url: "/uploads/…" }</code>.</li>
+        <li><code>MessageService</code> validates <code>imageUrl</code> with <code>UPLOAD_PATH_RE</code> — posts do not yet; port that validation here.</li>
+        <li><code>SharedPostEmbed.tsx</code> — nested share shows single <code>sharedFrom.imageUrl</code>.</li>
+        <li>Plan 08 spec listed “Multi-image galleries” under Must Not — this plan intentionally reverses that for feed posts only.</li>
+      </ul>
+      <p><strong>Closest analogs:</strong></p>
+      <ul>
+        <li>Composer file pick/preview/remove — <code>FeedComposer</code> + <code>CommentComposer</code> (extend to array).</li>
+        <li>Ordered child rows — <code>comments</code> threading pattern (separate table, FK to parent).</li>
+        <li>Full-width media block — existing <code>PostActivityImage</code> / feed image link styling.</li>
+        <li>Upload path validation — <code>MessageService</code> <code>UPLOAD_PATH_RE</code>.</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Allow 1–10 images on standard feed posts created via <code>FeedComposer</code></li>
+            <li>Persist explicit order (<code>sort_order</code> 0…n−1)</li>
+            <li>Composer shows horizontal thumbnail strip with reorder + remove before submit</li>
+            <li>Feed, post detail, profile timeline, and share embed use the same carousel when <code>imageUrls.length &gt; 1</code></li>
+            <li>Carousel: horizontal <code>scroll-snap</code>, dot indicators, <code>overscroll-behavior-x: contain</code> — no arrow buttons (4A)</li>
+            <li>Single-image posts render as today (no carousel chrome for n=1)</li>
+            <li>Image-only posts allowed — composer may post with images and empty caption (<code>body: " "</code>)</li>
+            <li>Upload-all-then-create: any upload failure aborts; no partial post</li>
+            <li>Validate every URL with <code>/^\/uploads\/[A-Za-z0-9._-]+$/</code> on create</li>
+            <li>Set <code>posts.image_url</code> to first image on create (cover mirror)</li>
+            <li>Backfill migration for existing posts with <code>image_url</code></li>
+            <li><code>SharedPostEmbed</code> shows carousel (or equivalent) for multi-image originals</li>
+            <li>Preserve text-only posts, reactions, comments, share behavior</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No new npm carousel / DnD dependencies</li>
+            <li>No batch upload endpoint in v1 (reuse single-file upload)</li>
+            <li>No multi-image comments, DMs, or profile-activity posts</li>
+            <li>No video</li>
+            <li>No page/CMS publishing tool in this plan</li>
+            <li>No breaking removal of <code>imageUrl</code> from API (keep for compat)</li>
+            <li>No client-side-only ordering (order must persist server-side)</li>
+            <li>No carousel prev/next arrow buttons on post cards (4A)</li>
+            <li>No post-publish image edit in v1 (10B — follow-up plan)</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Facebook Pages / separate page publishing UI</li>
+        <li>Editing image order or attachments on an already-published post — <strong>follow-up plan</strong> (10B)</li>
+        <li>Lightbox / fullscreen gallery with zoom</li>
+        <li>Automatic image compression or CDN</li>
+        <li>Orphan upload cleanup job (note as follow-up if partial failure occurs)</li>
+        <li>Album titles separate from post body</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Schema addition touches every post read path; partial upload failure can orphan disk files; carousel UX must not break scroll on mobile feed.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Partial upload — some files succeed, post create fails</td>
+            <td>Disk + UX</td>
+            <td>Upload all first; only call create when all succeed; surface single error; document orphan follow-up (Level 1 advisory)</td>
+          </tr>
+          <tr>
+            <td>N+1 loading post images on feed</td>
+            <td>Feed hydrate</td>
+            <td>Batch-load <code>post_images</code> by post id set in <code>PostService.hydrate</code></td>
+          </tr>
+          <tr>
+            <td>Horizontal swipe captures vertical feed scroll</td>
+            <td>Mobile feed UX</td>
+            <td><code>scroll-snap</code> on inner track only; <code>overscroll-behavior-x: contain</code>; test on touch</td>
+          </tr>
+          <tr>
+            <td>Share embed shows cover only</td>
+            <td>Share feature regression</td>
+            <td>T5 explicitly wires <code>PostMediaCarousel</code> into <code>SharedPostEmbed</code></td>
+          </tr>
+          <tr>
+            <td>Legacy clients ignore <code>imageUrls</code></td>
+            <td>API consumers</td>
+            <td>Keep <code>imageUrl</code> synced to index 0</td>
+          </tr>
+          <tr>
+            <td>11+ images or invalid paths</td>
+            <td>API</td>
+            <td>Zod max(10) + path regex; composer disables add at cap</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Consumers / blast radius:</strong> <code>post_images</code> schema; <code>PostModel</code>; <code>PostService</code> create + hydrate + feed/get/profile list; <code>PostsController</code>; FE <code>PostView</code>; <code>FeedComposer</code>; <code>PostCard</code>; <code>PostDetailPage</code>; <code>ProfilePage</code> timeline; <code>SharedPostEmbed</code>; <code>useFeedPosts</code> (type-only).</p>
+      <p><strong>Required pushback:</strong> Do not store ordered URLs only in JSONB without a migration story — use <code>post_images</code>. Do not add a carousel npm package for v1. Do not scope page publishing without a Pages product surface.</p>
+    </section>
+
+    <section class="spec-card" id="data">
+      <h2>Data &amp; API</h2>
+      <h3>Migration</h3>
+      <ul>
+        <li>Create <code>post_images</code> (see <code>migrations/README.md</code>).</li>
+        <li>Backfill one row per existing non-null <code>posts.image_url</code>.</li>
+        <li>Idempotent guards (<code>hasTable</code> / <code>hasColumn</code> style).</li>
+      </ul>
+      <h3>PostView (BE + FE)</h3>
+      <ul>
+        <li>Add <code>imageUrls: string[]</code> — ordered, may be empty.</li>
+        <li>Keep <code>imageUrl: string | null</code> — equals <code>imageUrls[0] ?? null</code> when hydrated.</li>
+      </ul>
+      <h3>Create post</h3>
+      <ul>
+        <li><code>POST /api/posts</code> body extends to accept <code>imageUrls?: string[]</code> (max 10).</li>
+        <li>If <code>imageUrls</code> provided, ignore standalone <code>imageUrl</code> or treat as alias for single-element array — pick one rule at execute (recommended: prefer <code>imageUrls</code> when non-empty).</li>
+        <li>Insert <code>post_images</code> rows in order; set <code>posts.image_url</code> to first URL or null.</li>
+        <li>Post still requires <code>body</code> min 1 OR at least one image (existing image-only posts use body <code>" "</code> — preserve that).</li>
+      </ul>
+      <h3>Read paths</h3>
+      <p>Feed, get-by-id, profile posts list, share hydrate — all return <code>imageUrls</code> populated from join/batch query.</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Migration: <code>post_images</code> + backfill</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add Knex migration creating <code>post_images</code> with FK cascade delete, unique <code>(post_id, sort_order)</code>, indexes. Backfill from <code>posts.image_url</code>. Document in plan <code>migrations/README.md</code>.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>database/migrations/20260802120000_post_images.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>npm run migrate</code>; existing single-image posts have one <code>post_images</code> row</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Backend: model, create, hydrate</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add <code>PostImageModel</code> (or extend <code>PostModel</code>) for insert/list-by-post-ids. Extend <code>PostService.create</code> schema with <code>imageUrls</code> max 10 + path validation (shared constant with MessageService pattern). On create: transaction — insert post, insert ordered images, set <code>image_url</code>. Extend <code>hydrate</code> to batch-load images and attach <code>imageUrls</code> + sync <code>imageUrl</code>. No controller contract change beyond body shape.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>src/models/PostImageModel.ts</code> (or <code>PostModel.ts</code>); <code>src/services/PostService.ts</code>; optional <code>src/constants/uploads.ts</code> for <code>UPLOAD_PATH_RE</code> + <code>MAX_POST_IMAGES</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>POST with 3 valid URLs → 201 + ordered <code>imageUrls</code>; invalid path → 400; GET feed returns arrays</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — FE types + FeedComposer multi-select</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add <code>imageUrls: string[]</code> to FE <code>PostView</code>. Refactor <code>FeedComposer</code> to <code>selectedImages: { file, previewUrl }[]</code> capped at 10. File input <code>multiple</code> + append on repeated picks. Horizontal thumbnail strip with remove + move left/right. On submit: <code>Promise.all</code> uploads, then <code>POST /api/posts</code> with <code>imageUrls</code>. Disable Photo button at cap; show count hint (e.g. “3/10”).
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/api/types.ts</code>; <code>frontend/src/components/FeedComposer.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2 (API shape)</dd></div>
+          <div><dt>Verify</dt><dd>Pick 3 images, reorder, post; feed shows carousel in correct order</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — <code>PostMediaCarousel</code> + feed cards</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            New presentational component: horizontal <code>scroll-snap</code> track, one slide per image, dot indicators synced to scroll position — <strong>no arrow buttons</strong> (4A). Touch swipe + desktop drag-scroll only; <code>overscroll-behavior-x: contain</code>. Use in <code>PostCard</code> when <code>imageUrls.length &gt; 1</code>; keep existing single-image path for n=1 and profile-activity styling. Wire same component on <code>PostDetailPage</code> via <code>PostCard</code>.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/PostMediaCarousel.tsx</code>; <code>frontend/src/components/PostCard.tsx</code>; optional <code>frontend/src/index.css</code> scroll-snap utilities</dd></div>
+          <div><dt>Depends on</dt><dd>T3</dd></div>
+          <div><dt>Verify</dt><dd>Swipe/scroll through 3+ images on feed and detail; dots track position; single image unchanged</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — Share embed + profile timeline</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Update <code>SharedPostEmbed</code> to render <code>PostMediaCarousel</code> when <code>sharedFrom.imageUrls.length &gt; 1</code>. Confirm <code>ProfilePage</code> timeline (embedded <code>PostCard</code>) shows carousel without layout regressions.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/SharedPostEmbed.tsx</code>; smoke-check <code>frontend/src/pages/ProfilePage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T4</dd></div>
+          <div><dt>Verify</dt><dd>Share multi-image friend post → nested carousel works</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T6">
+        <h3>T6 — Acceptance artifacts + build gate</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Finalize <code>test-results.json</code> / <code>test.html</code>. Run typecheck/lint/build; fix regressions.
+          </dd></div>
+          <div><dt>Files</dt><dd>plan acceptance files; any fix files from gate</dd></div>
+          <div><dt>Depends on</dt><dd>T5</dd></div>
+          <div><dt>Verify</dt><dd>Build green; acceptance items ready for human / <code>-tw</code></dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☐</span><span><code>post_images</code> table exists; legacy posts backfilled</span></li>
+        <li><span>☐</span><span><code>POST /api/posts</code> accepts up to 10 ordered <code>imageUrls</code> with path validation</span></li>
+        <li><span>☐</span><span>All post read paths return <code>imageUrls</code> + cover <code>imageUrl</code></span></li>
+        <li><span>☐</span><span>FeedComposer: multi-select, strip, reorder, remove, 10 cap</span></li>
+        <li><span>☐</span><span>Feed/detail/profile: horizontal carousel for multi-image posts</span></li>
+        <li><span>☐</span><span>Single-image posts visually unchanged</span></li>
+        <li><span>☐</span><span>SharedPostEmbed supports multi-image originals</span></li>
+        <li><span>☐</span><span>Typecheck/build pass; acceptance Passed or waived in writing</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="acceptance">
+      <h2>Acceptance</h2>
+      <p>Runnable checklist: <code>test-results.json</code> + <code>test.html</code> in this folder. Surfaces: UI + API + CLI.</p>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>08022026</td>
+            <td>Initial spec after codebase grill: up to 10 images; FeedComposer only (no page publishing tool); post_images table; scroll-snap carousel; chevron reorder in composer; execution on kylie/post-photo-feature.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>08022026</td>
+            <td>Human grill locked: 1A 2A 3A 4A 5A 6A 7A 8A 9A 10B 11-excluded 12A. Carousel dots + scroll-snap only (no arrows). Post-publish edit explicitly deferred to follow-up plan.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

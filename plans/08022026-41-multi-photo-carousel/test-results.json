@@ -1,0 +1,126 @@
+{
+  "plan": "plans/08022026-41-multi-photo-carousel",
+  "generatedAt": "2026-08-02",
+  "status": "Not Run",
+  "items": [
+    {
+      "id": "A0",
+      "title": "Execution branch is kylie/post-photo-feature",
+      "surface": "cli",
+      "precondition": "About to execute or mid-execution",
+      "steps": [
+        "Confirm current branch is kylie/post-photo-feature branched from dev",
+        "Confirm FeedComposer.tsx and PostCard.tsx exist"
+      ],
+      "expected": "Branch matches plan; modern feed composer present.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Select multiple photos in FeedComposer (up to 10)",
+      "surface": "ui",
+      "precondition": "Signed in; on Feed",
+      "steps": [
+        "Expand composer and click Photo",
+        "Select 3+ images from device (multi-select if OS allows, or add in batches)",
+        "Confirm thumbnail strip shows all selected images side-by-side",
+        "Attempt to add an 11th image"
+      ],
+      "expected": "Up to 10 images attach with previews; 11th rejected with clear feedback.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Reorder images before posting",
+      "surface": "ui",
+      "precondition": "Composer has at least 3 images selected",
+      "steps": [
+        "Use reorder controls on the thumbnail strip to move the middle image to first",
+        "Post with optional caption"
+      ],
+      "expected": "Posted carousel opens on the reordered first image; swipe order matches composer order.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Feed carousel swipe / scroll",
+      "surface": "ui",
+      "precondition": "Feed shows a multi-image post",
+      "steps": [
+        "Swipe or drag-scroll horizontally on the post media area",
+        "Observe dot or position indicator if present"
+      ],
+      "expected": "Each image is a full-width card; horizontal navigation works on touch and trackpad; no vertical page hijack.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Single-image posts unchanged",
+      "surface": "ui",
+      "precondition": "Existing single-image post on feed OR post one new single photo",
+      "steps": [
+        "View the post on Feed and Post detail"
+      ],
+      "expected": "Single image renders as today (no empty carousel chrome); no regression in layout.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Shared post embed shows multi-image carousel",
+      "surface": "ui",
+      "precondition": "Friend has a multi-image original; mutual friendship",
+      "steps": [
+        "Share the friend's multi-image post",
+        "Inspect nested embed on your shared card"
+      ],
+      "expected": "Nested embed shows the same carousel (or first image + count) — not only the cover image silently.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "API rejects invalid image URLs",
+      "surface": "api",
+      "precondition": "Authenticated session",
+      "steps": [
+        "POST /api/posts with imageUrls containing a non-/uploads/ path"
+      ],
+      "expected": "400 validation error; no post row created.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A7",
+      "title": "Build gate",
+      "surface": "cli",
+      "precondition": "All tasks merged on execution branch",
+      "steps": [
+        "Run backend and frontend typecheck/build"
+      ],
+      "expected": "No errors introduced by this feature.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

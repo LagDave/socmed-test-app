@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.18 — 2026-08-02
+
+### Added
+- Multi-photo feed posts (up to 10 images) with carousel on feed, detail, and share embeds
+- `post_images` table with per-photo comment counts, reactions, and dedicated photo comment page
+- Per-photo “who reacted” panel; `comment_on_photo` notifications with deep links
+
+### Plans
+- `plans/08022026-41-multi-photo-carousel` — executed on `kylie/post-photo-feature`
+
 ## 0.1.17 — 2026-07-31
 
 ### Added

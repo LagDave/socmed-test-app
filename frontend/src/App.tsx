@@ -6,6 +6,7 @@ import { FeedPage } from "@/pages/FeedPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { PostDetailPage } from "@/pages/PostDetailPage";
+import { PostPhotoCommentsPage } from "@/pages/PostPhotoCommentsPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { FriendsPage } from "@/pages/FriendsPage";
 import { AccountSettingsPage } from "@/pages/AccountSettingsPage";
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/posts/:id" element={<PostDetailPage />} />
+              <Route path="/posts/:postId/photos/:photoId" element={<PostPhotoCommentsPage />} />
               <Route path="/friends" element={<FriendsPage />} />
               <Route path="/messages" element={<MessagesPage />} />
               <Route path="/messages/:conversationId" element={<MessagesPage />} />

@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PostCard } from "@/components/PostCard";
 import { Button } from "@/components/ui/button";
 import { groupComments } from "@/lib/groupComments";
+import { commentsForPostImage, postMediaImages } from "@/lib/postMedia";
 
 type PendingDelete =
   | { type: "post" }
@@ -33,7 +34,16 @@ export function PostDetailPage() {
   const deletingRef = useRef(false);
   const commentsSectionRef = useRef<HTMLDivElement>(null);
 
-  const { threads, orphans } = useMemo(() => groupComments(comments), [comments]);
+  const mediaImages = useMemo(() => (post ? postMediaImages(post) : []), [post]);
+  const hasPhotoThreads = mediaImages.some((image) => Boolean(image.id));
+  const postLevelComments = useMemo(
+    () => commentsForPostImage(comments, null),
+    [comments]
+  );
+  const { threads: postThreads, orphans: postOrphans } = useMemo(
+    () => groupComments(postLevelComments),
+    [postLevelComments]
+  );
 
   async function load() {
     if (!id) return;
@@ -45,6 +55,19 @@ export function PostDetailPage() {
 
   function patchPostSummary(reactionSummary: ReactionSummary) {
     setPost((prev) => (prev ? { ...prev, reactionSummary } : prev));
+  }
+
+  function patchPhotoSummary(postImageId: string, reactionSummary: ReactionSummary) {
+    setPost((prev) =>
+      prev
+        ? {
+            ...prev,
+            images: prev.images.map((img) =>
+              img.id === postImageId ? { ...img, reactionSummary } : img
+            ),
+          }
+        : prev
+    );
   }
 
   function patchCommentSummary(commentId: string, reactionSummary: ReactionSummary) {
@@ -72,20 +95,15 @@ export function PostDetailPage() {
     commentsSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   }, [post, location.hash]);
 
-  function clearReply() {
-    setReplyTo(null);
-  }
-
-  function startReply(comment: CommentView) {
-    setReplyTo(comment);
-  }
-
   async function submitComment(input: {
     text: string;
     file: File | null;
     parentId: string | null;
   }): Promise<void> {
-    if (!id || busyRef.current) return;
+    if (!id) {
+      throw new Error("Post unavailable.");
+    }
+    if (busyRef.current) return;
     const text = input.text.trim();
     if (!text && !input.file) return;
     busyRef.current = true;
@@ -101,6 +119,7 @@ export function PostDetailPage() {
         body: text || " ",
         imageUrl,
         parentId: input.parentId,
+        postImageId: null,
       });
       await load();
     } catch (err) {
@@ -119,7 +138,7 @@ export function PostDetailPage() {
   async function onReplySubmit(input: { text: string; file: File | null }) {
     if (!replyTo) return;
     await submitComment({ ...input, parentId: replyTo.id });
-    clearReply();
+    setReplyTo(null);
   }
 
   async function onShare(postId: string) {
@@ -155,7 +174,7 @@ export function PostDetailPage() {
 
       const { comment } = pendingDelete;
       await api.delete(`/api/comments/${comment.id}`);
-      if (replyTo?.id === comment.id) clearReply();
+      if (replyTo?.id === comment.id) setReplyTo(null);
       setPendingDelete(null);
       await load();
     } catch (err) {
@@ -188,6 +207,11 @@ export function PostDetailPage() {
         ? "This also removes any replies under this comment."
         : undefined;
 
+  const showPostLevelComments = !hasPhotoThreads;
+  const showPostLevelCaptionComments =
+    hasPhotoThreads &&
+    (postLevelComments.length > 0 || Boolean(post.body.trim()));
+
   return (
     <section className="feed-page space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
@@ -201,10 +225,12 @@ export function PostDetailPage() {
         <PostCard
           post={post}
           currentUserId={user.id}
+          postMediaMode="detail"
           sharingPostId={sharingPostId}
           onDelete={() => setPendingDelete({ type: "post" })}
           onShare={(postId) => void onShare(postId)}
           onReactionSummaryChange={(_, summary) => patchPostSummary(summary)}
+          onPhotoReactionSummaryChange={patchPhotoSummary}
         />
       ) : (
         <article className="feed-card px-4 py-4">
@@ -214,31 +240,56 @@ export function PostDetailPage() {
       )}
 
       {shareNotice && (
-        <p className="rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground">
-          {shareNotice}
-        </p>
+        <p className="feed-alert px-4 py-2.5 text-sm text-muted-foreground">{shareNotice}</p>
       )}
 
-      <CommentsSection
-        comments={comments}
-        threads={threads}
-        orphans={orphans}
-        user={user}
-        busy={busy}
-        replyTo={replyTo}
-        onCommentSubmit={onCommentSubmit}
-        onReplySubmit={onReplySubmit}
-        onStartReply={startReply}
-        onClearReply={clearReply}
-        onDeleteComment={(comment, kind) =>
-          setPendingDelete({ type: "comment", comment, kind })
-        }
-        onReactionSummaryChange={patchCommentSummary}
-        sectionRef={commentsSectionRef}
-      />
+      {showPostLevelCaptionComments && (
+        <CommentsSection
+          comments={postLevelComments}
+          threads={postThreads}
+          orphans={postOrphans}
+          user={user}
+          busy={busy}
+          replyTo={
+            replyTo && (replyTo.postImageId ?? null) === null ? replyTo : null
+          }
+          onCommentSubmit={onCommentSubmit}
+          onReplySubmit={onReplySubmit}
+          onStartReply={setReplyTo}
+          onClearReply={() => setReplyTo(null)}
+          onDeleteComment={(comment, kind) =>
+            setPendingDelete({ type: "comment", comment, kind })
+          }
+          onReactionSummaryChange={patchCommentSummary}
+          sectionRef={commentsSectionRef}
+          title="Post comments"
+          composerAutoFocus
+        />
+      )}
+
+      {showPostLevelComments && (
+        <CommentsSection
+          comments={postLevelComments}
+          threads={postThreads}
+          orphans={postOrphans}
+          user={user}
+          busy={busy}
+          replyTo={replyTo}
+          onCommentSubmit={onCommentSubmit}
+          onReplySubmit={onReplySubmit}
+          onStartReply={setReplyTo}
+          onClearReply={() => setReplyTo(null)}
+          onDeleteComment={(comment, kind) =>
+            setPendingDelete({ type: "comment", comment, kind })
+          }
+          onReactionSummaryChange={patchCommentSummary}
+          sectionRef={commentsSectionRef}
+          composerAutoFocus
+        />
+      )}
 
       {error && (
-        <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground" role="alert">
+        <p className="feed-alert px-4 py-3 text-sm text-muted-foreground" role="alert">
           {error}
         </p>
       )}

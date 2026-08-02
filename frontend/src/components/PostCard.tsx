@@ -6,16 +6,17 @@ import { PostActionRow } from "@/components/PostActionRow";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ReactionBar } from "@/components/ReactionBar";
 import { SharedPostEmbed } from "@/components/SharedPostEmbed";
+import { PostMediaGallery } from "@/components/PostMediaGallery";
 import { Button } from "@/components/ui/button";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import {
-  isProfileActivityPost,
   isProfilePicturePost,
   profileActivityDisplayBody,
   profileActivityHasCustomCaption,
   profileActivityKind,
 } from "@/lib/profileActivityPosts";
 import { canSharePost, shareAttributionLabel } from "@/lib/sharePost";
+import { postMediaImages, postMediaUrls } from "@/lib/postMedia";
 import { cn } from "@/lib/utils";
 
 /** Full card width — offsets the header avatar column (sm + gap-2.5). */
@@ -52,14 +53,57 @@ function ProfileActivityMedia({ body, imageUrl }: { body: string; imageUrl: stri
   );
 }
 
-function PostActivityImage({ body, imageUrl, postPath }: { body: string; imageUrl: string; postPath: string }) {
-  if (isProfileActivityPost(body)) {
-    return <ProfileActivityMedia body={body} imageUrl={imageUrl} />;
+function PostStandardMedia({
+  post,
+  postPath,
+  mediaMode = "feed",
+  onReactionSummaryChange,
+  onPhotoReactionSummaryChange,
+  onShare,
+  sharingPostId = null,
+  currentUserId,
+}: {
+  post: PostView;
+  postPath: string;
+  mediaMode?: "feed" | "detail";
+  currentUserId: string;
+  onReactionSummaryChange: (postId: string, summary: ReactionSummary) => void;
+  onPhotoReactionSummaryChange?: (postImageId: string, summary: ReactionSummary) => void;
+  onShare?: (postId: string) => void;
+  sharingPostId?: string | null;
+}) {
+  const media = postMediaImages(post);
+  if (media.length === 0) return null;
+
+  const detailActions =
+    mediaMode === "detail"
+      ? {
+          postId: post.id,
+          postReactionSummary: post.reactionSummary,
+          onPostReactionSummaryChange: (summary: ReactionSummary) =>
+            onReactionSummaryChange(post.id, summary),
+          onPhotoReactionSummaryChange: (postImageId: string, summary: ReactionSummary) =>
+            onPhotoReactionSummaryChange?.(postImageId, summary),
+          onShare,
+          sharingPostId,
+          canShare: canSharePost(currentUserId, post),
+        }
+      : undefined;
+
+  if (media.length > 1 || mediaMode === "detail") {
+    return (
+      <PostMediaGallery
+        media={media}
+        postPath={postPath}
+        mode={mediaMode === "detail" ? "detail" : "feed"}
+        postActions={detailActions}
+      />
+    );
   }
   return (
     <Link to={postPath} className="mt-3 block overflow-hidden rounded-xl border border-border/60">
       <img
-        src={imageUrl}
+        src={media[0].url}
         alt=""
         className="max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]"
       />
@@ -72,10 +116,13 @@ type PostCardProps = {
   currentUserId: string;
   onDelete: (postId: string) => void;
   onReactionSummaryChange: (postId: string, summary: ReactionSummary) => void;
+  onPhotoReactionSummaryChange?: (postImageId: string, summary: ReactionSummary) => void;
   onShare?: (postId: string) => void;
   sharingPostId?: string | null;
   /** When embedded inside an outer feed-card (e.g. profile timeline). */
   variant?: "standalone" | "embedded";
+  /** Full photo album on post detail; grid + link on feed. */
+  postMediaMode?: "feed" | "detail";
   className?: string;
 };
 
@@ -84,9 +131,11 @@ export function PostCard({
   currentUserId,
   onDelete,
   onReactionSummaryChange,
+  onPhotoReactionSummaryChange,
   onShare,
   sharingPostId = null,
   variant = "standalone",
+  postMediaMode = "feed",
   className,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -100,6 +149,8 @@ export function PostCard({
   const isActivity = activityKind !== null;
   const displayBody = profileActivityDisplayBody(post.body);
   const hasCustomCaption = profileActivityHasCustomCaption(post.body);
+  const mediaUrls = postMediaUrls(post);
+  const perPhotoActions = postMediaMode === "detail" && mediaUrls.length > 0;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -149,18 +200,21 @@ export function PostCard({
           </Link>
         )
       ) : null}
-      {post.imageUrl &&
-        (isActivity ? (
-          <PostActivityImage body={post.body} imageUrl={post.imageUrl} postPath={postPath} />
-        ) : (
-          <Link to={postPath} className="mt-3 block overflow-hidden rounded-xl border border-border/60">
-            <img
-              src={post.imageUrl}
-              alt=""
-              className="max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]"
-            />
-          </Link>
-        ))}
+      {!isActivity && mediaUrls.length > 0 ? (
+        <PostStandardMedia
+          post={post}
+          postPath={postPath}
+          mediaMode={postMediaMode}
+          currentUserId={currentUserId}
+          onReactionSummaryChange={onReactionSummaryChange}
+          onPhotoReactionSummaryChange={onPhotoReactionSummaryChange}
+          onShare={onShare}
+          sharingPostId={sharingPostId}
+        />
+      ) : null}
+      {isActivity && post.imageUrl ? (
+        <ProfileActivityMedia body={post.body} imageUrl={post.imageUrl} />
+      ) : null}
     </>
   );
 
@@ -243,27 +297,29 @@ export function PostCard({
         </div>
       </div>
 
-      <div
-        className={cn(
-          "feed-action-row mt-2 mb-3",
-          variant === "embedded" ? cn("border-t border-border/70 pt-2", POST_MEDIA_BREAKOUT) : "mx-4"
-        )}
-      >
-        <PostActionRow
-          size="md"
-          commentTo={`/posts/${post.id}#comments`}
-          onShare={onShare && canSharePost(currentUserId, post) ? () => onShare(post.id) : undefined}
-          shareBusy={sharingPostId === post.id}
+      {perPhotoActions ? null : (
+        <div
+          className={cn(
+            "feed-action-row mt-2 mb-3",
+            variant === "embedded" ? cn("border-t border-border/70 pt-2", POST_MEDIA_BREAKOUT) : "mx-4"
+          )}
         >
-          <ReactionBar
+          <PostActionRow
             size="md"
-            targetType="post"
-            targetId={post.id}
-            summary={post.reactionSummary}
-            onSummaryChange={(reactionSummary) => onReactionSummaryChange(post.id, reactionSummary)}
-          />
-        </PostActionRow>
-      </div>
+            commentTo={`/posts/${post.id}#comments`}
+            onShare={onShare && canSharePost(currentUserId, post) ? () => onShare(post.id) : undefined}
+            shareBusy={sharingPostId === post.id}
+          >
+            <ReactionBar
+              size="md"
+              targetType="post"
+              targetId={post.id}
+              summary={post.reactionSummary}
+              onSummaryChange={(reactionSummary) => onReactionSummaryChange(post.id, reactionSummary)}
+            />
+          </PostActionRow>
+        </div>
+      )}
     </>
   );
 

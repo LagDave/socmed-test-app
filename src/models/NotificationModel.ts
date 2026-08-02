@@ -1,6 +1,10 @@
 import { db } from "../database/connection";
 
-export type NotificationType = "friend_request" | "comment_on_post" | "comment_reply";
+export type NotificationType =
+  | "friend_request"
+  | "comment_on_post"
+  | "comment_on_photo"
+  | "comment_reply";
 
 export type NotificationRow = {
   id: string;
@@ -9,6 +13,7 @@ export type NotificationRow = {
   type: NotificationType;
   post_id: string | null;
   comment_id: string | null;
+  post_image_id: string | null;
   friendship_id: string | null;
   is_read: boolean;
   created_at: Date;
@@ -22,6 +27,7 @@ export class NotificationModel {
     type: NotificationType;
     postId?: string | null;
     commentId?: string | null;
+    postImageId?: string | null;
     friendshipId?: string | null;
   }): Promise<NotificationRow> {
     const [row] = await db<NotificationRow>("notifications")
@@ -31,6 +37,7 @@ export class NotificationModel {
         type: input.type,
         post_id: input.postId ?? null,
         comment_id: input.commentId ?? null,
+        post_image_id: input.postImageId ?? null,
         friendship_id: input.friendshipId ?? null,
         is_read: false,
       })

@@ -13,11 +13,12 @@ export type NotificationView = {
   actor: ReturnType<typeof toPublicUser>;
   postId: string | null;
   commentId: string | null;
+  postImageId: string | null;
   friendshipId: string | null;
   message: string;
 };
 
-const ACTIVITY_TYPES: NotificationType[] = ["comment_on_post", "comment_reply"];
+const ACTIVITY_TYPES: NotificationType[] = ["comment_on_post", "comment_on_photo", "comment_reply"];
 
 function messageFor(type: NotificationType, actorName: string): string {
   switch (type) {
@@ -25,6 +26,8 @@ function messageFor(type: NotificationType, actorName: string): string {
       return `${actorName} sent you a friend request`;
     case "comment_on_post":
       return `${actorName} commented on your post`;
+    case "comment_on_photo":
+      return `${actorName} commented on your photo`;
     case "comment_reply":
       return `${actorName} replied to your comment`;
     default:
@@ -39,6 +42,7 @@ export class NotificationService {
     type: NotificationType;
     postId?: string | null;
     commentId?: string | null;
+    postImageId?: string | null;
     friendshipId?: string | null;
   }): Promise<void> {
     if (input.recipientId === input.actorId) return;
@@ -62,6 +66,7 @@ export class NotificationService {
         actor: publicActor,
         postId: r.post_id,
         commentId: r.comment_id,
+        postImageId: r.post_image_id ?? null,
         friendshipId: r.friendship_id,
         message: messageFor(r.type, publicActor.displayName),
       };
@@ -87,6 +92,7 @@ export class NotificationService {
         actor: publicActor,
         postId: null,
         commentId: null,
+        postImageId: null,
         friendshipId: row.id,
         message: messageFor("friend_request", publicActor.displayName),
       });

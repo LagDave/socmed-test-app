@@ -1,16 +1,23 @@
 import { useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ImagePlus, X } from "lucide-react";
+import { ChevronDown, ChevronUp, ImagePlus, X } from "lucide-react";
 import { api } from "@/api/client";
 import type { PublicUser } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { MAX_POST_IMAGES } from "@/lib/postMedia";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 import { cn } from "@/lib/utils";
 
 const MAX_BODY = 5000;
 const WARN_AT = 4800;
+
+type SelectedImage = {
+  id: string;
+  file: File;
+  previewUrl: string;
+};
 
 type FeedComposerProps = {
   user: PublicUser;
@@ -18,37 +25,81 @@ type FeedComposerProps = {
   onError: (message: string) => void;
 };
 
+function nextImageId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
   const [body, setBody] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [pickError, setPickError] = useState("");
   const busyRef = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const profilePath = `/u/${user.username || "me"}`;
 
   const trimmed = body.trim();
-  const canPost = Boolean(trimmed || imageFile);
+  const canPost = Boolean(trimmed || selectedImages.length > 0);
   const nearLimit = body.length >= WARN_AT;
+  const atImageCap = selectedImages.length >= MAX_POST_IMAGES;
 
-  function clearImage() {
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
+  function clearImages() {
+    selectedImages.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    setSelectedImages([]);
     if (fileRef.current) fileRef.current.value = "";
   }
 
   function collapseIfEmpty() {
-    if (!trimmed && !imageFile) setExpanded(false);
+    if (!trimmed && selectedImages.length === 0) setExpanded(false);
   }
 
-  function onPickImage(file: File | null) {
-    clearImage();
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+  function onPickImages(fileList: FileList | null) {
+    if (!fileList?.length) return;
+    setPickError("");
+    const incoming = Array.from(fileList);
+    const remaining = MAX_POST_IMAGES - selectedImages.length;
+    if (remaining <= 0) {
+      setPickError(`Maximum ${MAX_POST_IMAGES} photos per post.`);
+      return;
+    }
+
+    const accepted = incoming.slice(0, remaining);
+    if (incoming.length > remaining) {
+      setPickError(`Only ${remaining} more photo${remaining === 1 ? "" : "s"} can be added (max ${MAX_POST_IMAGES}).`);
+    }
+
+    setSelectedImages((prev) => [
+      ...prev,
+      ...accepted.map((file) => ({
+        id: nextImageId(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+      })),
+    ]);
     setExpanded(true);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function removeImage(id: string) {
+    setSelectedImages((prev) => {
+      const target = prev.find((img) => img.id === id);
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((img) => img.id !== id);
+    });
+    setPickError("");
+  }
+
+  function moveImage(id: string, direction: -1 | 1) {
+    setSelectedImages((prev) => {
+      const index = prev.findIndex((img) => img.id === id);
+      if (index < 0) return prev;
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[index], copy[nextIndex]] = [copy[nextIndex], copy[index]];
+      return copy;
+    });
   }
 
   async function onSubmit(e: FormEvent) {
@@ -58,14 +109,20 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
     setBusy(true);
     onError("");
     try {
-      let imageUrl: string | null = null;
-      if (imageFile) {
-        const up = await api.upload<{ url: string }>("/api/uploads", imageFile);
-        imageUrl = up.url;
+      let imageUrls: string[] = [];
+      if (selectedImages.length > 0) {
+        const uploads = await Promise.all(
+          selectedImages.map((img) => api.upload<{ url: string }>("/api/uploads", img.file))
+        );
+        imageUrls = uploads.map((up) => up.url);
       }
-      await api.post("/api/posts", { body: trimmed || " ", imageUrl });
+      await api.post("/api/posts", {
+        body: trimmed || " ",
+        ...(imageUrls.length > 0 ? { imageUrls } : {}),
+      });
       setBody("");
-      clearImage();
+      clearImages();
+      setPickError("");
       setExpanded(false);
       onPosted();
     } catch (err) {
@@ -105,25 +162,7 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
             )}
           />
 
-          {imagePreview && (
-            <div className="relative inline-block max-w-full">
-              <img
-                src={imagePreview}
-                alt="Selected attachment preview"
-                className="max-h-56 rounded-xl border border-border object-cover"
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="icon"
-                className="absolute right-2 top-2 h-8 w-8 rounded-full shadow-md"
-                aria-label="Remove photo"
-                onClick={clearImage}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          {pickError && <p className="text-xs text-destructive">{pickError}</p>}
 
           <div
             className={cn(
@@ -136,14 +175,16 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
                 ref={fileRef}
                 type="file"
                 accept="image/*"
+                multiple
                 className="sr-only"
-                onChange={(e) => onPickImage(e.target.files?.[0] ?? null)}
+                onChange={(e) => onPickImages(e.target.files)}
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 className="gap-1.5 text-muted-foreground"
+                disabled={atImageCap}
                 onClick={() => fileRef.current?.click()}
               >
                 <ImagePlus className="h-4 w-4" aria-hidden="true" />
@@ -170,6 +211,87 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
           </Button>
         )}
       </div>
+
+      {selectedImages.length > 0 && (
+        <section
+          className="feed-composer-photos border-t border-border/60 px-4 pb-3 pt-3"
+          aria-label="Selected photos"
+        >
+          <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/15">
+            <div className="flex items-center justify-between border-b border-border/60 bg-muted/25 px-3 py-2">
+              <p className="text-xs font-semibold tracking-wide text-foreground/80">Photos</p>
+              <p className="text-xs text-muted-foreground">
+                {selectedImages.length} of {MAX_POST_IMAGES}
+              </p>
+            </div>
+            <ul className="feed-composer-photos-list max-h-72 divide-y divide-border/50 overflow-y-auto overscroll-y-contain">
+              {selectedImages.map((img, index) => (
+                <li key={img.id} className="flex items-center gap-3 px-3 py-2.5">
+                  <span
+                    className="flex size-7 shrink-0 items-center justify-center rounded-full bg-background text-xs font-semibold ring-1 ring-border/70"
+                    aria-hidden="true"
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg ring-1 ring-border/60 sm:h-[4.5rem] sm:w-[4.5rem]">
+                    <img
+                      src={img.previewUrl}
+                      alt={`Photo ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground/90">
+                      {img.file.name || `Photo ${index + 1}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {index === 0 ? "Cover photo" : `Slide ${index + 1}`}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    {selectedImages.length > 1 && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-muted-foreground"
+                          aria-label={`Move photo ${index + 1} up`}
+                          disabled={index === 0}
+                          onClick={() => moveImage(img.id, -1)}
+                        >
+                          <ChevronUp className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-muted-foreground"
+                          aria-label={`Move photo ${index + 1} down`}
+                          disabled={index === selectedImages.length - 1}
+                          onClick={() => moveImage(img.id, 1)}
+                        >
+                          <ChevronDown className="size-4" />
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-destructive"
+                      aria-label={`Remove photo ${index + 1}`}
+                      onClick={() => removeImage(img.id)}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
     </form>
   );
 }

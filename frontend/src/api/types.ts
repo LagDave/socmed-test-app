@@ -23,10 +23,25 @@ export type ReactionSummary = {
   viewerEmoji: ReactionEmoji | null;
 };
 
+export type PostImageView = {
+  id: string;
+  url: string;
+  sortOrder: number;
+  commentCount?: number;
+  reactionSummary?: ReactionSummary;
+};
+
+export type ReactionUserView = {
+  emoji: ReactionEmoji;
+  user: PublicUser;
+};
+
 export type PostView = {
   id: string;
   body: string;
   imageUrl: string | null;
+  imageUrls: string[];
+  images: PostImageView[];
   createdAt: string;
   author: PublicUser;
   reactionSummary: ReactionSummary;
@@ -37,6 +52,7 @@ export type PostView = {
 export type CommentView = {
   id: string;
   postId: string;
+  postImageId: string | null;
   parentId: string | null;
   body: string;
   imageUrl: string | null;

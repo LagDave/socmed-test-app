@@ -21,3 +21,7 @@ postsRouter.delete("/comments/:id", requireAuth, CommentsController.remove);
 
 postsRouter.put("/comments/:id/reactions", requireAuth, ReactionsController.setOnComment);
 postsRouter.delete("/comments/:id/reactions", requireAuth, ReactionsController.clearOnComment);
+
+postsRouter.put("/post-images/:id/reactions", requireAuth, ReactionsController.setOnPostImage);
+postsRouter.delete("/post-images/:id/reactions", requireAuth, ReactionsController.clearOnPostImage);
+postsRouter.get("/post-images/:id/reactions/users", requireAuth, ReactionsController.listUsersForPostImage);
