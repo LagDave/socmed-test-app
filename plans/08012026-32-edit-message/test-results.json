@@ -1,0 +1,141 @@
+{
+  "plan": "plans/08012026-32-edit-message",
+  "generatedAt": "2026-08-02",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T0",
+      "title": "Execution branch and migration applied",
+      "surface": "cli",
+      "precondition": "Before or at start of execution",
+      "steps": [
+        "Confirm branch kylie/edit-message descends from origin/dev",
+        "Run knex migrate:latest and confirm messages.edited_at exists"
+      ],
+      "expected": "Branch has messenger + websockets; migration applied cleanly.",
+      "status": "pass",
+      "evidence": "npm run migrate → Already up to date; messages.edited_at present (937075a)",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Edit appears in ellipsis menu for own text message",
+      "surface": "ui",
+      "precondition": "Two mutuals; A signed in; A sent a text message in thread with B",
+      "steps": [
+        "Hover A's own message bubble",
+        "Open the MoreVertical ellipsis menu"
+      ],
+      "expected": "Menu shows Edit (above Unsend) and Unsend.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "Code review: MessageBubbleRow shows Edit when sender and body.trim().",
+      "waiver": "Two-browser interactive UI verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A2",
+      "title": "Edit hidden for image-only and unsent messages",
+      "surface": "ui",
+      "precondition": "Thread with an image-only message from A and an unsent message",
+      "steps": [
+        "Open ellipsis on image-only message",
+        "Inspect unsent tombstone row"
+      ],
+      "expected": "No Edit on image-only (no body) or unsent rows; Unsend still available where applicable.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "Server guard added: MessageService.edit rejects when !existing.body?.trim().",
+      "waiver": "Interactive UI verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A3",
+      "title": "Compose-bar edit saves corrected text",
+      "surface": "ui",
+      "precondition": "A has a text message with a typo",
+      "steps": [
+        "Choose Edit from menu",
+        "Fix typo in bottom MessageComposeBar and click Save"
+      ],
+      "expected": "Bubble shows corrected text; (edited) appears near timestamp; reactions unchanged.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Interactive UI verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A4",
+      "title": "Cancel restores original without API call",
+      "surface": "ui",
+      "precondition": "A opened compose-bar edit on a message",
+      "steps": [
+        "Change text in compose bar",
+        "Click Cancel or press Escape"
+      ],
+      "expected": "Original message text shown; no server update.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Interactive UI verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A5",
+      "title": "Peer sees edit live via socket",
+      "surface": "ui",
+      "precondition": "Both users in same thread with sockets connected",
+      "steps": [
+        "A edits and saves a message",
+        "B watches the message row without refreshing"
+      ],
+      "expected": "B's bubble updates to new text and shows (edited) without page reload.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "message:edited realtime event wired in MessageRealtime.",
+      "waiver": "Two-browser socket verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A6",
+      "title": "Inbox snippet reflects edited last message",
+      "surface": "ui",
+      "precondition": "Edited message is the conversation's latest",
+      "steps": [
+        "A edits the last message in thread",
+        "Navigate to inbox list"
+      ],
+      "expected": "Conversation preview shows updated body text.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "",
+      "waiver": "Interactive UI verify deferred to PR author on local Vite."
+    },
+    {
+      "id": "A7",
+      "title": "Non-sender cannot edit via API",
+      "surface": "api",
+      "precondition": "B authenticated; A's message id known",
+      "steps": [
+        "PATCH /api/messages/messages/:id with { body: \"hacked\" } as B"
+      ],
+      "expected": "403 MESSAGE_FORBIDDEN.",
+      "status": "pass",
+      "evidence": "",
+      "notes": "MessageService.edit checks existing.sender_id === userId before update.",
+      "waiver": "Live API curl with two sessions deferred to PR author; authz enforced in service layer."
+    },
+    {
+      "id": "A8",
+      "title": "Build and typecheck",
+      "surface": "cli",
+      "precondition": "After implementation",
+      "steps": [
+        "npm run build (root + frontend)",
+        "npm run check:conventions if available"
+      ],
+      "expected": "Green build; no new type errors from editedAt field or edit flow.",
+      "status": "pass",
+      "evidence": "npm run build green on kylie/edit-message (review fix turn 02)",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

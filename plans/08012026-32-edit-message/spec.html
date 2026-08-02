@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit Message Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 32</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Edit Message</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08012026-32-edit-message</dd></div>
+        <div><dt>Size</dt><dd>Small (migration + API + bubble UI)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08012026-32-edit-message</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/edit-message</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 17 friends messenger · Plan 22 messages websockets</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Messenger already supports send, unsend, and reactions, but typos in sent text are permanent unless the user unsends the whole message. A lightweight <strong>edit</strong> action — reachable from the existing ellipsis menu on own messages — lets users fix spelling mistakes without destroying reactions or conversation context.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Allow the sender to edit the <strong>text body</strong> of their own, non-unsent messages. Entry point: <strong>Edit</strong> in the Radix ellipsis menu next to Unsend on own bubbles.</p>
+      <p><strong>Deliverables:</strong></p>
+      <ul>
+        <li><strong>Schema</strong> — nullable <code>edited_at</code> on <code>messages</code></li>
+        <li><strong>API</strong> — <code>PATCH /api/messages/messages/:id</code> with <code>{ body }</code>; ownership + participant gates; returns updated <code>MessageView</code></li>
+        <li><strong>Realtime</strong> — <code>message:edited</code> socket event to both participants (mirror <code>message:unsent</code>)</li>
+        <li><strong>SPA</strong> — Edit menu item; inline edit mode on the bubble (textarea + Save / Cancel); subtle “(edited)” label when <code>editedAt</code> is set</li>
+      </ul>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Sender can open Edit from the ellipsis menu, change text, save, and both sides see the corrected body without reload</li>
+        <li>Peer receives the update live via socket (or poll fallback when disconnected)</li>
+        <li>Edited last message updates inbox snippet text automatically</li>
+        <li>Non-senders, unsent messages, and image-only messages cannot be edited</li>
+        <li>Reactions remain intact on edited messages</li>
+        <li>Frontend + backend typecheck/build pass; acceptance checklist passes or waived in writing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Edit scope</td>
+            <td><strong>Text body only</strong></td>
+            <td>Fix typos in captions and text messages. Image URL is immutable — no re-upload flow in this plan.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Eligible messages</td>
+            <td><strong>Own, non-unsent, with existing body text</strong></td>
+            <td>Image-only messages (no body) have nothing to edit; hide Edit for those rows. Unsent tombstones stay read-only.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Edit UX</td>
+            <td><strong>Inline edit in bubble</strong></td>
+            <td>Bubble swaps to a <code>Textarea</code> with Save / Cancel. No modal — faster for one-line typo fixes. Escape cancels; Enter submits only with modifier (match compose behavior if present).</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Edit indicator</td>
+            <td><strong>Show “(edited)” near timestamp</strong></td>
+            <td>Standard chat affordance when <code>editedAt</code> is non-null. Original <code>createdAt</code> stays unchanged.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Edit history</td>
+            <td><strong>None — timestamp only</strong></td>
+            <td>No audit table or “view edit history.” Keeps scope small; unsend already soft-deletes content.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Time window</td>
+            <td><strong>No time limit</strong></td>
+            <td>Consistent with unsend (no expiry in current code). Add a window later if abuse appears.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Empty body</td>
+            <td><strong>Text-only: reject empty trim</strong></td>
+            <td>Clearing all text on a text-only message should use Unsend, not edit. Image + caption may save empty body (caption removed).</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Menu placement</td>
+            <td><strong>Ellipsis dropdown — Edit above Unsend</strong></td>
+            <td>User request: put Edit in the existing <code>MoreVertical</code> menu on own bubbles.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Not in scope:</strong> editing images, editing someone else’s messages, edit notifications, or edit history. Posts/comments edit remains deferred.
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Overflow menu today</strong> — <code>frontend/src/components/MessageBubbleRow.tsx</code> shows Radix <code>DropdownMenu</code> with a single “Unsend” item on <code>mine &amp;&amp; !isUnsent</code>. Add “Edit” when <code>message.body</code> is non-empty (after trim).</p>
+      <p><strong>Closest backend analog</strong> — <code>MessageService.unsend</code>: participant check, sender ownership, idempotent guard, model update, <code>toMessageView</code>, <code>MessageRealtime</code> broadcast.</p>
+      <p><strong>Closest frontend analog</strong> — unsend flow in <code>MessagesPage.tsx</code> (<code>confirmUnsend</code>, local state patch) + socket listener <code>MESSAGE_UNSENT</code> via <code>applyMessagePatch</code>.</p>
+      <p><strong>Validation</strong> — reuse body rules from <code>sendMessageSchema</code> (max 4000, trimmed non-empty for text-only). New Zod schema <code>editMessageSchema</code> with <code>body: z.string().min(1).max(4000)</code> at service layer; controller stays thin.</p>
+      <p><strong>Types</strong> — extend backend <code>MessageView</code> and frontend <code>frontend/src/api/types.ts</code> with <code>editedAt: string | null</code> (ISO on wire).</p>
+      <p><strong>Layering</strong> — routes → controller → service → model; frontend via <code>api</code> client only. Follow Code Constitution.</p>
+      <p><strong>Execution note</strong> — implement on <code>kylie/edit-message</code> (already cut from <code>dev</code>). Planning artifacts live in this folder on the planning worktree only.</p>
+    </section>
+
+    <section class="spec-card" id="data-model">
+      <h2>Data Model</h2>
+      <table>
+        <thead><tr><th>Change</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>messages.edited_at</code></td>
+            <td>Nullable <code>timestamptz</code>. Set on every successful body update (including re-edits). <code>created_at</code> unchanged.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Migration file (proposed): <code>database/migrations/20260801140000_message_edited_at.ts</code> — verify timestamp unused before landing.</p>
+    </section>
+
+    <section class="spec-card" id="api">
+      <h2>API Surface</h2>
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>PATCH</td>
+            <td><code>/api/messages/messages/:id</code></td>
+            <td>Body <code>{ body: string }</code>. Participant + sender-only. Reject if unsent, if not sender, if trimmed body empty on text-only message, if body unchanged (optional no-op return). Updates <code>body</code> + <code>edited_at</code>. Returns <code>{ message: MessageView }</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Realtime:</strong> after PATCH, emit <code>message:edited</code> with <code>{ message: MessageView }</code> to both conversation participants; emit <code>conversation:updated</code> so inbox snippet refreshes.</p>
+      <p><strong>Error codes:</strong> reuse <code>MESSAGE_NOT_FOUND</code>, <code>MESSAGE_FORBIDDEN</code>, <code>MESSAGE_VALIDATION</code> (unsent, empty body, over limit).</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Edit only own, non-unsent messages with existing body text</li>
+            <li>Participant-only access (same as unsend)</li>
+            <li>Preserve reactions and <code>createdAt</code></li>
+            <li>Live update for peer via socket + local patch fallback</li>
+            <li>Show “(edited)” when <code>editedAt</code> is set</li>
+            <li>Menu item in existing ellipsis dropdown</li>
+            <li>Constitution layering; no business rules in React beyond presentation</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No image replacement or new upload on edit</li>
+            <li>No edit history UI or audit table</li>
+            <li>No editing unsent tombstones or peer messages</li>
+            <li>No new npm dependencies without Revision Log justification</li>
+            <li>No confirmation dialog for edit (Save/Cancel inline only)</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Edit posts or comments</li>
+        <li>Time-limited edit windows</li>
+        <li>“Message was edited” push/notification rows</li>
+        <li>Rich-text / markdown editing</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Narrow feature with familiar authz pattern, but wrong-party edit is a privacy bug and stale UI on the peer is a UX bug.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Non-sender edits message</td>
+            <td>Privacy / trust</td>
+            <td>Service enforces <code>sender_id === userId</code>; API test deny path</td>
+          </tr>
+          <tr>
+            <td>Peer sees stale text</td>
+            <td>Confusion</td>
+            <td><code>message:edited</code> event + existing poll fallback in <code>ThreadView</code></td>
+          </tr>
+          <tr>
+            <td>Empty text-only message</td>
+            <td>Broken bubble</td>
+            <td>Validation rejects empty trim when <code>image_url</code> is null</td>
+          </tr>
+          <tr>
+            <td>Reactions lost on edit</td>
+            <td>Regressions</td>
+            <td>Update body only; do not touch reaction rows; include summary in returned view</td>
+          </tr>
+          <tr>
+            <td>Migration ID collision</td>
+            <td>Deploy failure</td>
+            <td>Verify timestamp before merge; adjust if taken by stacked PR</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Required pushback:</strong> Do not expand into full edit-history or image swap mid-execution. If product wants “replace photo,” that is a separate plan with upload + storage implications.
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — Schema: edited_at</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add migration for nullable <code>edited_at</code> on <code>messages</code>. Extend <code>MessageRow</code> type.</dd></div>
+          <div><dt>Files</dt><dd><code>database/migrations/20260801140000_message_edited_at.ts</code>, <code>src/models/MessageModel.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd><code>npm run migrate</code> clean; column present</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Backend edit API + realtime</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>MessageModel.updateBody</code>, <code>MessageService.edit</code>, controller handler, route <code>PATCH /messages/messages/:id</code>. Extend <code>toMessageView</code> with <code>editedAt</code>. Add <code>MESSAGE_EDITED</code> + <code>MessageRealtime.messageEdited</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>src/models/MessageModel.ts</code>, <code>src/services/MessageService.ts</code>, <code>src/controllers/messages/MessagesController.ts</code>, <code>src/routes/messages.ts</code>, <code>src/realtime/MessageRealtime.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Sender can PATCH body; peer denied; unsent denied; reaction summary preserved in response</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Frontend menu + inline edit UI</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add “Edit” to ellipsis menu when body exists. Inline edit state in <code>MessageBubbleRow</code> (or extracted subcomponent): textarea prefilled, Save/Cancel, loading/error via props. Show “(edited)” in meta row. Wire <code>onEdit</code> from <code>MessagesPage</code> → <code>api.patch</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/MessageBubbleRow.tsx</code>, <code>frontend/src/pages/MessagesPage.tsx</code>, <code>frontend/src/api/types.ts</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Edit typo → save → bubble updates; cancel restores original; Edit hidden on image-only and unsent</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Socket listener + inbox snippet</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add <code>MESSAGE_EDITED</code> constant in <code>frontend/src/api/socket.ts</code>. Subscribe in <code>ThreadView</code> (same <code>applyMessagePatch</code> path). Confirm <code>conversation:updated</code> reloads inbox snippet with new body.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/api/socket.ts</code>, <code>frontend/src/pages/MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2, T3</dd></div>
+          <div><dt>Verify</dt><dd>Peer sees edited text without reload; edited last message updates inbox preview</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled> Migration applied; <code>edited_at</code> on messages</li>
+        <li><input type="checkbox" disabled> PATCH endpoint with ownership + validation gates</li>
+        <li><input type="checkbox" disabled> <code>message:edited</code> realtime event wired both sides</li>
+        <li><input type="checkbox" disabled> Edit in ellipsis menu; inline Save/Cancel; “(edited)” label</li>
+        <li><input type="checkbox" disabled> Reactions preserved; unsent / peer / image-only blocked</li>
+        <li><input type="checkbox" disabled> Typecheck/build green; acceptance <code>test-results.json</code> Passed (or waivers)</li>
+        <li><input type="checkbox" disabled> Spec Revision Log updated if contract drifted during execution</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-08-01</td>
+            <td>Initial spec: text-only edit from ellipsis menu, inline UX, <code>edited_at</code>, PATCH + <code>message:edited</code>, no history, no time limit. Execution branch <code>kylie/edit-message</code>.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-08-01</td>
+            <td>Grill locked: 1A text body only · 2A own messages with existing body · 3A inline Save/Cancel · 4A “(edited)” label · 5A no edit history · 6A no time limit · 7A text-only cannot save empty (use Unsend); image+caption may clear caption · 8A Edit above Unsend.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-08-01</td>
+            <td>Execution on <code>kylie/edit-message</code>: migration <code>20260801140000_message_edited_at.ts</code>, PATCH edit API, <code>message:edited</code> realtime, messenger-style bottom compose edit UI. Backend + frontend build green.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-08-01</td>
+            <td>UX revision: edit loads into bottom <code>MessageComposeBar</code> (Messenger-style) instead of inline bubble edit.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>2026-08-01</td>
+            <td>Migration fix (<code>937075a</code>): restored missing idempotent migration files for local Knex parity; edit save verified after <code>edited_at</code> applied. Status → Completed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
