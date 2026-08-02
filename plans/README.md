@@ -35,6 +35,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 29 | `07312026-29-reply-to-chat` | Messenger-style reply to chat (quote strip + composer preview) |
 | 30 | `07312026-30-default-message-stickers` | Messenger six reactions + composer emoji picker (thread) |
 | 31 | `08012026-31-chat-themes` | Messenger-style chat themes, colors/gradients, word effects |
+| 35 | `08012026-35-navbar-upgrade` | Navbar visual polish — pill cluster, SocMed wordmark, avatar profile trigger |
 
 ## Branch → host (hard rule)
 

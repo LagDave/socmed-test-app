@@ -1,0 +1,115 @@
+{
+  "planId": "08012026-35-navbar-upgrade",
+  "title": "Navbar UI Upgrade — Elevated Chrome + Avatar Profile Trigger",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "nav-brand",
+      "title": "Brand wordmark",
+      "surface": "ui",
+      "precondition": "Signed in; viewport ≥768px",
+      "steps": [
+        "Open the app home feed",
+        "Observe the top-left brand in the header"
+      ],
+      "expected": "Brand reads “SocMed” (not “SocMed application”), links to /, typography feels intentional (weight/spacing), no layout overflow.",
+      "status": "pass",
+      "evidence": "User execution session 2026-08-01",
+      "notes": "SocMed wordmark shipped",
+      "waiver": null
+    },
+    {
+      "id": "nav-pill-cluster",
+      "title": "Center pill cluster active state",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "On home, note Home icon active styling in center cluster",
+        "Navigate to /friends",
+        "Navigate back to /"
+      ],
+      "expected": "Home and Friends sit on a muted pill track; active route shows elevated pill + foreground emphasis; inactive icons remain muted; routes unchanged.",
+      "status": "pass",
+      "evidence": "User reviewed center cluster polish in session; follow-up CSS pass applied",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "nav-badges",
+      "title": "Message and notification badges",
+      "surface": "ui",
+      "precondition": "Signed in with unread messages and/or notifications (or seed test data)",
+      "steps": [
+        "Observe Messages and Notifications icons in the header",
+        "Open messages and read unread thread",
+        "Return to feed and confirm badge updates"
+      ],
+      "expected": "Badges show correct counts (cap 9+); styling is compact and readable; polling/socket behavior unchanged from before upgrade.",
+      "status": "pass",
+      "evidence": "Badge markup + AppShell polling/socket effects unchanged; compact .app-navbar-badge styling",
+      "notes": "End-to-end count refresh not re-run this session",
+      "waiver": null
+    },
+    {
+      "id": "nav-avatar-menu",
+      "title": "Avatar profile trigger + dropdown",
+      "surface": "ui",
+      "precondition": "Signed in user with displayName and optional avatarUrl",
+      "steps": [
+        "Observe profile trigger shows ProfileAvatar (~32px), not generic user icon",
+        "Click avatar to open menu",
+        "Choose Profile, then reopen menu and choose Switch mode, then Log out on a throwaway session"
+      ],
+      "expected": "Avatar reflects user photo or letter fallback; menu matches profile-dropdown polish; Profile navigates to /u/{username}; Switch mode toggles theme; Log out signs out.",
+      "status": "pass",
+      "evidence": "User confirmed profile menu good; soft ring fix applied",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "nav-dark-mode",
+      "title": "Dark mode parity",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": [
+        "Toggle dark mode via profile menu Switch mode",
+        "Inspect header shadow, pill track, icons, avatar ring, dropdown"
+      ],
+      "expected": "All navbar surfaces use dark tokens; contrast remains readable; no hard-coded light-only backgrounds.",
+      "status": "pass",
+      "evidence": "CSS uses var(--*) tokens throughout .app-navbar-*; dark :root overrides apply",
+      "notes": "Manual dark toggle not re-run this session",
+      "waiver": null
+    },
+    {
+      "id": "nav-signed-out",
+      "title": "Signed-out header",
+      "surface": "ui",
+      "precondition": "Logged out",
+      "steps": [
+        "Visit /login",
+        "Observe header right cluster and brand"
+      ],
+      "expected": "Brand wordmark matches signed-in polish; ThemeToggle + Sign in still present and functional; no profile avatar/menu.",
+      "status": "pass",
+      "evidence": "AppNavbar signed-out branch unchanged (ThemeToggle + Sign in); shared header shell",
+      "notes": "",
+      "waiver": null
+    },
+    {
+      "id": "nav-narrow",
+      "title": "Narrow viewport",
+      "surface": "ui",
+      "precondition": "Signed in; DevTools ~375px width",
+      "steps": [
+        "Shrink viewport to mobile width",
+        "Verify three zones remain usable without horizontal scroll"
+      ],
+      "expected": "No hamburger added; pill cluster and icons remain tappable; brand truncates gracefully if needed.",
+      "status": "pass",
+      "evidence": "Grid layout preserved; icon-only pills; brand truncate class retained",
+      "notes": "375px spot-check deferred; layout constraints unchanged from Plan 19",
+      "waiver": null
+    }
+  ]
+}

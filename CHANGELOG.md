@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.21 — 2026-08-03
+
+### Changed
+- Navbar visual polish: “SocMed” wordmark, Facebook-style center pill cluster, refined action icons, avatar profile trigger, profile-dropdown menu styling, shared `.app-navbar-*` CSS tokens
+
+### Plans
+- `plans/08012026-35-navbar-upgrade` — Completed (execution on `kylie/navbar-upgrade`)
+
 ## 0.1.20 — 2026-08-03
 
 ### Added
