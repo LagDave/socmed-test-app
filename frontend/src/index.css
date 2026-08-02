@@ -175,30 +175,188 @@ body {
 }
 
 .comment-thread {
-  padding-bottom: 0.25rem;
+  padding-bottom: 0.125rem;
+}
+
+.comment-replies-block {
+  position: relative;
+  margin-top: 0.625rem;
+  margin-left: 2.75rem;
+  padding-left: 0.75rem;
+}
+
+.comment-replies-block::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  bottom: 0.75rem;
+  width: 2px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--border) 80%, var(--foreground) 8%);
 }
 
 .comment-replies {
-  margin-left: 1.25rem;
-  padding-left: 1rem;
-  border-left: 2px solid color-mix(in srgb, var(--border) 75%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
 }
 
-.comment-item-root {
-  padding: 0.125rem 0;
+.comment-reply-composer {
+  margin-top: 0.875rem;
 }
 
+.comment-item-root,
 .comment-item-reply {
   padding: 0.125rem 0;
 }
 
-.comment-action-row {
-  border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
-  padding-top: 0.375rem;
+.comment-item.group:hover .comment-bubble {
+  border-color: color-mix(in srgb, var(--border) 55%, var(--foreground) 12%);
+}
+
+.comment-bubble {
+  position: relative;
+  display: inline-block;
+  max-width: min(100%, 36rem);
+  border-radius: 1.125rem;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  background: var(--card);
+  padding: 0.5rem 0.875rem 0.625rem;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 6%, transparent);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dark .comment-bubble {
+  background: color-mix(in srgb, var(--card) 92%, var(--muted) 8%);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+.comment-bubble-reply {
+  max-width: min(100%, 32rem);
+  padding: 0.4375rem 0.75rem 0.5625rem;
+}
+
+.comment-bubble-menu {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.125rem;
+}
+
+.comment-bubble-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.375rem;
+  padding-right: 1.5rem;
+}
+
+.comment-bubble-body {
+  margin-top: 0.125rem;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--foreground);
+}
+
+.comment-bubble-image {
+  border-radius: 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+}
+
+.comment-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.375rem;
+  padding-left: 0.625rem;
+}
+
+.comment-meta-time {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--muted-foreground);
+}
+
+.comment-composer-shell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  background: color-mix(in srgb, var(--muted) 28%, var(--card));
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  transition: border-color 0.2s ease, border-radius 0.2s ease, box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.dark .comment-composer-shell {
+  background: color-mix(in srgb, var(--muted) 18%, var(--card));
+}
+
+.comment-composer-shell:focus-within {
+  border-color: color-mix(in srgb, var(--border) 50%, var(--foreground) 18%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+.comment-composer-shell-expanded {
+  align-items: flex-start;
+  flex-direction: column;
+  border-radius: 1rem;
+  padding: 0.75rem 0.875rem;
+}
+
+.comment-composer-shell-expanded .comment-composer-send {
+  align-self: flex-end;
+}
+
+.comment-composer-send:not(:disabled) {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.comment-composer-send:not(:disabled):hover {
+  opacity: 0.9;
 }
 
 .comment-composer-expanded {
-  background: color-mix(in srgb, var(--card) 88%, var(--canvas));
+  padding: 0.125rem 0;
+}
+
+.comment-composer-reply-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
+  padding: 0.4375rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--muted) 22%, var(--card));
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.comment-empty-state {
+  border-radius: 1rem;
+  border: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--canvas) 40%, transparent);
+  padding: 2.25rem 1rem;
+  text-align: center;
+}
+
+.comment-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-bottom: 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  background: var(--card);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 5%, transparent);
 }
 
 .modal-backdrop {

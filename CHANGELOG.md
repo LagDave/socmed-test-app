@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.18 — 2026-08-02
+
+### Changed
+- Comment section UI: Facebook-style bubble cards with author name inside, meta row (reactions + timestamp), and clearer reply thread rail
+- Comment composer: pill input shell, icon-only send when collapsed, moved to bottom of comments section
+- Section header: icon + count only (no "Comments" heading)
+
+### Plans
+- `plans/08022026-40-comment-section-ui` — executed on `kylie/comment-section-ui`
+
 ## 0.1.17 — 2026-07-31
 
 ### Added
