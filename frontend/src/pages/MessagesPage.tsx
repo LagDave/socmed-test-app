@@ -722,81 +722,95 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       >
         <header
           className={cn(
-            "messages-thread-header sticky top-0 z-10 flex items-center gap-2 border-b border-border px-5 py-3",
-            resolvedTheme.active
-              ? "border-transparent"
-              : "bg-card/95 shadow-sm backdrop-blur-sm"
+            "messages-thread-header sticky top-0 z-10 shrink-0",
+            !resolvedTheme.active && "messages-thread-header--default"
           )}
         >
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Back to inbox"
-            onClick={() => navigate("/messages")}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          {peer ? (
-            <Link to={peerProfilePath} className="flex min-w-0 flex-1 items-center gap-3 text-inherit">
-              <ProfileAvatar
-                displayName={peer.displayName}
-                avatarUrl={peer.avatarUrl}
-                size="sm"
-              />
-              <div className="min-w-0">
-                <p className="truncate font-semibold leading-snug">{peer.displayName}</p>
-                {peer.username && (
-                  <p className="truncate text-xs text-muted-foreground">@{peer.username}</p>
-                )}
+          <div className="messages-thread-header-inner">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="messages-thread-header-back h-9 w-9 shrink-0 rounded-full"
+              aria-label="Back to inbox"
+              onClick={() => navigate("/messages")}
+            >
+              <ChevronLeft className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
+            </Button>
+
+            {peer ? (
+              <Link
+                to={peerProfilePath}
+                className="messages-thread-header-profile flex min-w-0 flex-1 items-center gap-3 text-inherit no-underline"
+              >
+                <ProfileAvatar
+                  displayName={peer.displayName}
+                  avatarUrl={peer.avatarUrl}
+                  size="sm"
+                  className="messages-thread-header-avatar"
+                />
+                <div className="min-w-0">
+                  <p className="messages-thread-header-name truncate text-[15px] font-semibold leading-tight tracking-tight">
+                    {peer.displayName}
+                  </p>
+                  {peer.username && (
+                    <p className="messages-thread-header-handle truncate text-xs leading-snug">
+                      @{peer.username}
+                    </p>
+                  )}
+                </div>
+              </Link>
+            ) : (
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-secondary/80" />
+                <div className="min-w-0 space-y-1.5">
+                  <div className="h-4 w-32 animate-pulse rounded-md bg-secondary/80" />
+                  <div className="h-3 w-20 animate-pulse rounded-md bg-secondary/60" />
+                </div>
               </div>
-            </Link>
-          ) : (
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-secondary" />
-              <div className="min-w-0 space-y-1.5">
-                <div className="h-4 w-32 animate-pulse rounded bg-secondary" />
-                <div className="h-3 w-20 animate-pulse rounded bg-secondary" />
-              </div>
-            </div>
-          )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Customize chat theme"
-            onClick={() => setThemePickerOpen(true)}
-          >
-            <Palette className="h-5 w-5" />
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            )}
+
+            <div className="messages-thread-header-actions shrink-0">
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="shrink-0"
-                aria-label="Conversation options"
-                disabled={!peer}
+                className="messages-thread-header-action h-8 w-8 rounded-full"
+                aria-label="Customize chat theme"
+                onClick={() => setThemePickerOpen(true)}
               >
-                <MoreVertical className="h-5 w-5" />
+                <Palette className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden="true" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                disabled={!peer}
-                onSelect={() => {
-                  if (peer) {
-                    setPendingDelete({ id: conversationId, peerName: peer.displayName });
-                  }
-                }}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete conversation
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="messages-thread-header-action h-8 w-8 rounded-full"
+                    aria-label="Conversation options"
+                    disabled={!peer}
+                  >
+                    <MoreVertical className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    disabled={!peer}
+                    onSelect={() => {
+                      if (peer) {
+                        setPendingDelete({ id: conversationId, peerName: peer.displayName });
+                      }
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete conversation
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
         </header>
 
         <div
@@ -1139,12 +1153,14 @@ function InboxView() {
     socket.on(MESSAGE_UNSENT, onMessage);
     socket.on(MESSAGE_EDITED, onMessage);
     socket.on(MESSAGE_REACTION, onUpdated);
+    socket.on(CONVERSATION_THEME, onUpdated);
     return () => {
       socket.off(CONVERSATION_UPDATED, onUpdated);
       socket.off(MESSAGE_NEW, onMessage);
       socket.off(MESSAGE_UNSENT, onMessage);
       socket.off(MESSAGE_EDITED, onMessage);
       socket.off(MESSAGE_REACTION, onUpdated);
+      socket.off(CONVERSATION_THEME, onUpdated);
     };
   }, []);
 

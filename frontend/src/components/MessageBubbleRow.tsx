@@ -218,106 +218,104 @@ export function MessageBubbleRow({
       >
         <div className={cn("flex min-w-0 flex-col gap-0", mine ? "items-end" : "items-start")}>
           <div className={cn("flex max-w-full items-center", mine ? "flex-row-reverse gap-0.5" : "gap-0.5")}>
-            <div className={cn("relative inline-block max-w-full", showReactionBadge && "pb-1.5")}>
-              <div
-                role={message.isUnsent ? undefined : "button"}
-                tabIndex={message.isUnsent ? undefined : 0}
-                onClick={toggleTimestamp}
-                onKeyDown={(e) => {
-                  if (message.isUnsent) return;
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setTimestampVisible((visible) => !visible);
-                  }
-                }}
-                className={cn(
-                  "message-bubble max-w-full text-[15px] leading-snug",
-                  message.isUnsent
-                    ? "rounded-[1.25rem] border border-dashed border-border bg-transparent px-3 py-1.5 italic text-muted-foreground shadow-none"
-                    : cn(
-                        imageOnlyPlain
-                          ? "message-bubble-image-only cursor-pointer overflow-hidden rounded-[1.25rem] bg-transparent p-0 shadow-none ring-0"
-                          : cn(
-                              "rounded-[1.25rem] px-3 py-1.5",
-                              themed
-                                ? mine
-                                  ? "message-bubble-mine cursor-pointer bg-[var(--chat-bubble-mine)] text-[var(--chat-bubble-mine-fg)]"
-                                  : "message-bubble-theirs cursor-pointer bg-[var(--chat-bubble-theirs)] text-[var(--chat-bubble-theirs-fg)]"
-                                : mine
-                                  ? "message-bubble-mine cursor-pointer bg-foreground text-background"
-                                  : "message-bubble-theirs cursor-pointer bg-card text-foreground ring-1 ring-border/50"
-                            ),
-                        groupedWithPrev && (mine ? "rounded-tr-[6px]" : "rounded-tl-[6px]"),
-                        groupedWithNext && (mine ? "rounded-br-[6px]" : "rounded-bl-[6px]"),
-                        isBeingEdited && "ring-2 ring-ring ring-offset-2 ring-offset-background",
-                        !canHover && touchRevealed && !message.isUnsent && "ring-2 ring-border/80"
-                      )
-                )}
-              >
-                {message.isUnsent ? (
-                  "Unsent a message"
-                ) : (
-                  <>
-                    {message.replyTo && (
-                      <MessageQuoteStrip replyTo={message.replyTo} mine={mine} themed={themed} />
-                    )}
-                    {message.imageUrl && (
-                      <button
-                        type="button"
-                        aria-label="View full-size image"
-                        className={cn(
-                          "block cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          imageOnlyPlain ? "rounded-[inherit]" : "rounded-lg",
-                          message.body && "mb-1.5"
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setLightboxOpen(true);
-                        }}
-                      >
-                        <img
-                          src={message.imageUrl}
-                          alt=""
+              <div className={cn("relative inline-block max-w-full", showReactionBadge && "pb-1.5")}>
+                <div
+                  role={message.isUnsent ? undefined : "button"}
+                  tabIndex={message.isUnsent ? undefined : 0}
+                  onClick={toggleTimestamp}
+                  onKeyDown={(e) => {
+                    if (message.isUnsent) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setTimestampVisible((visible) => !visible);
+                    }
+                  }}
+                  className={cn(
+                    "message-bubble max-w-full text-[15px] leading-snug",
+                    message.isUnsent
+                      ? "rounded-[1.25rem] border border-dashed border-border bg-transparent px-3 py-1.5 italic text-muted-foreground shadow-none"
+                      : cn(
+                          imageOnlyPlain
+                            ? "message-bubble-image-only cursor-pointer overflow-hidden rounded-[1.25rem] bg-transparent p-0 shadow-none ring-0"
+                            : cn(
+                                "rounded-[1.25rem] px-3 py-1.5",
+                                themed
+                                  ? mine
+                                    ? "message-bubble-mine cursor-pointer bg-[var(--chat-bubble-mine)] text-[var(--chat-bubble-mine-fg)]"
+                                    : "message-bubble-theirs cursor-pointer bg-[var(--chat-bubble-theirs)] text-[var(--chat-bubble-theirs-fg)]"
+                                  : mine
+                                    ? "message-bubble-mine cursor-pointer bg-foreground text-background"
+                                    : "message-bubble-theirs cursor-pointer bg-card text-foreground ring-1 ring-border/50"
+                              ),
+                          groupedWithPrev && (mine ? "rounded-tr-[6px]" : "rounded-tl-[6px]"),
+                          groupedWithNext && (mine ? "rounded-br-[6px]" : "rounded-bl-[6px]"),
+                          isBeingEdited && "ring-2 ring-ring ring-offset-2 ring-offset-background",
+                          !canHover && touchRevealed && !message.isUnsent && "ring-2 ring-border/80"
+                        )
+                  )}
+                >
+                  {message.isUnsent ? (
+                    "Unsent a message"
+                  ) : (
+                    <>
+                      {message.replyTo && (
+                        <MessageQuoteStrip replyTo={message.replyTo} mine={mine} themed={themed} />
+                      )}
+                      {message.imageUrl && (
+                        <button
+                          type="button"
+                          aria-label="View full-size image"
                           className={cn(
-                            "block max-h-48 max-w-[220px]",
-                            imageOnlyPlain
-                              ? "rounded-[inherit] object-cover"
-                              : "rounded-lg object-contain"
+                            "block cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            imageOnlyPlain ? "rounded-[inherit]" : "rounded-lg",
+                            message.body && "mb-1.5"
                           )}
-                        />
-                      </button>
-                    )}
-                    {message.body && (
-                      <MessageBodyWithEffects body={message.body} messageId={message.id} />
-                    )}
-                  </>
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightboxOpen(true);
+                          }}
+                        >
+                          <img
+                            src={message.imageUrl}
+                            alt=""
+                            className={cn(
+                              "block max-h-48 max-w-[220px]",
+                              imageOnlyPlain
+                                ? "rounded-[inherit] object-cover"
+                                : "rounded-lg object-contain"
+                            )}
+                          />
+                        </button>
+                      )}
+                      {message.body && (
+                        <MessageBodyWithEffects body={message.body} messageId={message.id} />
+                      )}
+                    </>
+                  )}
+                </div>
+                {showReactionBadge && reactionEmoji && (
+                  <MessageReactionBadge emoji={reactionEmoji} mine={mine} />
                 )}
               </div>
-              {showReactionBadge && reactionEmoji && (
-                <MessageReactionBadge emoji={reactionEmoji} mine={mine} />
+              {!message.isUnsent && !isBeingEdited && (
+                <MessageActionToolbar
+                  message={message}
+                  mine={mine}
+                  canEdit={canEdit}
+                  touchRevealed={touchRevealed}
+                  onReply={onReply}
+                  onReactionChange={onReactionChange}
+                  onStartEdit={onStartEdit}
+                  onUnsend={onUnsend}
+                  onError={onError}
+                />
               )}
             </div>
-            {!message.isUnsent && !isBeingEdited && (
-              <MessageActionToolbar
-                message={message}
-                mine={mine}
-                canEdit={canEdit}
-                touchRevealed={touchRevealed}
-                onReply={onReply}
-                onReactionChange={onReactionChange}
-                onStartEdit={onStartEdit}
-                onUnsend={onUnsend}
-                onError={onError}
-              />
-            )}
-          </div>
-
           {showMessageStatus && mine && peer && (
             <div
               className={cn(
-                "mt-0.5 flex px-1",
-                mine && "justify-end",
-                showReactionBadge && "mr-7 mt-1"
+                "message-seen-status self-end",
+                showReactionBadge ? "mt-2" : "mt-0.5"
               )}
             >
               <MessageStatusIconForMessage

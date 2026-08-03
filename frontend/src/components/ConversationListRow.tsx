@@ -17,14 +17,21 @@ import { cn } from "@/lib/utils";
 function inboxPreview(
   item: ConversationListItem,
   viewerId: string | undefined
-): { text: string; isMedia: boolean } {
+): { text: string; isMedia: boolean; isSystemLog?: boolean } {
   const last = item.lastMessage;
   const reaction = item.lastReaction;
+  const systemLog = item.lastSystemLog;
 
   const messageAt = last?.createdAt ? new Date(last.createdAt).getTime() : 0;
   const reactionAt = reaction?.reactedAt ? new Date(reaction.reactedAt).getTime() : 0;
+  const systemLogAt = systemLog?.createdAt ? new Date(systemLog.createdAt).getTime() : 0;
+  const latestAt = Math.max(messageAt, reactionAt, systemLogAt);
 
-  if (reaction && viewerId && reactionAt >= messageAt) {
+  if (systemLog && systemLogAt === latestAt) {
+    return { text: systemLog.text, isMedia: false, isSystemLog: true };
+  }
+
+  if (reaction && viewerId && reactionAt === latestAt) {
     const glyph = reactionOption(reaction.emoji).glyph;
     const peerId = item.peer.id;
     const isPeerReaction = reaction.reactorId === peerId;
@@ -146,7 +153,11 @@ export function ConversationListRow({
               <span
                 className={cn(
                   "flex min-w-0 items-center gap-1 truncate text-sm",
-                  unread ? "font-medium text-foreground/90" : "text-muted-foreground"
+                  preview.isSystemLog
+                    ? "italic text-muted-foreground/90"
+                    : unread
+                      ? "font-medium text-foreground/90"
+                      : "text-muted-foreground"
                 )}
               >
                 {preview.isMedia && (

@@ -116,6 +116,7 @@ export const MessageRealtime = {
     for (const userId of participantIds(conversation)) {
       emitToUser(userId, CONVERSATION_THEME, payload);
     }
+    emitConversationUpdated(conversation);
   },
 
   messageDelivered(senderId: string, payload: MessageDeliveredPayload): void {

@@ -95,6 +95,13 @@ export type ConversationListLastReaction = {
   reactedAt: string;
 };
 
+export type ConversationListLastSystemLog = {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedBy: string;
+};
+
 export type ConversationListItem = {
   id: string;
   peer: PublicUser;
@@ -108,6 +115,7 @@ export type ConversationListItem = {
     replyToMessageId: string | null;
   } | null;
   lastReaction: ConversationListLastReaction | null;
+  lastSystemLog: ConversationListLastSystemLog | null;
   hasUnreadReaction: boolean;
   unreadCount: number;
   lastMessageAt: string | null;

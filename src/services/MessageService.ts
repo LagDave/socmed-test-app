@@ -26,6 +26,7 @@ import { MessageRealtime } from "../realtime/MessageRealtime";
 import { logger } from "../logger";
 import { ChatThemeService, type ConversationThemeView } from "./ChatThemeService";
 import type { ThemeLogEntry } from "../types/themeLog";
+import { parseThemeLog } from "../types/themeLog";
 
 async function publishRealtime(work: () => Promise<void>): Promise<void> {
   try {
@@ -105,6 +106,13 @@ export type ConversationListLastReaction = {
   reactedAt: Date;
 };
 
+export type ConversationListLastSystemLog = {
+  id: string;
+  text: string;
+  createdAt: Date;
+  updatedBy: string;
+};
+
 export type ConversationListItem = {
   id: string;
   peer: ReturnType<typeof toPublicUser>;
@@ -118,6 +126,7 @@ export type ConversationListItem = {
     replyToMessageId: string | null;
   } | null;
   lastReaction: ConversationListLastReaction | null;
+  lastSystemLog: ConversationListLastSystemLog | null;
   hasUnreadReaction: boolean;
   unreadCount: number;
   lastMessageAt: Date | null;
@@ -144,6 +153,36 @@ function hasUnreadPeerReaction(
   if (reaction.messageSenderId !== viewerId) return false;
   if (!viewerLastReadAt) return true;
   return reaction.reactedAt > viewerLastReadAt;
+}
+
+function toListLastSystemLog(entry: ThemeLogEntry | null): ConversationListLastSystemLog | null {
+  if (!entry) return null;
+  return {
+    id: entry.id,
+    text: entry.text,
+    createdAt: new Date(entry.createdAt),
+    updatedBy: entry.updatedBy,
+  };
+}
+
+function latestThemeLogFromRow(row: ConversationRow): ThemeLogEntry | null {
+  const logs = parseThemeLog(row.theme_log);
+  return logs.length > 0 ? logs[logs.length - 1]! : null;
+}
+
+function latestActivityAt(
+  messageAt: Date | null,
+  reactionAt: Date | null,
+  systemLogAt: Date | null,
+  fallback: Date | null
+): Date | null {
+  const candidates = [messageAt, reactionAt, systemLogAt].filter(
+    (value): value is Date => value instanceof Date
+  );
+  if (candidates.length === 0) return fallback;
+  return candidates.reduce((latest, current) =>
+    current.getTime() > latest.getTime() ? current : latest
+  );
 }
 
 function peerLastReadAt(row: ConversationRow, viewerId: string): Date | null {
@@ -618,12 +657,14 @@ export class MessageService {
     const latest = row.lastMessage;
     const messageAt = latest?.created_at ?? null;
     const reactionAt = lastReaction?.reactedAt ?? null;
-    const lastActivityAt =
-      messageAt && reactionAt
-        ? messageAt > reactionAt
-          ? messageAt
-          : reactionAt
-        : messageAt ?? reactionAt ?? row.last_message_at;
+    const lastSystemLog = toListLastSystemLog(latestThemeLogFromRow(row));
+    const systemLogAt = lastSystemLog?.createdAt ?? null;
+    const lastActivityAt = latestActivityAt(
+      messageAt,
+      reactionAt,
+      systemLogAt,
+      row.last_message_at
+    );
     const peerUserId = peerId(row, viewerId);
 
     return {
@@ -631,6 +672,7 @@ export class MessageService {
       peer: toPublicUser(row.peer),
       lastMessage: latest ? lastMessageListShape(latest) : null,
       lastReaction,
+      lastSystemLog,
       hasUnreadReaction: hasUnreadPeerReaction(
         lastReaction,
         viewerId,
@@ -655,14 +697,22 @@ export class MessageService {
       lastReadAt(row, viewerId)
     );
 
+    const lastSystemLog = toListLastSystemLog(latestThemeLogFromRow(row));
+
     return {
       id: row.id,
       peer: toPublicUser(peerUser),
       lastMessage: latest ? lastMessageListShape(latest) : null,
       lastReaction: null,
+      lastSystemLog,
       hasUnreadReaction: false,
       unreadCount,
-      lastMessageAt: row.last_message_at,
+      lastMessageAt: latestActivityAt(
+        latest?.created_at ?? null,
+        null,
+        lastSystemLog?.createdAt ?? null,
+        row.last_message_at
+      ),
     };
   }
 }

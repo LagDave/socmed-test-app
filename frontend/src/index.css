@@ -340,10 +340,109 @@ body {
   box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 4%, transparent);
 }
 
+.messages-thread-header {
+  position: relative;
+  isolation: isolate;
+  padding: 0.625rem 1rem 0.75rem;
+}
+
+.messages-thread-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--chat-bg, var(--card)) 92%, var(--foreground)) 0%,
+    var(--chat-bg, var(--card)) 100%
+  );
+}
+
+.messages-thread-header::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--chat-thread-fg, var(--foreground)) 16%, transparent) 20%,
+    color-mix(in srgb, var(--chat-thread-fg, var(--foreground)) 16%, transparent) 80%,
+    transparent
+  );
+}
+
+.messages-thread-header--default::before {
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.messages-thread-header--default::after {
+  background: color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.messages-thread-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.messages-thread-header-profile {
+  min-width: 0;
+  padding: 0.125rem 0.375rem 0.125rem 0.125rem;
+  border-radius: 9999px;
+  transition: background-color 0.18s ease;
+}
+
+.messages-thread-header-profile:hover {
+  background: color-mix(in srgb, var(--chat-thread-fg, var(--foreground)) 8%, transparent);
+}
+
+.messages-thread-header-avatar {
+  box-shadow:
+    0 2px 8px color-mix(in srgb, var(--foreground) 18%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--chat-thread-fg, var(--foreground)) 10%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--chat-accent, var(--primary)) 42%, transparent);
+  outline-offset: 2px;
+}
+
+.messages-thread-header-name {
+  color: var(--chat-thread-fg, var(--foreground));
+}
+
+.messages-thread-header-handle {
+  color: var(--chat-thread-muted, var(--muted-foreground));
+  opacity: 0.92;
+}
+
+.messages-thread-header-back,
+.messages-thread-header-action {
+  color: var(--chat-thread-fg, var(--foreground));
+}
+
+.messages-thread-header-back:hover,
+.messages-thread-header-action:hover {
+  background: color-mix(in srgb, var(--chat-thread-fg, var(--foreground)) 10%, transparent);
+}
+
+.messages-thread-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--chat-thread-fg, var(--foreground)) 12%, transparent);
+  background: color-mix(in srgb, var(--chat-thread-fg, var(--foreground)) 7%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
 [data-chat-theme="true"] .messages-thread-header {
   background: var(--chat-bg);
   color: var(--chat-thread-fg);
-  border-bottom-color: color-mix(in srgb, var(--chat-thread-fg) 12%, transparent);
+  border-bottom-color: transparent;
   box-shadow: none;
 }
 
@@ -445,6 +544,15 @@ body {
 
 [data-chat-theme="true"] .messages-composer-track textarea::placeholder {
   color: var(--chat-thread-muted);
+}
+
+.chat-theme-strip {
+  scroll-padding-inline: 0.5rem;
+  margin-inline: -0.25rem;
+}
+
+.chat-theme-strip::-webkit-scrollbar {
+  display: none;
 }
 
 .messages-compose-section {
@@ -2053,14 +2161,17 @@ body {
 @keyframes chat-word-particle-confetti {
   0% {
     opacity: 0;
-    transform: translateY(-4px) scale(0.55) rotate(0deg);
+    transform: translateY(10px) scale(0.55) rotate(0deg);
   }
   12% {
     opacity: 1;
   }
+  70% {
+    opacity: 1;
+  }
   100% {
     opacity: 0;
-    transform: translateY(42px) scale(1.12) rotate(220deg);
+    transform: translateY(-48px) scale(1.2) rotate(220deg);
   }
 }
 
@@ -2128,7 +2239,7 @@ body {
 }
 
 .chat-word-overlay-confetti::before {
-  background: radial-gradient(circle at 50% 40%, rgba(255, 200, 60, 0.26), transparent 70%);
+  background: radial-gradient(circle at 50% 70%, rgba(255, 200, 60, 0.28), transparent 70%);
 }
 
 .chat-word-overlay-sparkle::before {
@@ -2147,7 +2258,7 @@ body {
 }
 
 .chat-word-particle-confetti {
-  animation: chat-word-particle-confetti 1.25s ease-in forwards;
+  animation: chat-word-particle-confetti 1.35s ease-out forwards;
 }
 
 .chat-word-particle-sparkle {

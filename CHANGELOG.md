@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.30 — 2026-08-03
+
+### Changed
+- Thread header polish: gradient wash, accent avatar ring, grouped action pill
+- Theme picker color strips: more padding and scroll inset so swatches aren’t edge-flush
+- Inbox previews show latest system logs (e.g. theme changes) for both participants
+- Seen indicator aligned to bubble right edge; congrats word effect rises like other overlays
+
+### Plans
+- `kylie/chat-ui-improvements` — follow-up UI polish on messenger branch
+
 ## 0.1.29 — 2026-08-03
 
 ### Added
