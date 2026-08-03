@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "@/api/client";
-import { getMessagesSocket, MESSAGES_UNREAD, type UnreadPayload } from "@/api/socket";
+import { getMessagesSocket, MESSAGES_UNREAD, NOTIFICATIONS_COUNT, type UnreadPayload, type NotificationsCountPayload } from "@/api/socket";
 import { AppNavbar } from "@/components/nav/AppNavbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useActivityNotificationSound } from "@/hooks/useActivityNotificationSound";
 import { useMessageNotificationSound } from "@/hooks/useMessageNotificationSound";
 import { useMessagesSocketConnection } from "@/hooks/useMessagesSocket";
 
@@ -14,6 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const socketConnected = useMessagesSocketConnection();
   useMessageNotificationSound();
+  useActivityNotificationSound();
   const [notificationCount, setNotificationCount] = useState(0);
   const [feedCount, setFeedCount] = useState(0);
   const [messagesCount, setMessagesCount] = useState(0);
@@ -66,9 +68,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     const onUnread = (payload: UnreadPayload) => {
       if (typeof payload.unread === "number") setMessagesCount(payload.unread);
     };
+    const onNotificationsCount = (payload: NotificationsCountPayload) => {
+      if (typeof payload.notifications === "number") setNotificationCount(payload.notifications);
+    };
     socket.on(MESSAGES_UNREAD, onUnread);
+    socket.on(NOTIFICATIONS_COUNT, onNotificationsCount);
     return () => {
       socket.off(MESSAGES_UNREAD, onUnread);
+      socket.off(NOTIFICATIONS_COUNT, onNotificationsCount);
     };
   }, [user]);
 

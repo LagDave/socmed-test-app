@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.29 — 2026-08-03
+
+### Added
+- Realtime activity notification sounds over Socket.IO (`notification:new`, `notifications:count`)
+- Dedicated activity sound library (Digital + Tone groups) separate from message sounds
+- `useActivityNotificationSound` hook with suppress-on-`/notifications` and cross-tab dedupe
+- Activity sound picker in notification settings; `scripts/generate-activity-sounds.mjs` for bundled WAV assets
+
+### Changed
+- Activity sounds play at 50% volume; message sounds unchanged
+- `NotificationSoundsSettings` split into message and activity pickers with preview
+
+### Plans
+- Activity notification sounds executed on `kylie/notification-sound` (extends plan 34 message sounds)
+
 ## 0.1.28 — 2026-08-03
 
 ### Added

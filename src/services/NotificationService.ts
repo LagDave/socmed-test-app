@@ -2,8 +2,18 @@ import { NotificationModel, type NotificationType } from "../models/Notification
 import { UserModel } from "../models/UserModel";
 import { FriendshipModel } from "../models/FriendshipModel";
 import { PostModel } from "../models/PostModel";
+import { NotificationRealtime } from "../realtime/NotificationRealtime";
 import { toPublicUser } from "../types/user";
 import { AppError } from "../utils/AppError";
+import { logger } from "../logger";
+
+async function publishNotificationRealtime(work: () => Promise<void>): Promise<void> {
+  try {
+    await work();
+  } catch (err) {
+    logger.error({ err }, "Notification realtime publish failed");
+  }
+}
 
 export type NotificationView = {
   id: string;
@@ -46,7 +56,10 @@ export class NotificationService {
     friendshipId?: string | null;
   }): Promise<void> {
     if (input.recipientId === input.actorId) return;
-    await NotificationModel.create(input);
+    const row = await NotificationModel.create(input);
+    await publishNotificationRealtime(() =>
+      NotificationRealtime.notificationCreated(input.recipientId, row.id)
+    );
   }
 
   static async list(userId: string): Promise<NotificationView[]> {
