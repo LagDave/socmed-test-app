@@ -56,6 +56,19 @@ export class MessagesController {
     }
   }
 
+  static async searchMessages(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessageService.searchMessages(
+        req.userId!,
+        String(req.params.id),
+        req.query.q
+      );
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
   static async send(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const message = await MessageService.send(req.userId!, String(req.params.id), req.body);

@@ -1,5 +1,10 @@
 import { api } from "@/api/client";
-import type { ChatTheme, ConversationListItem, ConversationThemeView } from "@/api/types";
+import type {
+  ChatTheme,
+  ConversationListItem,
+  ConversationSearchResponse,
+  ConversationThemeView,
+} from "@/api/types";
 
 export async function openConversationWithUsername(username: string): Promise<string> {
   const data = await api.post<{ conversation: ConversationListItem }>(
@@ -11,6 +16,18 @@ export async function openConversationWithUsername(username: string): Promise<st
 
 export async function deleteConversation(conversationId: string): Promise<void> {
   await api.delete(`/api/messages/conversations/${conversationId}`);
+}
+
+export function searchConversationMessages(
+  conversationId: string,
+  query: string,
+  signal?: AbortSignal
+): Promise<ConversationSearchResponse> {
+  const params = new URLSearchParams({ q: query });
+  return api.get(
+    `/api/messages/conversations/${conversationId}/search?${params.toString()}`,
+    { signal }
+  );
 }
 
 export async function updateConversationTheme(

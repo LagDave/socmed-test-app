@@ -85,6 +85,11 @@ export type MessageView = {
   replyTo: MessageReplyToView | null;
 };
 
+export type ConversationSearchResponse = {
+  messages: MessageView[];
+  hasMore: boolean;
+};
+
 export type ConversationListItem = {
   id: string;
   peer: PublicUser;

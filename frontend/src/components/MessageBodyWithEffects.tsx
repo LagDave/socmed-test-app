@@ -5,6 +5,7 @@ import {
   inlineEffectClass,
   splitBodyWithInlineEffects,
 } from "@/lib/chatWordEffects";
+import { highlightText } from "@/lib/highlightText";
 
 const OVERLAY_PARTICLES: Record<WordEffectKind, string[]> = {
   hearts: ["❤️", "💕", "💗", "💖"],
@@ -66,9 +67,11 @@ function WordEffectParticles({
 export function MessageBodyWithEffects({
   body,
   messageId,
+  highlightQuery,
 }: {
   body: string | null;
   messageId: string;
+  highlightQuery?: string;
 }) {
   const overlayEffect = getOverlayEffect(body);
 
@@ -92,12 +95,31 @@ export function MessageBodyWithEffects({
                 💥{" "}
               </span>
             )}
-            {segment.text}
+            <HighlightedText text={segment.text} query={highlightQuery} />
           </span>
+        ) : (
+          <HighlightedText key={index} text={segment.text} query={highlightQuery} />
+        )
+      )}
+    </span>
+  );
+}
+
+function HighlightedText({ text, query }: { text: string; query?: string }) {
+  return (
+    <>
+      {highlightText(text, query ?? "").map((segment, index) =>
+        segment.isMatch ? (
+          <mark
+            key={index}
+            className="rounded bg-amber-300/80 px-0.5 text-inherit dark:bg-amber-400/45"
+          >
+            {segment.text}
+          </mark>
         ) : (
           <span key={index}>{segment.text}</span>
         )
       )}
-    </span>
+    </>
   );
 }
