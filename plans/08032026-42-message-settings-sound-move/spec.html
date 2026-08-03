@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Message Settings — Sound Picker Relocation Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--paper); color:var(--ink); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    .callout.pending { border-style:dashed; border-color:var(--muted); }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:920px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 42</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Message settings — relocate notification sound picker</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08032026-42-message-settings-sound-move</dd></div>
+        <div><dt>Size</dt><dd>Small (frontend-only, ~5 files)</dd></div>
+        <div><dt>Risk</dt><dd>Level 1 — Suggestion</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08032026-42-message-settings-sound-move</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/message-account-settings</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 34 message notification sounds (shipped)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 34 shipped message notification sounds with the picker living on <strong>Account Settings</strong>. That made sense as a v1 stub, but sounds are a <em>message</em> preference — users expect them beside chat, not under account privacy/security. Account Settings should stay focused on identity, privacy, security, and account lifecycle stubs.</p>
+      <p>Plan 33 explicitly deferred a dedicated chat settings screen. This plan delivers that screen in minimal form: notification sounds first, with room for future message prefs without another navigation rethink.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p><strong>Move</strong> the existing notification sound picker from Account Settings into a new <strong>Message settings</strong> page under the Messages area. <strong>Leave</strong> Account Settings with Privacy, Security, and More settings stubs only.</p>
+
+      <p><strong>Target inbox header:</strong></p>
+      <pre class="wire">Messages                    [3 unread]  [⚙]
+Chat with friends.</pre>
+
+      <p><strong>Target message settings (<code>/messages/settings</code>):</strong></p>
+      <pre class="wire">←  ⚙                          (icon-only chrome — no page title text)
+
+┌─ notification sounds card ─────────────────────────────┐
+│ (existing NotificationSoundsSettings UI — unchanged)    │
+└─────────────────────────────────────────────────────────┘</pre>
+
+      <p><strong>Target account settings (<code>/settings</code>):</strong></p>
+      <pre class="wire">Account Settings
+Privacy, security, and account preferences.
+
+┌─ Privacy (stub) ───────────────────────────────────────┐
+┌─ Security (stub) ──────────────────────────────────────┐
+┌─ More settings (stub) ─────────────────────────────────┘</pre>
+
+      <p><strong>Deliverables:</strong></p>
+      <ul>
+        <li>New route <code>/messages/settings</code> and <code>MessageSettingsPage</code> hosting <code>NotificationSoundsSettings</code></li>
+        <li>Inbox header gear control linking to message settings</li>
+        <li>Remove sound picker from <code>AccountSettingsPage</code>; update page subtitle copy</li>
+        <li>No changes to <code>notificationSounds.ts</code>, localStorage keys, or <code>useMessageNotificationSound</code> playback logic</li>
+      </ul>
+
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Gear on inbox opens message settings with full sound picker</li>
+        <li>Account settings shows only Privacy, Security, More settings</li>
+        <li>Saved sound prefs still persist and drive playback after relocation</li>
+        <li>Back link returns to <code>/messages</code></li>
+        <li>No backend / schema changes</li>
+        <li>Typecheck/build green; acceptance rollup Passed or waived</li>
+      </ul>
+
+      <div class="callout">
+        <strong>Grill locked (2026-08-03):</strong>
+        Q1=A dedicated route <code>/messages/settings</code> · Q2=A inbox header gear only (not thread) · Q3=A keep localStorage-only (UI move) · Q4=<strong>B icon-only page chrome</strong> — no “Message settings” h1 or subtitle; back + settings icons only (accessible via <code>aria-label</code>).
+      </div>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Settings UX</td>
+            <td><strong>A — dedicated route <code>/messages/settings</code></strong></td>
+            <td>Sound picker is dense (toggle + 14 sounds + save). Full page matches Account Settings rhythm; avoids cramming into ChatThemePicker-style sheet.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Entry point</td>
+            <td><strong>A — gear icon in inbox header</strong></td>
+            <td>Natural discoverability on the messages home surface; Plan 33 deferred screen lands here.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Thread header</td>
+            <td><strong>A — no settings gear in thread v1</strong></td>
+            <td>Thread already has theme palette + overflow delete; per-thread vs global settings split stays clear.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Persistence</td>
+            <td><strong>A — localStorage unchanged</strong></td>
+            <td>UI relocation only; no migration or API. Cross-device sync is a future plan.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Component reuse</td>
+            <td><strong>A — mount existing <code>NotificationSoundsSettings</code></strong></td>
+            <td>Zero behavior change; only import site moves. Rename component optional, not required.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Playback hook</td>
+            <td><strong>Stays in <code>AppShell</code></strong></td>
+            <td>Sounds fire app-wide; hook must not move to Messages page only.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Page chrome (Q4)</td>
+            <td><strong>B — icon-only header</strong></td>
+            <td>No “Message settings” title or subtitle text. Compact row: back icon (<code>Link</code> to <code>/messages</code>) + <code>Settings</code> icon. Mirror thread header icon density. Screen readers: <code>aria-label="Message settings"</code> on the header region or back control.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <h3>Relevant files (baseline on <code>kylie/message-account-settings</code>)</h3>
+      <ul>
+        <li><code>frontend/src/pages/AccountSettingsPage.tsx</code> — currently mounts <code>NotificationSoundsSettings</code> first; stubs for Privacy/Security/More</li>
+        <li><code>frontend/src/components/NotificationSoundsSettings.tsx</code> — full sound picker UI (draft/save, 14 sounds, toggle)</li>
+        <li><code>frontend/src/lib/notificationSounds.ts</code> — localStorage prefs, playback, cross-tab sync — <strong>do not modify</strong></li>
+        <li><code>frontend/src/hooks/useMessageNotificationSound.ts</code> — global listener — <strong>do not modify</strong></li>
+        <li><code>frontend/src/components/AppShell.tsx</code> — mounts sound hook — <strong>do not modify</strong></li>
+        <li><code>frontend/src/pages/MessagesPage.tsx</code> — <code>InboxView</code> header row (title + unread badge); add gear here</li>
+        <li><code>frontend/src/App.tsx</code> — add <code>/messages/settings</code> route</li>
+      </ul>
+      <h3>Closest analogs</h3>
+      <ul>
+        <li><strong>Page layout:</strong> <code>AccountSettingsPage</code> — stacked <code>feed-card</code> for content sections only (no text page title on message settings)</li>
+        <li><strong>Icon header:</strong> thread header in <code>ThreadView</code> — back chevron + action icon buttons in a compact row; reuse that pattern for message settings chrome</li>
+        <li><strong>Messages entry control:</strong> inbox gear → navigates to settings route (not modal)</li>
+        <li><strong>Prior art:</strong> Plan 34 (sound module + picker); Plan 33 (deferred chat settings screen)</li>
+      </ul>
+      <h3>Route ordering note</h3>
+      <p>Register <code>/messages/settings</code> <em>before</em> <code>/messages/:conversationId</code> in <code>App.tsx</code> so <code>settings</code> is not captured as a conversation id.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Relocate sound picker UI only — prefs keys and playback contract unchanged</li>
+            <li>Account settings retains Privacy, Security, More settings stubs</li>
+            <li>Message settings reachable from inbox without hunting through profile</li>
+            <li>Follow existing page rhythm (<code>space-y-4</code>, <code>feed-card</code>, B&amp;W tokens)</li>
+            <li>Message settings page uses icon-only chrome — no text page title or subtitle</li>
+            <li>All icon controls accessible (<code>aria-label</code>, keyboard focus)</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>No backend routes, services, or migrations</li>
+            <li>No refactor of <code>notificationSounds.ts</code> or sound assets</li>
+            <li>No new npm dependencies</li>
+            <li>No thread-header settings gear in this plan</li>
+            <li>No server-persisted message prefs</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Activity/bell notification sounds (future plan)</li>
+        <li>Cross-device preference sync</li>
+        <li>Additional message settings (read receipts toggle, typing indicator prefs, etc.)</li>
+        <li>Renaming <code>NotificationSoundsSettings</code> component</li>
+        <li>Navbar link to message settings</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 1 — Suggestion.</strong> Pure UI relocation with no data or playback changes. Blast radius is limited to settings navigation surfaces.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Route shadowed by <code>:conversationId</code></td>
+            <td>Settings URL opens broken thread</td>
+            <td>Declare static route before param route in <code>App.tsx</code></td>
+          </tr>
+          <tr>
+            <td>Users cannot find moved setting</td>
+            <td>Support confusion briefly</td>
+            <td>Prominent inbox gear; optional one-line note in Account Privacy stub is <em>out of scope</em> unless requested</td>
+          </tr>
+          <tr>
+            <td>Accidental playback regression</td>
+            <td>Message sounds stop working</td>
+            <td>Do not touch hook, lib, or AppShell; acceptance A3 covers save + play</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>Required pushback:</strong> Do not bundle backend user-prefs API “while we’re here.” Do not merge message settings into ChatThemePicker modal — different scope (global vs per-conversation).</p>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="T1">
+        <h3>T1 — MessageSettingsPage scaffold</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Create <code>frontend/src/pages/MessageSettingsPage.tsx</code>: icon-only top chrome (back icon → <code>/messages</code>, decorative or labeled <code>Settings</code> icon — no h1/subtitle text), then mount <code>NotificationSoundsSettings</code> as the sole functional <code>feed-card</code>. Use thread-header icon button styling (<code>Button variant="ghost" size="icon"</code>).
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessageSettingsPage.tsx</code> (new)</dd></div>
+          <div><dt>Depends on</dt><dd>Locked decisions</dd></div>
+          <div><dt>Verify</dt><dd>Page renders sound picker when navigated directly to <code>/messages/settings</code></dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T2">
+        <h3>T2 — Route registration</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Add <code>/messages/settings</code> route in <code>App.tsx</code> pointing to <code>MessageSettingsPage</code>. Place <strong>before</strong> <code>/messages/:conversationId</code>.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/App.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Direct URL and Link navigation work; no collision with conversation ids</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T3">
+        <h3>T3 — Inbox settings entry</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            In <code>InboxView</code> header row (beside unread badge), add icon button (<code>Settings</code> from lucide) linking to <code>/messages/settings</code>. Use <code>Button variant="ghost" size="icon"</code> or equivalent messages-header pattern. Include <code>aria-label="Message settings"</code>.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Gear visible on inbox; opens message settings; thread view unchanged</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T4">
+        <h3>T4 — Trim Account Settings</h3>
+        <dl>
+          <div><dt>Do</dt><dd>
+            Remove <code>NotificationSoundsSettings</code> import and mount from <code>AccountSettingsPage</code>. Update subtitle from “Privacy, security, and notification preferences.” to “Privacy, security, and account preferences.” Leave Privacy, Security, More settings stubs intact.
+          </dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/AccountSettingsPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Account settings shows three stub cards only (A2)</dd></div>
+        </dl>
+      </article>
+
+      <article class="task-card" id="T5">
+        <h3>T5 — Acceptance + build gate</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Run <code>npm run typecheck</code> and <code>npm run build</code>. Fill <code>test-results.json</code> for A1–A6.</dd></div>
+          <div><dt>Files</dt><dd><code>plans/08032026-42-message-settings-sound-move/test-results.json</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1–T4</dd></div>
+          <div><dt>Verify</dt><dd>Rollup Passed or documented waivers</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" disabled checked> <code>/messages/settings</code> route + MessageSettingsPage</li>
+        <li><input type="checkbox" disabled checked> Inbox gear opens message settings</li>
+        <li><input type="checkbox" disabled checked> Notification sound picker removed from Account Settings</li>
+        <li><input type="checkbox" disabled checked> Sound prefs persist; playback unchanged</li>
+        <li><input type="checkbox" disabled checked> No backend or migration changes</li>
+        <li><input type="checkbox" disabled checked> Typecheck/build green; acceptance rollup Passed or waived</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="revisions">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-08-03</td>
+            <td>Initial spec. Move notification sound picker from Account Settings to Message settings under Messages. Recommended grill: Q1=A route, Q2=A inbox gear, Q3=A localStorage, Q4=A “Message settings” title. Execution branch <code>kylie/message-account-settings</code>.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-08-03</td>
+            <td>Grill lock Q4=B: icon-only page chrome (back + settings icons), no “Message settings” h1 or subtitle. Updated wireframe, decision #7, T1, constraints, context analogs.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-08-03</td>
+            <td>Execution (-x): MessageSettingsPage, /messages/settings route, inbox gear entry, AccountSettingsPage trimmed. Typecheck/build green.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-08-03</td>
+            <td>Finalization (-d): acceptance A1–A4 waived for interactive verify; A5–A6 pass. v0.1.29 changelog.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

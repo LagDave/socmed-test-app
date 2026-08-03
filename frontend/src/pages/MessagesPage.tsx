@@ -1,6 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ImagePlus, MoreVertical, Palette, SendHorizontal, Trash2, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ImagePlus,
+  MoreVertical,
+  Palette,
+  SendHorizontal,
+  Settings,
+  Trash2,
+  X,
+} from "lucide-react";
 import { api } from "@/api/client";
 import { deleteConversation, updateConversationTheme } from "@/api/messages";
 import {
@@ -1049,11 +1058,18 @@ function InboxView() {
           <h1 className="text-2xl font-semibold tracking-tight">Messages</h1>
           <p className="text-sm text-muted-foreground">Chat with friends.</p>
         </div>
-        {!loading && unreadTotal > 0 && (
-          <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
-            {unreadTotal} unread
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {!loading && unreadTotal > 0 && (
+            <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+              {unreadTotal} unread
+            </span>
+          )}
+          <Button asChild variant="ghost" size="icon">
+            <Link to="/messages/settings" aria-label="Message settings">
+              <Settings className="h-5 w-5" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="feed-card overflow-hidden shadow-sm">

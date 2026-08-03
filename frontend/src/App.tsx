@@ -11,6 +11,7 @@ import { ProfilePage } from "@/pages/ProfilePage";
 import { FriendsPage } from "@/pages/FriendsPage";
 import { AccountSettingsPage } from "@/pages/AccountSettingsPage";
 import { NotificationsPage } from "@/pages/NotificationsPage";
+import { MessageSettingsPage } from "@/pages/MessageSettingsPage";
 import { MessagesPage } from "@/pages/MessagesPage";
 
 function ProfileRedirect() {
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="/posts/:postId/photos/:photoId" element={<PostPhotoCommentsPage />} />
               <Route path="/friends" element={<FriendsPage />} />
               <Route path="/messages" element={<MessagesPage />} />
+              <Route path="/messages/settings" element={<MessageSettingsPage />} />
               <Route path="/messages/:conversationId" element={<MessagesPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/settings" element={<AccountSettingsPage />} />

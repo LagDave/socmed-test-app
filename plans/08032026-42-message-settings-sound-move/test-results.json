@@ -1,0 +1,100 @@
+{
+  "plan": "plans/08032026-42-message-settings-sound-move",
+  "generatedAt": "2026-08-03",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Message settings page shows notification sound picker",
+      "surface": "ui",
+      "precondition": "Signed in; navigate to /messages",
+      "steps": [
+        "Click the settings (gear) control in the Messages inbox header",
+        "Confirm route is /messages/settings",
+        "Confirm page has icon-only chrome (back + settings icons) — no 'Message settings' h1 or subtitle",
+        "Confirm notification sounds section is visible with toggle, sound grid, and Save button"
+      ],
+      "expected": "Full sound picker UI lives on Message settings with icon header only; not on Account settings.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "MessageSettingsPage + inbox gear implemented.",
+      "waiver": "Interactive UI verify deferred to PR author."
+    },
+    {
+      "id": "A2",
+      "title": "Account settings no longer shows notification sounds",
+      "surface": "ui",
+      "precondition": "Signed in; own profile → Account settings (/settings)",
+      "steps": [
+        "Open /settings",
+        "Scan page sections"
+      ],
+      "expected": "Only Privacy, Security, and More settings stubs remain. No notification sound picker. Page subtitle no longer mentions notification preferences.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "NotificationSoundsSettings removed from AccountSettingsPage.",
+      "waiver": "Interactive UI verify deferred to PR author."
+    },
+    {
+      "id": "A3",
+      "title": "Sound preferences still persist and play after move",
+      "surface": "ui",
+      "precondition": "Two mutuals; sounds enabled; socket connected; user unlocked audio",
+      "steps": [
+        "On /messages/settings, pick a sound and save",
+        "Refresh page — confirm selection persists",
+        "With peer on Feed, receive inbound DM — hear selected sound",
+        "Toggle sounds off on Message settings, save — inbound DM is silent"
+      ],
+      "expected": "localStorage keys unchanged; playback hook in AppShell still gates on same prefs.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "notificationSounds.ts and useMessageNotificationSound untouched.",
+      "waiver": "Two-browser interactive verify deferred to PR author."
+    },
+    {
+      "id": "A4",
+      "title": "Back navigation from message settings",
+      "surface": "ui",
+      "precondition": "On /messages/settings",
+      "steps": [
+        "Use back link or browser back",
+        "Confirm return to /messages inbox"
+      ],
+      "expected": "Clear path back to inbox without losing signed-in state.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "ChevronLeft Link to /messages on MessageSettingsPage.",
+      "waiver": "Interactive UI verify deferred to PR author."
+    },
+    {
+      "id": "A5",
+      "title": "Typecheck / build",
+      "surface": "cli",
+      "precondition": "Dependencies installed",
+      "steps": [
+        "npm run typecheck",
+        "npm run build"
+      ],
+      "expected": "Both succeed with no errors caused by this plan.",
+      "status": "pass",
+      "evidence": "2026-08-03: npm run typecheck and npm run build succeeded on kylie/message-account-settings.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "No backend or migration changes",
+      "surface": "none",
+      "precondition": "Diff reviewed",
+      "steps": [
+        "Confirm no edits under src/ services, routes, or database/migrations"
+      ],
+      "expected": "Frontend-only UI relocation.",
+      "status": "pass",
+      "evidence": "2026-08-03: changes limited to frontend/src/pages, App.tsx, and plans/.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}
