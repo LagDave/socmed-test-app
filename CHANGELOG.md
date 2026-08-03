@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.30 — 2026-08-03
+
+### Changed
+- Notifications page: removed soft dashboard shell (gray canvas, gradient hero card); kept Activity header, Recent count, and row polish
+
 ## 0.1.29 — 2026-08-03
 
 ### Added

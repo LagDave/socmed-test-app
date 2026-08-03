@@ -231,78 +231,76 @@ export function NotificationsPage() {
   const showListHeading = !loading && items.length > 0 && !error;
 
   return (
-    <div className="notifications-page soft-page-canvas -mx-4 rounded-2xl">
-      <div className="notifications-page-inner mx-auto max-w-2xl space-y-4">
-        <header className="notifications-header-card rounded-xl p-6 text-card-foreground">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <span className="notifications-header-icon flex size-12 shrink-0 items-center justify-center rounded-full border border-border">
-                <Bell className="size-5 text-foreground/80" aria-hidden="true" strokeWidth={1.5} />
-              </span>
-              <div>
-                <p className="profile-section-label mb-1">Activity</p>
-                <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Friend requests, comments, and replies from your network.
-                </p>
-              </div>
+    <section className="space-y-4">
+      <header className="feed-card p-6 text-card-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-full border border-border bg-secondary">
+              <Bell className="size-5 text-foreground/80" aria-hidden="true" strokeWidth={1.5} />
+            </span>
+            <div>
+              <p className="profile-section-label mb-1">Activity</p>
+              <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Friend requests, comments, and replies from your network.
+              </p>
             </div>
-            {!loading && unreadCount > 0 && (
-              <span className="notifications-unread-pill rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
-                {unreadCount} new
-              </span>
-            )}
           </div>
-        </header>
-
-        <section className="notifications-list-card rounded-xl bg-card text-card-foreground">
-          {error && (
-            <p className="border-b border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-              {error}
-            </p>
+          {!loading && unreadCount > 0 && (
+            <span className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+              {unreadCount} new
+            </span>
           )}
+        </div>
+      </header>
 
-          {showListHeading && (
-            <p className="notifications-list-heading">
-              Recent
-              <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground/80">
-                ({items.length})
-              </span>
-            </p>
-          )}
+      <section className="notifications-list-card rounded-xl bg-card text-card-foreground">
+        {error && (
+          <p className="border-b border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+            {error}
+          </p>
+        )}
 
-          {loading ? (
-            <ul className="divide-y divide-border">
-              {Array.from({ length: 4 }, (_, i) => (
-                <NotificationSkeleton key={i} />
-              ))}
-            </ul>
-          ) : items.length === 0 && !error ? (
-            <div className="notifications-empty-state flex flex-col items-center justify-center gap-4 px-6 py-16 text-center">
-              <span className="notifications-empty-icon flex size-16 items-center justify-center rounded-full border border-border">
-                <Bell className="size-7 text-muted-foreground/80" aria-hidden="true" strokeWidth={1.25} />
-              </span>
-              <div className="space-y-2">
-                <p className="text-lg font-semibold tracking-tight">You&apos;re all caught up</p>
-                <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
-                  When someone sends a friend request or interacts with your posts, it will show up here.
-                </p>
-              </div>
+        {showListHeading && (
+          <p className="notifications-list-heading">
+            Recent
+            <span className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground/80">
+              ({items.length})
+            </span>
+          </p>
+        )}
+
+        {loading ? (
+          <ul className="divide-y divide-border">
+            {Array.from({ length: 4 }, (_, i) => (
+              <NotificationSkeleton key={i} />
+            ))}
+          </ul>
+        ) : items.length === 0 && !error ? (
+          <div className="notifications-empty-state flex flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+            <span className="notifications-empty-icon flex size-16 items-center justify-center rounded-full border border-border">
+              <Bell className="size-7 text-muted-foreground/80" aria-hidden="true" strokeWidth={1.25} />
+            </span>
+            <div className="space-y-2">
+              <p className="text-lg font-semibold tracking-tight">You&apos;re all caught up</p>
+              <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
+                When someone sends a friend request or interacts with your posts, it will show up here.
+              </p>
             </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {items.map((n) => (
-                <NotificationRow
-                  key={n.id}
-                  item={n}
-                  busyFriendshipId={busyFriendshipId}
-                  onFriendAction={(friendshipId, action) => void onFriendAction(friendshipId, action)}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    </div>
+          </div>
+        ) : (
+          <ul className="divide-y divide-border">
+            {items.map((n) => (
+              <NotificationRow
+                key={n.id}
+                item={n}
+                busyFriendshipId={busyFriendshipId}
+                onFriendAction={(friendshipId, action) => void onFriendAction(friendshipId, action)}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+    </section>
   );
 }
