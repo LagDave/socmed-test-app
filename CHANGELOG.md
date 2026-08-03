@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.29 — 2026-08-04
+
+### Changed
+- Moved Messages navigation into the centered primary pill between Feed and Friends; unread badge and active-state behavior preserved
+
 ## 0.1.28 — 2026-08-03
 
 ### Added
