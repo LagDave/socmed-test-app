@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ImagePlus, MoreVertical, Palette, SendHorizontal, Trash2, X } from "lucide-react";
 import { api } from "@/api/client";
@@ -19,7 +19,7 @@ import {
   type MessageDeliveredPayload,
   type MessageEventPayload,
 } from "@/api/socket";
-import type { ConversationListItem, ConversationThemeView, MessageView, PublicUser } from "@/api/types";
+import type { ConversationListItem, ConversationThemeView, MessageView, PublicUser, ThemeLogEntry } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatThemePicker } from "@/components/ChatThemePicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -30,6 +30,7 @@ import { truncateQuoteText } from "@/components/MessageQuoteStrip";
 import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import {
   MessageDaySeparator,
+  MessageSystemLog,
   MessagesEmptyThread,
   MessagesErrorBanner,
   MessagesInboxEmptyConversations,
@@ -68,6 +69,57 @@ import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
 import { cn } from "@/lib/utils";
 
 const POLL_MS = 2500;
+
+type ThreadTimelineItem =
+  | {
+      kind: "message";
+      key: string;
+      createdAt: string;
+      message: MessageView;
+      index: number;
+    }
+  | {
+      kind: "system-log";
+      key: string;
+      createdAt: string;
+      log: ThemeLogEntry;
+    };
+
+function mergeSystemLogs(prev: ThemeLogEntry[], incoming: ThemeLogEntry[]): ThemeLogEntry[] {
+  const map = new Map<string, ThemeLogEntry>();
+  for (const log of prev) map.set(log.id, log);
+  for (const log of incoming) map.set(log.id, log);
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+}
+
+function buildThreadTimeline(
+  messages: MessageView[],
+  systemLogs: ThemeLogEntry[]
+): ThreadTimelineItem[] {
+  return [
+    ...messages.map((message, index) => ({
+      kind: "message" as const,
+      key: `msg-${message.id}`,
+      createdAt: message.createdAt,
+      message,
+      index,
+    })),
+    ...systemLogs.map((log) => ({
+      kind: "system-log" as const,
+      key: `log-${log.id}`,
+      createdAt: log.createdAt,
+      log,
+    })),
+  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
+
+function focusComposer(textareaRef: RefObject<HTMLTextAreaElement | null>) {
+  requestAnimationFrame(() => {
+    textareaRef.current?.focus();
+  });
+}
 
 type PendingDeleteConversation = {
   id: string;
@@ -150,6 +202,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const [themeSaving, setThemeSaving] = useState(false);
   const [replyToMessage, setReplyToMessage] = useState<MessageView | null>(null);
   const [tappedMessageId, setTappedMessageId] = useState<string | null>(null);
+  const [systemLogs, setSystemLogs] = useState<ThemeLogEntry[]>([]);
   const canHover = useCanHover();
   const isPeerTyping = usePeerTyping(conversationId, user?.id);
   const { stopTyping } = useTypingEmitter({
@@ -199,6 +252,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     setEditingMessageId(null);
     setReplyToMessage(null);
     setTappedMessageId(null);
+    setSystemLogs([]);
     setLoadingThread(true);
     setConversationTheme(null);
     setThemePickerOpen(false);
@@ -212,6 +266,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           messages: MessageView[];
           hasMore: boolean;
           theme: ConversationThemeView;
+          themeLogs: ThemeLogEntry[];
         }>(`/api/messages/conversations/${conversationId}?restore=1`);
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
@@ -219,6 +274,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         setMessages(data.messages);
         setHasMore(Boolean(data.hasMore));
         setConversationTheme(data.theme);
+        setSystemLogs(data.themeLogs ?? []);
         setLoadingThread(false);
         if (generation !== generationRef.current) return;
         await api.post(`/api/messages/conversations/${conversationId}/read`);
@@ -250,6 +306,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
             messages: MessageView[];
             hasMore: boolean;
             theme: ConversationThemeView;
+            themeLogs: ThemeLogEntry[];
           }>(`/api/messages/conversations/${conversationId}`);
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
@@ -261,6 +318,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
             }
             return merged;
           });
+          setSystemLogs(data.themeLogs ?? []);
           if (!themePickerOpenRef.current) {
             setConversationTheme(data.theme);
           }
@@ -333,6 +391,10 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         updatedAt: payload.updatedAt,
         updatedBy: payload.updatedBy,
       });
+      if (payload.logEntry) {
+        setSystemLogs((prev) => mergeSystemLogs(prev, [payload.logEntry]));
+        stickToBottomRef.current = true;
+      }
     };
     socket.on(CONVERSATION_THEME, applyTheme);
 
@@ -411,6 +473,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return false;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
+      focusComposer(textareaRef);
       return true;
     } catch (err) {
       if (generation !== generationRef.current) return false;
@@ -500,6 +563,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
+      focusComposer(textareaRef);
     } catch (err) {
       if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -592,6 +656,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       if (generation !== generationRef.current) return;
       setMessages((prev) => mergeById(prev, [data.message]));
       cancelEdit();
+      focusComposer(textareaRef);
     } catch (err) {
       if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Edit failed");
@@ -613,6 +678,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     try {
       const updated = await updateConversationTheme(conversationId, payload);
       setConversationTheme(updated);
+      setSystemLogs((prev) => mergeSystemLogs(prev, [updated.logEntry]));
+      stickToBottomRef.current = true;
       setThemePickerOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update theme");
@@ -637,6 +704,14 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     ? messages.find((m) => m.id === editingMessageId) ?? null
     : null;
   const composeBusy = sending || savingEdit;
+  const latestOwnMessageId = (() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const message = messages[i];
+      if (message.senderId === user?.id && !message.isUnsent) return message.id;
+    }
+    return null;
+  })();
+  const threadTimeline = buildThreadTimeline(messages, systemLogs);
 
   return (
     <section className="messages-page space-y-4">
@@ -645,7 +720,14 @@ function ThreadView({ conversationId }: { conversationId: string }) {
         data-chat-theme={resolvedTheme.active ? "true" : undefined}
         style={themeVars}
       >
-        <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-card/95 px-4 py-3 shadow-sm backdrop-blur-sm">
+        <header
+          className={cn(
+            "messages-thread-header sticky top-0 z-10 flex items-center gap-2 border-b border-border px-5 py-3",
+            resolvedTheme.active
+              ? "border-transparent"
+              : "bg-card/95 shadow-sm backdrop-blur-sm"
+          )}
+        >
           <Button
             type="button"
             variant="ghost"
@@ -656,7 +738,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
             <ChevronLeft className="h-5 w-5" />
           </Button>
           {peer ? (
-            <Link to={peerProfilePath} className="flex min-w-0 flex-1 items-center gap-3">
+            <Link to={peerProfilePath} className="flex min-w-0 flex-1 items-center gap-3 text-inherit">
               <ProfileAvatar
                 displayName={peer.displayName}
                 avatarUrl={peer.avatarUrl}
@@ -719,7 +801,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
         <div
           ref={scrollRef}
-          className="messages-thread-pane min-h-0 flex-1 overflow-y-auto px-4 py-4"
+          className="messages-thread-pane min-h-0 flex-1 overflow-y-auto px-5 py-3"
           style={resolvedTheme.active ? { background: resolvedTheme.background } : undefined}
           onScroll={() => {
             const el = scrollRef.current;
@@ -734,13 +816,14 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           {loadingThread ? (
             <MessagesThreadSkeleton />
           ) : (
-            <div className="space-y-1">
+            <div className="messages-thread-list">
               {hasMore && (
                 <div className="flex justify-center pb-1">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className="messages-load-earlier"
                     disabled={loadingEarlier}
                     onClick={() => void loadEarlier()}
                   >
@@ -748,21 +831,37 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                   </Button>
                 </div>
               )}
-              {messages.length === 0 && peer && !error && (
+              {messages.length === 0 && systemLogs.length === 0 && peer && !error && (
                 <MessagesEmptyThread peerName={peer.displayName} />
               )}
-              {messages.map((m, index) => {
+              {threadTimeline.map((item, timelineIndex) => {
+                const prevItem = timelineIndex > 0 ? threadTimeline[timelineIndex - 1] : null;
+                const showDay =
+                  !prevItem || !isSameCalendarDay(prevItem.createdAt, item.createdAt);
+
+                if (item.kind === "system-log") {
+                  return (
+                    <div key={item.key} className="message-system-log-row">
+                      {showDay && <MessageDaySeparator label={formatMessageDay(item.createdAt)} />}
+                      <MessageSystemLog text={item.log.text} />
+                    </div>
+                  );
+                }
+
+                const m = item.message;
+                const index = item.index;
                 const prev = index > 0 ? messages[index - 1] : null;
                 const next = index < messages.length - 1 ? messages[index + 1] : null;
                 const mine = m.senderId === user?.id;
-                const showDay =
-                  !prev || !isSameCalendarDay(prev.createdAt, m.createdAt);
                 const showAvatar = !mine && (!prev || !messagesShareGroup(prev, m));
                 const groupedWithPrev = Boolean(prev && messagesShareGroup(prev, m));
                 const groupedWithNext = Boolean(next && messagesShareGroup(m, next));
 
                 return (
-                  <div key={m.id}>
+                  <div
+                    key={item.key}
+                    className={cn("messages-thread-item", groupedWithPrev && "messages-thread-item-grouped")}
+                  >
                     {showDay && <MessageDaySeparator label={formatMessageDay(m.createdAt)} />}
                     <MessageBubbleRow
                       message={m}
@@ -788,6 +887,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                       }}
                       onError={setError}
                       themed={resolvedTheme.active}
+                      showMessageStatus={mine && m.id === latestOwnMessageId}
+                      allowSeenStatus
                     />
                   </div>
                 );
@@ -799,9 +900,20 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
         {error && <MessagesErrorBanner message={error} />}
 
-        {isPeerTyping && peer && <TypingIndicator displayName={peer.displayName} />}
+        {isPeerTyping && peer && (
+          <TypingIndicator
+            displayName={peer.displayName}
+            themed={resolvedTheme.active}
+          />
+        )}
 
-        <form onSubmit={onSend} className="border-t border-border bg-card px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
+        <form
+          onSubmit={onSend}
+          className={cn(
+            "messages-composer-form border-t border-border bg-card px-5 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]",
+            resolvedTheme.active && "border-transparent"
+          )}
+        >
           {editingMessageId && (
             <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
               <span>Editing message</span>
@@ -818,7 +930,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
             </div>
           )}
           {replyPreview && (
-            <div className="mb-2 flex items-start justify-between gap-2 rounded-xl border border-border/70 bg-secondary/40 px-3 py-2 text-sm">
+            <div className="messages-composer-reply mb-2 flex items-start justify-between gap-2 rounded-xl border border-border/70 bg-secondary/40 px-3 py-2 text-sm">
               <div className="min-w-0">
                 <p className="text-muted-foreground">
                   Replying to{" "}
@@ -849,15 +961,8 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           <div
             className={cn(
               "messages-composer-track flex items-end gap-2 rounded-full px-2 py-1.5",
-              resolvedTheme.active && "border-transparent bg-transparent shadow-none"
+              resolvedTheme.active && "border-transparent shadow-none"
             )}
-            style={
-              resolvedTheme.active
-                ? {
-                    backgroundColor: "color-mix(in srgb, var(--chat-accent) 18%, transparent)",
-                  }
-                : undefined
-            }
           >
             <input
               ref={fileRef}
@@ -871,6 +976,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
                 displayName={user.displayName}
                 avatarUrl={user.avatarUrl}
                 size="sm"
+                className="messages-composer-avatar"
               />
             )}
             <div className="flex shrink-0 items-center -space-x-1">
@@ -1032,15 +1138,20 @@ function InboxView() {
     socket.on(MESSAGE_NEW, onMessage);
     socket.on(MESSAGE_UNSENT, onMessage);
     socket.on(MESSAGE_EDITED, onMessage);
+    socket.on(MESSAGE_REACTION, onUpdated);
     return () => {
       socket.off(CONVERSATION_UPDATED, onUpdated);
       socket.off(MESSAGE_NEW, onMessage);
       socket.off(MESSAGE_UNSENT, onMessage);
       socket.off(MESSAGE_EDITED, onMessage);
+      socket.off(MESSAGE_REACTION, onUpdated);
     };
   }, []);
 
-  const unreadTotal = items.reduce((sum, item) => sum + item.unreadCount, 0);
+  const unreadTotal = items.reduce(
+    (sum, item) => sum + item.unreadCount + (item.hasUnreadReaction && item.unreadCount === 0 ? 1 : 0),
+    0
+  );
 
   return (
     <section className="messages-page space-y-4">
@@ -1088,6 +1199,7 @@ function InboxView() {
                   item={c}
                   onDelete={requestDelete}
                   isPeerTyping={Boolean(typingByConversation[c.id])}
+                  viewerId={user?.id}
                 />
               ))}
             </ul>
