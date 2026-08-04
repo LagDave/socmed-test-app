@@ -1,6 +1,6 @@
 import type { CSSProperties, FormEvent, KeyboardEvent, MutableRefObject, RefObject } from "react";
 import { Link, type NavigateFunction } from "react-router-dom";
-import { ChevronLeft, ImagePlus, MoreVertical, Palette, SendHorizontal, Trash2, X } from "lucide-react";
+import { ChevronLeft, ImagePlus, MoreVertical, Palette, Search, SendHorizontal, Trash2, X } from "lucide-react";
 import type { ChatTheme, ConversationThemeView, MessageView, PublicUser, ThemeLogEntry, ReactionSummary } from "@/api/types";
 import { ChatThemePicker } from "@/components/ChatThemePicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -29,6 +29,8 @@ type ThreadViewContentProps = {
   navigate: NavigateFunction;
   peer: PublicUser | null;
   peerProfilePath: string;
+  isSearchOpen: boolean;
+  onToggleSearch: () => void;
   setThemePickerOpen: (open: boolean) => void;
   setPendingDelete: (value: PendingDeleteConversation | null) => void;
   conversationId: string;
@@ -47,6 +49,8 @@ type ThreadViewContentProps = {
   setError: (error: string | null) => void;
   isPeerTyping: boolean;
   threadTimeline: ThreadTimelineItem[];
+  focusedMessageId: string | null;
+  searchHighlightQuery: string | null;
   peerLastReadAt: string | null;
   editingMessageId: string | null;
   tappedMessageId: string | null;
@@ -84,10 +88,10 @@ type ThreadViewContentProps = {
 
 export function ThreadViewContent(props: ThreadViewContentProps) {
   const {
-    user, resolvedTheme, themeVars, navigate, peer, peerProfilePath, setThemePickerOpen,
+    user, resolvedTheme, themeVars, navigate, peer, peerProfilePath, isSearchOpen, onToggleSearch, setThemePickerOpen,
     setPendingDelete, conversationId, bottomRef, scrollRef, stickToBottomRef, canHover, setTappedMessageId,
     loadingThread, hasMore, loadingEarlier, loadEarlier, messages, systemLogs, error, setError, isPeerTyping,
-    threadTimeline, peerLastReadAt, editingMessageId, tappedMessageId, startEdit, patchMessageReaction,
+    threadTimeline, focusedMessageId, searchHighlightQuery, peerLastReadAt, editingMessageId, tappedMessageId, startEdit, patchMessageReaction,
     setReplyToMessage, latestOwnMessageId, body, onSend, composeBusy, cancelEdit, replyPreview,
     fileRef, onImage, insertComposerEmoji, textareaRef, setBody, stopTyping, handleComposeKeyDown,
     editingMessage, themePickerOpen, conversationTheme, themeSaving, applyThemeChoice, sendWordEffect,
@@ -152,6 +156,17 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
             )}
 
             <div className="messages-thread-header-actions shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="messages-thread-header-action h-8 w-8 rounded-full"
+                aria-label={isSearchOpen ? "Close message search" : "Search messages"}
+                aria-pressed={isSearchOpen}
+                onClick={onToggleSearch}
+              >
+                <Search className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden="true" />
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -268,6 +283,8 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                       groupedWithNext={groupedWithNext}
                       peerProfilePath={peerProfilePath}
                       isBeingEdited={editingMessageId === m.id}
+                      isSearchFocused={focusedMessageId === m.id}
+                      searchHighlightQuery={searchHighlightQuery ?? undefined}
                       canHover={canHover}
                       touchRevealed={tappedMessageId === m.id}
                       onToggleTouchReveal={() =>

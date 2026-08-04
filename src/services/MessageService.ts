@@ -37,6 +37,7 @@ async function publishRealtime(work: () => Promise<void>): Promise<void> {
 }
 
 const MESSAGE_PAGE_SIZE = 50;
+const MESSAGE_SEARCH_RESULT_LIMIT = 50;
 const UPLOAD_PATH_RE = /^\/uploads\/[A-Za-z0-9._-]+$/;
 
 const openConversationSchema = z
@@ -72,6 +73,8 @@ const reactionSchema = z.object({
 const editMessageSchema = z.object({
   body: z.string().max(4000),
 });
+
+const searchMessagesSchema = z.string().trim().min(1).max(200);
 
 export type MessageReplyToView = {
   id: string;
@@ -395,6 +398,31 @@ export class MessageService {
       ...(options?.includeThemeLogs
         ? { themeLogs: ChatThemeService.themeLogsFromRow(conversation) }
         : {}),
+    };
+  }
+
+  static async searchMessages(
+    userId: string,
+    conversationId: string,
+    rawQuery: unknown
+  ): Promise<{ messages: MessageView[]; hasMore: boolean }> {
+    const query = searchMessagesSchema.parse(rawQuery);
+    const conversation = await ConversationModel.findById(conversationId);
+    if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    assertParticipant(conversation, userId);
+
+    const rows = await MessageModel.searchByConversation(
+      conversationId,
+      userId,
+      query,
+      MESSAGE_SEARCH_RESULT_LIMIT + 1
+    );
+    const hasMore = rows.length > MESSAGE_SEARCH_RESULT_LIMIT;
+    const resultRows = hasMore ? rows.slice(0, MESSAGE_SEARCH_RESULT_LIMIT) : rows;
+
+    return {
+      messages: await rowsToViews(resultRows, userId),
+      hasMore,
     };
   }
 

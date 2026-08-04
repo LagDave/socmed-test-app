@@ -12,7 +12,7 @@ addresses: none
 
 # Review — messenger UI polish, theme logs, inbox reactions (PR #59)
 
-**Verdict:** needs changes  
+**Verdict:** needs changes
 **PR:** https://github.com/LagDave/socmed-test-app/pull/59
 
 UI polish and inbox reaction wiring are solid. Merge blocked on file-ceiling growth, unbounded `theme_log` payloads, and a non-atomic theme-log race. **No plan folder shipped with this PR** — add a proper plan/acceptance artifact before `-d`, or land under an existing messages plan with Rev Log.
@@ -20,7 +20,7 @@ UI polish and inbox reaction wiring are solid. Merge blocked on file-ceiling gro
 ## Findings
 
 ### R1 — MessagesPage further over §13.1 / §2.4 ceiling
-**Severity:** must-fix  
+**Severity:** must-fix
 **Where:** `frontend/src/pages/MessagesPage.tsx` (1123 → **1251** lines)
 
 Already over the ~800 hard ceiling on `dev`; this PR adds ~128 more lines. Constitution: *“Never add to a file already over the ceiling — extract.”*
@@ -28,7 +28,7 @@ Already over the ~800 hard ceiling on `dev`; this PR adds ~128 more lines. Const
 **Fix:** Extract before merge — timeline helpers, `ThreadView` / `InboxView`, or `useThreadMessages` / `useInboxSocket` hooks.
 
 ### R2 — Unbounded `theme_log` on every poll
-**Severity:** must-fix  
+**Severity:** must-fix
 **Where:** `ConversationModel` / `MessageService.listMessages` → FE poll
 
 `theme_log` is append-only jsonb with **no cap**. Every conversation fetch (including ~2.5s poll when socket is down) returns full history.
@@ -36,7 +36,7 @@ Already over the ~800 hard ceiling on `dev`; this PR adds ~128 more lines. Const
 **Fix:** Cap (e.g. last N=50) on write; avoid resending full history on every poll (delta / open + realtime).
 
 ### R3 — Theme-log RMW race
-**Severity:** must-fix  
+**Severity:** must-fix
 **Where:** `src/models/ConversationModel.ts` `updateTheme`
 
 Classic read-modify-write: concurrent theme updates can drop log entries.
@@ -44,7 +44,7 @@ Classic read-modify-write: concurrent theme updates can drop log entries.
 **Fix:** Atomic append, e.g. `theme_log = COALESCE(theme_log, '[]'::jsonb) || ?::jsonb` (plus cap).
 
 ### R4 — `toListItem` leaves reaction fields empty
-**Severity:** concern  
+**Severity:** concern
 **Where:** `MessageService.toListItem`
 
 Always returns `lastReaction: null`, `hasUnreadReaction: false` while `listConversations` populates them.
@@ -52,7 +52,7 @@ Always returns `lastReaction: null`, `hasUnreadReaction: false` while `listConve
 **Fix:** Reuse the same helpers in `toListItem`, or stop returning a full `ConversationListItem` from open.
 
 ### R5 — Double inbox reload on reaction/theme
-**Severity:** concern  
+**Severity:** concern
 **Where:** `MessageRealtime` + Inbox socket handlers
 
 Emits `CONVERSATION_UPDATED` **and** typed events; Inbox listens to both → double `reloadInbox()`.
@@ -60,21 +60,21 @@ Emits `CONVERSATION_UPDATED` **and** typed events; Inbox listens to both → dou
 **Fix:** One path only.
 
 ### R6 — Bubble grouping ignores system-log neighbors
-**Severity:** concern  
+**Severity:** concern
 **Where:** MessagesPage timeline render
 
 Day separators use timeline neighbors; bubble grouping still uses message-array prev/next, so system logs can sit inside a visual group.
 
 ### R7 — No tests for theme-log / unread-reaction SQL
-**Severity:** concern  
+**Severity:** concern
 **Where:** new parse/unread paths (§20.1)
 
 ### R8 — “Liked your message” for every emoji
-**Severity:** concern  
+**Severity:** concern
 **Where:** `ConversationListRow`
 
 ### R9 — FE/BE theme label drift (“Custom” vs named swatches)
-**Severity:** concern  
+**Severity:** concern
 
 ## What's good
 

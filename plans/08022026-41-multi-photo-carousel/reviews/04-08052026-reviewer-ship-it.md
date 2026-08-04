@@ -12,7 +12,7 @@ addresses: none
 
 # Review — PostCard layout regression fix (PR #58)
 
-**Verdict:** ship it  
+**Verdict:** ship it
 **PR:** https://github.com/LagDave/socmed-test-app/pull/58
 
 Small, targeted restore of feed media stage wrapping and embedded action-row layout that PR #57 regressed. Scope is one file; no auth, API, or migration risk.
@@ -22,7 +22,7 @@ Small, targeted restore of feed media stage wrapping and embedded action-row lay
 None blocking.
 
 ### R1 — advisory · Verify on both surfaces
-**Severity:** advisory  
+**Severity:** advisory
 **Where:** `frontend/src/components/PostCard.tsx` (`wrapFeedMediaStage`, embedded action row)
 
 Confirm on staging: (1) feed standalone photo still gets `post-media-stage` centering, (2) profile/timeline embedded cards keep reaction row without the breakout border treatment, (3) multi-photo gallery path unchanged.

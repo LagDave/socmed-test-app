@@ -12,8 +12,8 @@ addresses: [01, 02]
 
 # Review — PR #59 (round 2)
 
-**Verdict:** ship it  
-**PR:** https://github.com/LagDave/socmed-test-app/pull/59  
+**Verdict:** ship it
+**PR:** https://github.com/LagDave/socmed-test-app/pull/59
 **Addresses:** contributor turn 02 + commit `1488cb3`
 
 ## Finding status

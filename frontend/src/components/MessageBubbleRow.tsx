@@ -133,6 +133,8 @@ export function MessageBubbleRow({
   groupedWithNext,
   peerProfilePath,
   isBeingEdited,
+  isSearchFocused = false,
+  searchHighlightQuery,
   canHover,
   touchRevealed,
   onToggleTouchReveal,
@@ -154,6 +156,8 @@ export function MessageBubbleRow({
   groupedWithNext?: boolean;
   peerProfilePath: string;
   isBeingEdited?: boolean;
+  isSearchFocused?: boolean;
+  searchHighlightQuery?: string;
   canHover: boolean;
   touchRevealed: boolean;
   onToggleTouchReveal: () => void;
@@ -288,7 +292,11 @@ export function MessageBubbleRow({
                         </button>
                       )}
                       {message.body && (
-                        <MessageBodyWithEffects body={message.body} messageId={message.id} />
+                        <MessageBodyWithEffects
+                          body={message.body}
+                          messageId={message.id}
+                          highlightQuery={isSearchFocused ? searchHighlightQuery : undefined}
+                        />
                       )}
                     </>
                   )}

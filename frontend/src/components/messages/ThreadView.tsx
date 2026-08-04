@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from "react";
 import { ThreadViewContent } from "@/components/messages/ThreadViewContent";
+import { ConversationSearchPanel } from "@/components/messages/ConversationSearchPanel";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 import { deleteConversation, updateConversationTheme } from "@/api/messages";
@@ -21,15 +22,11 @@ import type { ConversationThemeView, MessageView, PublicUser, ThemeLogEntry } fr
 import { useAuth } from "@/contexts/AuthContext";
 import { truncateQuoteText } from "@/components/MessageQuoteStrip";
 import { useCanHover } from "@/hooks/useCanHover";
+import { useConversationSearch } from "@/hooks/useConversationSearch";
+import { useConversationSearchResultFocus } from "@/hooks/useConversationSearchResultFocus";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
-import {
-  usePeerTyping,
-  useTypingEmitter,
-} from "@/hooks/useTypingIndicator";
-import {
-  chatThemeCssVars,
-  resolveConversationTheme,
-} from "@/lib/chatThemeApply";
+import { usePeerTyping, useTypingEmitter } from "@/hooks/useTypingIndicator";
+import { chatThemeCssVars, resolveConversationTheme } from "@/lib/chatThemeApply";
 import type { ChatTheme } from "@/api/types";
 import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
 
@@ -170,6 +167,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   const [systemLogs, setSystemLogs] = useState<ThemeLogEntry[]>([]);
   const canHover = useCanHover();
   const isPeerTyping = usePeerTyping(conversationId, user?.id);
+  const conversationSearch = useConversationSearch(conversationId);
+  const { closeSearch, openSearch, refreshSearch, resetSearch } = conversationSearch;
   const { stopTyping } = useTypingEmitter({
     conversationId,
     text: body,
@@ -185,6 +184,22 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   const stickToBottomRef = useRef(true);
   const replyTargetIdRef = useRef<string | null>(null);
   const peerIdRef = useRef<string | null>(null);
+  const {
+    clearFocusedSearch,
+    focusSearchResult,
+    focusedMessageId,
+    oldestPagedMessageIdRef,
+    searchHighlightQuery,
+  } = useConversationSearchResultFocus({
+    conversationId,
+    closeSearch,
+    generationRef,
+    scrollRef,
+    setError,
+    setHasMore,
+    setMessages,
+    stickToBottomRef,
+  });
 
   useEffect(() => {
     replyTargetIdRef.current = replyToMessage?.id ?? null;
@@ -211,12 +226,14 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     setPeer(null);
     setPeerLastReadAt(null);
     setMessages([]);
+    oldestPagedMessageIdRef.current = null;
     setHasMore(false);
     setError(null);
     setBody("");
     setEditingMessageId(null);
     setReplyToMessage(null);
     setTappedMessageId(null);
+    clearFocusedSearch();
     setSystemLogs([]);
     setLoadingThread(true);
     setConversationTheme(null);
@@ -237,6 +254,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
         setPeer(data.peer);
         setPeerLastReadAt(data.peerLastReadAt);
         setMessages(data.messages);
+        oldestPagedMessageIdRef.current = data.messages[0]?.id ?? null;
         setHasMore(Boolean(data.hasMore));
         setConversationTheme(data.theme);
         setSystemLogs(data.themeLogs ?? []);
@@ -255,7 +273,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     return () => {
       generationRef.current += 1;
     };
-  }, [conversationId]);
+  }, [clearFocusedSearch, conversationId, oldestPagedMessageIdRef]);
 
   useEffect(() => {
     if (socketConnected) return;
@@ -313,11 +331,17 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       }
     };
 
+    const applySearchAwarePatch = (payload: MessageEventPayload) => {
+      applyMessagePatch(payload);
+      refreshSearch();
+    };
+
     const applyInboundNewMessage = (payload: MessageEventPayload) => {
       const msg = payload.message;
       if (msg.conversationId !== conversationId) return;
       if (generation !== generationRef.current) return;
       setMessages((prev) => mergeById(prev, [msg]));
+      refreshSearch();
       if (msg.senderId === user?.id) return;
       stickToBottomRef.current = true;
       void api.post(`/api/messages/conversations/${conversationId}/read`).catch(() => undefined);
@@ -341,8 +365,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     };
 
     socket.on(MESSAGE_NEW, applyInboundNewMessage);
-    socket.on(MESSAGE_UNSENT, applyMessagePatch);
-    socket.on(MESSAGE_EDITED, applyMessagePatch);
+    socket.on(MESSAGE_UNSENT, applySearchAwarePatch);
+    socket.on(MESSAGE_EDITED, applySearchAwarePatch);
     socket.on(MESSAGE_REACTION, applyMessagePatch);
     socket.on(MESSAGE_DELIVERED, applyMessageDelivered);
     socket.on(CONVERSATION_PEER_READ, applyPeerRead);
@@ -364,14 +388,14 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
 
     return () => {
       socket.off(MESSAGE_NEW, applyInboundNewMessage);
-      socket.off(MESSAGE_UNSENT, applyMessagePatch);
-      socket.off(MESSAGE_EDITED, applyMessagePatch);
+      socket.off(MESSAGE_UNSENT, applySearchAwarePatch);
+      socket.off(MESSAGE_EDITED, applySearchAwarePatch);
       socket.off(MESSAGE_REACTION, applyMessagePatch);
       socket.off(MESSAGE_DELIVERED, applyMessageDelivered);
       socket.off(CONVERSATION_PEER_READ, applyPeerRead);
       socket.off(CONVERSATION_THEME, applyTheme);
     };
-  }, [conversationId, user?.id]);
+  }, [conversationId, refreshSearch, user?.id]);
 
   useLayoutEffect(() => {
     if (loadingThread || !stickToBottomRef.current) return;
@@ -449,8 +473,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   }
 
   async function loadEarlier() {
-    if (loadingEarlier || !hasMore || messages.length === 0) return;
-    const oldestId = messages[0]?.id;
+    if (loadingEarlier || !hasMore) return;
+    const oldestId = oldestPagedMessageIdRef.current;
     if (!oldestId) return;
     const generation = generationRef.current;
     setLoadingEarlier(true);
@@ -465,6 +489,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       }>(`/api/messages/conversations/${conversationId}?before=${encodeURIComponent(oldestId)}`);
       if (generation !== generationRef.current) return;
       setMessages((prev) => mergeById(data.messages, prev));
+      oldestPagedMessageIdRef.current = data.messages[0]?.id ?? oldestPagedMessageIdRef.current;
       setHasMore(Boolean(data.hasMore));
     } catch (e) {
       if (generation !== generationRef.current) return;
@@ -567,6 +592,16 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     setMessages((prev) =>
       prev.map((m) => (m.id === messageId ? { ...m, reactionSummary } : m))
     );
+  }
+
+  function cancelSearch() {
+    closeSearch();
+    clearFocusedSearch();
+  }
+
+  function clearSearch() {
+    resetSearch();
+    clearFocusedSearch();
   }
 
   async function confirmDeleteConversation() {
@@ -678,6 +713,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   const threadTimeline = buildThreadTimeline(messages, systemLogs);
 
   return (
+    <>
     <ThreadViewContent
       user={user}
       resolvedTheme={resolvedTheme}
@@ -685,6 +721,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       navigate={navigate}
       peer={peer}
       peerProfilePath={peerProfilePath}
+      isSearchOpen={conversationSearch.isSearchOpen}
+      onToggleSearch={() => (conversationSearch.isSearchOpen ? cancelSearch() : openSearch())}
       setThemePickerOpen={setThemePickerOpen}
       setPendingDelete={setPendingDelete}
       conversationId={conversationId}
@@ -703,6 +741,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       setError={setError}
       isPeerTyping={isPeerTyping}
       threadTimeline={threadTimeline}
+      focusedMessageId={focusedMessageId}
+      searchHighlightQuery={searchHighlightQuery}
       peerLastReadAt={peerLastReadAt}
       editingMessageId={editingMessageId}
       tappedMessageId={tappedMessageId}
@@ -737,5 +777,22 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       confirmDeleteConversation={confirmDeleteConversation}
       deleteConversationDescription={deleteConversationDescription}
     />
+    {conversationSearch.isSearchOpen && (
+      <ConversationSearchPanel
+        query={conversationSearch.query}
+        results={conversationSearch.results}
+        hasMore={conversationSearch.hasMore}
+        isSearching={conversationSearch.isSearching}
+        error={conversationSearch.error}
+        currentUserId={user?.id}
+        peer={peer}
+        hasActiveHighlight={Boolean(searchHighlightQuery)}
+        onQueryChange={conversationSearch.setQuery}
+        onClear={clearSearch}
+        onClose={cancelSearch}
+        onSelectMessage={focusSearchResult}
+      />
+    )}
+    </>
   );
 }

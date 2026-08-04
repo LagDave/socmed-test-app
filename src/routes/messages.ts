@@ -7,6 +7,11 @@ export const messagesRouter = Router();
 messagesRouter.get("/messages/conversations", requireAuth, MessagesController.listConversations);
 messagesRouter.post("/messages/conversations", requireAuth, MessagesController.openConversation);
 messagesRouter.get("/messages/unread-count", requireAuth, MessagesController.unreadCount);
+messagesRouter.get(
+  "/messages/conversations/:id/search",
+  requireAuth,
+  MessagesController.searchMessages
+);
 messagesRouter.get("/messages/conversations/:id", requireAuth, MessagesController.listMessages);
 messagesRouter.delete("/messages/conversations/:id", requireAuth, MessagesController.hideConversation);
 messagesRouter.get("/messages/conversations/:id/theme", requireAuth, MessagesController.getTheme);
