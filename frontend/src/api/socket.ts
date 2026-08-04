@@ -1,6 +1,13 @@
 import { io, type Socket } from "socket.io-client";
 import type { ChatTheme, MessageView } from "./types";
 
+export type ThemeLogEntry = {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedBy: string;
+};
+
 export const MESSAGE_NEW = "message:new";
 export const MESSAGE_UNSENT = "message:unsent";
 export const MESSAGE_EDITED = "message:edited";
@@ -14,6 +21,8 @@ export const CONVERSATION_THEME = "conversation:theme";
 export const TYPING_START = "typing:start";
 export const TYPING_STOP = "typing:stop";
 export const TYPING_UPDATE = "typing:update";
+export const NOTIFICATION_NEW = "notification:new";
+export const NOTIFICATIONS_COUNT = "notifications:count";
 
 export type MessageEventPayload = { message: MessageView };
 export type UnreadPayload = { unread: number };
@@ -23,6 +32,7 @@ export type ConversationThemePayload = {
   theme: ChatTheme | null;
   updatedAt: string | null;
   updatedBy: string | null;
+  logEntry: ThemeLogEntry;
 };
 export type MessageDeliveredPayload = {
   messageId: string;
@@ -39,6 +49,8 @@ export type TypingUpdatePayload = {
   userId: string;
   isTyping: boolean;
 };
+export type NotificationNewPayload = { notificationId: string };
+export type NotificationsCountPayload = { notifications: number };
 
 let socket: Socket | null = null;
 

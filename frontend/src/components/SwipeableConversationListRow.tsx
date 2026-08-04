@@ -11,10 +11,12 @@ export function SwipeableConversationListRow({
   item,
   onDelete,
   isPeerTyping = false,
+  viewerId,
 }: {
   item: ConversationListItem;
   onDelete: (id: string, peerName: string) => void;
   isPeerTyping?: boolean;
+  viewerId?: string;
 }) {
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -122,6 +124,7 @@ export function SwipeableConversationListRow({
           item={item}
           onDelete={onDelete}
           isPeerTyping={isPeerTyping}
+          viewerId={viewerId}
           className="rounded-xl border-b-0 bg-background"
         />
       </div>

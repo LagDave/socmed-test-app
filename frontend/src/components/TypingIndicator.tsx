@@ -3,16 +3,23 @@ import { cn } from "@/lib/utils";
 type TypingIndicatorProps = {
   displayName: string;
   compact?: boolean;
+  themed?: boolean;
   className?: string;
 };
 
-export function TypingIndicator({ displayName, compact = false, className }: TypingIndicatorProps) {
+export function TypingIndicator({
+  displayName,
+  compact = false,
+  themed = false,
+  className,
+}: TypingIndicatorProps) {
   return (
     <div
       aria-live="polite"
       className={cn(
-        "flex items-center gap-1.5 text-muted-foreground",
-        compact ? "text-sm" : "px-4 py-2 text-xs",
+        "flex items-center gap-1.5",
+        themed ? "text-[var(--chat-thread-muted)]" : "text-muted-foreground",
+        compact ? "text-sm" : "px-5 py-2 text-xs",
         className
       )}
     >

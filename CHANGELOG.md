@@ -1,9 +1,70 @@
 # Changelog
 
-## 0.1.29 — 2026-08-04
+## 0.1.33 — 2026-08-05
 
 ### Changed
 - Moved Messages navigation into the centered primary pill between Feed and Friends; unread badge and active-state behavior preserved
+
+### Plans
+- `plans/08012026-35-navbar-upgrade` — integrated from `kylie/navbar-update`
+
+## 0.1.32 — 2026-08-05
+
+### Added
+- Realtime activity notification sounds over Socket.IO (`notification:new`, `notifications:count`)
+- Dedicated activity sound library (Digital + Tone groups) separate from message sounds
+- `useActivityNotificationSound` hook with suppress-on-`/notifications` and cross-tab dedupe
+- Activity sound picker in Message Settings; `scripts/generate-activity-sounds.mjs` for bundled WAV assets
+
+### Changed
+- Activity sounds play at 50% volume; message sounds unchanged
+- `NotificationSoundsSettings` splits message and activity pickers with preview
+- Notifications page: removed soft dashboard shell (gray canvas, gradient hero card); kept Activity header, Recent count, and row polish
+
+### Plans
+- `plans/08032026-45-activity-notification-sounds` — integrated from `kylie/notification-sound`
+
+## 0.1.31 — 2026-08-05
+
+### Added
+- Message settings page at `/messages/settings` with icon-only chrome (back + settings icons)
+- Inbox gear entry to message settings from `/messages`
+
+### Changed
+- Moved notification sound picker from Account Settings to Message settings
+- Account Settings now shows only Privacy, Security, and More settings stubs
+
+### Plans
+- `plans/08032026-42-message-settings-sound-move` — integrated from `kylie/message-account-settings`
+
+## 0.1.30 — 2026-08-03
+
+### Changed
+- Thread header polish: gradient wash, accent avatar ring, grouped action pill
+- Theme picker color strips: more padding and scroll inset so swatches aren’t edge-flush
+- Inbox previews show latest system logs (e.g. theme changes) for both participants
+- Seen indicator aligned to bubble right edge; congrats word effect rises like other overlays
+
+### Plans
+- `kylie/chat-ui-improvements` — follow-up UI polish on messenger branch
+
+## 0.1.29 — 2026-08-03
+
+### Added
+- Message inbox reaction previews with unread styling until the thread is opened
+- Chat theme change system logs visible to both participants (persisted `theme_log` jsonb)
+- Image lightbox (`ViewChatImageDialog`) for full-size chat photos
+- Always-visible reaction badge on message bubble corner; toolbar order More → Reply → React
+
+### Changed
+- Messenger bubble layout: tighter padding, pill shape, grouped spacing, image-only messages without bubble chrome
+- Themed chat chrome: header, composer, typing indicator, day separators, and error banner contrast
+- Reply quote strip uses bubble foreground colors on themed chats
+- Seen indicator sits below latest own message and offsets when a reaction badge is present
+- Theme picker fix: jsonb cast for `theme_log` updates; realtime inbox refresh on reactions
+
+### Plans
+- `kylie/chat-ui-improvements` — messenger UI polish, theme logs, inbox reactions
 
 ## 0.1.28 — 2026-08-03
 

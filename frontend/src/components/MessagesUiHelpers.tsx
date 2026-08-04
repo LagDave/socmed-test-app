@@ -43,9 +43,19 @@ export function MessagesThreadSkeleton() {
 
 export function MessageDaySeparator({ label }: { label: string }) {
   return (
-    <div className="flex justify-center py-2">
-      <span className="rounded-full border border-border/60 bg-secondary/80 px-3 py-1 text-xs font-medium text-muted-foreground">
+    <div className="message-day-separator flex justify-center py-0.5">
+      <span className="rounded-full border border-border/60 bg-secondary/80 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
         {label}
+      </span>
+    </div>
+  );
+}
+
+export function MessageSystemLog({ text }: { text: string }) {
+  return (
+    <div className="flex justify-center">
+      <span className="message-system-log max-w-[90%] rounded-full bg-secondary/70 px-2.5 py-0.5 text-center text-[11px] text-muted-foreground">
+        {text}
       </span>
     </div>
   );
@@ -53,7 +63,7 @@ export function MessageDaySeparator({ label }: { label: string }) {
 
 export function MessagesEmptyThread({ peerName }: { peerName: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
+    <div className="messages-empty-thread flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
       <span className="flex size-14 items-center justify-center rounded-full bg-secondary">
         <MessageCircle className="size-6 text-muted-foreground/70" aria-hidden="true" strokeWidth={1.25} />
       </span>
@@ -85,7 +95,7 @@ export function MessagesInboxEmptyConversations() {
 
 export function MessagesErrorBanner({ message }: { message: string }) {
   return (
-    <p className="border-b border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+    <p className="messages-error-banner border-b border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
       {message}
     </p>
   );

@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { NotificationSoundsSettings } from "@/components/NotificationSoundsSettings";
 
 function SettingsBlock({ title, body }: { title: string; body: string }) {
   return (
@@ -19,7 +18,7 @@ export function AccountSettingsPage() {
       <div className="px-1">
         <h1 className="text-2xl font-semibold tracking-tight">Account Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Privacy, security, and notification preferences.
+          Privacy, security, and account preferences.
         </p>
         {user?.username && (
           <p className="mt-2 text-sm">
@@ -29,8 +28,6 @@ export function AccountSettingsPage() {
           </p>
         )}
       </div>
-
-      <NotificationSoundsSettings />
 
       <SettingsBlock
         title="Privacy"

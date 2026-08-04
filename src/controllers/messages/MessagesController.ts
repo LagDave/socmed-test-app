@@ -44,11 +44,12 @@ export class MessagesController {
     try {
       const before = typeof req.query.before === "string" ? req.query.before : undefined;
       const restoreIfHidden = req.query.restore === "1";
+      const includeThemeLogs = req.query.includeThemeLogs === "1" || restoreIfHidden;
       const data = await MessageService.listMessages(
         req.userId!,
         String(req.params.id),
         before,
-        { restoreIfHidden }
+        { restoreIfHidden, includeThemeLogs }
       );
       return ok(res, data);
     } catch (err) {
