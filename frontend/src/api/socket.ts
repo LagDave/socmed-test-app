@@ -21,6 +21,8 @@ export const CONVERSATION_THEME = "conversation:theme";
 export const TYPING_START = "typing:start";
 export const TYPING_STOP = "typing:stop";
 export const TYPING_UPDATE = "typing:update";
+export const NOTIFICATION_NEW = "notification:new";
+export const NOTIFICATIONS_COUNT = "notifications:count";
 
 export type MessageEventPayload = { message: MessageView };
 export type UnreadPayload = { unread: number };
@@ -47,6 +49,8 @@ export type TypingUpdatePayload = {
   userId: string;
   isTyping: boolean;
 };
+export type NotificationNewPayload = { notificationId: string };
+export type NotificationsCountPayload = { notifications: number };
 
 let socket: Socket | null = null;
 

@@ -30,6 +30,7 @@ export class FriendshipService {
     const row = rows.find((r) => r.id === friendshipId);
     if (!row) throw new AppError("FRIEND_NOT_FOUND", "Incoming request not found.");
     const updated = await FriendshipModel.updateStatus(friendshipId, "accepted");
+    await NotificationService.publishCountUpdated(userId);
     return updated;
   }
 
@@ -38,6 +39,7 @@ export class FriendshipService {
     const row = rows.find((r) => r.id === friendshipId);
     if (!row) throw new AppError("FRIEND_NOT_FOUND", "Incoming request not found.");
     const updated = await FriendshipModel.updateStatus(friendshipId, "declined");
+    await NotificationService.publishCountUpdated(userId);
     return updated;
   }
 
@@ -46,6 +48,8 @@ export class FriendshipService {
     const row = rows.find((r) => r.id === friendshipId);
     if (!row) throw new AppError("FRIEND_NOT_FOUND", "Outgoing request not found.");
     await FriendshipModel.deleteById(friendshipId);
+    const recipientId = row.user_a === userId ? row.user_b : row.user_a;
+    await NotificationService.publishCountUpdated(recipientId);
   }
 
   static async unfriend(userId: string, otherUserId: string) {
