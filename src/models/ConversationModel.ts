@@ -1,5 +1,7 @@
 import type { Knex } from "knex";
 import { db } from "../database/connection";
+import type { ThemeLogEntry } from "../types/themeLog";
+import { THEME_LOG_LIMIT } from "../types/themeLog";
 import { orderedPair } from "./FriendshipModel";
 import type { UserRow } from "../types/user";
 import type { MessageRow } from "./MessageModel";
@@ -16,6 +18,7 @@ export type ConversationRow = {
   theme: unknown | null;
   theme_updated_at: Date | null;
   theme_updated_by: string | null;
+  theme_log: unknown;
   created_at: Date;
   updated_at: Date;
 };
@@ -166,6 +169,7 @@ export class ConversationModel {
       theme: r.theme ?? null,
       theme_updated_at: r.theme_updated_at ?? null,
       theme_updated_by: r.theme_updated_by ?? null,
+      theme_log: r.theme_log ?? [],
       created_at: r.created_at,
       updated_at: r.updated_at,
       peer: {
@@ -199,7 +203,7 @@ export class ConversationModel {
     }));
   }
 
-  /** Count of conversations with at least one unread inbound message. */
+  /** Count of conversations with at least one unread inbound message or peer reaction. */
   static async countUnreadConversations(userId: string): Promise<number> {
     const result = await db.raw<{ rows: Array<{ count: string }> }>(
       `
@@ -207,20 +211,36 @@ export class ConversationModel {
       FROM conversations c
       WHERE (c.user_a = ? OR c.user_b = ?)
         AND ${visibleForUserSql("?")}
-        AND EXISTS (
-          SELECT 1
-          FROM messages m
-          WHERE m.conversation_id = c.id
-            AND m.sender_id <> ?
-            AND m.unsent_at IS NULL
-            AND ${messageVisibleForUserSql("m", "?")}
-            AND (
-              CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END IS NULL
-              OR m.created_at > CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END
-            )
+        AND (
+          EXISTS (
+            SELECT 1
+            FROM messages m
+            WHERE m.conversation_id = c.id
+              AND m.sender_id <> ?
+              AND m.unsent_at IS NULL
+              AND ${messageVisibleForUserSql("m", "?")}
+              AND (
+                CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END IS NULL
+                OR m.created_at > CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END
+              )
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM message_reactions mr
+            INNER JOIN messages m ON m.id = mr.message_id
+            WHERE m.conversation_id = c.id
+              AND m.sender_id = ?
+              AND mr.user_id <> ?
+              AND m.unsent_at IS NULL
+              AND ${messageVisibleForUserSql("m", "?")}
+              AND (
+                CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END IS NULL
+                OR mr.updated_at > CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END
+              )
+          )
         )
       `,
-      [userId, userId, userId, userId, userId, userId, userId]
+      [userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId]
     );
     return Number(result.rows[0]?.count ?? 0);
   }
@@ -270,15 +290,27 @@ export class ConversationModel {
   static async updateTheme(
     id: string,
     theme: unknown | null,
-    updatedBy: string
+    updatedBy: string,
+    logEntry: ThemeLogEntry
   ): Promise<ConversationRow | undefined> {
     const now = new Date();
     const [updated] = await db<ConversationRow>("conversations")
       .where({ id })
       .update({
         theme,
-        theme_updated_at: theme === null ? null : now,
-        theme_updated_by: theme === null ? null : updatedBy,
+        theme_updated_at: now,
+        theme_updated_by: updatedBy,
+        theme_log: db.raw(
+          `(SELECT COALESCE(jsonb_agg(entry ORDER BY ordinal), '[]'::jsonb)
+            FROM (
+              SELECT entry, ordinal
+              FROM jsonb_array_elements(COALESCE(theme_log, '[]'::jsonb) || ?::jsonb)
+                WITH ORDINALITY AS theme_entries(entry, ordinal)
+              ORDER BY ordinal DESC
+              LIMIT ?
+            ) AS recent_entries)`,
+          [JSON.stringify([logEntry]), THEME_LOG_LIMIT]
+        ),
         updated_at: db.fn.now(),
       })
       .returning("*");

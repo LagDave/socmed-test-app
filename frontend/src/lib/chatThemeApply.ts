@@ -1,18 +1,31 @@
 import type { CSSProperties } from "react";
 import type { ChatTheme, ConversationThemeView } from "@/api/types";
-import { pickForeground, meetsContrast } from "@/lib/chatThemeContrast";
+import { pickForeground, pickThreadForeground, pickThreadMutedForeground, meetsContrast } from "@/lib/chatThemeContrast";
 import { findGraphicPreset } from "@/lib/chatThemePresets";
 
 export type ResolvedChatTheme = {
   active: boolean;
   background: string;
+  backgroundSample: string;
   bubbleMine: string;
   bubbleTheirs: string;
   bubbleMineFg: string;
   bubbleTheirsFg: string;
   accent: string;
   accentFg: string;
+  threadFg: string;
+  threadMutedFg: string;
+  composerBg: string;
 };
+
+function extractFirstHex(color: string): string | null {
+  const match = /#([0-9A-Fa-f]{6})/.exec(color);
+  return match ? `#${match[1]}` : null;
+}
+
+function sampleBackgroundColor(background: string, fallback: string): string {
+  return extractFirstHex(background) ?? fallback;
+}
 
 function resolveColors(
   bubbleMine: string,
@@ -32,17 +45,42 @@ function resolveColors(
   };
 }
 
+function finalizeResolvedTheme(
+  background: string,
+  colors: Pick<
+    ResolvedChatTheme,
+    "bubbleMine" | "bubbleTheirs" | "bubbleMineFg" | "bubbleTheirsFg" | "accent" | "accentFg"
+  >
+): ResolvedChatTheme {
+  const backgroundSample = sampleBackgroundColor(background, colors.bubbleTheirs);
+  const threadFg = pickThreadForeground(background, backgroundSample);
+  const threadMutedFg = pickThreadMutedForeground(background, backgroundSample);
+  return {
+    active: true,
+    background,
+    backgroundSample,
+    ...colors,
+    threadFg,
+    threadMutedFg,
+    composerBg: colors.accent,
+  };
+}
+
 export function resolveChatTheme(theme: ChatTheme | null | undefined): ResolvedChatTheme {
   if (!theme) {
     return {
       active: false,
       background: "",
+      backgroundSample: "",
       bubbleMine: "",
       bubbleTheirs: "",
       bubbleMineFg: "",
       bubbleTheirsFg: "",
       accent: "",
       accentFg: "",
+      threadFg: "",
+      threadMutedFg: "",
+      composerBg: "",
     };
   }
 
@@ -51,27 +89,24 @@ export function resolveChatTheme(theme: ChatTheme | null | undefined): ResolvedC
     if (!preset) {
       return resolveChatTheme(null);
     }
-    return {
-      active: true,
-      background: preset.background,
-      ...resolveColors(preset.bubbleMine, preset.bubbleTheirs, preset.accent),
-    };
+    return finalizeResolvedTheme(
+      preset.background,
+      resolveColors(preset.bubbleMine, preset.bubbleTheirs, preset.accent)
+    );
   }
 
   if (theme.kind === "solid") {
-    return {
-      active: true,
-      background: theme.background,
-      ...resolveColors(theme.bubbleMine, theme.bubbleTheirs, theme.accent),
-    };
+    return finalizeResolvedTheme(
+      theme.background,
+      resolveColors(theme.bubbleMine, theme.bubbleTheirs, theme.accent)
+    );
   }
 
   const gradient = `linear-gradient(${theme.angle}deg, ${theme.stops[0]} 0%, ${theme.stops[1]} 100%)`;
-  return {
-    active: true,
-    background: gradient,
-    ...resolveColors(theme.bubbleMine, theme.bubbleTheirs, theme.accent),
-  };
+  return finalizeResolvedTheme(
+    gradient,
+    resolveColors(theme.bubbleMine, theme.bubbleTheirs, theme.accent)
+  );
 }
 
 export function resolveConversationTheme(view: ConversationThemeView | null): ResolvedChatTheme {
@@ -82,12 +117,16 @@ export function chatThemeCssVars(resolved: ResolvedChatTheme): CSSProperties {
   if (!resolved.active) return {};
   return {
     "--chat-bg": resolved.background,
+    "--chat-bg-sample": resolved.backgroundSample,
     "--chat-bubble-mine": resolved.bubbleMine,
     "--chat-bubble-theirs": resolved.bubbleTheirs,
     "--chat-bubble-mine-fg": resolved.bubbleMineFg,
     "--chat-bubble-theirs-fg": resolved.bubbleTheirsFg,
     "--chat-accent": resolved.accent,
     "--chat-accent-fg": resolved.accentFg,
+    "--chat-thread-fg": resolved.threadFg,
+    "--chat-thread-muted": resolved.threadMutedFg,
+    "--chat-composer-bg": resolved.composerBg,
   } as CSSProperties;
 }
 

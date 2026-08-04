@@ -7,7 +7,7 @@
       "id": "A1",
       "title": "Activity-only sound can be saved and cleared",
       "surface": "ui",
-      "precondition": "Signed-in user on Account Settings with message sound set to None.",
+      "precondition": "Signed-in user on Message Settings (/messages/settings) with message sound set to None.",
       "steps": ["Enable notification sounds", "Choose an activity tone and save", "Refresh the page", "Choose No activity sound and save"],
       "expected": "The activity-only choice persists without a message tone; clearing it persists silence.",
       "status": "pending",
@@ -59,7 +59,7 @@
       "steps": ["npm run typecheck", "npm run build", "npm --prefix frontend run lint"],
       "expected": "Commands pass with no errors caused by this execution.",
       "status": "pass",
-      "evidence": "2026-08-05: typecheck, build, and oxlint passed.",
+      "evidence": "2026-08-05: typecheck, build, and oxlint passed after merging origin/dev into kylie/notification-sound.",
       "notes": "Existing lint warnings are baseline warnings outside this plan. This branch does not define the Constitution checker script, so its strict check is unavailable here.",
       "waiver": ""
     }
