@@ -2,6 +2,9 @@ import { randomUUID } from "crypto";
 import type { ChatThemePayload } from "../constants/chatThemeSchema";
 import { themeSystemLogText } from "../utils/formatChatThemeLabel";
 
+/** Keep inbox activity compact while retaining enough recent theme context for a thread. */
+export const THEME_LOG_LIMIT = 50;
+
 export type ThemeLogEntry = {
   id: string;
   text: string;

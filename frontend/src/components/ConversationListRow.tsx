@@ -38,7 +38,11 @@ function inboxPreview(
     const isMyMessage = reaction.messageSenderId === viewerId;
 
     if (isPeerReaction && isMyMessage) {
-      return { text: `${glyph} Liked your message`, isMedia: false };
+      const action = reaction.emoji === "like" ? "Liked" : "Reacted to";
+      return {
+        text: `${glyph} ${action} your message`,
+        isMedia: false,
+      };
     }
     if (isPeerReaction) {
       return { text: `${glyph} Reacted to a message`, isMedia: false };

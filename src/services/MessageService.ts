@@ -336,7 +336,7 @@ export class MessageService {
     userId: string,
     conversationId: string,
     before?: string,
-    options?: { restoreIfHidden?: boolean }
+    options?: { restoreIfHidden?: boolean; includeThemeLogs?: boolean }
   ): Promise<{
     conversationId: string;
     peer: ReturnType<typeof toPublicUser>;
@@ -344,7 +344,7 @@ export class MessageService {
     messages: MessageView[];
     hasMore: boolean;
     theme: ConversationThemeView;
-    themeLogs: ThemeLogEntry[];
+      themeLogs?: ThemeLogEntry[];
   }> {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
@@ -392,7 +392,9 @@ export class MessageService {
       messages: await rowsToViews(mergedRows, userId),
       hasMore: mergedRows.length >= MESSAGE_PAGE_SIZE,
       theme: ChatThemeService.themeFromRow(conversation),
-      themeLogs: ChatThemeService.themeLogsFromRow(conversation),
+      ...(options?.includeThemeLogs
+        ? { themeLogs: ChatThemeService.themeLogsFromRow(conversation) }
+        : {}),
     };
   }
 
@@ -691,6 +693,8 @@ export class MessageService {
     const peerUser = await UserModel.findById(peerId(row, viewerId));
     if (!peerUser) throw new AppError("USER_NOT_FOUND", "Peer missing.");
     const latest = await MessageModel.latestForConversation(row.id);
+    const latestReactions = await MessageReactionModel.latestByConversations([row.id], viewerId);
+    const lastReaction = toListLastReaction(latestReactions.get(row.id) ?? null);
     const unreadCount = await MessageModel.countUnreadInConversation(
       row.id,
       viewerId,
@@ -703,13 +707,18 @@ export class MessageService {
       id: row.id,
       peer: toPublicUser(peerUser),
       lastMessage: latest ? lastMessageListShape(latest) : null,
-      lastReaction: null,
+      lastReaction,
       lastSystemLog,
-      hasUnreadReaction: false,
+      hasUnreadReaction: hasUnreadPeerReaction(
+        lastReaction,
+        viewerId,
+        peerId(row, viewerId),
+        lastReadAt(row, viewerId)
+      ),
       unreadCount,
       lastMessageAt: latestActivityAt(
         latest?.created_at ?? null,
-        null,
+        lastReaction?.reactedAt ?? null,
         lastSystemLog?.createdAt ?? null,
         row.last_message_at
       ),

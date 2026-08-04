@@ -1,7 +1,7 @@
 import type { Knex } from "knex";
 import { db } from "../database/connection";
 import type { ThemeLogEntry } from "../types/themeLog";
-import { parseThemeLog } from "../types/themeLog";
+import { THEME_LOG_LIMIT } from "../types/themeLog";
 import { orderedPair } from "./FriendshipModel";
 import type { UserRow } from "../types/user";
 import type { MessageRow } from "./MessageModel";
@@ -293,17 +293,24 @@ export class ConversationModel {
     updatedBy: string,
     logEntry: ThemeLogEntry
   ): Promise<ConversationRow | undefined> {
-    const row = await this.findById(id);
-    if (!row) return undefined;
     const now = new Date();
-    const themeLog = [...parseThemeLog(row.theme_log), logEntry];
     const [updated] = await db<ConversationRow>("conversations")
       .where({ id })
       .update({
         theme,
         theme_updated_at: now,
         theme_updated_by: updatedBy,
-        theme_log: db.raw("?::jsonb", [JSON.stringify(themeLog)]),
+        theme_log: db.raw(
+          `(SELECT COALESCE(jsonb_agg(entry ORDER BY ordinal), '[]'::jsonb)
+            FROM (
+              SELECT entry, ordinal
+              FROM jsonb_array_elements(COALESCE(theme_log, '[]'::jsonb) || ?::jsonb)
+                WITH ORDINALITY AS theme_entries(entry, ordinal)
+              ORDER BY ordinal DESC
+              LIMIT ?
+            ) AS recent_entries)`,
+          [JSON.stringify([logEntry]), THEME_LOG_LIMIT]
+        ),
         updated_at: db.fn.now(),
       })
       .returning("*");
