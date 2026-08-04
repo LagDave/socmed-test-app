@@ -98,7 +98,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         onToggleTheme={toggleTheme}
         onLogout={logout}
       />
-      <main className="mx-auto w-full max-w-[680px] px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-[680px] px-5 py-6 sm:px-6">{children}</main>
     </div>
   );
 }

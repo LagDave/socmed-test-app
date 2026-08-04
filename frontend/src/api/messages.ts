@@ -3,7 +3,7 @@ import type {
   ChatTheme,
   ConversationListItem,
   ConversationSearchResponse,
-  ConversationThemeView,
+  ConversationThemeUpdateView,
 } from "@/api/types";
 
 export async function openConversationWithUsername(username: string): Promise<string> {
@@ -33,8 +33,8 @@ export function searchConversationMessages(
 export async function updateConversationTheme(
   conversationId: string,
   payload: ChatTheme | { reset: true }
-): Promise<ConversationThemeView> {
-  return api.put<ConversationThemeView>(
+): Promise<ConversationThemeUpdateView> {
+  return api.put<ConversationThemeUpdateView>(
     `/api/messages/conversations/${conversationId}/theme`,
     payload
   );

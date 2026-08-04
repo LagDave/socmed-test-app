@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from "react";
+import { ThreadViewContent } from "@/components/messages/ThreadViewContent";
+import { ConversationSearchPanel } from "@/components/messages/ConversationSearchPanel";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
 import { deleteConversation, updateConversationTheme } from "@/api/messages";
@@ -16,27 +18,70 @@ import {
   type MessageDeliveredPayload,
   type MessageEventPayload,
 } from "@/api/socket";
-import type { ConversationThemeView, MessageView, PublicUser } from "@/api/types";
-import { ChatThemePicker } from "@/components/ChatThemePicker";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { truncateQuoteText } from "@/components/MessageQuoteStrip";
-import { MessagesErrorBanner } from "@/components/MessagesUiHelpers";
-import { TypingIndicator } from "@/components/TypingIndicator";
+import type { ConversationThemeView, MessageView, PublicUser, ThemeLogEntry } from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { truncateQuoteText } from "@/components/MessageQuoteStrip";
 import { useCanHover } from "@/hooks/useCanHover";
 import { useConversationSearch } from "@/hooks/useConversationSearch";
+import { useConversationSearchResultFocus } from "@/hooks/useConversationSearchResultFocus";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
 import { usePeerTyping, useTypingEmitter } from "@/hooks/useTypingIndicator";
 import { chatThemeCssVars, resolveConversationTheme } from "@/lib/chatThemeApply";
-import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
-import { submitOnEnter } from "@/lib/submitOnEnter";
 import type { ChatTheme } from "@/api/types";
-import { ConversationComposer } from "./ConversationComposer";
-import { ConversationMessageList } from "./ConversationMessageList";
-import { ConversationSearchPanel } from "./ConversationSearchPanel";
-import { ConversationThreadHeader } from "./ConversationThreadHeader";
+import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
 
 const POLL_MS = 2500;
+
+export type ThreadTimelineItem =
+  | {
+      kind: "message";
+      key: string;
+      createdAt: string;
+      message: MessageView;
+      index: number;
+    }
+  | {
+      kind: "system-log";
+      key: string;
+      createdAt: string;
+      log: ThemeLogEntry;
+    };
+
+function mergeSystemLogs(prev: ThemeLogEntry[], incoming: ThemeLogEntry[]): ThemeLogEntry[] {
+  const map = new Map<string, ThemeLogEntry>();
+  for (const log of prev) map.set(log.id, log);
+  for (const log of incoming) map.set(log.id, log);
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+}
+
+function buildThreadTimeline(
+  messages: MessageView[],
+  systemLogs: ThemeLogEntry[]
+): ThreadTimelineItem[] {
+  return [
+    ...messages.map((message, index) => ({
+      kind: "message" as const,
+      key: `msg-${message.id}`,
+      createdAt: message.createdAt,
+      message,
+      index,
+    })),
+    ...systemLogs.map((log) => ({
+      kind: "system-log" as const,
+      key: `log-${log.id}`,
+      createdAt: log.createdAt,
+      log,
+    })),
+  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
+
+function focusComposer(textareaRef: RefObject<HTMLTextAreaElement | null>) {
+  requestAnimationFrame(() => {
+    textareaRef.current?.focus();
+  });
+}
 
 type PendingDeleteConversation = {
   id: string;
@@ -64,13 +109,13 @@ function replyTargetPreview(
   return { name, snippet, imageUrl: message.imageUrl };
 }
 
-function patchReplyTargetsUnsent(previousMessages: MessageView[], unsentId: string): MessageView[] {
-  return previousMessages.map((message) => {
-    if (message.replyTo?.id !== unsentId) return message;
+function patchReplyTargetsUnsent(prev: MessageView[], unsentId: string): MessageView[] {
+  return prev.map((m) => {
+    if (m.replyTo?.id !== unsentId) return m;
     return {
-      ...message,
+      ...m,
       replyTo: {
-        ...message.replyTo,
+        ...m.replyTo,
         isUnsent: true,
         body: null,
         imageUrl: null,
@@ -79,20 +124,19 @@ function patchReplyTargetsUnsent(previousMessages: MessageView[], unsentId: stri
   });
 }
 
-function mergeById(previousMessages: MessageView[], incomingMessages: MessageView[]): MessageView[] {
-  const messagesById = new Map<string, MessageView>();
-  for (const message of previousMessages) messagesById.set(message.id, message);
-  for (const message of incomingMessages) {
-    const existingMessage = messagesById.get(message.id);
-    messagesById.set(message.id, {
-      ...message,
-      deliveredAt: message.deliveredAt ?? existingMessage?.deliveredAt ?? null,
-      editedAt: message.editedAt ?? existingMessage?.editedAt ?? null,
+function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] {
+  const map = new Map<string, MessageView>();
+  for (const m of prev) map.set(m.id, m);
+  for (const m of incoming) {
+    const existing = map.get(m.id);
+    map.set(m.id, {
+      ...m,
+      deliveredAt: m.deliveredAt ?? existing?.deliveredAt ?? null,
+      editedAt: m.editedAt ?? existing?.editedAt ?? null,
     });
   }
-  return Array.from(messagesById.values()).sort(
-    (firstMessage, secondMessage) =>
-      new Date(firstMessage.createdAt).getTime() - new Date(secondMessage.createdAt).getTime()
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
 }
 
@@ -120,8 +164,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   const [themeSaving, setThemeSaving] = useState(false);
   const [replyToMessage, setReplyToMessage] = useState<MessageView | null>(null);
   const [tappedMessageId, setTappedMessageId] = useState<string | null>(null);
-  const [focusedMessageId, setFocusedMessageId] = useState<string | null>(null);
-  const [searchHighlightQuery, setSearchHighlightQuery] = useState<string | null>(null);
+  const [systemLogs, setSystemLogs] = useState<ThemeLogEntry[]>([]);
   const canHover = useCanHover();
   const isPeerTyping = usePeerTyping(conversationId, user?.id);
   const conversationSearch = useConversationSearch(conversationId);
@@ -141,10 +184,33 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   const stickToBottomRef = useRef(true);
   const replyTargetIdRef = useRef<string | null>(null);
   const peerIdRef = useRef<string | null>(null);
-  const oldestPagedMessageIdRef = useRef<string | null>(null);
-  useEffect(() => { replyTargetIdRef.current = replyToMessage?.id ?? null; }, [replyToMessage?.id]);
-  useEffect(() => { peerIdRef.current = peer?.id ?? null; }, [peer?.id]);
+  const {
+    clearFocusedSearch,
+    focusSearchResult,
+    focusedMessageId,
+    oldestPagedMessageIdRef,
+    searchHighlightQuery,
+  } = useConversationSearchResultFocus({
+    conversationId,
+    closeSearch,
+    generationRef,
+    scrollRef,
+    setError,
+    setHasMore,
+    setMessages,
+    stickToBottomRef,
+  });
+
+  useEffect(() => {
+    replyTargetIdRef.current = replyToMessage?.id ?? null;
+  }, [replyToMessage?.id]);
+
+  useEffect(() => {
+    peerIdRef.current = peer?.id ?? null;
+  }, [peer?.id]);
+
   themePickerOpenRef.current = themePickerOpen;
+
   function scrollThreadToBottom(behavior: ScrollBehavior = "auto") {
     const el = scrollRef.current;
     if (el) {
@@ -167,8 +233,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     setEditingMessageId(null);
     setReplyToMessage(null);
     setTappedMessageId(null);
-    setFocusedMessageId(null);
-    setSearchHighlightQuery(null);
+    clearFocusedSearch();
+    setSystemLogs([]);
     setLoadingThread(true);
     setConversationTheme(null);
     setThemePickerOpen(false);
@@ -182,6 +248,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
           messages: MessageView[];
           hasMore: boolean;
           theme: ConversationThemeView;
+          themeLogs?: ThemeLogEntry[];
         }>(`/api/messages/conversations/${conversationId}?restore=1`);
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
@@ -190,6 +257,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
         oldestPagedMessageIdRef.current = data.messages[0]?.id ?? null;
         setHasMore(Boolean(data.hasMore));
         setConversationTheme(data.theme);
+        setSystemLogs(data.themeLogs ?? []);
         setLoadingThread(false);
         if (generation !== generationRef.current) return;
         await api.post(`/api/messages/conversations/${conversationId}/read`);
@@ -205,7 +273,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     return () => {
       generationRef.current += 1;
     };
-  }, [conversationId]);
+  }, [clearFocusedSearch, conversationId, oldestPagedMessageIdRef]);
 
   useEffect(() => {
     if (socketConnected) return;
@@ -221,6 +289,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
             messages: MessageView[];
             hasMore: boolean;
             theme: ConversationThemeView;
+            themeLogs?: ThemeLogEntry[];
           }>(`/api/messages/conversations/${conversationId}`);
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
@@ -310,6 +379,10 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
         updatedAt: payload.updatedAt,
         updatedBy: payload.updatedBy,
       });
+      if (payload.logEntry) {
+        setSystemLogs((prev) => mergeSystemLogs(prev, [payload.logEntry]));
+        stickToBottomRef.current = true;
+      }
     };
     socket.on(CONVERSATION_THEME, applyTheme);
 
@@ -323,17 +396,6 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       socket.off(CONVERSATION_THEME, applyTheme);
     };
   }, [conversationId, refreshSearch, user?.id]);
-
-  useEffect(() => {
-    if (!focusedMessageId) return;
-    const frameId = window.requestAnimationFrame(() => {
-      const target = scrollRef.current?.querySelector<HTMLElement>(
-        `[data-message-id="${focusedMessageId}"]`
-      );
-      target?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-    return () => window.cancelAnimationFrame(frameId);
-  }, [focusedMessageId, messages]);
 
   useLayoutEffect(() => {
     if (loadingThread || !stickToBottomRef.current) return;
@@ -399,6 +461,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return false;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
+      focusComposer(textareaRef);
       return true;
     } catch (err) {
       if (generation !== generationRef.current) return false;
@@ -408,14 +471,12 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       if (generation === generationRef.current) setSending(false);
     }
   }
+
   async function loadEarlier() {
     if (loadingEarlier || !hasMore) return;
     const oldestId = oldestPagedMessageIdRef.current;
     if (!oldestId) return;
     const generation = generationRef.current;
-    const scrollElement = scrollRef.current;
-    const previousScrollHeight = scrollElement?.scrollHeight ?? 0;
-    const previousScrollTop = scrollElement?.scrollTop ?? 0;
     setLoadingEarlier(true);
     stickToBottomRef.current = false;
     try {
@@ -429,9 +490,6 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       if (generation !== generationRef.current) return;
       setMessages((prev) => mergeById(data.messages, prev));
       oldestPagedMessageIdRef.current = data.messages[0]?.id ?? oldestPagedMessageIdRef.current;
-      window.requestAnimationFrame(() => {
-        if (scrollElement) scrollElement.scrollTop = previousScrollTop + scrollElement.scrollHeight - previousScrollHeight;
-      });
       setHasMore(Boolean(data.hasMore));
     } catch (e) {
       if (generation !== generationRef.current) return;
@@ -440,6 +498,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       if (generation === generationRef.current) setLoadingEarlier(false);
     }
   }
+
   function insertComposerEmoji(emoji: string) {
     const el = textareaRef.current;
     if (!el) {
@@ -493,6 +552,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       setMessages((prev) => mergeById(prev, [data.message]));
       if (generation !== generationRef.current) return;
       await api.post(`/api/messages/conversations/${conversationId}/read`);
+      focusComposer(textareaRef);
     } catch (err) {
       if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -533,37 +593,15 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       prev.map((m) => (m.id === messageId ? { ...m, reactionSummary } : m))
     );
   }
-  const cancelSearch = useCallback(() => {
-    closeSearch();
-    setFocusedMessageId(null);
-    setSearchHighlightQuery(null);
-  }, [closeSearch]);
 
-  const clearSearch = useCallback(() => {
+  function cancelSearch() {
+    closeSearch();
+    clearFocusedSearch();
+  }
+
+  function clearSearch() {
     resetSearch();
-    setFocusedMessageId(null);
-    setSearchHighlightQuery(null);
-  }, [resetSearch]);
-
-  async function focusSearchResult(message: MessageView, query: string) {
-    closeSearch();
-    stickToBottomRef.current = false;
-    const generation = generationRef.current;
-    try {
-      const data = await api.get<{
-        messages: MessageView[];
-        hasMore: boolean;
-      }>(`/api/messages/conversations/${conversationId}?before=${encodeURIComponent(message.id)}`);
-      if (generation !== generationRef.current) return;
-      setMessages(mergeById(data.messages, [message]));
-      oldestPagedMessageIdRef.current = data.messages[0]?.id ?? message.id;
-      setHasMore(Boolean(data.hasMore));
-      setFocusedMessageId(message.id);
-      setSearchHighlightQuery(query);
-    } catch (err) {
-      if (generation !== generationRef.current) return;
-      setError(err instanceof Error ? err.message : "Failed to load search result context");
-    }
+    clearFocusedSearch();
   }
 
   async function confirmDeleteConversation() {
@@ -617,6 +655,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       if (generation !== generationRef.current) return;
       setMessages((prev) => mergeById(prev, [data.message]));
       cancelEdit();
+      focusComposer(textareaRef);
     } catch (err) {
       if (generation !== generationRef.current) return;
       setError(err instanceof Error ? err.message : "Edit failed");
@@ -638,6 +677,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     try {
       const updated = await updateConversationTheme(conversationId, payload);
       setConversationTheme(updated);
+      setSystemLogs((prev) => mergeSystemLogs(prev, [updated.logEntry]));
+      stickToBottomRef.current = true;
       setThemePickerOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update theme");
@@ -662,151 +703,96 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     ? messages.find((m) => m.id === editingMessageId) ?? null
     : null;
   const composeBusy = sending || savingEdit;
+  const latestOwnMessageId = (() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const message = messages[i];
+      if (message.senderId === user?.id && !message.isUnsent) return message.id;
+    }
+    return null;
+  })();
+  const threadTimeline = buildThreadTimeline(messages, systemLogs);
+
   return (
-    <section className="messages-page space-y-4">
-      <div
-        className="feed-card relative flex h-[calc(100dvh-7rem)] min-h-[70vh] flex-col overflow-hidden"
-        data-chat-theme={resolvedTheme.active ? "true" : undefined}
-        style={themeVars}
-      >
-        <ConversationThreadHeader
-          peer={peer}
-          peerProfilePath={peerProfilePath}
-          isSearchOpen={conversationSearch.isSearchOpen}
-          onBackToInbox={() => navigate("/messages")}
-          onToggleSearch={() => (conversationSearch.isSearchOpen ? cancelSearch() : openSearch())}
-          onOpenThemePicker={() => setThemePickerOpen(true)}
-          onDeleteConversation={() => {
-            if (peer) {
-              setPendingDelete({ id: conversationId, peerName: peer.displayName });
-            }
-          }}
-        />
-
-        <ConversationMessageList
-          messages={messages}
-          userId={user?.id}
-          peer={peer}
-          peerLastReadAt={peerLastReadAt}
-          peerProfilePath={peerProfilePath}
-          loadingThread={loadingThread}
-          hasMore={hasMore}
-          loadingEarlier={loadingEarlier}
-          editingMessageId={editingMessageId}
-          canHover={canHover}
-          tappedMessageId={tappedMessageId}
-          focusedMessageId={focusedMessageId}
-          searchHighlightQuery={searchHighlightQuery}
-          themed={resolvedTheme.active}
-          background={resolvedTheme.active ? resolvedTheme.background : undefined}
-          showEmptyThread={!error}
-          scrollRef={scrollRef}
-          bottomRef={bottomRef}
-          onLoadEarlier={() => void loadEarlier()}
-          onThreadScroll={() => {
-            const element = scrollRef.current;
-            if (!element) return;
-            const distanceFromBottom =
-              element.scrollHeight - element.scrollTop - element.clientHeight;
-            stickToBottomRef.current = distanceFromBottom < 80;
-          }}
-          onThreadClick={() => {
-            if (!canHover) setTappedMessageId(null);
-          }}
-          onToggleTouchReveal={(messageId) =>
-            setTappedMessageId((currentId) => (currentId === messageId ? null : messageId))
-          }
-          onUnsend={setPendingUnsendId}
-          onStartEdit={startEdit}
-          onReactionChange={patchMessageReaction}
-          onReply={(message) => {
-            setTappedMessageId(null);
-            setReplyToMessage(message);
-          }}
-          onError={setError}
-        />
-
-        {error && <MessagesErrorBanner message={error} />}
-
-        {isPeerTyping && peer && <TypingIndicator displayName={peer.displayName} />}
-
-        <ConversationComposer
-          user={user}
-          body={body}
-          editingMessageId={editingMessageId}
-          editingMessageHasImage={Boolean(editingMessage?.imageUrl)}
-          composeBusy={composeBusy}
-          replyPreview={replyPreview}
-          themed={resolvedTheme.active}
-          fileRef={fileRef}
-          textareaRef={textareaRef}
-          onSubmit={(event) => void onSend(event)}
-          onBodyChange={setBody}
-          onStopTyping={stopTyping}
-          onComposeKeyDown={(event) => {
-            handleComposeKeyDown(event);
-            if (event.defaultPrevented) return;
-            submitOnEnter(event);
-          }}
-          onAttachImage={(file) => void onImage(file)}
-          onPickEmoji={insertComposerEmoji}
-          onCancelEdit={cancelEdit}
-          onCancelReply={() => setReplyToMessage(null)}
-        />
-      </div>
-      {conversationSearch.isSearchOpen && (
-        <ConversationSearchPanel
-          query={conversationSearch.query}
-          results={conversationSearch.results}
-          hasMore={conversationSearch.hasMore}
-          isSearching={conversationSearch.isSearching}
-          error={conversationSearch.error}
-          currentUserId={user?.id}
-          peer={peer}
-          hasActiveHighlight={Boolean(searchHighlightQuery)}
-          onQueryChange={conversationSearch.setQuery}
-          onClear={clearSearch}
-          onClose={cancelSearch}
-          onSelectMessage={focusSearchResult}
-        />
-      )}
-
-      <ChatThemePicker
-        open={themePickerOpen}
-        current={conversationTheme}
-        busy={themeSaving || composeBusy}
-        onApply={(payload) => void applyThemeChoice(payload)}
-        onWordEffectSend={(word) => void sendWordEffect(word)}
-        onClose={() => {
-          if (!themeSaving) setThemePickerOpen(false);
-        }}
+    <>
+    <ThreadViewContent
+      user={user}
+      resolvedTheme={resolvedTheme}
+      themeVars={themeVars}
+      navigate={navigate}
+      peer={peer}
+      peerProfilePath={peerProfilePath}
+      isSearchOpen={conversationSearch.isSearchOpen}
+      onToggleSearch={() => (conversationSearch.isSearchOpen ? cancelSearch() : openSearch())}
+      setThemePickerOpen={setThemePickerOpen}
+      setPendingDelete={setPendingDelete}
+      conversationId={conversationId}
+      bottomRef={bottomRef}
+      scrollRef={scrollRef}
+      stickToBottomRef={stickToBottomRef}
+      canHover={canHover}
+      setTappedMessageId={setTappedMessageId}
+      loadingThread={loadingThread}
+      hasMore={hasMore}
+      loadingEarlier={loadingEarlier}
+      loadEarlier={loadEarlier}
+      messages={messages}
+      systemLogs={systemLogs}
+      error={error}
+      setError={setError}
+      isPeerTyping={isPeerTyping}
+      threadTimeline={threadTimeline}
+      focusedMessageId={focusedMessageId}
+      searchHighlightQuery={searchHighlightQuery}
+      peerLastReadAt={peerLastReadAt}
+      editingMessageId={editingMessageId}
+      tappedMessageId={tappedMessageId}
+      startEdit={startEdit}
+      patchMessageReaction={patchMessageReaction}
+      setReplyToMessage={setReplyToMessage}
+      latestOwnMessageId={latestOwnMessageId}
+      body={body}
+      onSend={onSend}
+      composeBusy={composeBusy}
+      cancelEdit={cancelEdit}
+      replyPreview={replyPreview}
+      fileRef={fileRef}
+      onImage={onImage}
+      insertComposerEmoji={insertComposerEmoji}
+      textareaRef={textareaRef}
+      setBody={setBody}
+      stopTyping={stopTyping}
+      handleComposeKeyDown={handleComposeKeyDown}
+      editingMessage={editingMessage}
+      themePickerOpen={themePickerOpen}
+      conversationTheme={conversationTheme}
+      themeSaving={themeSaving}
+      applyThemeChoice={applyThemeChoice}
+      sendWordEffect={sendWordEffect}
+      pendingUnsendId={pendingUnsendId}
+      unsending={unsending}
+      setPendingUnsendId={setPendingUnsendId}
+      confirmUnsend={confirmUnsend}
+      pendingDelete={pendingDelete}
+      deleting={deleting}
+      confirmDeleteConversation={confirmDeleteConversation}
+      deleteConversationDescription={deleteConversationDescription}
+    />
+    {conversationSearch.isSearchOpen && (
+      <ConversationSearchPanel
+        query={conversationSearch.query}
+        results={conversationSearch.results}
+        hasMore={conversationSearch.hasMore}
+        isSearching={conversationSearch.isSearching}
+        error={conversationSearch.error}
+        currentUserId={user?.id}
+        peer={peer}
+        hasActiveHighlight={Boolean(searchHighlightQuery)}
+        onQueryChange={conversationSearch.setQuery}
+        onClear={clearSearch}
+        onClose={cancelSearch}
+        onSelectMessage={focusSearchResult}
       />
-
-      <ConfirmDialog
-        open={pendingUnsendId !== null}
-        title="Unsend this message?"
-        description="This removes the message for everyone in the chat."
-        confirmLabel="Unsend"
-        busy={unsending}
-        onCancel={() => {
-          if (!unsending) setPendingUnsendId(null);
-        }}
-        onConfirm={() => void confirmUnsend()}
-      />
-
-      <ConfirmDialog
-        open={pendingDelete !== null}
-        title="Delete conversation?"
-        description={
-          pendingDelete ? deleteConversationDescription(pendingDelete.peerName) : undefined
-        }
-        confirmLabel="Delete"
-        busy={deleting}
-        onCancel={() => {
-          if (!deleting) setPendingDelete(null);
-        }}
-        onConfirm={() => void confirmDeleteConversation()}
-      />
-    </section>
+    )}
+    </>
   );
 }

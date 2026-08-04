@@ -12,9 +12,12 @@ import {
   type MessageRow,
   type MessageRowWithReply,
 } from "../models/MessageModel";
-import { MessageReactionModel } from "../models/MessageReactionModel";
+import {
+  MessageReactionModel,
+  type ConversationLatestReaction,
+} from "../models/MessageReactionModel";
 import { MessageUserDeletionModel } from "../models/MessageUserDeletionModel";
-import { REACTION_EMOJIS, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
+import { REACTION_EMOJIS, emptyReactionSummary, type ReactionEmoji, type ReactionSummary } from "../models/ReactionModel";
 import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
 import { isUniqueViolation } from "../utils/dbErrors";
@@ -22,6 +25,8 @@ import { toPublicUser } from "../types/user";
 import { MessageRealtime } from "../realtime/MessageRealtime";
 import { logger } from "../logger";
 import { ChatThemeService, type ConversationThemeView } from "./ChatThemeService";
+import type { ThemeLogEntry } from "../types/themeLog";
+import { parseThemeLog } from "../types/themeLog";
 
 async function publishRealtime(work: () => Promise<void>): Promise<void> {
   try {
@@ -94,6 +99,23 @@ export type MessageView = {
   replyTo: MessageReplyToView | null;
 };
 
+export type ConversationListLastReaction = {
+  emoji: ReactionEmoji;
+  reactorId: string;
+  messageId: string;
+  messageSenderId: string;
+  messageBody: string | null;
+  messageImageUrl: string | null;
+  reactedAt: Date;
+};
+
+export type ConversationListLastSystemLog = {
+  id: string;
+  text: string;
+  createdAt: Date;
+  updatedBy: string;
+};
+
 export type ConversationListItem = {
   id: string;
   peer: ReturnType<typeof toPublicUser>;
@@ -106,6 +128,9 @@ export type ConversationListItem = {
     createdAt: Date;
     replyToMessageId: string | null;
   } | null;
+  lastReaction: ConversationListLastReaction | null;
+  lastSystemLog: ConversationListLastSystemLog | null;
+  hasUnreadReaction: boolean;
   unreadCount: number;
   lastMessageAt: Date | null;
 };
@@ -118,6 +143,49 @@ function lastReadAt(row: ConversationRow, viewerId: string): Date | null {
   if (row.user_a === viewerId) return row.user_a_last_read_at;
   if (row.user_b === viewerId) return row.user_b_last_read_at;
   return null;
+}
+
+function hasUnreadPeerReaction(
+  reaction: ConversationListLastReaction | null,
+  viewerId: string,
+  peerUserId: string,
+  viewerLastReadAt: Date | null
+): boolean {
+  if (!reaction) return false;
+  if (reaction.reactorId !== peerUserId) return false;
+  if (reaction.messageSenderId !== viewerId) return false;
+  if (!viewerLastReadAt) return true;
+  return reaction.reactedAt > viewerLastReadAt;
+}
+
+function toListLastSystemLog(entry: ThemeLogEntry | null): ConversationListLastSystemLog | null {
+  if (!entry) return null;
+  return {
+    id: entry.id,
+    text: entry.text,
+    createdAt: new Date(entry.createdAt),
+    updatedBy: entry.updatedBy,
+  };
+}
+
+function latestThemeLogFromRow(row: ConversationRow): ThemeLogEntry | null {
+  const logs = parseThemeLog(row.theme_log);
+  return logs.length > 0 ? logs[logs.length - 1]! : null;
+}
+
+function latestActivityAt(
+  messageAt: Date | null,
+  reactionAt: Date | null,
+  systemLogAt: Date | null,
+  fallback: Date | null
+): Date | null {
+  const candidates = [messageAt, reactionAt, systemLogAt].filter(
+    (value): value is Date => value instanceof Date
+  );
+  if (candidates.length === 0) return fallback;
+  return candidates.reduce((latest, current) =>
+    current.getTime() > latest.getTime() ? current : latest
+  );
 }
 
 function peerLastReadAt(row: ConversationRow, viewerId: string): Date | null {
@@ -185,6 +253,21 @@ async function rowToView(row: MessageRowWithReply, viewerId: string): Promise<Me
   return view;
 }
 
+function toListLastReaction(
+  reaction: ConversationLatestReaction | null
+): ConversationListLastReaction | null {
+  if (!reaction) return null;
+  return {
+    emoji: reaction.emoji,
+    reactorId: reaction.reactorId,
+    messageId: reaction.messageId,
+    messageSenderId: reaction.messageSenderId,
+    messageBody: reaction.messageBody,
+    messageImageUrl: reaction.messageImageUrl,
+    reactedAt: reaction.reactedAt,
+  };
+}
+
 function lastMessageListShape(row: MessageRow): ConversationListItem["lastMessage"] {
   return {
     id: row.id,
@@ -233,14 +316,30 @@ export class MessageService {
 
   static async listConversations(userId: string): Promise<ConversationListItem[]> {
     const rows = await ConversationModel.listInboxForUser(userId);
-    return rows.map((row) => this.inboxRowToListItem(row));
+    const latestReactions = await MessageReactionModel.latestByConversations(
+      rows.map((row) => row.id),
+      userId
+    );
+    return rows
+      .map((row) =>
+        this.inboxRowToListItem(
+          row,
+          toListLastReaction(latestReactions.get(row.id) ?? null),
+          userId
+        )
+      )
+      .sort((a, b) => {
+        const aTime = a.lastMessageAt?.getTime() ?? 0;
+        const bTime = b.lastMessageAt?.getTime() ?? 0;
+        return bTime - aTime;
+      });
   }
 
   static async listMessages(
     userId: string,
     conversationId: string,
     before?: string,
-    options?: { restoreIfHidden?: boolean }
+    options?: { restoreIfHidden?: boolean; includeThemeLogs?: boolean }
   ): Promise<{
     conversationId: string;
     peer: ReturnType<typeof toPublicUser>;
@@ -248,6 +347,7 @@ export class MessageService {
     messages: MessageView[];
     hasMore: boolean;
     theme: ConversationThemeView;
+      themeLogs?: ThemeLogEntry[];
   }> {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
@@ -295,6 +395,9 @@ export class MessageService {
       messages: await rowsToViews(mergedRows, userId),
       hasMore: mergedRows.length >= MESSAGE_PAGE_SIZE,
       theme: ChatThemeService.themeFromRow(conversation),
+      ...(options?.includeThemeLogs
+        ? { themeLogs: ChatThemeService.themeLogsFromRow(conversation) }
+        : {}),
     };
   }
 
@@ -472,7 +575,12 @@ export class MessageService {
     const viewerView =
       targets.find((t) => t.userId === userId)?.message ??
       (await this.viewForMessage(message.id, userId));
-    await publishRealtime(() => MessageRealtime.messageReaction(targets));
+    await publishRealtime(async () => {
+      await MessageRealtime.messageReaction(conversation, targets, userId);
+      if (message.sender_id !== userId) {
+        await MessageRealtime.unreadCountForUser(message.sender_id);
+      }
+    });
     return viewerView;
   }
 
@@ -486,7 +594,12 @@ export class MessageService {
     const viewerView =
       targets.find((t) => t.userId === userId)?.message ??
       (await this.viewForMessage(message.id, userId));
-    await publishRealtime(() => MessageRealtime.messageReaction(targets));
+    await publishRealtime(async () => {
+      await MessageRealtime.messageReaction(conversation, targets, userId);
+      if (message.sender_id !== userId) {
+        await MessageRealtime.unreadCountForUser(message.sender_id);
+      }
+    });
     return viewerView;
   }
 
@@ -566,14 +679,38 @@ export class MessageService {
     );
   }
 
-  private static inboxRowToListItem(row: ConversationInboxRow): ConversationListItem {
+  private static inboxRowToListItem(
+    row: ConversationInboxRow,
+    lastReaction: ConversationListLastReaction | null,
+    viewerId: string
+  ): ConversationListItem {
     const latest = row.lastMessage;
+    const messageAt = latest?.created_at ?? null;
+    const reactionAt = lastReaction?.reactedAt ?? null;
+    const lastSystemLog = toListLastSystemLog(latestThemeLogFromRow(row));
+    const systemLogAt = lastSystemLog?.createdAt ?? null;
+    const lastActivityAt = latestActivityAt(
+      messageAt,
+      reactionAt,
+      systemLogAt,
+      row.last_message_at
+    );
+    const peerUserId = peerId(row, viewerId);
+
     return {
       id: row.id,
       peer: toPublicUser(row.peer),
       lastMessage: latest ? lastMessageListShape(latest) : null,
+      lastReaction,
+      lastSystemLog,
+      hasUnreadReaction: hasUnreadPeerReaction(
+        lastReaction,
+        viewerId,
+        peerUserId,
+        lastReadAt(row, viewerId)
+      ),
       unreadCount: row.unreadCount,
-      lastMessageAt: row.last_message_at,
+      lastMessageAt: lastActivityAt,
     };
   }
 
@@ -584,18 +721,35 @@ export class MessageService {
     const peerUser = await UserModel.findById(peerId(row, viewerId));
     if (!peerUser) throw new AppError("USER_NOT_FOUND", "Peer missing.");
     const latest = await MessageModel.latestForConversation(row.id);
+    const latestReactions = await MessageReactionModel.latestByConversations([row.id], viewerId);
+    const lastReaction = toListLastReaction(latestReactions.get(row.id) ?? null);
     const unreadCount = await MessageModel.countUnreadInConversation(
       row.id,
       viewerId,
       lastReadAt(row, viewerId)
     );
 
+    const lastSystemLog = toListLastSystemLog(latestThemeLogFromRow(row));
+
     return {
       id: row.id,
       peer: toPublicUser(peerUser),
       lastMessage: latest ? lastMessageListShape(latest) : null,
+      lastReaction,
+      lastSystemLog,
+      hasUnreadReaction: hasUnreadPeerReaction(
+        lastReaction,
+        viewerId,
+        peerId(row, viewerId),
+        lastReadAt(row, viewerId)
+      ),
       unreadCount,
-      lastMessageAt: row.last_message_at,
+      lastMessageAt: latestActivityAt(
+        latest?.created_at ?? null,
+        lastReaction?.reactedAt ?? null,
+        lastSystemLog?.createdAt ?? null,
+        row.last_message_at
+      ),
     };
   }
 }
