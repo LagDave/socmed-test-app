@@ -168,7 +168,7 @@ Privacy, security, and account preferences.
         <li><code>frontend/src/lib/notificationSounds.ts</code> — localStorage prefs, playback, cross-tab sync — <strong>do not modify</strong></li>
         <li><code>frontend/src/hooks/useMessageNotificationSound.ts</code> — global listener — <strong>do not modify</strong></li>
         <li><code>frontend/src/components/AppShell.tsx</code> — mounts sound hook — <strong>do not modify</strong></li>
-        <li><code>frontend/src/pages/MessagesPage.tsx</code> — <code>InboxView</code> header row (title + unread badge); add gear here</li>
+        <li><code>frontend/src/components/messages/InboxView.tsx</code> — <code>InboxView</code> header row (title + unread badge); add gear here after the dev integration refactor</li>
         <li><code>frontend/src/App.tsx</code> — add <code>/messages/settings</code> route</li>
       </ul>
       <h3>Closest analogs</h3>
@@ -276,7 +276,7 @@ Privacy, security, and account preferences.
           <div><dt>Do</dt><dd>
             In <code>InboxView</code> header row (beside unread badge), add icon button (<code>Settings</code> from lucide) linking to <code>/messages/settings</code>. Use <code>Button variant="ghost" size="icon"</code> or equivalent messages-header pattern. Include <code>aria-label="Message settings"</code>.
           </dd></div>
-          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code></dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/messages/InboxView.tsx</code></dd></div>
           <div><dt>Depends on</dt><dd>T2</dd></div>
           <div><dt>Verify</dt><dd>Gear visible on inbox; opens message settings; thread view unchanged</dd></div>
         </dl>
@@ -346,6 +346,16 @@ Privacy, security, and account preferences.
             <td>4</td>
             <td>2026-08-05</td>
             <td>Review remediation: replaced invalid pending acceptance waivers with static evidence for A1, A2, and A4; A3 is an explicit failed manual two-browser audio acceptance with a bounded waiver. The rollup is now truthful under the acceptance schema.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>2026-08-05</td>
+            <td>Dev integration: <code>InboxView</code> moved from <code>MessagesPage.tsx</code> to <code>components/messages/InboxView.tsx</code> on <code>dev</code>. Resolve the integration by placing the existing inbox gear in that extracted component; behavior and scope remain unchanged.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>2026-08-05</td>
+            <td>Integration verification: <code>npm run typecheck</code> and <code>npm run build</code> passed after merging <code>origin/dev</code>. Acceptance evidence now distinguishes this frontend-only feature from unchanged backend and migration work inherited from <code>dev</code>.</td>
           </tr>
         </tbody>
       </table>

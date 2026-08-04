@@ -1,6 +1,6 @@
 {
   "plan": "plans/08032026-42-message-settings-sound-move",
-  "generatedAt": "2026-08-03",
+  "generatedAt": "2026-08-05",
   "status": "Passed",
   "items": [
     {
@@ -16,7 +16,7 @@
       ],
       "expected": "Full sound picker UI lives on Message settings with icon header only; not on Account settings.",
       "status": "pass",
-      "evidence": "2026-08-05 static verification: MessageSettingsPage mounts NotificationSoundsSettings; the inbox header links to /messages/settings; App.tsx registers the static route before /messages/:conversationId.",
+      "evidence": "2026-08-05 static verification after dev integration: MessageSettingsPage mounts NotificationSoundsSettings; InboxView links to /messages/settings; App.tsx registers the static route before /messages/:conversationId.",
       "notes": "Source-level route and composition verification completed; interactive rendering remains covered by the manual PR smoke check.",
       "waiver": ""
     },
@@ -78,7 +78,7 @@
       ],
       "expected": "Both succeed with no errors caused by this plan.",
       "status": "pass",
-      "evidence": "2026-08-03: npm run typecheck and npm run build succeeded on kylie/message-account-settings.",
+      "evidence": "2026-08-05: npm run typecheck and npm run build succeeded after merging origin/dev into kylie/message-account-settings.",
       "notes": "",
       "waiver": ""
     },
@@ -92,7 +92,7 @@
       ],
       "expected": "Frontend-only UI relocation.",
       "status": "pass",
-      "evidence": "2026-08-03: changes limited to frontend/src/pages, App.tsx, and plans/.",
+      "evidence": "2026-08-05: Message settings feature files remain frontend-only. The branch also contains backend and migration changes inherited unchanged from origin/dev during integration.",
       "notes": "",
       "waiver": ""
     }

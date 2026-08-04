@@ -85,6 +85,23 @@ export type MessageView = {
   replyTo: MessageReplyToView | null;
 };
 
+export type ConversationListLastReaction = {
+  emoji: ReactionEmoji;
+  reactorId: string;
+  messageId: string;
+  messageSenderId: string;
+  messageBody: string | null;
+  messageImageUrl: string | null;
+  reactedAt: string;
+};
+
+export type ConversationListLastSystemLog = {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedBy: string;
+};
+
 export type ConversationListItem = {
   id: string;
   peer: PublicUser;
@@ -97,6 +114,9 @@ export type ConversationListItem = {
     createdAt: string;
     replyToMessageId: string | null;
   } | null;
+  lastReaction: ConversationListLastReaction | null;
+  lastSystemLog: ConversationListLastSystemLog | null;
+  hasUnreadReaction: boolean;
   unreadCount: number;
   lastMessageAt: string | null;
 };
@@ -129,4 +149,15 @@ export type ConversationThemeView = {
   theme: ChatTheme | null;
   updatedAt: string | null;
   updatedBy: string | null;
+};
+
+export type ThemeLogEntry = {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedBy: string;
+};
+
+export type ConversationThemeUpdateView = ConversationThemeView & {
+  logEntry: ThemeLogEntry;
 };

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Smile } from "lucide-react";
 import { api } from "@/api/client";
 import type { ReactionEmoji, ReactionSummary } from "@/api/types";
 import { ReactionIcon } from "@/components/ReactionIcon";
@@ -34,6 +35,30 @@ const SIZE = {
     pickerGap: "gap-1.5",
     leftGap: "gap-1.5",
   },
+  inline: {
+    trigger: "h-7 w-7",
+    triggerIcon: "text-sm",
+    icon: "text-base",
+    option: "h-8 w-8",
+    label: "text-[10px] -bottom-3.5",
+    summary: "gap-1 text-[11px]",
+    summaryIcon: "text-sm",
+    pickerPad: "px-2.5 py-1.5",
+    pickerGap: "gap-1.5",
+    leftGap: "gap-0",
+  },
+  toolbar: {
+    trigger: "h-6 w-6",
+    triggerIcon: "h-[15px] w-[15px]",
+    icon: "text-[1.35rem]",
+    option: "h-8 w-8",
+    label: "text-[10px] -bottom-3.5",
+    summary: "gap-1 text-[11px]",
+    summaryIcon: "text-sm",
+    pickerPad: "px-1.5 py-0.5",
+    pickerGap: "gap-0.5",
+    leftGap: "gap-0",
+  },
 } as const;
 
 type ReactionBarProps = {
@@ -42,6 +67,9 @@ type ReactionBarProps = {
   summary: ReactionSummary;
   onSummaryChange: (summary: ReactionSummary) => void;
   size?: keyof typeof SIZE;
+  variant?: "default" | "inline" | "toolbar";
+  pickerAlign?: "start" | "end" | "center";
+  triggerClassName?: string;
   actions?: ReactNode;
   className?: string;
   onError?: (message: string) => void;
@@ -53,6 +81,9 @@ export function ReactionBar({
   summary,
   onSummaryChange,
   size = "md",
+  variant = "default",
+  pickerAlign = "center",
+  triggerClassName,
   actions,
   className,
   onError,
@@ -65,7 +96,10 @@ export function ReactionBar({
   const holdTimerRef = useRef<number | null>(null);
   const expandTimerRef = useRef<number | null>(null);
   const pickerId = useId();
-  const s = SIZE[size];
+  const isInline = variant === "inline";
+  const isToolbar = variant === "toolbar";
+  const isPopup = isInline || isToolbar;
+  const s = SIZE[isToolbar ? "toolbar" : isInline ? "inline" : size];
 
   const path =
     targetType === "post"
@@ -163,8 +197,67 @@ export function ReactionBar({
       : undefined;
 
   const shellClass = cn(
-    "inline-flex items-center rounded-full border border-border/80 bg-background",
-    expanded ? s.pickerPad : "p-px"
+    "inline-flex items-center rounded-full",
+    isToolbar
+      ? ""
+      : isInline
+        ? "bg-card shadow-[0_2px_8px_rgba(0,0,0,0.12)] ring-1 ring-border/60"
+        : cn("border border-border/80 bg-background", expanded ? s.pickerPad : "p-px")
+  );
+
+  const toolbarTriggerContent = (
+    <Smile className={s.triggerIcon} strokeWidth={1.75} aria-hidden="true" />
+  );
+
+  const inlineTriggerGlyph = summary.viewerEmoji ? (
+    <ReactionIcon emoji={summary.viewerEmoji} className={s.triggerIcon} />
+  ) : (
+    <span aria-hidden className={cn("inline-block leading-none select-none", s.triggerIcon)}>
+      🙂
+    </span>
+  );
+
+  const pickerOptions = (
+    <>
+      {REACTION_OPTIONS.map((opt) => {
+        const selected = summary.viewerEmoji === opt.emoji;
+        return (
+          <button
+            key={opt.emoji}
+            type="button"
+            role="option"
+            aria-label={opt.label}
+            aria-selected={selected}
+            disabled={busy}
+            className={cn(
+              "reaction-icon-btn group/emoji relative inline-flex shrink-0 items-center justify-center rounded-full leading-none",
+              s.option,
+              "hover:bg-accent",
+              selected && "ring-1 ring-foreground/30",
+              popEmoji === opt.emoji && "reaction-icon-pop"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              void applyEmoji(opt.emoji);
+            }}
+          >
+            <ReactionIcon emoji={opt.emoji} className={s.icon} />
+            {!isPopup && (
+              <span
+                className={cn(
+                  "pointer-events-none absolute left-1/2 -translate-x-1/2",
+                  "whitespace-nowrap text-muted-foreground",
+                  s.label,
+                  "opacity-0 transition-opacity group-hover/emoji:opacity-100"
+                )}
+              >
+                {opt.label}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </>
   );
 
   return (
@@ -172,106 +265,112 @@ export function ReactionBar({
       ref={rootRef}
       className={cn(
         "inline-flex flex-wrap items-center",
-        targetType === "message" ? "gap-1.5" : cn("w-full justify-between", s.leftGap),
+        isInline ? "gap-0" : isToolbar ? "gap-0" : targetType === "message" ? "gap-1.5" : cn("w-full justify-between", s.leftGap),
         className
       )}
     >
-      <div className={cn("flex flex-wrap items-center", s.leftGap)}>
+      <div className={cn("flex flex-wrap items-center", isPopup ? "gap-0" : s.leftGap)}>
         <div
           className="relative inline-flex"
-          onMouseEnter={scheduleExpand}
-          onMouseLeave={collapse}
+          onMouseEnter={isPopup ? undefined : scheduleExpand}
+          onMouseLeave={isPopup ? undefined : collapse}
         >
-          <div className={shellClass}>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label={triggerLabel}
-              aria-expanded={expanded}
-              aria-controls={pickerId}
+          {expanded && isPopup && (
+            <div
+              id={pickerId}
               className={cn(
-                "group relative inline-flex items-center justify-center rounded-full transition-colors",
-                s.trigger,
-                "hover:bg-accent",
-                "disabled:pointer-events-none disabled:opacity-50",
-                expanded && "sr-only"
+                "message-reaction-popup absolute bottom-full z-30 mb-1.5 inline-flex items-center rounded-full bg-popover shadow-lg ring-1 ring-border/60",
+                s.pickerPad,
+                s.pickerGap,
+                pickerAlign === "end" && "right-0 translate-x-0.5",
+                pickerAlign === "start" && "left-0 -translate-x-1",
+                pickerAlign === "center" && "left-1/2 -translate-x-1/2"
               )}
-              onClick={() => {
-                clearExpandTimer();
-                setExpanded(true);
-              }}
-              onPointerDown={(e) => {
-                if (e.pointerType === "touch" || e.pointerType === "pen") {
-                  clearHoldTimer();
-                  holdTimerRef.current = window.setTimeout(() => setExpanded(true), HOLD_MS);
-                }
-              }}
-              onPointerUp={clearHoldTimer}
-              onPointerCancel={clearHoldTimer}
-              onPointerLeave={clearHoldTimer}
+              role="listbox"
+              aria-label="Choose reaction"
             >
-              <span
+              {pickerOptions}
+            </div>
+          )}
+          <div className={shellClass}>
+            {(!expanded || isPopup) && (
+              <button
+                type="button"
+                disabled={busy}
+                aria-label={isPopup ? "React to message" : triggerLabel}
+                aria-expanded={expanded}
+                aria-controls={pickerId}
                 className={cn(
-                  "inline-flex items-center justify-center leading-none",
-                  popEmoji && popEmoji === (triggerEmoji ?? "like") && "reaction-icon-pop"
+                  "group relative inline-flex items-center justify-center rounded-full transition-colors",
+                  s.trigger,
+                  isToolbar &&
+                    cn(
+                      "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                      triggerClassName
+                    ),
+                  !isPopup && "hover:bg-accent",
+                  isInline && !isToolbar && "hover:bg-muted/80",
+                  "disabled:pointer-events-none disabled:opacity-50",
+                  expanded && !isPopup && "sr-only"
                 )}
+                onClick={() => {
+                  clearExpandTimer();
+                  if (isPopup) {
+                    setExpanded((open) => !open);
+                  } else {
+                    setExpanded(true);
+                  }
+                }}
+                onPointerDown={(e) => {
+                  if (isPopup) return;
+                  if (e.pointerType === "touch" || e.pointerType === "pen") {
+                    clearHoldTimer();
+                    holdTimerRef.current = window.setTimeout(() => setExpanded(true), HOLD_MS);
+                  }
+                }}
+                onPointerUp={clearHoldTimer}
+                onPointerCancel={clearHoldTimer}
+                onPointerLeave={clearHoldTimer}
               >
-                <ReactionIcon emoji={triggerEmoji} className={s.triggerIcon} />
-              </span>
-              <span
-                className={cn(
-                  "pointer-events-none absolute left-1/2 -translate-x-1/2",
-                  "whitespace-nowrap text-muted-foreground",
-                  s.label,
-                  "opacity-0 transition-opacity group-hover:opacity-100"
+                <span
+                  className={cn(
+                    "inline-flex items-center justify-center leading-none",
+                    popEmoji &&
+                      summary.viewerEmoji &&
+                      popEmoji === summary.viewerEmoji &&
+                      "reaction-icon-pop"
+                  )}
+                >
+                  {isToolbar ? (
+                    toolbarTriggerContent
+                  ) : isInline ? (
+                    inlineTriggerGlyph
+                  ) : (
+                    <ReactionIcon emoji={triggerEmoji} className={s.triggerIcon} />
+                  )}
+                </span>
+                {!isPopup && (
+                  <span
+                    className={cn(
+                      "pointer-events-none absolute left-1/2 -translate-x-1/2",
+                      "whitespace-nowrap text-muted-foreground",
+                      s.label,
+                      "opacity-0 transition-opacity group-hover:opacity-100"
+                    )}
+                  >
+                    {triggerLabel}
+                  </span>
                 )}
-              >
-                {triggerLabel}
-              </span>
-            </button>
-            {expanded && (
+              </button>
+            )}
+            {expanded && !isPopup && (
               <div
                 id={pickerId}
                 className={cn("inline-flex items-center", s.pickerGap)}
                 role="listbox"
                 aria-label="Choose reaction"
               >
-                {REACTION_OPTIONS.map((opt) => {
-                  const selected = summary.viewerEmoji === opt.emoji;
-                  return (
-                    <button
-                      key={opt.emoji}
-                      type="button"
-                      role="option"
-                      aria-label={opt.label}
-                      aria-selected={selected}
-                      disabled={busy}
-                      className={cn(
-                        "reaction-icon-btn group/emoji relative inline-flex shrink-0 items-center justify-center rounded-full leading-none",
-                        s.option,
-                        "hover:bg-accent",
-                        selected && "ring-1 ring-foreground/30",
-                        popEmoji === opt.emoji && "reaction-icon-pop"
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void applyEmoji(opt.emoji);
-                      }}
-                    >
-                      <ReactionIcon emoji={opt.emoji} className={s.icon} />
-                      <span
-                        className={cn(
-                          "pointer-events-none absolute left-1/2 -translate-x-1/2",
-                          "whitespace-nowrap text-muted-foreground",
-                          s.label,
-                          "opacity-0 transition-opacity group-hover/emoji:opacity-100"
-                        )}
-                      >
-                        {opt.label}
-                      </span>
-                    </button>
-                  );
-                })}
+                {pickerOptions}
               </div>
             )}
           </div>
@@ -279,63 +378,39 @@ export function ReactionBar({
         {actions}
       </div>
 
-      {totalCount > 0 && (
+      {totalCount > 0 && targetType !== "message" && (
         <div className="relative">
-          {targetType === "message" ? (
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full text-muted-foreground",
-                s.summary
-              )}
-              aria-label={summaryLabel}
-            >
-              <span className="inline-flex items-center -space-x-1" aria-hidden="true">
-                {presentTypes.map((opt) => (
-                  <span
-                    key={opt.emoji}
-                    className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
-                  >
-                    <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
-                  </span>
-                ))}
-              </span>
-              <span>{totalCount}</span>
-            </span>
-          ) : (
-            <>
-              <button
-                type="button"
-                className={cn(
-                  "inline-flex items-center rounded-full text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground",
-                  s.summary,
-                  listOpen && "bg-accent/60 text-foreground"
-                )}
-                aria-label={summaryLabel}
-                aria-haspopup="dialog"
-                aria-expanded={listOpen}
-                onClick={toggleList}
-              >
-                <span className="inline-flex items-center -space-x-1" aria-hidden="true">
-                  {presentTypes.map((opt) => (
-                    <span
-                      key={opt.emoji}
-                      className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
-                    >
-                      <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
-                    </span>
-                  ))}
+          <button
+            type="button"
+            className={cn(
+              "inline-flex items-center rounded-full text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground",
+              s.summary,
+              listOpen && "bg-accent/60 text-foreground"
+            )}
+            aria-label={summaryLabel}
+            aria-haspopup="dialog"
+            aria-expanded={listOpen}
+            onClick={toggleList}
+          >
+            <span className="inline-flex items-center -space-x-1" aria-hidden="true">
+              {presentTypes.map((opt) => (
+                <span
+                  key={opt.emoji}
+                  className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
+                >
+                  <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
                 </span>
-                <span>{totalCount}</span>
-              </button>
-              <ReactionsListPopover
-                targetType={targetType}
-                targetId={targetId}
-                summary={summary}
-                open={listOpen}
-                onClose={() => setListOpen(false)}
-              />
-            </>
-          )}
+              ))}
+            </span>
+            <span>{totalCount}</span>
+          </button>
+          <ReactionsListPopover
+            targetType={targetType}
+            targetId={targetId}
+            summary={summary}
+            open={listOpen}
+            onClose={() => setListOpen(false)}
+          />
         </div>
       )}
     </div>

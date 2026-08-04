@@ -1,5 +1,5 @@
 import { api } from "@/api/client";
-import type { ChatTheme, ConversationListItem, ConversationThemeView } from "@/api/types";
+import type { ChatTheme, ConversationListItem, ConversationThemeUpdateView } from "@/api/types";
 
 export async function openConversationWithUsername(username: string): Promise<string> {
   const data = await api.post<{ conversation: ConversationListItem }>(
@@ -16,8 +16,8 @@ export async function deleteConversation(conversationId: string): Promise<void> 
 export async function updateConversationTheme(
   conversationId: string,
   payload: ChatTheme | { reset: true }
-): Promise<ConversationThemeView> {
-  return api.put<ConversationThemeView>(
+): Promise<ConversationThemeUpdateView> {
+  return api.put<ConversationThemeUpdateView>(
     `/api/messages/conversations/${conversationId}/theme`,
     payload
   );
