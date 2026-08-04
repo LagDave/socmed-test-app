@@ -62,8 +62,6 @@ export type ActivitySoundOption = {
 /** Bump when replacing sound assets so browsers reload cached files. */
 const SOUND_ASSET_VERSION = "17";
 
-const DEFAULT_ACTIVITY_SOUND_ID: ActivitySoundId = "beep";
-
 export const ACTIVITY_SOUND_OPTIONS: ActivitySoundOption[] = [
   { id: "alert", label: "Alert", description: "Urgent double beep", url: `/sounds/activity-alert.wav?v=${SOUND_ASSET_VERSION}`, group: "Digital" },
   { id: "beep", label: "Beep", description: "Single clean beep", url: `/sounds/activity-beep.wav?v=${SOUND_ASSET_VERSION}`, group: "Digital" },
@@ -123,6 +121,7 @@ type SoundRuntime = {
   };
   isUnlocked: boolean;
   messageAudio: HTMLAudioElement | null;
+  activityAudio: HTMLAudioElement | null;
   lastPlayedMessageId: string | null;
   lastPlayedAt: number;
   tabChannel: BroadcastChannel | null;
@@ -179,6 +178,7 @@ function soundRuntime(): SoundRuntime {
       activePrefs: readNotificationSoundPreferencesFromStorage(),
       isUnlocked: false,
       messageAudio: null,
+      activityAudio: null,
       lastPlayedMessageId: null,
       lastPlayedAt: 0,
       tabChannel,
@@ -296,33 +296,34 @@ function activitySoundUrl(id: ActivitySoundId): string {
   return ACTIVITY_SOUND_OPTIONS.find((option) => option.id === id)?.url ?? ACTIVITY_SOUND_OPTIONS[0].url;
 }
 
-function activeActivitySoundUrl(): string {
-  const id = activePrefs().activitySoundId ?? DEFAULT_ACTIVITY_SOUND_ID;
-  return activitySoundUrl(id);
+function activeActivitySoundUrl(): string | null {
+  const id = activePrefs().activitySoundId;
+  return id ? activitySoundUrl(id) : null;
 }
 
-function getMessageAudio(): HTMLAudioElement {
+function getAudio(kind: SoundKind): HTMLAudioElement {
   const runtime = soundRuntime();
-  if (!runtime.messageAudio) {
-    runtime.messageAudio = new Audio();
-    runtime.messageAudio.preload = "auto";
+  const audioKey = kind === "message" ? "messageAudio" : "activityAudio";
+  if (!runtime[audioKey]) {
+    runtime[audioKey] = new Audio();
+    runtime[audioKey].preload = "auto";
   }
-  return runtime.messageAudio;
+  return runtime[audioKey];
 }
 
-function stopMessageAudio(): void {
-  const audio = soundRuntime().messageAudio;
+function stopAudio(kind: SoundKind): void {
+  const audio = soundRuntime()[kind === "message" ? "messageAudio" : "activityAudio"];
   if (!audio) return;
   audio.pause();
   audio.currentTime = 0;
 }
 
 /** Returns true when playback actually started. */
-function playSoundUrl(url: string, volume: number): Promise<boolean> {
-  const audio = getMessageAudio();
+function playSoundUrl(kind: SoundKind, url: string, volume: number): Promise<boolean> {
+  const audio = getAudio(kind);
   const absolute = new URL(url, window.location.origin).href;
 
-  stopMessageAudio();
+  stopAudio(kind);
 
   if (audio.src !== absolute) {
     audio.src = absolute;
@@ -340,11 +341,11 @@ function playSoundUrl(url: string, volume: number): Promise<boolean> {
 }
 
 function playMessageSoundUrl(url: string): Promise<boolean> {
-  return playSoundUrl(url, PLAYBACK_VOLUME);
+  return playSoundUrl("message", url, PLAYBACK_VOLUME);
 }
 
 function playActivitySoundUrl(url: string): Promise<boolean> {
-  return playSoundUrl(url, ACTIVITY_PLAYBACK_VOLUME);
+  return playSoundUrl("activity", url, ACTIVITY_PLAYBACK_VOLUME);
 }
 
 function shouldSkipMessageSound(messageId: string): boolean {
@@ -433,8 +434,8 @@ export function getSelectedMessageSoundId(): MessageSoundId | null {
   return activePrefs().messageSoundId;
 }
 
-export function getSelectedActivitySoundId(): ActivitySoundId {
-  return activePrefs().activitySoundId ?? DEFAULT_ACTIVITY_SOUND_ID;
+export function getSelectedActivitySoundId(): ActivitySoundId | null {
+  return activePrefs().activitySoundId;
 }
 
 export function setNotificationSoundsEnabled(enabled: boolean): void {
@@ -457,9 +458,13 @@ export function setSelectedMessageSoundId(id: MessageSoundId): void {
   window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
 }
 
-export function setSelectedActivitySoundId(id: ActivitySoundId): void {
+export function setSelectedActivitySoundId(id: ActivitySoundId | null): void {
   try {
-    localStorage.setItem(ACTIVITY_SOUND_STORAGE_KEY, id);
+    if (id) {
+      localStorage.setItem(ACTIVITY_SOUND_STORAGE_KEY, id);
+    } else {
+      localStorage.removeItem(ACTIVITY_SOUND_STORAGE_KEY);
+    }
   } catch {
     /* storage unavailable */
   }
@@ -470,7 +475,7 @@ export function setSelectedActivitySoundId(id: ActivitySoundId): void {
 export function saveNotificationSoundPreferences(prefs: {
   enabled: boolean;
   messageSoundId: MessageSoundId | null;
-  activitySoundId: ActivitySoundId;
+  activitySoundId: ActivitySoundId | null;
 }): void {
   try {
     localStorage.setItem(ENABLED_STORAGE_KEY, prefs.enabled ? "true" : "false");
@@ -479,7 +484,11 @@ export function saveNotificationSoundPreferences(prefs: {
     } else {
       localStorage.removeItem(MESSAGE_SOUND_STORAGE_KEY);
     }
-    localStorage.setItem(ACTIVITY_SOUND_STORAGE_KEY, prefs.activitySoundId);
+    if (prefs.activitySoundId) {
+      localStorage.setItem(ACTIVITY_SOUND_STORAGE_KEY, prefs.activitySoundId);
+    } else {
+      localStorage.removeItem(ACTIVITY_SOUND_STORAGE_KEY);
+    }
   } catch {
     /* storage unavailable */
   }
@@ -494,13 +503,13 @@ export function saveNotificationSoundPreferences(prefs: {
 export function readNotificationSoundPreferences(): {
   enabled: boolean;
   messageSoundId: MessageSoundId | null;
-  activitySoundId: ActivitySoundId;
+  activitySoundId: ActivitySoundId | null;
 } {
   const prefs = activePrefs();
   return {
     enabled: prefs.enabled,
     messageSoundId: prefs.messageSoundId,
-    activitySoundId: prefs.activitySoundId ?? DEFAULT_ACTIVITY_SOUND_ID,
+    activitySoundId: prefs.activitySoundId,
   };
 }
 
@@ -513,7 +522,7 @@ export function unlockNotificationSounds(): void {
   const runtime = soundRuntime();
   if (runtime.isUnlocked) return;
 
-  const audio = getMessageAudio();
+  const audio = getAudio("message");
   audio.src = SILENT_UNLOCK_DATA_URL;
   audio.volume = 0.001;
   void audio
@@ -548,7 +557,10 @@ export function playActivityNotificationSound(notificationId: string): void {
   if (!activePrefs().enabled) return;
   if (shouldSkipActivitySound(notificationId)) return;
 
-  void playActivitySoundUrl(activeActivitySoundUrl()).then((played) => {
+  const url = activeActivitySoundUrl();
+  if (!url) return;
+
+  void playActivitySoundUrl(url).then((played) => {
     if (played) markActivitySoundPlayed(notificationId);
   });
 }
@@ -556,6 +568,7 @@ export function playActivityNotificationSound(notificationId: string): void {
 export function previewActivitySound(id?: ActivitySoundId): void {
   unlockNotificationSounds();
   const resolved = id ?? getSelectedActivitySoundId();
+  if (!resolved) return;
   void playActivitySoundUrl(activitySoundUrl(resolved));
 }
 

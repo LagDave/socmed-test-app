@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Activity Notification Sounds — Review Fix Spec</title>
+  <style>
+    :root { color-scheme: light; --ink:#101010; --line:#d7d7d7; --soft:#f5f5f5; --muted:#666; --ok:#136f3a; }
+    * { box-sizing:border-box; } body { margin:0; color:var(--ink); font:16px/1.55 ui-sans-serif,system-ui,sans-serif; }
+    main { width:min(980px,calc(100% - 32px)); margin:auto; padding:40px 0; } section, header { border:1px solid var(--line); border-radius:10px; padding:24px; margin-bottom:16px; }
+    header { border-color:var(--ink); } h1 { margin:.1rem 0 1rem; font-size:clamp(2rem,5vw,3.4rem); line-height:1; } h2 { margin-top:0; } h3 { margin-bottom:.35rem; }
+    .eyebrow, dt { color:var(--muted); font-size:.76rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; } .status { display:inline-block; border:1px solid var(--ok); border-radius:999px; color:var(--ok); padding:4px 10px; font-size:.76rem; font-weight:800; text-transform:uppercase; }
+    dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; } dl div { border:1px solid var(--line); border-radius:8px; padding:12px; } dt { margin:0; } dd { margin:.25rem 0 0; font-weight:650; } code { background:var(--soft); border:1px solid var(--line); border-radius:4px; padding:.08rem .25rem; } li { margin:.35rem 0; }
+    table { width:100%; border-collapse:collapse; } th,td { border:1px solid var(--line); padding:9px; text-align:left; vertical-align:top; } th { background:var(--soft); font-size:.75rem; text-transform:uppercase; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Socmed corrective execution · PR #61</p>
+      <span class="status">Completed</span>
+      <h1>Activity notification sounds review fixes</h1>
+      <dl>
+        <div><dt>Plan folder</dt><dd>plans/08032026-45-activity-notification-sounds</dd></div>
+        <div><dt>Branch</dt><dd>kylie/notification-sound → dev</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 — live notification UX</dd></div>
+        <div><dt>Scope</dt><dd>PR #61 findings R1–R5</dd></div>
+      </dl>
+    </header>
+
+    <section>
+      <h2>Why and what</h2>
+      <p>Dave’s review found that notification sound preferences could not be saved for activity-only use, notification counts did not propagate after every pending-count mutation, two sound domains interrupted one another, activity audio played without an explicit choice, and an open activity list could go stale.</p>
+      <p>This corrective execution makes an activity tone opt-in, permits either notification domain to be independently silent, keeps their audio elements independent, emits count changes after every in-scope mutation, and refreshes the open notifications page after a count event.</p>
+    </section>
+
+    <section>
+      <h2>Context and blast radius</h2>
+      <ul>
+        <li><code>frontend/src/lib/notificationSounds.ts</code> — persisted preference contract, autoplay unlock, preview and live playback.</li>
+        <li><code>frontend/src/components/NotificationSoundsSettings.tsx</code> — Account Settings controls and save gating.</li>
+        <li><code>frontend/src/pages/NotificationsPage.tsx</code> — activity list lifecycle while open.</li>
+        <li><code>src/realtime/NotificationRealtime.ts</code> — user-scoped socket count emission.</li>
+        <li><code>src/services/NotificationService.ts</code> and <code>src/services/FriendshipService.ts</code> — read, accept, decline, and cancellation count-changing mutations.</li>
+      </ul>
+      <p><strong>Closest patterns:</strong> existing message sound id is nullable and existing Socket.IO count events update the shell badge. This plan extends those contracts without a new state system, dependency, route, or migration.</p>
+    </section>
+
+    <section>
+      <h2>Constraints</h2>
+      <ul>
+        <li>Keep user preference storage local-only and preserve message-sound behavior.</li>
+        <li>Use the existing authenticated, user-scoped <code>notifications:count</code> event; realtime publish failures must remain non-fatal.</li>
+        <li>Do not add a database migration, external API, package, browser notification permission, or polling loop.</li>
+        <li>Do not claim two-browser audio behavior as automated verification; leave it as a runnable acceptance step.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Tasks</h2>
+      <table>
+        <thead><tr><th>Task</th><th>Do</th><th>Files</th><th>Verify</th></tr></thead>
+        <tbody>
+          <tr><td>T1</td><td>Permit message-none/activity-only saving and make activity audio explicitly nullable with a visible no-sound choice.</td><td>notificationSounds.ts, NotificationSoundsSettings.tsx</td><td>Typecheck; acceptance A1</td></tr>
+          <tr><td>T2</td><td>Separate message and activity audio elements so close events/previews do not stop one another.</td><td>notificationSounds.ts</td><td>Typecheck; acceptance A2</td></tr>
+          <tr><td>T3</td><td>Emit the refreshed user-scoped count after activity reads and friend request accept, decline, or cancellation.</td><td>NotificationRealtime.ts, NotificationService.ts, FriendshipService.ts</td><td>Typecheck; acceptance A3</td></tr>
+          <tr><td>T4</td><td>Refresh an open notifications list when the count event arrives; avoid a read-event loop by publishing only when rows changed.</td><td>NotificationsPage.tsx, NotificationService.ts</td><td>Typecheck/build; acceptance A4</td></tr>
+          <tr><td>T5</td><td>Restore missing plan, review-response, and acceptance artifacts.</td><td>plans/08032026-45-activity-notification-sounds/</td><td>Review JSON and rendered checklist</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Risk and mitigation</h2>
+      <table>
+        <thead><tr><th>Risk</th><th>Level</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>A count event caused by opening the page recursively reloads the page.</td><td>2</td><td>Only emit after <code>markAllRead</code> actually changes unread rows; the event-triggered reload then performs a no-op read.</td></tr>
+          <tr><td>A user receives unwanted activity audio after upgrade.</td><td>2</td><td>Missing/invalid activity storage is <code>null</code>; live playback exits until a tone is explicitly chosen.</td></tr>
+          <tr><td>One notification domain silences another.</td><td>2</td><td>Each domain owns its own <code>HTMLAudioElement</code>; only same-domain playback restarts.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Done</h2>
+      <ul>
+        <li>✓ R1: activity-only preference can save while message remains None.</li>
+        <li>✓ R2: count updates after read and all in-scope friend pending-count mutations.</li>
+        <li>✓ R3: message and activity playback are independent.</li>
+        <li>✓ R4: activity playback is silent by default and requires selection.</li>
+        <li>✓ R5: an open notifications list refreshes on the existing count event.</li>
+        <li>✓ Typecheck, production build, and lint run; acceptance checklist updated.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Revision log</h2>
+      <p><strong>Rev 1 · 2026-08-05</strong> — Created retrospectively because PR #61 shipped no plan folder. Locked review-fix scope R1–R5, including cancellation as an additional count-decrement mutation required by the same count contract. No feature expansion beyond reviewer findings.</p>
+    </section>
+  </main>
+</body>
+</html>

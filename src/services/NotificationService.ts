@@ -114,7 +114,14 @@ export class NotificationService {
   }
 
   static async markAllRead(userId: string): Promise<void> {
-    await NotificationModel.markAllRead(userId, ACTIVITY_TYPES);
+    const updated = await NotificationModel.markAllRead(userId, ACTIVITY_TYPES);
+    if (updated > 0) {
+      await this.publishCountUpdated(userId);
+    }
+  }
+
+  static async publishCountUpdated(userId: string): Promise<void> {
+    await publishNotificationRealtime(() => NotificationRealtime.countUpdated(userId));
   }
 
   static async counts(userId: string): Promise<{ notifications: number; feed: number }> {

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bell, Camera, ChevronRight, MessageSquare, Reply, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
+import { getMessagesSocket, NOTIFICATIONS_COUNT } from "@/api/socket";
 import type { PublicUser } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
@@ -202,17 +203,30 @@ export function NotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyFriendshipId, setBusyFriendshipId] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     const data = await api.get<{ notifications: NotificationItem[] }>("/api/notifications");
     setItems(data.notifications);
     await api.post("/api/notifications/read");
-  }
+  }, []);
 
   useEffect(() => {
     void load()
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [load]);
+
+  useEffect(() => {
+    const socket = getMessagesSocket();
+    const refreshNotifications = () => {
+      void load().catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Unable to refresh notifications");
+      });
+    };
+    socket.on(NOTIFICATIONS_COUNT, refreshNotifications);
+    return () => {
+      socket.off(NOTIFICATIONS_COUNT, refreshNotifications);
+    };
+  }, [load]);
 
   async function onFriendAction(friendshipId: string, action: "accept" | "decline") {
     setBusyFriendshipId(friendshipId);

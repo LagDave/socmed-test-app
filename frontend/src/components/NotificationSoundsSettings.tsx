@@ -52,7 +52,8 @@ function messageSoundLabel(id: MessageSoundId | null): string {
   return MESSAGE_SOUND_OPTIONS.find((option) => option.id === id)?.label ?? id;
 }
 
-function activitySoundLabel(id: ActivitySoundId): string {
+function activitySoundLabel(id: ActivitySoundId | null): string {
+  if (!id) return "None chosen";
   return ACTIVITY_SOUND_OPTIONS.find((option) => option.id === id)?.label ?? id;
 }
 
@@ -144,12 +145,29 @@ function MessageSoundPickerGrid({
 function ActivitySoundPickerGrid({
   selectedId,
   onSelect,
+  onClear,
 }: {
-  selectedId: ActivitySoundId;
+  selectedId: ActivitySoundId | null;
   onSelect: (id: ActivitySoundId) => void;
+  onClear: () => void;
 }) {
   return (
     <>
+      <button
+        type="button"
+        onClick={onClear}
+        className={cn(
+          "w-full rounded-xl border px-3.5 py-3 text-left text-sm transition-colors",
+          !selectedId
+            ? "border-foreground bg-accent/50 shadow-sm ring-1 ring-foreground/10"
+            : "border-border bg-background hover:border-foreground/20 hover:bg-accent/25"
+        )}
+      >
+        <span className="font-medium">No activity sound</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">
+          Keep activity alerts silent until you choose a tone.
+        </span>
+      </button>
       {ACTIVITY_SOUND_GROUPS.map((group) => {
         const meta = ACTIVITY_GROUP_META[group];
         const GroupIcon = meta.icon;
@@ -223,7 +241,7 @@ export function NotificationSoundsSettings() {
   const [draftMessageSoundId, setDraftMessageSoundId] = useState<MessageSoundId | null>(
     saved.messageSoundId
   );
-  const [draftActivitySoundId, setDraftActivitySoundId] = useState<ActivitySoundId>(
+  const [draftActivitySoundId, setDraftActivitySoundId] = useState<ActivitySoundId | null>(
     saved.activitySoundId
   );
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
@@ -262,7 +280,6 @@ export function NotificationSoundsSettings() {
   }
 
   function saveSoundSettings() {
-    if (draftEnabled && !draftMessageSoundId) return;
     saveNotificationSoundPreferences({
       enabled: draftEnabled,
       messageSoundId: draftMessageSoundId,
@@ -276,7 +293,7 @@ export function NotificationSoundsSettings() {
     setSaveNotice("Saved — your notification sounds are now active.");
     if (draftEnabled) {
       if (draftMessageSoundId) previewMessageSound(draftMessageSoundId);
-      previewActivitySound(draftActivitySoundId);
+      if (draftActivitySoundId) previewActivitySound(draftActivitySoundId);
     }
   }
 
@@ -377,6 +394,7 @@ export function NotificationSoundsSettings() {
               <ActivitySoundPickerGrid
                 selectedId={draftActivitySoundId}
                 onSelect={selectActivitySound}
+                onClear={() => setDraftActivitySoundId(null)}
               />
             </div>
           </div>
@@ -420,7 +438,7 @@ export function NotificationSoundsSettings() {
                 variant="outline"
                 onPointerDown={() => {
                   if (draftMessageSoundId) previewMessageSound(draftMessageSoundId);
-                  previewActivitySound(draftActivitySoundId);
+                  if (draftActivitySoundId) previewActivitySound(draftActivitySoundId);
                 }}
               >
                 <Play className="size-3.5" aria-hidden="true" />
@@ -429,7 +447,7 @@ export function NotificationSoundsSettings() {
               <Button
                 type="button"
                 size="sm"
-                disabled={!hasUnsavedChanges || (draftEnabled && !draftMessageSoundId)}
+                disabled={!hasUnsavedChanges}
                 onClick={saveSoundSettings}
               >
                 Save sound settings

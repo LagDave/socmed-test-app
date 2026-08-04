@@ -19,7 +19,11 @@ async function unreadNotificationCount(userId: string): Promise<number> {
 export const NotificationRealtime = {
   async notificationCreated(recipientId: string, notificationId: string): Promise<void> {
     emitToUser(recipientId, NOTIFICATION_NEW, { notificationId } satisfies NotificationNewPayload);
-    const notifications = await unreadNotificationCount(recipientId);
-    emitToUser(recipientId, NOTIFICATIONS_COUNT, { notifications } satisfies NotificationsCountPayload);
+    await this.countUpdated(recipientId);
+  },
+
+  async countUpdated(userId: string): Promise<void> {
+    const notifications = await unreadNotificationCount(userId);
+    emitToUser(userId, NOTIFICATIONS_COUNT, { notifications } satisfies NotificationsCountPayload);
   },
 };
