@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ChevronRight, ImageIcon, MoreVertical, Trash2 } from "lucide-react";
 import type { ConversationListItem } from "@/api/types";
+import { OnlinePresenceIndicator } from "@/components/OnlinePresenceIndicator";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,6 +71,7 @@ export function ConversationListRow({
           size="sm"
           className={cn(unread && "ring-2 ring-primary/30 ring-offset-2 ring-offset-card")}
         />
+        {item.peerPresence?.isOnline && <OnlinePresenceIndicator className="bottom-0 right-0" />}
         {unread && (
           <span
             className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-card bg-primary"

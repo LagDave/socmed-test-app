@@ -7,6 +7,8 @@ export type PublicUser = {
   avatarUrl: string | null;
   coverUrl: string | null;
   createdAt: Date;
+  isOnline?: boolean;
+  lastActiveAt?: Date | null;
 };
 
 export type UserRow = {
@@ -19,6 +21,7 @@ export type UserRow = {
   avatar_url: string | null;
   cover_url: string | null;
   feed_seen_at?: Date | null;
+  last_active_at?: Date | null;
   created_at: Date;
   updated_at: Date;
 };

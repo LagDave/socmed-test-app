@@ -1,5 +1,5 @@
 import { io, type Socket } from "socket.io-client";
-import type { ChatTheme, MessageView } from "./types";
+import type { ChatTheme, MessageView, PeerPresence } from "./types";
 
 export const MESSAGE_NEW = "message:new";
 export const MESSAGE_UNSENT = "message:unsent";
@@ -14,6 +14,8 @@ export const CONVERSATION_THEME = "conversation:theme";
 export const TYPING_START = "typing:start";
 export const TYPING_STOP = "typing:stop";
 export const TYPING_UPDATE = "typing:update";
+export const PRESENCE_UPDATE = "presence:update";
+export const FRIEND_PRESENCE_UPDATE = "presence:friend-update";
 
 export type MessageEventPayload = { message: MessageView };
 export type UnreadPayload = { unread: number };
@@ -38,6 +40,12 @@ export type TypingUpdatePayload = {
   conversationId: string;
   userId: string;
   isTyping: boolean;
+};
+export type PresenceUpdatePayload = PeerPresence & { userId: string };
+export type FriendPresenceUpdatePayload = {
+  userId: string;
+  isOnline: boolean;
+  lastActiveAt: string | null;
 };
 
 let socket: Socket | null = null;

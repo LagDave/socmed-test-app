@@ -7,6 +7,8 @@ export type PublicUser = {
   avatarUrl: string | null;
   coverUrl: string | null;
   createdAt: string;
+  isOnline?: boolean;
+  lastActiveAt?: string | null;
 };
 
 export type ApiSuccess<T> = { success: true; data: T; error: null };
@@ -88,6 +90,7 @@ export type MessageView = {
 export type ConversationListItem = {
   id: string;
   peer: PublicUser;
+  peerPresence: PeerPresence | null;
   lastMessage: {
     id: string;
     body: string | null;
@@ -99,6 +102,11 @@ export type ConversationListItem = {
   } | null;
   unreadCount: number;
   lastMessageAt: string | null;
+};
+
+export type PeerPresence = {
+  isOnline: boolean;
+  lastActiveAt: string | null;
 };
 
 export type ChatThemePreset = {

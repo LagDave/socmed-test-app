@@ -12,14 +12,22 @@ import {
   MESSAGE_NEW,
   MESSAGE_REACTION,
   MESSAGE_UNSENT,
+  PRESENCE_UPDATE,
   getMessagesSocket,
   type ConversationPeerReadPayload,
   type ConversationThemePayload,
   type ConversationUpdatedPayload,
   type MessageDeliveredPayload,
   type MessageEventPayload,
+  type PresenceUpdatePayload,
 } from "@/api/socket";
-import type { ConversationListItem, ConversationThemeView, MessageView, PublicUser } from "@/api/types";
+import type {
+  ConversationListItem,
+  ConversationThemeView,
+  MessageView,
+  PeerPresence,
+  PublicUser,
+} from "@/api/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatThemePicker } from "@/components/ChatThemePicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -36,7 +44,9 @@ import {
   MessagesRowSkeleton,
   MessagesThreadSkeleton,
 } from "@/components/MessagesUiHelpers";
+import { OnlinePresenceIndicator } from "@/components/OnlinePresenceIndicator";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { PeerPresenceStatus } from "@/components/PeerPresenceStatus";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { useCanHover } from "@/hooks/useCanHover";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
@@ -72,6 +82,16 @@ const POLL_MS = 2500;
 type PendingDeleteConversation = {
   id: string;
   peerName: string;
+};
+
+type ConversationThreadData = {
+  conversationId: string;
+  peer: PublicUser;
+  peerPresence: PeerPresence | null;
+  peerLastReadAt: string | null;
+  messages: MessageView[];
+  hasMore: boolean;
+  theme: ConversationThemeView;
 };
 
 function deleteConversationDescription(peerName: string): string {
@@ -131,6 +151,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
   const navigate = useNavigate();
   const socketConnected = useSocketConnected();
   const [peer, setPeer] = useState<PublicUser | null>(null);
+  const [peerPresence, setPeerPresence] = useState<PeerPresence | null>(null);
   const [peerLastReadAt, setPeerLastReadAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -191,6 +212,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
     const generation = generationRef.current;
     stickToBottomRef.current = true;
     setPeer(null);
+    setPeerPresence(null);
     setPeerLastReadAt(null);
     setMessages([]);
     setHasMore(false);
@@ -205,16 +227,12 @@ function ThreadView({ conversationId }: { conversationId: string }) {
 
     async function loadInitial() {
       try {
-        const data = await api.get<{
-          conversationId: string;
-          peer: PublicUser;
-          peerLastReadAt: string | null;
-          messages: MessageView[];
-          hasMore: boolean;
-          theme: ConversationThemeView;
-        }>(`/api/messages/conversations/${conversationId}?restore=1`);
+        const data = await api.get<ConversationThreadData>(
+          `/api/messages/conversations/${conversationId}?restore=1`
+        );
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
+        setPeerPresence(data.peerPresence);
         setPeerLastReadAt(data.peerLastReadAt);
         setMessages(data.messages);
         setHasMore(Boolean(data.hasMore));
@@ -243,16 +261,12 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       const generation = generationRef.current;
       void (async () => {
         try {
-          const data = await api.get<{
-            conversationId: string;
-            peer: PublicUser;
-            peerLastReadAt: string | null;
-            messages: MessageView[];
-            hasMore: boolean;
-            theme: ConversationThemeView;
-          }>(`/api/messages/conversations/${conversationId}`);
+          const data = await api.get<ConversationThreadData>(
+            `/api/messages/conversations/${conversationId}`
+          );
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
+          setPeerPresence(data.peerPresence);
           setPeerLastReadAt(data.peerLastReadAt);
           setMessages((prev) => {
             let merged = mergeById(prev, data.messages);
@@ -318,12 +332,19 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       setPeerLastReadAt(payload.peerLastReadAt);
     };
 
+    const applyPresence = (payload: PresenceUpdatePayload) => {
+      if (generation !== generationRef.current) return;
+      if (payload.userId !== peerIdRef.current) return;
+      setPeerPresence({ isOnline: payload.isOnline, lastActiveAt: payload.lastActiveAt });
+    };
+
     socket.on(MESSAGE_NEW, applyInboundNewMessage);
     socket.on(MESSAGE_UNSENT, applyMessagePatch);
     socket.on(MESSAGE_EDITED, applyMessagePatch);
     socket.on(MESSAGE_REACTION, applyMessagePatch);
     socket.on(MESSAGE_DELIVERED, applyMessageDelivered);
     socket.on(CONVERSATION_PEER_READ, applyPeerRead);
+    socket.on(PRESENCE_UPDATE, applyPresence);
 
     const applyTheme = (payload: ConversationThemePayload) => {
       if (payload.conversationId !== conversationId) return;
@@ -343,6 +364,7 @@ function ThreadView({ conversationId }: { conversationId: string }) {
       socket.off(MESSAGE_REACTION, applyMessagePatch);
       socket.off(MESSAGE_DELIVERED, applyMessageDelivered);
       socket.off(CONVERSATION_PEER_READ, applyPeerRead);
+      socket.off(PRESENCE_UPDATE, applyPresence);
       socket.off(CONVERSATION_THEME, applyTheme);
     };
   }, [conversationId, user?.id]);
@@ -657,16 +679,25 @@ function ThreadView({ conversationId }: { conversationId: string }) {
           </Button>
           {peer ? (
             <Link to={peerProfilePath} className="flex min-w-0 flex-1 items-center gap-3">
-              <ProfileAvatar
-                displayName={peer.displayName}
-                avatarUrl={peer.avatarUrl}
-                size="sm"
-              />
+              <span className="relative shrink-0">
+                <ProfileAvatar
+                  displayName={peer.displayName}
+                  avatarUrl={peer.avatarUrl}
+                  size="sm"
+                />
+                {peerPresence?.isOnline && <OnlinePresenceIndicator />}
+              </span>
               <div className="min-w-0">
                 <p className="truncate font-semibold leading-snug">{peer.displayName}</p>
-                {peer.username && (
+                {peerPresence ? (
+                  <PeerPresenceStatus
+                    presence={peerPresence}
+                    labelStyle="active"
+                    className="mt-0.5 block truncate"
+                  />
+                ) : peer.username ? (
                   <p className="truncate text-xs text-muted-foreground">@{peer.username}</p>
-                )}
+                ) : null}
               </div>
             </Link>
           ) : (
@@ -1028,15 +1059,32 @@ function InboxView() {
     const onMessage = (_payload: MessageEventPayload) => {
       void reloadInbox();
     };
+    const onPresenceUpdate = (payload: PresenceUpdatePayload) => {
+      setItems((previous) =>
+        previous.map((item) =>
+          item.peer.id === payload.userId
+            ? {
+                ...item,
+                peerPresence: {
+                  isOnline: payload.isOnline,
+                  lastActiveAt: payload.lastActiveAt,
+                },
+              }
+            : item
+        )
+      );
+    };
     socket.on(CONVERSATION_UPDATED, onUpdated);
     socket.on(MESSAGE_NEW, onMessage);
     socket.on(MESSAGE_UNSENT, onMessage);
     socket.on(MESSAGE_EDITED, onMessage);
+    socket.on(PRESENCE_UPDATE, onPresenceUpdate);
     return () => {
       socket.off(CONVERSATION_UPDATED, onUpdated);
       socket.off(MESSAGE_NEW, onMessage);
       socket.off(MESSAGE_UNSENT, onMessage);
       socket.off(MESSAGE_EDITED, onMessage);
+      socket.off(PRESENCE_UPDATE, onPresenceUpdate);
     };
   }, []);
 

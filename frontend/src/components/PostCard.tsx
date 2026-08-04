@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ImageIcon, MoreHorizontal, Trash2, UserRound } from "lucide-react";
 import type { PostView, ReactionSummary } from "@/api/types";
 import { PostActionRow } from "@/components/PostActionRow";
-import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { FriendPresenceAvatar } from "@/components/FriendPresenceAvatar";
 import { ReactionBar } from "@/components/ReactionBar";
 import { SharedPostEmbed } from "@/components/SharedPostEmbed";
 import { PostMediaGallery } from "@/components/PostMediaGallery";
@@ -230,11 +230,7 @@ export function PostCard({
       <div className={variant === "embedded" ? undefined : "px-4 pt-4 pb-1"}>
         <div className="flex items-start gap-3">
           <Link to={profilePath} className="shrink-0" aria-label={`${post.author.displayName}'s profile`}>
-            <ProfileAvatar
-              displayName={post.author.displayName}
-              avatarUrl={post.author.avatarUrl}
-              size="sm"
-            />
+            <FriendPresenceAvatar user={post.author} />
           </Link>
 
           <div className="min-w-0 flex-1">

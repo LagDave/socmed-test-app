@@ -19,7 +19,7 @@ function handle(res: Response, err: unknown): Response {
 export class ProfileController {
   static async getByUsername(req: AuthedRequest, res: Response): Promise<Response> {
     try {
-      const user = await ProfileService.getByUsername(String(req.params.username));
+      const user = await ProfileService.getByUsername(req.userId!, String(req.params.username));
       return ok(res, { user });
     } catch (err) {
       return handle(res, err);
