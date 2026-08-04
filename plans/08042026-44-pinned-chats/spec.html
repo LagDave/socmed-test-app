@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pinned Chats Reconciliation Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#101010; --muted:#616161; --line:#d7d7d7; --soft:#f5f5f5; --warn:#fff4d6; }
+    * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1120px,calc(100% - 32px)); margin:0 auto; padding:48px 0; } section { border:1px solid var(--line); border-radius:10px; margin:16px 0; padding:24px; } .hero { border-color:var(--ink); padding:32px; } .task { background:var(--soft); margin:12px 0; } .pill { display:inline-block; border-radius:999px; background:var(--ink); color:#fff; font-size:.78rem; font-weight:800; letter-spacing:.04em; padding:6px 10px; text-transform:uppercase; } .warning { background:var(--warn); border-color:#b98000; } h1 { font-size:clamp(2rem,5vw,3.4rem); line-height:.98; margin:.45rem 0 1.4rem; } h2 { margin-top:0; } h3 { margin:.2rem 0 .55rem; } p,li { max-width:960px; } code { background:var(--soft); border:1px solid var(--line); border-radius:4px; padding:.08rem .3rem; } pre { overflow:auto; background:var(--soft); border:1px solid var(--line); border-radius:6px; padding:12px; } table { width:100%; border-collapse:collapse; margin-top:12px; } th,td { border:1px solid var(--line); padding:9px; text-align:left; vertical-align:top; } th { background:var(--soft); font-size:.78rem; text-transform:uppercase; } dl { display:grid; grid-template-columns:130px 1fr; gap:8px 14px; margin:0; } dt { font-weight:700; color:var(--muted); } dd { margin:0; } .check { list-style:none; padding-left:0; } .check li { margin:.4rem 0; } .check span { display:inline-block; width:1.5rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <span class="pill">Pending Execution</span>
+      <h1>Reconcile pinned chats with the current dev message architecture</h1>
+      <p><strong>Plan:</strong> <code>plans/08042026-44-pinned-chats</code><br><strong>Target baseline:</strong> <code>origin/dev</code> at <code>7e1c18b</code> (2026-08-05)<br><strong>Feature source:</strong> <code>kylie/pinned-chats</code> at <code>dd8eee4</code></p>
+      <p>This is an integration plan, not permission to merge either branch wholesale. It preserves the branch’s shipped pin behavior while retaining <code>dev</code>’s split message architecture: route-only <code>MessagesPage</code>, inbox state in <code>InboxView</code>, thread orchestration in <code>ThreadView</code>, and thread rendering in <code>ThreadViewContent</code>.</p>
+    </section>
+
+    <section>
+      <h2>Why</h2>
+      <p><code>kylie/pinned-chats</code> forked before the current messages refactor and changes 14 paths also changed on <code>dev</code>. Its old 1,202-line <code>MessagesPage</code> cannot be carried forward: it would overwrite current search, themes, reactions, read state, typing, and the extracted inbox/thread boundaries. A conflict-marker merge is therefore a Level 3 structural risk.</p>
+    </section>
+
+    <section>
+      <h2>What will be preserved</h2>
+      <ul>
+        <li><strong>Private conversation pins:</strong> a participant pins or unpins a conversation from the inbox row menu; pins persist per user, sort ahead of ordinary conversations, and are cleared for that user when they delete the conversation.</li>
+        <li><strong>Shared message pins:</strong> either participant can pin or unpin a visible, sent message; both participants receive the canonical pinned-message list and a pin/unpin activity event.</li>
+        <li><strong>Pin surfaces:</strong> inbox pin affordance and pin indicator; message overflow menu; pinned-messages dialog; timeline activity entries; and the inbox’s latest-pin-activity preview.</li>
+        <li><strong>Current dev behavior:</strong> search, theme system logs, reactions, message edit/unsend, delivery/read state, typing, deletion/restore, mobile swipe delete, and realtime updates stay on their existing dev paths.</li>
+      </ul>
+      <p><strong>Deliberate boundary:</strong> do not add a thread-header conversation-pin action. The original plan described one, but the shipped source branch does not implement it. Adding it during reconciliation would be new feature work, not preservation.</p>
+    </section>
+
+    <section class="warning">
+      <h2>Risk &amp; required pushback</h2>
+      <p><strong>Level 3 — Structural Risk.</strong> Reintroducing the source branch’s old page would erase the architecture and behavior that landed on <code>dev</code>. The only acceptable integration is behavior-by-behavior porting into the current boundaries.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Conversation pins become global or leak between users</td><td>Both inboxes</td><td>Keep <code>conversation_pins</code> keyed by user and conversation; user-scope the inbox join and participant-check every mutation.</td></tr>
+          <tr><td>Message pins lose theme/search or timeline events</td><td>Open thread and realtime clients</td><td>Extend the current <code>ThreadView</code> timeline union and existing socket lifecycle; do not restore the old page controller.</td></tr>
+          <tr><td>New activity displaces a conversation pin</td><td>Inbox priority contract</td><td>Use caller pin timestamp as the primary ordering key. Message, reaction, theme-log, and pin-activity time only order unpinned rows.</td></tr>
+          <tr><td>Migration history is rewritten or collides</td><td>All environments</td><td>Carry the three source migration files unchanged after preflighting deployed migration records; never rename an already-recorded migration.</td></tr>
+          <tr><td>Hidden/unsent content appears in pins</td><td>Private message visibility</td><td>Reuse the existing participant and per-user deletion checks in list, pin, unpin, unsend, and realtime paths; test both viewers.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Reconciliation decisions</h2>
+      <table>
+        <thead><tr><th>Area</th><th>Decision</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>Integration strategy</td><td>Start an execution branch from the then-current <code>dev</code>; port selected behavior, not commits.</td><td>The automatic three-way merge conflicts in the page, API, socket, list-row, model, service, controller, route, and realtime seams.</td></tr>
+          <tr><td>Conversation-pin ownership</td><td>Private <code>conversation_pins(conversation_id, user_id)</code>.</td><td>A participant’s inbox priority must not alter the peer’s inbox.</td></tr>
+          <tr><td>Message-pin ownership</td><td>One shared <code>message_pins</code> row per message, as the source branch implements.</td><td>The dialog and pin activity are shared conversation behavior; changing this to personal pins would be a product change.</td></tr>
+          <tr><td>Thread architecture</td><td><code>ThreadView</code> owns state/effects; <code>ThreadViewContent</code> renders props; a focused child may render pin activity alongside the current theme-log/message timeline.</td><td>Preserves dev’s separation and avoids another monolithic page.</td></tr>
+          <tr><td>Inbox architecture</td><td><code>InboxView</code> owns load/reload and the conversation-pin mutation; row and swipe wrapper receive a narrow callback.</td><td>Preserves current deletion, typing, list, and socket ownership.</td></tr>
+          <tr><td>Realtime</td><td>Conversation pin emits <code>conversation:updated</code> only to its actor. Message-pin changes emit their existing pin payload to both participants, then refresh the inbox only when an activity was created.</td><td>Matches source behavior without broadcasting a private inbox preference.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Context &amp; blast radius</h2>
+      <ul>
+        <li><code>src/models/ConversationModel.ts</code> is the caller-scoped inbox query. Dev already combines message, reaction, and theme-log activity; reconciliation adds the pin-activity projection and <code>isPinned</code> without dropping any of those inputs.</li>
+        <li><code>src/services/MessageService.ts</code> is the central participant authorization and response mapper. It must compose current search/theme behavior with pin models and preserve transactions for multi-table pin/unsend/delete work.</li>
+        <li><code>src/controllers/messages/MessagesController.ts</code>, <code>src/routes/messages.ts</code>, and <code>src/realtime/MessageRealtime.ts</code> own protected endpoints and event contracts.</li>
+        <li><code>frontend/src/api/messages.ts</code>, <code>frontend/src/api/socket.ts</code>, and <code>frontend/src/api/types.ts</code> are the typed frontend boundary. Follow dev’s <code>api/client.ts</code> convention; no raw HTTP calls or local token reads.</li>
+        <li><code>frontend/src/components/ConversationListRow.tsx</code>, <code>SwipeableConversationListRow.tsx</code>, and <code>messages/InboxView.tsx</code> are the inbox seams.</li>
+        <li><code>frontend/src/components/MessageBubbleRow.tsx</code>, <code>messages/ThreadView.tsx</code>, and <code>messages/ThreadViewContent.tsx</code> are the thread seams. The source-only <code>MessageTimeline.tsx</code> and <code>PinnedMessagesDialog.tsx</code> are candidates to add only after their props are adapted to dev’s current timeline.</li>
+      </ul>
+      <p><strong>Applicable Constitution:</strong> preserve Routes → Controllers → Services → Models (§7.1–§7.4); use the frontend component → state/effect owner → typed API boundary (§12.1, §14.1–§14.3); ensure server-side participant authorization (§5.4); keep data visibility checks end-to-end (§20.2).</p>
+    </section>
+
+    <section>
+      <h2>Tasks</h2>
+      <article class="task"><h3>T1 — Establish an execution-safe integration baseline</h3><dl><dt>Do</dt><dd>Branch from current <code>dev</code>, re-confirm the source and target SHAs, list the changed consumers, and inspect the migration ledger before applying source migration history. Do not cherry-pick the source page or merge its commits.</dd><dt>Files</dt><dd>Git refs and migration ledger only; no application writes in this task.</dd><dt>Depends on</dt><dd>—</dd><dt>Verify</dt><dd>Source migrations <code>20260804160000</code>, <code>...170000</code>, and <code>...180000</code> are absent from target history or have an approved, recorded deployment treatment.</dd></dl></article>
+      <article class="task"><h3>T2 — Port pin persistence and visibility models</h3><dl><dt>Do</dt><dd>Port the three immutable migrations and pin models. Reconcile the current conversation inbox query so it returns a user-scoped <code>isPinned</code>, newest relevant pin activity, and preserves dev’s message/reaction/theme activity calculations. Make pin ordering primary and all existing activity ordering secondary for unpinned rows.</dd><dt>Files</dt><dd><code>database/migrations/20260804160000_conversation_pins.ts</code>, <code>...170000_message_pins.ts</code>, <code>...180000_message_pin_activities.ts</code>, <code>src/models/ConversationPinModel.ts</code>, <code>MessagePinModel.ts</code>, <code>MessagePinActivityModel.ts</code>, <code>ConversationModel.ts</code>, <code>MessageModel.ts</code>, and any narrowly required deletion-model adjustment.</dd><dt>Depends on</dt><dd>T1</dd><dt>Verify</dt><dd>Query remains parameterized and caller-scoped; private conversation pin, shared message pin, unsent, and user-hidden message cases return the correct views.</dd></dl></article>
+      <article class="task"><h3>T3 — Reconcile service, HTTP, and realtime contracts</h3><dl><dt>Do</dt><dd>Port idempotent participant-checked pin/unpin operations into the current service without removing search or theme-log fields. Include both pin data sets in the existing thread response, clean private conversation pins in the delete transaction, add protected routes/controllers, and merge the pin socket payload/event with dev’s current event set.</dd><dt>Files</dt><dd><code>src/services/MessageService.ts</code>, <code>src/controllers/messages/MessagesController.ts</code>, <code>src/routes/messages.ts</code>, <code>src/realtime/MessageRealtime.ts</code>.</dd><dt>Depends on</dt><dd>T2</dd><dt>Verify</dt><dd>Nonparticipants receive the existing forbidden contract; repeat actions are safe; no private conversation-pin event reaches the peer; message-pin payload is correct for both participants.</dd></dl></article>
+      <article class="task"><h3>T4 — Port typed client and inbox behavior</h3><dl><dt>Do</dt><dd>Add the pin types, API helpers, and socket types beside current search/theme contracts. Add the conversation-pin indicator/action to the existing row, pass its callback through the swipe wrapper, and have <code>InboxView</code> reload canonical server order after mutation while retaining delete, typing, and mobile interactions.</dd><dt>Files</dt><dd><code>frontend/src/api/messages.ts</code>, <code>api/socket.ts</code>, <code>api/types.ts</code>, <code>components/ConversationListRow.tsx</code>, <code>components/SwipeableConversationListRow.tsx</code>, <code>components/messages/InboxView.tsx</code>.</dd><dt>Depends on</dt><dd>T3</dd><dt>Verify</dt><dd>Pin/unpin labels reflect state; only the actor’s inbox order changes; existing conversation previews—including reactions and theme logs—remain accurate.</dd></dl></article>
+      <article class="task"><h3>T5 — Port message-pin thread behavior into dev boundaries</h3><dl><dt>Do</dt><dd>Keep pin state, handlers, initial response hydration, and socket subscriptions in <code>ThreadView</code>. Extend the current timeline rendering to merge messages, theme logs, and pin activities in timestamp order; add the message-menu action and dialog without replacing <code>ThreadViewContent</code> or the route-only page.</dd><dt>Files</dt><dd><code>frontend/src/components/MessageBubbleRow.tsx</code>, <code>frontend/src/components/messages/ThreadView.tsx</code>, <code>ThreadViewContent.tsx</code>, plus adapted focused children such as <code>MessageTimeline.tsx</code> and <code>PinnedMessagesDialog.tsx</code> if they fit the final props.</dd><dt>Depends on</dt><dd>T3</dd><dt>Verify</dt><dd>Search focusing, theme logs, day/grouping, reactions, edit/unsend, read state, and typing remain functional while pin activity and dialog update live.</dd></dl></article>
+      <article class="task"><h3>T6 — Validate, record acceptance, and reconcile documentation</h3><dl><dt>Do</dt><dd>Run migrations in the isolated execution environment, typecheck, build, relevant automated tests, and the behavioral checklist. Update this spec’s Revision Log and acceptance evidence with actual results; record any approved deviation before finalization.</dd><dt>Files</dt><dd><code>plans/08042026-44-pinned-chats/test-results.json</code>, <code>test.html</code>, this spec, and <code>plans/README.md</code> if its target-branch index needs reconciliation.</dd><dt>Depends on</dt><dd>T1–T5</dd><dt>Verify</dt><dd>Every acceptance item passes or has a written waiver; no execution-caused type/build failure remains.</dd></dl></article>
+    </section>
+
+    <section>
+      <h2>Constraints</h2>
+      <ul>
+        <li>Must port behavior into dev’s current message boundaries; never restore or import the source branch’s monolithic page.</li>
+        <li>Must not alter peer inbox order for a private conversation pin, nor use localStorage for persisted server state.</li>
+        <li>Must not overwrite existing migration files, alter deployed migration history, add dependencies, or combine unrelated refactors.</li>
+        <li>Out of scope: drag/reorder, pin limits, group conversation semantics, a thread-header conversation pin, and any product redesign of shared message pin ownership.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Done checklist</h2>
+      <ul class="check">
+        <li><span>☐</span>Current dev message architecture is retained; no source monolithic page is introduced.</li>
+        <li><span>☐</span>Private conversation pins sort first and remain private across refresh, events, and delete/restore.</li>
+        <li><span>☐</span>Shared message pins, activity, dialog, and inbox preview retain source behavior without leaking hidden or unsent content.</li>
+        <li><span>☐</span>Current search, themes/theme logs, reactions, typing, edit/unsend, read state, and swipe deletion are verified.</li>
+        <li><span>☐</span>Migration, typecheck, build, automated tests, and acceptance all pass or carry documented waivers.</li>
+        <li><span>☐</span>Spec-code parity and Revision Log are current.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Revision Log</h2>
+      <table><thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead><tbody>
+        <tr><td>0</td><td>2026-08-04</td><td>Original per-user conversation-pin plan created against the pre-refactor branch.</td></tr>
+        <tr><td>1</td><td>2026-08-04</td><td>Original product decisions locked: stable private conversation pins and no manual reordering.</td></tr>
+        <tr><td>2</td><td>2026-08-05</td><td>Replaced execution plan with a behavior-preserving reconciliation against <code>origin/dev@7e1c18b</code>. Captures shared message pins and activity that shipped on the feature branch, preserves dev’s split message architecture, and excludes the original plan’s unimplemented thread-header conversation-pin action.</td></tr>
+      </tbody></table>
+    </section>
+  </main>
+</body>
+</html>
