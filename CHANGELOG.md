@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.31 — 2026-08-05
+
+### Added
+- Message settings page at `/messages/settings` with icon-only chrome (back + settings icons)
+- Inbox gear entry to message settings from `/messages`
+
+### Changed
+- Moved notification sound picker from Account Settings to Message settings
+- Account Settings now shows only Privacy, Security, and More settings stubs
+
+### Plans
+- `plans/08032026-42-message-settings-sound-move` — integrated from `kylie/message-account-settings`
+
 ## 0.1.30 — 2026-08-03
 
 ### Changed

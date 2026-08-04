@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { deleteConversation } from "@/api/messages";
 import { CONVERSATION_UPDATED, getMessagesSocket } from "@/api/socket";
@@ -9,6 +11,7 @@ import { MessagesErrorBanner, MessagesInboxEmptyConversations, MessagesRowSkelet
 import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInboxPeerTyping } from "@/hooks/useTypingIndicator";
+import { Button } from "@/components/ui/button";
 
 type PendingDeleteConversation = { id: string; peerName: string };
 
@@ -85,11 +88,18 @@ export function InboxView() {
           <h1 className="text-2xl font-semibold tracking-tight">Messages</h1>
           <p className="text-sm text-muted-foreground">Chat with friends.</p>
         </div>
-        {!loading && unreadTotal > 0 && (
-          <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
-            {unreadTotal} unread
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {!loading && unreadTotal > 0 && (
+            <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+              {unreadTotal} unread
+            </span>
+          )}
+          <Button asChild variant="ghost" size="icon">
+            <Link to="/messages/settings" aria-label="Message settings">
+              <Settings className="h-5 w-5" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="feed-card overflow-hidden shadow-sm">
@@ -150,5 +160,3 @@ export function InboxView() {
     </section>
   );
 }
-
-
