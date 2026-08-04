@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.33 — 2026-08-05
+
+### Changed
+- Moved Messages navigation into the centered primary pill between Feed and Friends; unread badge and active-state behavior preserved
+
+### Plans
+- `plans/08012026-35-navbar-upgrade` — integrated from `kylie/navbar-update`
+
 ## 0.1.32 — 2026-08-05
 
 ### Added
