@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { MessageService } from "../../services/MessageService";
+import { MessagePinService } from "../../services/MessagePinService";
 import { ChatThemeService } from "../../services/ChatThemeService";
 import { ok, fail } from "../../utils/response";
 import { AppError, statusForCode } from "../../utils/AppError";
@@ -128,6 +129,24 @@ export class MessagesController {
     }
   }
 
+  static async pinMessage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessagePinService.pinMessage(req.userId!, String(req.params.id));
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async unpinMessage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessagePinService.unpinMessage(req.userId!, String(req.params.id));
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
   static async unreadCount(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const data = await MessageService.unreadCount(req.userId!);
@@ -144,6 +163,28 @@ export class MessagesController {
         String(req.params.id)
       );
       return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async pinConversation(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const conversationId = String(req.params.id);
+      await MessagePinService.pinConversation(req.userId!, conversationId);
+      const conversation = await MessageService.conversationListItem(req.userId!, conversationId);
+      return ok(res, { conversation });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async unpinConversation(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const conversationId = String(req.params.id);
+      await MessagePinService.unpinConversation(req.userId!, conversationId);
+      const conversation = await MessageService.conversationListItem(req.userId!, conversationId);
+      return ok(res, { conversation });
     } catch (err) {
       return handle(res, err);
     }

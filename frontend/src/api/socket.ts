@@ -1,5 +1,5 @@
 import { io, type Socket } from "socket.io-client";
-import type { ChatTheme, MessageView } from "./types";
+import type { ChatTheme, MessagePinActivityView, MessageView, PinnedMessageView } from "./types";
 
 export type ThemeLogEntry = {
   id: string;
@@ -18,6 +18,7 @@ export const MESSAGE_ACK = "message:ack";
 export const MESSAGES_UNREAD = "messages:unread";
 export const CONVERSATION_UPDATED = "conversation:updated";
 export const CONVERSATION_THEME = "conversation:theme";
+export const MESSAGE_PINS_UPDATED = "message:pins-updated";
 export const TYPING_START = "typing:start";
 export const TYPING_STOP = "typing:stop";
 export const TYPING_UPDATE = "typing:update";
@@ -33,6 +34,11 @@ export type ConversationThemePayload = {
   updatedAt: string | null;
   updatedBy: string | null;
   logEntry: ThemeLogEntry;
+};
+export type MessagePinsUpdatedPayload = {
+  conversationId: string;
+  pinnedMessages: PinnedMessageView[];
+  pinActivity: MessagePinActivityView | null;
 };
 export type MessageDeliveredPayload = {
   messageId: string;

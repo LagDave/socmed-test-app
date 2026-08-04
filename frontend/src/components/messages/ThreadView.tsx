@@ -3,7 +3,7 @@ import { ThreadViewContent } from "@/components/messages/ThreadViewContent";
 import { ConversationSearchPanel } from "@/components/messages/ConversationSearchPanel";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
-import { deleteConversation, updateConversationTheme } from "@/api/messages";
+import { deleteConversation, setMessagePinned, updateConversationTheme } from "@/api/messages";
 import {
   CONVERSATION_PEER_READ,
   CONVERSATION_THEME,
@@ -11,16 +11,18 @@ import {
   MESSAGE_EDITED,
   MESSAGE_NEW,
   MESSAGE_REACTION,
+  MESSAGE_PINS_UPDATED,
   MESSAGE_UNSENT,
   getMessagesSocket,
   type ConversationPeerReadPayload,
   type ConversationThemePayload,
   type MessageDeliveredPayload,
   type MessageEventPayload,
+  type MessagePinsUpdatedPayload,
 } from "@/api/socket";
-import type { ConversationThemeView, MessageView, PublicUser, ThemeLogEntry } from "@/api/types";
+import type { ConversationThemeView, MessagePinActivityView, MessageView, PinnedMessageView, PublicUser, ThemeLogEntry } from "@/api/types";
+import { PinnedMessagesDialog } from "@/components/messages/PinnedMessagesDialog";
 import { useAuth } from "@/contexts/AuthContext";
-import { truncateQuoteText } from "@/components/MessageQuoteStrip";
 import { useCanHover } from "@/hooks/useCanHover";
 import { useConversationSearch } from "@/hooks/useConversationSearch";
 import { useConversationSearchResultFocus } from "@/hooks/useConversationSearchResultFocus";
@@ -29,53 +31,10 @@ import { usePeerTyping, useTypingEmitter } from "@/hooks/useTypingIndicator";
 import { chatThemeCssVars, resolveConversationTheme } from "@/lib/chatThemeApply";
 import type { ChatTheme } from "@/api/types";
 import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
+import { buildThreadTimeline, mergePinActivities, mergeThreadSystemLogs } from "@/components/messages/threadTimeline";
+import { patchReplyTargetsUnsent, replyTargetPreview } from "@/components/messages/threadViewUtils";
 
 const POLL_MS = 2500;
-
-export type ThreadTimelineItem =
-  | {
-      kind: "message";
-      key: string;
-      createdAt: string;
-      message: MessageView;
-      index: number;
-    }
-  | {
-      kind: "system-log";
-      key: string;
-      createdAt: string;
-      log: ThemeLogEntry;
-    };
-
-function mergeSystemLogs(prev: ThemeLogEntry[], incoming: ThemeLogEntry[]): ThemeLogEntry[] {
-  const map = new Map<string, ThemeLogEntry>();
-  for (const log of prev) map.set(log.id, log);
-  for (const log of incoming) map.set(log.id, log);
-  return Array.from(map.values()).sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
-}
-
-function buildThreadTimeline(
-  messages: MessageView[],
-  systemLogs: ThemeLogEntry[]
-): ThreadTimelineItem[] {
-  return [
-    ...messages.map((message, index) => ({
-      kind: "message" as const,
-      key: `msg-${message.id}`,
-      createdAt: message.createdAt,
-      message,
-      index,
-    })),
-    ...systemLogs.map((log) => ({
-      kind: "system-log" as const,
-      key: `log-${log.id}`,
-      createdAt: log.createdAt,
-      log,
-    })),
-  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-}
 
 function focusComposer(textareaRef: RefObject<HTMLTextAreaElement | null>) {
   requestAnimationFrame(() => {
@@ -90,38 +49,6 @@ type PendingDeleteConversation = {
 
 function deleteConversationDescription(peerName: string): string {
   return `This permanently deletes the chat and all messages from your inbox. ${peerName} will still have the conversation.`;
-}
-
-function replyTargetPreview(
-  message: MessageView,
-  user: PublicUser,
-  peer: PublicUser
-): { name: string; snippet: string; imageUrl: string | null } {
-  const name = message.senderId === user.id ? user.displayName : peer.displayName;
-  if (message.isUnsent) {
-    return { name, snippet: "Message unavailable", imageUrl: null };
-  }
-  const snippet = message.body?.trim()
-    ? truncateQuoteText(message.body)
-    : message.imageUrl
-      ? "Photo"
-      : "Message";
-  return { name, snippet, imageUrl: message.imageUrl };
-}
-
-function patchReplyTargetsUnsent(prev: MessageView[], unsentId: string): MessageView[] {
-  return prev.map((m) => {
-    if (m.replyTo?.id !== unsentId) return m;
-    return {
-      ...m,
-      replyTo: {
-        ...m.replyTo,
-        isUnsent: true,
-        body: null,
-        imageUrl: null,
-      },
-    };
-  });
 }
 
 function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] {
@@ -165,6 +92,10 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   const [replyToMessage, setReplyToMessage] = useState<MessageView | null>(null);
   const [tappedMessageId, setTappedMessageId] = useState<string | null>(null);
   const [systemLogs, setSystemLogs] = useState<ThemeLogEntry[]>([]);
+  const [pinnedMessages, setPinnedMessages] = useState<PinnedMessageView[]>([]);
+  const [pinActivities, setPinActivities] = useState<MessagePinActivityView[]>([]);
+  const [pinSavingMessageId, setPinSavingMessageId] = useState<string | null>(null);
+  const [pinnedMessagesDialogOpen, setPinnedMessagesDialogOpen] = useState(false);
   const canHover = useCanHover();
   const isPeerTyping = usePeerTyping(conversationId, user?.id);
   const conversationSearch = useConversationSearch(conversationId);
@@ -235,6 +166,10 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     setTappedMessageId(null);
     clearFocusedSearch();
     setSystemLogs([]);
+    setPinnedMessages([]);
+    setPinActivities([]);
+    setPinSavingMessageId(null);
+    setPinnedMessagesDialogOpen(false);
     setLoadingThread(true);
     setConversationTheme(null);
     setThemePickerOpen(false);
@@ -249,6 +184,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
           hasMore: boolean;
           theme: ConversationThemeView;
           themeLogs?: ThemeLogEntry[];
+          pinnedMessages: PinnedMessageView[];
+          pinActivities: MessagePinActivityView[];
         }>(`/api/messages/conversations/${conversationId}?restore=1`);
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
@@ -258,6 +195,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
         setHasMore(Boolean(data.hasMore));
         setConversationTheme(data.theme);
         setSystemLogs(data.themeLogs ?? []);
+        setPinnedMessages(data.pinnedMessages);
+        setPinActivities(data.pinActivities);
         setLoadingThread(false);
         if (generation !== generationRef.current) return;
         await api.post(`/api/messages/conversations/${conversationId}/read`);
@@ -290,6 +229,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
             hasMore: boolean;
             theme: ConversationThemeView;
             themeLogs?: ThemeLogEntry[];
+            pinnedMessages: PinnedMessageView[];
+            pinActivities: MessagePinActivityView[];
           }>(`/api/messages/conversations/${conversationId}`);
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
@@ -304,6 +245,8 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
           if (!themePickerOpenRef.current) {
             setConversationTheme(data.theme);
           }
+          setPinnedMessages(data.pinnedMessages);
+          setPinActivities(data.pinActivities);
           if (generation !== generationRef.current) return;
           await api.post(`/api/messages/conversations/${conversationId}/read`);
         } catch {
@@ -364,12 +307,21 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       setPeerLastReadAt(payload.peerLastReadAt);
     };
 
+    const applyPinnedMessages = (payload: MessagePinsUpdatedPayload) => {
+      if (payload.conversationId !== conversationId) return;
+      if (generation !== generationRef.current) return;
+      setPinnedMessages(payload.pinnedMessages);
+      setPinActivities((previous) => mergePinActivities(previous, payload.pinActivity));
+      if (payload.pinActivity) stickToBottomRef.current = true;
+    };
+
     socket.on(MESSAGE_NEW, applyInboundNewMessage);
     socket.on(MESSAGE_UNSENT, applySearchAwarePatch);
     socket.on(MESSAGE_EDITED, applySearchAwarePatch);
     socket.on(MESSAGE_REACTION, applyMessagePatch);
     socket.on(MESSAGE_DELIVERED, applyMessageDelivered);
     socket.on(CONVERSATION_PEER_READ, applyPeerRead);
+    socket.on(MESSAGE_PINS_UPDATED, applyPinnedMessages);
 
     const applyTheme = (payload: ConversationThemePayload) => {
       if (payload.conversationId !== conversationId) return;
@@ -380,7 +332,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
         updatedBy: payload.updatedBy,
       });
       if (payload.logEntry) {
-        setSystemLogs((prev) => mergeSystemLogs(prev, [payload.logEntry]));
+        setSystemLogs((prev) => mergeThreadSystemLogs(prev, [payload.logEntry]));
         stickToBottomRef.current = true;
       }
     };
@@ -393,6 +345,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       socket.off(MESSAGE_REACTION, applyMessagePatch);
       socket.off(MESSAGE_DELIVERED, applyMessageDelivered);
       socket.off(CONVERSATION_PEER_READ, applyPeerRead);
+      socket.off(MESSAGE_PINS_UPDATED, applyPinnedMessages);
       socket.off(CONVERSATION_THEME, applyTheme);
     };
   }, [conversationId, refreshSearch, user?.id]);
@@ -594,6 +547,24 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     );
   }
 
+  async function changeMessagePin(messageId: string, shouldPin: boolean) {
+    if (pinSavingMessageId) return;
+    const generation = generationRef.current;
+    setPinSavingMessageId(messageId);
+    setError(null);
+    try {
+      const data = await setMessagePinned(messageId, shouldPin);
+      if (generation !== generationRef.current) return;
+      setPinnedMessages(data.pinnedMessages);
+      setPinActivities((previous) => mergePinActivities(previous, data.pinActivity));
+    } catch (err) {
+      if (generation !== generationRef.current) return;
+      setError(err instanceof Error ? err.message : "Failed to update pinned message");
+    } finally {
+      if (generation === generationRef.current) setPinSavingMessageId(null);
+    }
+  }
+
   function cancelSearch() {
     closeSearch();
     clearFocusedSearch();
@@ -677,7 +648,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     try {
       const updated = await updateConversationTheme(conversationId, payload);
       setConversationTheme(updated);
-      setSystemLogs((prev) => mergeSystemLogs(prev, [updated.logEntry]));
+      setSystemLogs((prev) => mergeThreadSystemLogs(prev, [updated.logEntry]));
       stickToBottomRef.current = true;
       setThemePickerOpen(false);
     } catch (err) {
@@ -710,7 +681,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     }
     return null;
   })();
-  const threadTimeline = buildThreadTimeline(messages, systemLogs);
+  const threadTimeline = buildThreadTimeline(messages, systemLogs, pinActivities);
 
   return (
     <>
@@ -724,6 +695,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       isSearchOpen={conversationSearch.isSearchOpen}
       onToggleSearch={() => (conversationSearch.isSearchOpen ? cancelSearch() : openSearch())}
       setThemePickerOpen={setThemePickerOpen}
+      onOpenPinnedMessages={() => setPinnedMessagesDialogOpen(true)}
       setPendingDelete={setPendingDelete}
       conversationId={conversationId}
       bottomRef={bottomRef}
@@ -735,8 +707,6 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       hasMore={hasMore}
       loadingEarlier={loadingEarlier}
       loadEarlier={loadEarlier}
-      messages={messages}
-      systemLogs={systemLogs}
       error={error}
       setError={setError}
       isPeerTyping={isPeerTyping}
@@ -748,6 +718,9 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       tappedMessageId={tappedMessageId}
       startEdit={startEdit}
       patchMessageReaction={patchMessageReaction}
+      pinnedMessageIds={new Set(pinnedMessages.map((message) => message.messageId))}
+      pinSavingMessageId={pinSavingMessageId}
+      changeMessagePin={changeMessagePin}
       setReplyToMessage={setReplyToMessage}
       latestOwnMessageId={latestOwnMessageId}
       body={body}
@@ -776,6 +749,13 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       deleting={deleting}
       confirmDeleteConversation={confirmDeleteConversation}
       deleteConversationDescription={deleteConversationDescription}
+    />
+    <PinnedMessagesDialog
+      open={pinnedMessagesDialogOpen}
+      messages={pinnedMessages}
+      onClose={() => setPinnedMessagesDialogOpen(false)}
+      onUnpin={(messageId) => void changeMessagePin(messageId, false)}
+      unpinningMessageId={pinSavingMessageId}
     />
     {conversationSearch.isSearchOpen && (
       <ConversationSearchPanel

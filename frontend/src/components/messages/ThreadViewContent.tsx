@@ -1,10 +1,11 @@
 import type { CSSProperties, FormEvent, KeyboardEvent, MutableRefObject, RefObject } from "react";
 import { Link, type NavigateFunction } from "react-router-dom";
-import { ChevronLeft, ImagePlus, MoreVertical, Palette, Search, SendHorizontal, Trash2, X } from "lucide-react";
-import type { ChatTheme, ConversationThemeView, MessageView, PublicUser, ThemeLogEntry, ReactionSummary } from "@/api/types";
+import { ChevronLeft, ImagePlus, MoreVertical, Palette, Pin, Search, SendHorizontal, Trash2, X } from "lucide-react";
+import type { ChatTheme, ConversationThemeView, MessageView, PublicUser, ReactionSummary } from "@/api/types";
 import { ChatThemePicker } from "@/components/ChatThemePicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { MessageBubbleRow } from "@/components/MessageBubbleRow";
+import { MessagePinActivityRow } from "@/components/messages/MessagePinActivityRow";
 import { MessageComposerEmojiPicker } from "@/components/MessageComposerEmojiPicker";
 import { MessageDaySeparator, MessageSystemLog, MessagesEmptyThread, MessagesErrorBanner, MessagesThreadSkeleton } from "@/components/MessagesUiHelpers";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
@@ -16,7 +17,7 @@ import { formatMessageDay, isSameCalendarDay, messagesShareGroup } from "@/lib/f
 import { submitOnEnter } from "@/lib/submitOnEnter";
 import { cn } from "@/lib/utils";
 import type { ResolvedChatTheme } from "@/lib/chatThemeApply";
-import type { ThreadTimelineItem } from "@/components/messages/ThreadView";
+import type { ThreadTimelineItem } from "@/components/messages/threadTimeline";
 
 type PendingDeleteConversation = { id: string; peerName: string };
 type ReplyPreview = { name: string; snippet: string; imageUrl: string | null };
@@ -32,6 +33,7 @@ type ThreadViewContentProps = {
   isSearchOpen: boolean;
   onToggleSearch: () => void;
   setThemePickerOpen: (open: boolean) => void;
+  onOpenPinnedMessages: () => void;
   setPendingDelete: (value: PendingDeleteConversation | null) => void;
   conversationId: string;
   bottomRef: RefObject<HTMLDivElement | null>;
@@ -43,8 +45,6 @@ type ThreadViewContentProps = {
   hasMore: boolean;
   loadingEarlier: boolean;
   loadEarlier: () => Promise<void>;
-  messages: MessageView[];
-  systemLogs: ThemeLogEntry[];
   error: string | null;
   setError: (error: string | null) => void;
   isPeerTyping: boolean;
@@ -56,6 +56,9 @@ type ThreadViewContentProps = {
   tappedMessageId: string | null;
   startEdit: (messageId: string) => void;
   patchMessageReaction: (messageId: string, reactionSummary: ReactionSummary) => void;
+  pinnedMessageIds: Set<string>;
+  pinSavingMessageId: string | null;
+  changeMessagePin: (messageId: string, shouldPin: boolean) => Promise<void>;
   setReplyToMessage: (message: MessageView | null) => void;
   latestOwnMessageId: string | null;
   body: string;
@@ -88,10 +91,10 @@ type ThreadViewContentProps = {
 
 export function ThreadViewContent(props: ThreadViewContentProps) {
   const {
-    user, resolvedTheme, themeVars, navigate, peer, peerProfilePath, isSearchOpen, onToggleSearch, setThemePickerOpen,
+    user, resolvedTheme, themeVars, navigate, peer, peerProfilePath, isSearchOpen, onToggleSearch, setThemePickerOpen, onOpenPinnedMessages,
     setPendingDelete, conversationId, bottomRef, scrollRef, stickToBottomRef, canHover, setTappedMessageId,
-    loadingThread, hasMore, loadingEarlier, loadEarlier, messages, systemLogs, error, setError, isPeerTyping,
-    threadTimeline, focusedMessageId, searchHighlightQuery, peerLastReadAt, editingMessageId, tappedMessageId, startEdit, patchMessageReaction,
+    loadingThread, hasMore, loadingEarlier, loadEarlier, error, setError, isPeerTyping,
+    threadTimeline, focusedMessageId, searchHighlightQuery, peerLastReadAt, editingMessageId, tappedMessageId, startEdit, patchMessageReaction, pinnedMessageIds, pinSavingMessageId, changeMessagePin,
     setReplyToMessage, latestOwnMessageId, body, onSend, composeBusy, cancelEdit, replyPreview,
     fileRef, onImage, insertComposerEmoji, textareaRef, setBody, stopTyping, handleComposeKeyDown,
     editingMessage, themePickerOpen, conversationTheme, themeSaving, applyThemeChoice, sendWordEffect,
@@ -191,6 +194,10 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem disabled={!peer} onSelect={onOpenPinnedMessages}>
+                    <Pin className="mr-2 h-4 w-4" />
+                    Pinned messages
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     disabled={!peer}
@@ -241,7 +248,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                   </Button>
                 </div>
               )}
-              {messages.length === 0 && systemLogs.length === 0 && peer && !error && (
+              {threadTimeline.length === 0 && peer && !error && (
                 <MessagesEmptyThread peerName={peer.displayName} />
               )}
               {threadTimeline.map((item, timelineIndex) => {
@@ -254,6 +261,15 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                     <div key={item.key} className="message-system-log-row">
                       {showDay && <MessageDaySeparator label={formatMessageDay(item.createdAt)} />}
                       <MessageSystemLog text={item.log.text} />
+                    </div>
+                  );
+                }
+
+                if (item.kind === "pin-activity") {
+                  return (
+                    <div key={item.key} className="message-pin-activity-row">
+                      {showDay && <MessageDaySeparator label={formatMessageDay(item.createdAt)} />}
+                      <MessagePinActivityRow activity={item.activity} themed={resolvedTheme.active} />
                     </div>
                   );
                 }
@@ -293,6 +309,9 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                       onUnsend={setPendingUnsendId}
                       onStartEdit={startEdit}
                       onReactionChange={patchMessageReaction}
+                      isPinned={pinnedMessageIds.has(m.id)}
+                      pinSaving={pinSavingMessageId === m.id}
+                      onPinChange={(messageId, shouldPin) => void changeMessagePin(messageId, shouldPin)}
                       onReply={(msg) => {
                         setTappedMessageId(null);
                         setReplyToMessage(msg);

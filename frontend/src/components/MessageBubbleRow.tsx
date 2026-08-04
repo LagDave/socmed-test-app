@@ -1,6 +1,6 @@
 import { useState, type MouseEvent, type TouchEvent } from "react";
 import { Link } from "react-router-dom";
-import { MoreVertical, Reply } from "lucide-react";
+import { MoreVertical, Pin, PinOff, Reply } from "lucide-react";
 import type { MessageView, PublicUser } from "@/api/types";
 import { MessageQuoteStrip } from "@/components/MessageQuoteStrip";
 import { ReactionBar } from "@/components/ReactionBar";
@@ -58,6 +58,9 @@ function MessageActionToolbar({
   onReactionChange,
   onStartEdit,
   onUnsend,
+  isPinned = false,
+  pinSaving = false,
+  onPinChange,
   onError,
 }: {
   message: MessageView;
@@ -68,6 +71,9 @@ function MessageActionToolbar({
   onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
   onStartEdit: (id: string) => void;
   onUnsend: (id: string) => void;
+  isPinned?: boolean;
+  pinSaving?: boolean;
+  onPinChange?: (id: string, isPinned: boolean) => void;
   onError: (message: string) => void;
 }) {
   return (
@@ -98,7 +104,7 @@ function MessageActionToolbar({
       >
         <Reply className="h-[15px] w-[15px]" strokeWidth={1.75} aria-hidden="true" />
       </button>
-      {mine && (
+      {(
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -112,10 +118,17 @@ function MessageActionToolbar({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side={mine ? "left" : "right"}>
+            <DropdownMenuItem
+              disabled={pinSaving || !onPinChange}
+              onSelect={() => onPinChange?.(message.id, !isPinned)}
+            >
+              {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+              {isPinned ? "Unpin message" : "Pin message"}
+            </DropdownMenuItem>
             {canEdit && (
               <DropdownMenuItem onSelect={() => onStartEdit(message.id)}>Edit</DropdownMenuItem>
             )}
-            <DropdownMenuItem onSelect={() => onUnsend(message.id)}>Unsend</DropdownMenuItem>
+            {mine && <DropdownMenuItem onSelect={() => onUnsend(message.id)}>Unsend</DropdownMenuItem>}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -139,6 +152,9 @@ export function MessageBubbleRow({
   touchRevealed,
   onToggleTouchReveal,
   onUnsend,
+  isPinned = false,
+  pinSaving = false,
+  onPinChange,
   onStartEdit,
   onReactionChange,
   onReply,
@@ -162,6 +178,9 @@ export function MessageBubbleRow({
   touchRevealed: boolean;
   onToggleTouchReveal: () => void;
   onUnsend: (id: string) => void;
+  isPinned?: boolean;
+  pinSaving?: boolean;
+  onPinChange?: (id: string, isPinned: boolean) => void;
   onStartEdit: (id: string) => void;
   onReactionChange: (id: string, summary: MessageView["reactionSummary"]) => void;
   onReply: (message: MessageView) => void;
@@ -315,6 +334,9 @@ export function MessageBubbleRow({
                   onReactionChange={onReactionChange}
                   onStartEdit={onStartEdit}
                   onUnsend={onUnsend}
+                  isPinned={isPinned}
+                  pinSaving={pinSaving}
+                  onPinChange={onPinChange}
                   onError={onError}
                 />
               )}
