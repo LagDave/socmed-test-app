@@ -4,6 +4,7 @@ import type { ConversationListItem } from "@/api/types";
 import { OnlinePresenceIndicator } from "@/components/OnlinePresenceIndicator";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
+import { useFriendPresence } from "@/hooks/useFriendPresence";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +50,7 @@ export function ConversationListRow({
 }) {
   const unread = item.unreadCount > 0;
   const peer = item.peer;
+  const peerPresence = useFriendPresence(peer.id, item.peerPresence, item.peerPresence !== null);
   const profilePath = peer.username ? `/u/${peer.username}` : `/u/${peer.id}`;
   const preview = snippet(item);
 
@@ -71,7 +73,7 @@ export function ConversationListRow({
           size="sm"
           className={cn(unread && "ring-2 ring-primary/30 ring-offset-2 ring-offset-card")}
         />
-        {item.peerPresence?.isOnline && <OnlinePresenceIndicator className="bottom-0 right-0" />}
+        {peerPresence?.isOnline && <OnlinePresenceIndicator className="bottom-0 right-0" />}
         {unread && (
           <span
             className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-card bg-primary"

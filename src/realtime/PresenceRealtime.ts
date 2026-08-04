@@ -1,21 +1,13 @@
 import { logger } from "../logger";
-import { ConversationModel } from "../models/ConversationModel";
 import { FriendshipModel } from "../models/FriendshipModel";
 import { UserModel } from "../models/UserModel";
 
-export const PRESENCE_UPDATE = "presence:update";
 export const FRIEND_PRESENCE_UPDATE = "presence:friend-update";
 export const PRESENCE_DISCONNECT_GRACE_MS = 15_000;
 
 export type PeerPresence = {
   isOnline: boolean;
   lastActiveAt: Date | null;
-};
-
-export type PresenceUpdatePayload = {
-  userId: string;
-  isOnline: boolean;
-  lastActiveAt: string | null;
 };
 
 export type FriendPresenceUpdatePayload = {
@@ -48,13 +40,9 @@ async function emitPresenceUpdates(
   emitToUser: EmitToUser,
   expectedVersion: number
 ): Promise<void> {
-  const [friendIds, conversationPeerIds] = await Promise.all([
-    FriendshipModel.listAcceptedMutualIds(userId),
-    ConversationModel.listPeerUserIds(userId),
-  ]);
+  const friendIds = await FriendshipModel.listAcceptedMutualIds(userId);
   if (presenceVersionsByUser.get(userId) !== expectedVersion) return;
 
-  const friendIdsSet = new Set(friendIds);
   const friendPayload: FriendPresenceUpdatePayload = {
     userId,
     isOnline: presence.isOnline,
@@ -62,17 +50,6 @@ async function emitPresenceUpdates(
   };
   for (const friendId of friendIds) {
     emitToUser(friendId, FRIEND_PRESENCE_UPDATE, friendPayload);
-  }
-
-  const conversationPayload: PresenceUpdatePayload = {
-    userId,
-    isOnline: presence.isOnline,
-    lastActiveAt: presence.lastActiveAt?.toISOString() ?? null,
-  };
-  for (const peerId of conversationPeerIds) {
-    if (friendIdsSet.has(peerId)) {
-      emitToUser(peerId, PRESENCE_UPDATE, conversationPayload);
-    }
   }
   if (!presence.isOnline && !isUserOnline(userId)) {
     presenceVersionsByUser.delete(userId);
@@ -89,7 +66,11 @@ async function finalizeOffline(
 
   const lastActiveAt = new Date();
   const version = nextPresenceVersion(userId);
-  await UserModel.updateLastActiveAt(userId, lastActiveAt);
+  try {
+    await UserModel.updateLastActiveAt(userId, lastActiveAt);
+  } catch (err) {
+    logger.error({ err, userId }, "Failed to persist presence last-active timestamp");
+  }
   await emitPresenceUpdates(userId, { isOnline: false, lastActiveAt }, emitToUser, version);
 }
 

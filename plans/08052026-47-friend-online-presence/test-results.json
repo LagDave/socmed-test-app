@@ -1,0 +1,11 @@
+{
+  "plan": "plans/08052026-47-friend-online-presence",
+  "generatedAt": "2026-08-05",
+  "status": "In Progress",
+  "items": [
+    {"id":"A1","title":"Presence migration is scoped and idempotent","surface":"cli","precondition":"Review branch migration diff","steps":["Confirm only user_last_active migration remains","Run migration twice on a disposable database"],"expected":"No foreign migrations; both runs succeed.","status":"pending","evidence":"Static diff confirms only 20260805120000_user_last_active.ts remains; DDL now uses IF NOT EXISTS.","notes":"Requires disposable PostgreSQL runtime.","waiver":""},
+    {"id":"A2","title":"Friend-only live presence","surface":"ui","precondition":"Three authenticated users: two mutual friends and one non-friend","steps":["Connect and disconnect one friend","Observe profile, inbox, and open thread","Confirm non-friend receives no state"],"expected":"Mutual friends update once; non-friends receive nothing.","status":"pending","evidence":"Typecheck/build/lint passed on 2026-08-05.","notes":"Requires an isolated multi-user socket runtime.","waiver":""},
+    {"id":"A3","title":"Offline emission survives last-active write failure","surface":"api","precondition":"Inject UserModel.updateLastActiveAt failure","steps":["Disconnect final socket after grace period","Observe friend presence event"],"expected":"Offline event is emitted while the persistence failure is logged.","status":"pending","evidence":"Static control-flow verification: persistence failure is caught and emitPresenceUpdates always runs.","notes":"Requires a focused realtime test harness.","waiver":""},
+    {"id":"A4","title":"Online profiles hide last-active timestamp","surface":"api","precondition":"Mutual friends; target user connected","steps":["Fetch target profile"],"expected":"isOnline is true and lastActiveAt is null.","status":"pending","evidence":"Static verification: ProfileService now derives lastActiveAt from isOnline.","notes":"Requires authenticated API runtime.","waiver":""}
+  ]
+}

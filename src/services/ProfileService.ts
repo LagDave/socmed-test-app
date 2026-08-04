@@ -31,8 +31,9 @@ export class ProfileService {
     if (!row || !row.username) throw new AppError("USER_NOT_FOUND", "User not found.");
     const user = toPublicUser(row);
     const areFriends = await FriendshipModel.areFriends(viewerId, row.id);
+    const isOnline = isUserOnline(row.id);
     return areFriends
-      ? { ...user, isOnline: isUserOnline(row.id), lastActiveAt: row.last_active_at ?? null }
+      ? { ...user, isOnline, lastActiveAt: isOnline ? null : row.last_active_at ?? null }
       : user;
   }
 

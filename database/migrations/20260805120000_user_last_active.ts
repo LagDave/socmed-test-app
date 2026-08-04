@@ -8,15 +8,13 @@ export async function up(knex: Knex): Promise<void> {
     });
   }
 
-  await knex.schema.alterTable("conversations", (t) => {
-    t.index(["user_b"], "conversations_user_b_index");
-  });
+  await knex.raw(
+    "CREATE INDEX IF NOT EXISTS conversations_user_b_index ON conversations (user_b)"
+  );
 }
 
 export async function down(knex: Knex): Promise<void> {
-  await knex.schema.alterTable("conversations", (t) => {
-    t.dropIndex(["user_b"], "conversations_user_b_index");
-  });
+  await knex.raw("DROP INDEX IF EXISTS conversations_user_b_index");
 
   const hasLastActiveAt = await knex.schema.hasColumn("users", "last_active_at");
   if (hasLastActiveAt) {
