@@ -8,11 +8,16 @@ import { AppError } from "../utils/AppError";
 import { MessageRealtime } from "../realtime/MessageRealtime";
 import { logger } from "../logger";
 import { assertThemeBubbleContrast } from "../utils/chatThemeValidation";
+import { createThemeLogEntry, parseThemeLog, type ThemeLogEntry } from "../types/themeLog";
 
 export type ConversationThemeView = {
   theme: ChatThemePayload | null;
   updatedAt: Date | null;
   updatedBy: string | null;
+};
+
+export type ConversationThemeUpdateView = ConversationThemeView & {
+  logEntry: ThemeLogEntry;
 };
 
 function assertParticipant(row: ConversationRow, userId: string): void {
@@ -41,10 +46,11 @@ function toThemeView(row: ConversationRow): ConversationThemeView {
 
 async function publishThemeRealtime(
   conversation: ConversationRow,
-  view: ConversationThemeView
+  view: ConversationThemeView,
+  logEntry: ThemeLogEntry
 ): Promise<void> {
   try {
-    await MessageRealtime.conversationTheme(conversation, view);
+    await MessageRealtime.conversationTheme(conversation, view, logEntry);
   } catch (err) {
     logger.error({ err }, "Chat theme realtime publish failed");
   }
@@ -53,6 +59,10 @@ async function publishThemeRealtime(
 export class ChatThemeService {
   static themeFromRow(row: ConversationRow): ConversationThemeView {
     return toThemeView(row);
+  }
+
+  static themeLogsFromRow(row: ConversationRow): ThemeLogEntry[] {
+    return parseThemeLog(row.theme_log);
   }
 
   static async getTheme(userId: string, conversationId: string): Promise<ConversationThemeView> {
@@ -66,7 +76,7 @@ export class ChatThemeService {
     userId: string,
     conversationId: string,
     raw: unknown
-  ): Promise<ConversationThemeView> {
+  ): Promise<ConversationThemeUpdateView> {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
     assertParticipant(conversation, userId);
@@ -79,11 +89,17 @@ export class ChatThemeService {
       assertThemeBubbleContrast(nextTheme);
     }
 
-    const updated = await ConversationModel.updateTheme(conversationId, nextTheme, userId);
+    const logEntry = createThemeLogEntry(nextTheme, userId);
+    const updated = await ConversationModel.updateTheme(
+      conversationId,
+      nextTheme,
+      userId,
+      logEntry
+    );
     if (!updated) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
 
     const view = toThemeView(updated);
-    await publishThemeRealtime(updated, view);
-    return view;
+    await publishThemeRealtime(updated, view, logEntry);
+    return { ...view, logEntry };
   }
 }

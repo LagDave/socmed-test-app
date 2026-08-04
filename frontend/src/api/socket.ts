@@ -1,6 +1,13 @@
 import { io, type Socket } from "socket.io-client";
 import type { ChatTheme, MessageView } from "./types";
 
+export type ThemeLogEntry = {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedBy: string;
+};
+
 export const MESSAGE_NEW = "message:new";
 export const MESSAGE_UNSENT = "message:unsent";
 export const MESSAGE_EDITED = "message:edited";
@@ -23,6 +30,7 @@ export type ConversationThemePayload = {
   theme: ChatTheme | null;
   updatedAt: string | null;
   updatedBy: string | null;
+  logEntry: ThemeLogEntry;
 };
 export type MessageDeliveredPayload = {
   messageId: string;

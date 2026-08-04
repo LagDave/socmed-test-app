@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.1.30 — 2026-08-03
+
+### Changed
+- Thread header polish: gradient wash, accent avatar ring, grouped action pill
+- Theme picker color strips: more padding and scroll inset so swatches aren’t edge-flush
+- Inbox previews show latest system logs (e.g. theme changes) for both participants
+- Seen indicator aligned to bubble right edge; congrats word effect rises like other overlays
+
+### Plans
+- `kylie/chat-ui-improvements` — follow-up UI polish on messenger branch
+
+## 0.1.29 — 2026-08-03
+
+### Added
+- Message inbox reaction previews with unread styling until the thread is opened
+- Chat theme change system logs visible to both participants (persisted `theme_log` jsonb)
+- Image lightbox (`ViewChatImageDialog`) for full-size chat photos
+- Always-visible reaction badge on message bubble corner; toolbar order More → Reply → React
+
+### Changed
+- Messenger bubble layout: tighter padding, pill shape, grouped spacing, image-only messages without bubble chrome
+- Themed chat chrome: header, composer, typing indicator, day separators, and error banner contrast
+- Reply quote strip uses bubble foreground colors on themed chats
+- Seen indicator sits below latest own message and offsets when a reaction badge is present
+- Theme picker fix: jsonb cast for `theme_log` updates; realtime inbox refresh on reactions
+
+### Plans
+- `kylie/chat-ui-improvements` — messenger UI polish, theme logs, inbox reactions
+
 ## 0.1.28 — 2026-08-03
 
 ### Added

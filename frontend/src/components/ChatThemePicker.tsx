@@ -116,7 +116,7 @@ function ThemeSwatch({
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        "flex w-[4.25rem] shrink-0 snap-start flex-col items-center gap-1.5",
+        "flex w-[4.25rem] shrink-0 snap-start flex-col items-center gap-2",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       )}
     >
@@ -149,12 +149,14 @@ function ThemeSwatch({
 
 function ThemeStrip({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mb-5 last:mb-0">
-      <h3 className="mb-2.5 px-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+    <section className="mb-6 last:mb-2">
+      <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
         {title}
       </h3>
-      <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1 snap-x snap-mandatory scrollbar-none">
+      <div className="chat-theme-strip flex gap-4 overflow-x-auto px-1 py-1 pb-2.5 snap-x snap-mandatory scrollbar-none">
+        <span className="w-1 shrink-0 snap-none" aria-hidden="true" />
         {children}
+        <span className="w-2 shrink-0 snap-none" aria-hidden="true" />
       </div>
     </section>
   );
@@ -292,7 +294,7 @@ export function ChatThemePicker({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 pb-2 pt-1">
+        <div className="flex-1 overflow-y-auto px-6 pb-4 pt-2">
           {GRAPHIC_CATEGORIES.map((category) => {
             const items = GRAPHIC_PRESETS.filter((p) => p.category === category);
             if (!items.length) return null;

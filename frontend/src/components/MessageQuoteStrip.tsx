@@ -19,21 +19,39 @@ export function messageQuotePreview(replyTo: MessageReplyToView): string {
 type MessageQuoteStripProps = {
   replyTo: MessageReplyToView;
   mine: boolean;
+  themed?: boolean;
   className?: string;
 };
 
-export function MessageQuoteStrip({ replyTo, mine, className }: MessageQuoteStripProps) {
+export function MessageQuoteStrip({ replyTo, mine, themed = false, className }: MessageQuoteStripProps) {
   const unavailable = replyTo.isUnsent;
 
   return (
     <div
       className={cn(
-        "mb-2 border-l-2 pl-2 text-xs leading-snug",
-        mine ? "border-background/40 text-background/80" : "border-foreground/25 text-muted-foreground",
+        "mb-1.5 border-l-2 pl-2 text-xs leading-snug",
+        themed
+          ? mine
+            ? "border-[color-mix(in_srgb,var(--chat-bubble-mine-fg)_35%,transparent)] text-[color-mix(in_srgb,var(--chat-bubble-mine-fg)_80%,transparent)]"
+            : "border-[color-mix(in_srgb,var(--chat-bubble-theirs-fg)_35%,transparent)] text-[color-mix(in_srgb,var(--chat-bubble-theirs-fg)_75%,transparent)]"
+          : mine
+            ? "border-background/40 text-background/80"
+            : "border-foreground/25 text-muted-foreground",
         className
       )}
     >
-      <p className={cn("font-semibold", mine ? "text-background" : "text-foreground")}>
+      <p
+        className={cn(
+          "font-semibold",
+          themed
+            ? mine
+              ? "text-[var(--chat-bubble-mine-fg)]"
+              : "text-[var(--chat-bubble-theirs-fg)]"
+            : mine
+              ? "text-background"
+              : "text-foreground"
+        )}
+      >
         {replyTo.senderDisplayName}
       </p>
       {unavailable ? (
