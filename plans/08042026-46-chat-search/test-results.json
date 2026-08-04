@@ -1,0 +1,10 @@
+{
+  "plan": "plans/08042026-46-chat-search",
+  "generatedAt": "2026-08-05",
+  "status": "In Progress",
+  "items": [
+    {"id":"A1","title":"Migration scope","surface":"cli","precondition":"Review PR diff against dev","steps":["Confirm only 20260804120000_message_search_index.ts is search-owned"],"expected":"No edited_at or theme_log migration is shipped.","status":"pass","evidence":"2026-08-05: removed 20260801140000_message_edited_at.ts and 20260803140000_conversation_theme_log.ts in 8f27312.","notes":"","waiver":""},
+    {"id":"A2","title":"Search a deep-history result","surface":"ui","precondition":"Authenticated conversation with a match outside the loaded message window","steps":["Search for an old match","Select it","Confirm surrounding history is coherent and earlier-load continues"],"expected":"No orphan search result or stalled auto-load.","status":"pending","evidence":"2026-08-05 implementation evidence: selecting a result loads the page before the hit and then appends the hit; the intersection trigger resets after loading completes. Typecheck and production build pass.","notes":"Still requires a live conversation smoke check.","waiver":""},
+    {"id":"A3","title":"pg_trgm deployment preflight","surface":"api","precondition":"Staging database access","steps":["Run the migration in staging"],"expected":"The database role can create/use pg_trgm and the partial GIN index.","status":"pending","evidence":"","notes":"Requires deployment-environment authority.","waiver":""}
+  ]
+}

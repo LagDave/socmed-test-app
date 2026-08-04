@@ -545,12 +545,25 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     setSearchHighlightQuery(null);
   }, [resetSearch]);
 
-  function focusSearchResult(message: MessageView, query: string) {
+  async function focusSearchResult(message: MessageView, query: string) {
     closeSearch();
     stickToBottomRef.current = false;
-    setMessages((previousMessages) => mergeById(previousMessages, [message]));
-    setFocusedMessageId(message.id);
-    setSearchHighlightQuery(query);
+    const generation = generationRef.current;
+    try {
+      const data = await api.get<{
+        messages: MessageView[];
+        hasMore: boolean;
+      }>(`/api/messages/conversations/${conversationId}?before=${encodeURIComponent(message.id)}`);
+      if (generation !== generationRef.current) return;
+      setMessages(mergeById(data.messages, [message]));
+      oldestPagedMessageIdRef.current = data.messages[0]?.id ?? message.id;
+      setHasMore(Boolean(data.hasMore));
+      setFocusedMessageId(message.id);
+      setSearchHighlightQuery(query);
+    } catch (err) {
+      if (generation !== generationRef.current) return;
+      setError(err instanceof Error ? err.message : "Failed to load search result context");
+    }
   }
 
   async function confirmDeleteConversation() {

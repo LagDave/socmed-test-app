@@ -81,6 +81,10 @@ export function ConversationMessageList({
   }, [onLoadEarlier]);
 
   useEffect(() => {
+    if (!loadingEarlier) hasTriggeredAutoLoadRef.current = false;
+  }, [loadingEarlier]);
+
+  useEffect(() => {
     const root = scrollRef.current;
     const sentinel = topSentinelRef.current;
     if (!root || !sentinel || loadingThread || loadingEarlier || !hasMore) return;
