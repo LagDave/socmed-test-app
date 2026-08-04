@@ -117,6 +117,7 @@
         <tr><td>6</td><td>2026-08-05</td><td>Implemented the behavior port through the current dev layers. Typecheck, production build, audit, and an isolated full migration run passed; browser/API acceptance remains pending a contained runtime session.</td></tr>
         <tr><td>7</td><td>2026-08-05</td><td>Contained browser/API acceptance passed. It exposed a delete/restore contract gap: deleting a conversation did not clear the actor's private conversation pin. The delete transaction now removes that pin with the actor's message deletions and hidden state; no peer pin is affected.</td></tr>
         <tr><td>8</td><td>2026-08-05</td><td>Scope correction requested by the product owner: remove the unauthorized private conversation/inbox-pin feature entirely. The reconciliation now retains only shared message pins, their activity, dialog, and inbox preview. Removed the private migration/model, inbox ordering/state/UI, conversation pin endpoints, and actor-only realtime event.</td></tr>
+        <tr><td>9</td><td>2026-08-05</td><td>Reran contained acceptance after the scope correction. A disposable PostgreSQL runtime recorded only the two shared pin migrations and no <code>conversation_pins</code> table. Browser/API checks confirmed the inbox menu exposes only delete, the former private-pin route is 404, inbox rows have no private pin state, delete/restore works, and shared message pins remain participant-scoped.</td></tr>
       </tbody></table>
     </section>
   </main>
