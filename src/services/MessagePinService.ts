@@ -1,7 +1,6 @@
 import type { Knex } from "knex";
 import { db } from "../database/connection";
 import { ConversationModel, type ConversationRow } from "../models/ConversationModel";
-import { ConversationPinModel } from "../models/ConversationPinModel";
 import { MessageModel, type MessageRow } from "../models/MessageModel";
 import {
   MessagePinActivityModel,
@@ -95,18 +94,6 @@ export class MessagePinService {
       this.pinActivitiesForUser(conversationId, userId),
     ]);
     return { pinnedMessages, pinActivities };
-  }
-
-  static async pinConversation(userId: string, conversationId: string): Promise<void> {
-    const conversation = await this.requireConversationAccess(userId, conversationId);
-    await ConversationPinModel.create(conversationId, userId);
-    await publishRealtime(() => MessageRealtime.conversationPinChanged(conversation, userId));
-  }
-
-  static async unpinConversation(userId: string, conversationId: string): Promise<void> {
-    const conversation = await this.requireConversationAccess(userId, conversationId);
-    await ConversationPinModel.deleteForUser(conversationId, userId);
-    await publishRealtime(() => MessageRealtime.conversationPinChanged(conversation, userId));
   }
 
   static async pinMessage(userId: string, messageId: string): Promise<PinnedMessagesResponse> {

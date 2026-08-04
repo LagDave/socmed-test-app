@@ -168,28 +168,6 @@ export class MessagesController {
     }
   }
 
-  static async pinConversation(req: AuthedRequest, res: Response): Promise<Response> {
-    try {
-      const conversationId = String(req.params.id);
-      await MessagePinService.pinConversation(req.userId!, conversationId);
-      const conversation = await MessageService.conversationListItem(req.userId!, conversationId);
-      return ok(res, { conversation });
-    } catch (err) {
-      return handle(res, err);
-    }
-  }
-
-  static async unpinConversation(req: AuthedRequest, res: Response): Promise<Response> {
-    try {
-      const conversationId = String(req.params.id);
-      await MessagePinService.unpinConversation(req.userId!, conversationId);
-      const conversation = await MessageService.conversationListItem(req.userId!, conversationId);
-      return ok(res, { conversation });
-    } catch (err) {
-      return handle(res, err);
-    }
-  }
-
   static async getTheme(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const theme = await ChatThemeService.getTheme(req.userId!, String(req.params.id));

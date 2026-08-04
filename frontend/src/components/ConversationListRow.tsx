@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ChevronRight, ImageIcon, MoreVertical, Pin, PinOff, Trash2 } from "lucide-react";
+import { ChevronRight, ImageIcon, MoreVertical, Trash2 } from "lucide-react";
 import type { ConversationListItem } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
@@ -91,16 +91,12 @@ function messageSnippet(item: ConversationListItem): { text: string; isMedia: bo
 export function ConversationListRow({
   item,
   onDelete,
-  onPinChange,
-  pinSaving = false,
   isPeerTyping = false,
   viewerId,
   className,
 }: {
   item: ConversationListItem;
   onDelete: (id: string, peerName: string) => void;
-  onPinChange: (id: string, isPinned: boolean) => void;
-  pinSaving?: boolean;
   isPeerTyping?: boolean;
   viewerId?: string;
   className?: string;
@@ -144,9 +140,6 @@ export function ConversationListRow({
           <span className="flex items-baseline justify-between gap-2">
             <span className={cn("truncate", unread ? "font-semibold" : "font-medium")}>
               {peer.displayName}
-              {item.isPinned && (
-                <Pin className="ml-1 inline size-3.5 text-primary" aria-label="Pinned conversation" />
-              )}
               {peer.username && (
                 <span className="font-normal text-muted-foreground"> @{peer.username}</span>
               )}
@@ -212,10 +205,6 @@ export function ConversationListRow({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem disabled={pinSaving} onSelect={() => onPinChange(item.id, item.isPinned)}>
-            {item.isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
-            {item.isPinned ? "Unpin conversation" : "Pin conversation"}
-          </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
             onSelect={() => onDelete(item.id, peer.displayName)}

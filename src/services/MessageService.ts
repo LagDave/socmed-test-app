@@ -17,7 +17,6 @@ import {
   type ConversationLatestReaction,
 } from "../models/MessageReactionModel";
 import { MessageUserDeletionModel } from "../models/MessageUserDeletionModel";
-import { ConversationPinModel } from "../models/ConversationPinModel";
 import { MessagePinService, type MessagePinActivityView, type PinnedMessageView } from "./MessagePinService";
 import type {
   ConversationListItem,
@@ -313,8 +312,6 @@ export class MessageService {
         )
       )
       .sort((a, b) => {
-        if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-        if (a.isPinned) return 0;
         const aTime = a.lastMessageAt?.getTime() ?? 0;
         const bTime = b.lastMessageAt?.getTime() ?? 0;
         return bTime - aTime;
@@ -645,7 +642,6 @@ export class MessageService {
 
     const updated = await db.transaction(async (trx) => {
       await MessageUserDeletionModel.markAllInConversationForUser(conversationId, userId, trx);
-      await ConversationPinModel.deleteForUser(conversationId, userId, trx);
       return ConversationModel.setHidden(conversationId, userId, new Date(), trx);
     });
 
@@ -720,7 +716,6 @@ export class MessageService {
       ),
       unreadCount: row.unreadCount,
       lastMessageAt: lastActivityAt,
-      isPinned: row.isPinned,
     };
   }
 
@@ -762,17 +757,6 @@ export class MessageService {
         null,
         row.last_message_at
       ),
-      isPinned: await ConversationPinModel.isPinned(row.id, viewerId),
     };
-  }
-
-  static async conversationListItem(
-    userId: string,
-    conversationId: string
-  ): Promise<ConversationListItem> {
-    const conversation = await ConversationModel.findById(conversationId);
-    if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
-    assertParticipant(conversation, userId);
-    return this.toListItem(conversation, userId);
   }
 }

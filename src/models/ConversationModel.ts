@@ -32,7 +32,6 @@ export type ConversationInboxRow = ConversationRow & {
     created_at: Date;
   } | null;
   unreadCount: number;
-  isPinned: boolean;
 };
 
 type InboxQueryRow = ConversationRow & {
@@ -60,7 +59,6 @@ type InboxQueryRow = ConversationRow & {
   pa_action: "pinned" | "unpinned" | null;
   pa_created_at: Date | null;
   unread_count: string | number;
-  pinned_at: Date | null;
 };
 
 /** SQL fragment: conversation is visible in viewer's inbox (not deleted). */
@@ -140,7 +138,6 @@ export class ConversationModel {
         pa.actor_display_name AS pa_actor_display_name,
         pa.action AS pa_action,
         pa.created_at AS pa_created_at,
-        cp.pinned_at,
         (
           SELECT COUNT(*)::int
           FROM messages m
@@ -156,8 +153,6 @@ export class ConversationModel {
       FROM conversations c
       INNER JOIN users peer
         ON peer.id = CASE WHEN c.user_a = ? THEN c.user_b ELSE c.user_a END
-      LEFT JOIN conversation_pins cp
-        ON cp.conversation_id = c.id AND cp.user_id = ?
       LEFT JOIN LATERAL (
         SELECT m.*
         FROM messages m
@@ -183,15 +178,9 @@ export class ConversationModel {
       ) pa ON TRUE
       WHERE (c.user_a = ? OR c.user_b = ?)
         AND ${visibleForUserSql("?")}
-      ORDER BY
-        cp.pinned_at IS NULL ASC,
-        cp.pinned_at ASC,
-        CASE WHEN cp.pinned_at IS NULL THEN c.last_message_at END DESC NULLS LAST,
-        CASE WHEN cp.pinned_at IS NULL THEN c.created_at END DESC,
-        c.id ASC
+      ORDER BY c.last_message_at DESC NULLS LAST, c.created_at DESC
       `,
       [
-        userId,
         userId,
         userId,
         userId,
@@ -256,7 +245,6 @@ export class ConversationModel {
             }
           : null,
       unreadCount: Number(r.unread_count ?? 0),
-      isPinned: Boolean(r.pinned_at),
     }));
   }
 

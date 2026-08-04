@@ -25,16 +25,6 @@ export async function deleteConversation(conversationId: string): Promise<void> 
   await api.delete(`/api/messages/conversations/${conversationId}`);
 }
 
-export async function setConversationPinned(
-  conversationId: string,
-  isPinned: boolean
-): Promise<{ conversation: ConversationListItem }> {
-  if (isPinned) {
-    return api.put(`/api/messages/conversations/${conversationId}/pin`);
-  }
-  return api.delete(`/api/messages/conversations/${conversationId}/pin`);
-}
-
 export async function setMessagePinned(
   messageId: string,
   isPinned: boolean

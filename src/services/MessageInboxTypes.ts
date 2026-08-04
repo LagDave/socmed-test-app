@@ -42,5 +42,4 @@ export type ConversationListItem = {
   hasUnreadReaction: boolean;
   unreadCount: number;
   lastMessageAt: Date | null;
-  isPinned: boolean;
 };

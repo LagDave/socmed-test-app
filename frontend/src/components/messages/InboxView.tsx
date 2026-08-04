@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
-import { deleteConversation, setConversationPinned } from "@/api/messages";
+import { deleteConversation } from "@/api/messages";
 import { CONVERSATION_UPDATED, getMessagesSocket } from "@/api/socket";
 import type { ConversationListItem } from "@/api/types";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -26,24 +26,9 @@ export function InboxView() {
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteConversation | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [pinningConversationId, setPinningConversationId] = useState<string | null>(null);
 
   function requestDelete(id: string, peerName: string) {
     setPendingDelete({ id, peerName });
-  }
-
-  async function changeConversationPin(id: string, isPinned: boolean) {
-    if (pinningConversationId) return;
-    setPinningConversationId(id);
-    setError(null);
-    try {
-      await setConversationPinned(id, !isPinned);
-      await reloadInbox();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update pinned conversation");
-    } finally {
-      setPinningConversationId(null);
-    }
   }
 
   async function confirmDeleteConversation() {
@@ -148,8 +133,6 @@ export function InboxView() {
                   key={c.id}
                   item={c}
                   onDelete={requestDelete}
-                  onPinChange={changeConversationPin}
-                  pinSaving={pinningConversationId === c.id}
                   isPeerTyping={Boolean(typingByConversation[c.id])}
                   viewerId={user?.id}
                 />

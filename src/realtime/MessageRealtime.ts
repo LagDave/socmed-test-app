@@ -103,10 +103,6 @@ export const MessageRealtime = {
     await emitUnreadForUser(userId);
   },
 
-  async conversationPinChanged(conversation: ConversationRow, userId: string): Promise<void> {
-    emitToUser(userId, CONVERSATION_UPDATED, { conversationId: conversation.id });
-  },
-
   async conversationTheme(
     conversation: ConversationRow,
     theme: ConversationThemeView,

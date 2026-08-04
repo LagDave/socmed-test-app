@@ -131,7 +131,6 @@ export type ConversationListItem = {
   hasUnreadReaction: boolean;
   unreadCount: number;
   lastMessageAt: string | null;
-  isPinned: boolean;
 };
 
 export type PinnedMessageView = {

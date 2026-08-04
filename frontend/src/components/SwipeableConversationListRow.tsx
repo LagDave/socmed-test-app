@@ -10,15 +10,11 @@ const OPEN_THRESHOLD = 44;
 export function SwipeableConversationListRow({
   item,
   onDelete,
-  onPinChange,
-  pinSaving = false,
   isPeerTyping = false,
   viewerId,
 }: {
   item: ConversationListItem;
   onDelete: (id: string, peerName: string) => void;
-  onPinChange: (id: string, isPinned: boolean) => void;
-  pinSaving?: boolean;
   isPeerTyping?: boolean;
   viewerId?: string;
 }) {
@@ -127,8 +123,6 @@ export function SwipeableConversationListRow({
         <ConversationListRow
           item={item}
           onDelete={onDelete}
-          onPinChange={onPinChange}
-          pinSaving={pinSaving}
           isPeerTyping={isPeerTyping}
           viewerId={viewerId}
           className="rounded-xl border-b-0 bg-background"
