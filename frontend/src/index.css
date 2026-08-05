@@ -687,7 +687,7 @@ body {
 }
 
 .messages-thread-list .messages-thread-item:has([data-has-reaction="true"]) + .messages-thread-item {
-  margin-top: 10px;
+  margin-top: 10px !important;
 }
 
 .message-time-separator {

@@ -26,13 +26,13 @@ export function isSameCalendarDay(a: string | Date, b: string | Date): boolean {
   return d1.toDateString() === d2.toDateString();
 }
 
-const GROUP_MS = 5 * 60 * 1000;
+const MESSAGE_TIME_GAP_MS = 10 * 60 * 1000;
 
 export function messagesHaveTimeGap(a: MessageViewLike, b: MessageViewLike): boolean {
   const t1 = new Date(a.createdAt).getTime();
   const t2 = new Date(b.createdAt).getTime();
   if (Number.isNaN(t1) || Number.isNaN(t2)) return false;
-  return Math.abs(t2 - t1) > GROUP_MS;
+  return Math.abs(t2 - t1) >= MESSAGE_TIME_GAP_MS;
 }
 
 export function messagesShareGroup(a: MessageViewLike, b: MessageViewLike): boolean {

@@ -28,6 +28,10 @@ type SetString = (value: string | null | ((previous: string | null) => string | 
 
 const TOP_THREAD_LOAD_ROOT_MARGIN = "96px 0px 0px";
 
+function hasMessageReaction(message: MessageView): boolean {
+  return Object.values(message.reactionSummary.counts).some((count) => count > 0);
+}
+
 type ThreadViewContentProps = {
   user: PublicUser | null;
   resolvedTheme: ResolvedChatTheme;
@@ -317,7 +321,11 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                 const showAvatar = !mine && (!prev || !messagesShareGroup(prev, m));
                 const groupedWithPrev = Boolean(prev && messagesShareGroup(prev, m));
                 const groupedWithNext = Boolean(next && messagesShareGroup(m, next));
-                const compactWithPrevious = Boolean(prev && prev.senderId === m.senderId);
+                const previousHasReaction = prev ? hasMessageReaction(prev) : false;
+                const messageHasReaction = hasMessageReaction(m);
+                const compactWithPrevious = Boolean(
+                  prev && prev.senderId === m.senderId && !previousHasReaction && !messageHasReaction
+                );
                 const showTimeGap = Boolean(prev && !showDay && messagesHaveTimeGap(prev, m));
 
                 return (
