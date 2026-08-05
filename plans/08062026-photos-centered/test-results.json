@@ -21,6 +21,23 @@
       "waiver": ""
     },
     {
+      "id": "A5",
+      "title": "Multi-photo preview opens at the first detail photo",
+      "surface": "ui",
+      "precondition": "Signed in on Feed; a standard or shared post with at least two photos is visible; isolated acceptance runtime is running.",
+      "steps": [
+        "Click the multi-photo preview.",
+        "Wait for the post detail page to load.",
+        "Observe the initial viewport and keyboard focus.",
+        "Open an explicit comment link for the same post."
+      ],
+      "expected": "Preview navigation lands on the first photo at the #photos album anchor with no comment-composer focus; explicit #comments navigation still scrolls to comments and may autofocus the composer.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
       "id": "A2",
       "title": "Single-photo feed post remains centered and functional",
       "surface": "ui",
@@ -61,10 +78,10 @@
         "Run the repository typecheck/build command required by package scripts.",
         "Run the impacted convention/lint checks if configured."
       ],
-      "expected": "No errors caused by the CSS change; any pre-existing failures are documented separately.",
+      "expected": "No errors caused by the feature change; any pre-existing failures are documented separately.",
       "status": "pass",
-      "evidence": "2026-08-06: After the Rev 10 shared-original gallery-sizing revision, npm run typecheck and npm run build passed on kylie/photos-centered. npm --prefix frontend run lint completed with the same six pre-existing warnings in AuthContext.tsx, ThemeContext.tsx, MessageQuoteStrip.tsx, PostDetailPage.tsx, and PostPhotoCommentsPage.tsx; none are in the changed files.",
-      "notes": "Visual UI items A1–A3 require the contained -tw runtime and remain pending.",
+      "evidence": "2026-08-06: After the Rev 12 photo-navigation revision, npm run typecheck and npm run build passed on kylie/photos-centered. npm --prefix frontend run lint completed with the same six pre-existing warnings in AuthContext.tsx, ThemeContext.tsx, MessageQuoteStrip.tsx, PostDetailPage.tsx, and PostPhotoCommentsPage.tsx; none are in the changed files.",
+      "notes": "Visual UI items A1–A3 and A5 require the contained -tw runtime and remain pending.",
       "waiver": ""
     }
   ]

@@ -38,6 +38,8 @@
       <p><strong>Rev 9 — 08062026:</strong> Final shared-post placement executed on <code>kylie/photos-centered</code>. <code>PostCard</code> now constructs a share embed once and renders it below the sharer's header row for standalone cards, while embedded cards keep their existing inline placement. This moves the entire shared-post embed—and therefore its already-centered original media—onto the full feed-card centerline. <code>npm run typecheck</code> and <code>npm run build</code> passed; frontend lint has the same six pre-existing warnings outside the changed files. UI acceptance A1–A3 remains pending a contained <code>-tw</code> runtime.</p>
       <p><strong>Rev 10 — 08062026:</strong> Product feedback: the centered shared-original gallery still looks horizontally compressed because <code>SharedPostEmbed</code> uses <code>PostMediaGallery</code>'s compact mode. T1 expands to render only shared-original multi-photo media with the standard feed-gallery sizing; the compact <code>SharePostPreview</code> stays unchanged.</p>
       <p><strong>Rev 11 — 08062026:</strong> Shared-original gallery sizing executed on <code>kylie/photos-centered</code>. <code>SharedPostEmbed</code> now passes <code>mode="feed"</code> to multi-photo original media, removing the compact-height cap while leaving <code>SharePostPreview</code> on compact mode. <code>npm run typecheck</code> and <code>npm run build</code> passed; frontend lint has the same six pre-existing warnings outside the changed files. UI acceptance A1–A3 remains pending a contained <code>-tw</code> runtime.</p>
+      <p><strong>Rev 12 — 08062026:</strong> Product feedback: clicking a multi-photo preview opens post detail but the detail page auto-focuses the comment composer, pulling the viewport to comments. T1 expands to link multi-photo previews to the existing <code>#photos</code> album anchor, position that anchor after detail data loads, and restrict comment-composer autofocus to explicit <code>#comments</code> navigation.</p>
+      <p><strong>Rev 13 — 08062026:</strong> Photo-navigation portion of T1 executed on <code>kylie/photos-centered</code>. Multi-photo preview links now target <code>#photos</code>; <code>PostDetailPage</code> positions that anchor after data loads; comment-composer autofocus is restricted to <code>#comments</code> navigation. <code>npm run typecheck</code> and <code>npm run build</code> passed; frontend lint has the same six pre-existing warnings outside the changed files. UI acceptance A1–A3 and A5 remains pending a contained <code>-tw</code> runtime.</p>
     </div>
   </section>
 
@@ -85,8 +87,8 @@
 
   <section>
     <h2>What</h2>
-    <p>Render standard post media as a card-level block, below the avatar/header row, so its 36rem responsive stage is centered against the whole post card. Render standalone shared-post embeds below the sharing post's header row, then center the original media within that full-width embed using the normal feed-gallery proportions. At smaller widths it remains fluid at 100% width.</p>
-    <p><strong>Done when:</strong> the centerline of a single-photo post, a 2–10 photo preview, and the whole shared-post embed matches the centerline of its enclosing feed card on desktop; neither overflows or becomes unnecessarily narrow on mobile; clicking either still opens the post; profile-activity media, profile timeline, and compact share-composer preview retain their respective layouts.</p>
+    <p>Render standard post media as a card-level block, below the avatar/header row, so its 36rem responsive stage is centered against the whole post card. Render standalone shared-post embeds below the sharing post's header row, then center the original media within that full-width embed using the normal feed-gallery proportions. When a multi-photo preview is opened, land at the first photo in the detail album—not at comments. At smaller widths media remains fluid at 100% width.</p>
+    <p><strong>Done when:</strong> the centerline of a single-photo post, a 2–10 photo preview, and the whole shared-post embed matches the centerline of its enclosing feed card on desktop; neither overflows or becomes unnecessarily narrow on mobile; clicking a multi-photo preview opens the detail page at its first photo without focusing or scrolling to comments; profile-activity media, profile timeline, and compact share-composer preview retain their respective layouts.</p>
   </section>
 
   <section>
@@ -96,6 +98,7 @@
       <li><code>frontend/src/components/SharedPostEmbed.tsx</code> renders the original post media inside its own <code>min-w-0 flex-1</code> column beside <code>FriendPresenceAvatar</code>. Move only the non-compact original media below that row; <code>SharePostPreview</code> stays compact.</li>
       <li>A standalone share still renders <code>SharedPostEmbed</code> inside the sharing post's <code>min-w-0 flex-1</code> column in <code>PostCard</code>. Move that whole embed below the outer header row; its internal centering then aligns with the full feed card.</li>
       <li><code>SharedPostEmbed</code> currently passes <code>mode="compact"</code> for a multi-photo original, applying the short compact-grid height. Use <code>mode="feed"</code> there only; <code>SharePostPreview</code> keeps <code>mode="compact"</code>.</li>
+      <li><code>PostMediaGallery</code> currently links multi-photo previews to <code>/posts/:id</code>. <code>PostDetailPage</code> contains the first-photo album at <code>id="photos"</code>, but always passes <code>composerAutoFocus</code> to its comment section. Navigate previews to <code>#photos</code>, scroll there after data loads, and autofocus only on intentional <code>#comments</code> links.</li>
       <li><code>frontend/src/components/PostMediaGallery.tsx</code> owns the 2-, 3-, and 4+-photo preview grids. It should not change for this layout repair.</li>
       <li><code>frontend/src/index.css</code> defines the intended <code>width: min(100%, 36rem)</code> and centering at lines 1013–1018, but a later duplicate <code>.post-media-stage { width: 100%; }</code> at lines 1854–1856 wins in the cascade.</li>
       <li><code>frontend/src/components/SharedPostEmbed.tsx</code> uses compact media directly and does not use <code>post-media-stage</code>.</li>
@@ -109,7 +112,7 @@
       <tr><th>Must</th><th>Must not</th></tr>
       <tr>
         <td>
-          <ul><li>Center standard post media and standalone shared-post embeds against the full standalone card; center original media within the full embed, not any header text column.</li><li>Use standard feed-gallery proportions for shared-original multi-photo media; retain compact proportions in the share composer preview.</li><li>Keep media responsive below 36rem.</li><li>Keep existing crop, grid counts, click-through, reactions, and action rows unchanged.</li><li>Leave one canonical definition for the shared stage width.</li></ul>
+          <ul><li>Center standard post media and standalone shared-post embeds against the full standalone card; center original media within the full embed, not any header text column.</li><li>Use standard feed-gallery proportions for shared-original multi-photo media; retain compact proportions in the share composer preview.</li><li>Multi-photo preview navigation must land at <code>#photos</code>; only explicit <code>#comments</code> navigation may autofocus the comment composer.</li><li>Keep media responsive below 36rem.</li><li>Keep existing crop, grid counts, click-through, reactions, and action rows unchanged.</li><li>Leave one canonical definition for the shared stage width.</li></ul>
         </td>
         <td>
           <ul><li>No API, data model, upload, or gallery-component changes.</li><li>No new dependencies.</li><li>No visual changes to profile-activity media, profile timeline embeds, or shared-post compact media.</li></ul>
@@ -130,15 +133,16 @@
       <tr><td>PostDetailPage → PostCard</td><td>Uses the same card-level standard-media layout; verify no clipping.</td></tr>
       <tr><td>ProfilePage → embedded PostCard</td><td>Unaffected: embedded media bypasses the stage wrapper.</td></tr>
       <tr><td>SharedPostEmbed</td><td>Original single- and multi-photo media center on the full embed with standard feed-gallery proportions; the compact share-composer preview remains unchanged.</td></tr>
+      <tr><td>PostMediaGallery → PostDetailPage</td><td>Multi-photo preview opens detail at <code>#photos</code>; regular post links still open at the normal post top; explicit comment links retain <code>#comments</code> behavior.</td></tr>
     </table>
   </section>
 
   <section>
     <h2>Tasks</h2>
     <div class="callout">
-      <h3>T1 — Center standard media and shared embeds without compact gallery compression</h3>
-      <p><strong>Do:</strong> Preserve the canonical <code>min(100%, 36rem)</code> media-stage rule, then restructure <code>PostCard</code> so standalone standard media and standalone <code>SharedPostEmbed</code> render below the avatar/header row as card-level blocks. Keep original media centered inside <code>SharedPostEmbed</code> and use feed-gallery, not compact-gallery, proportions there. Continue to render embedded cards, profile-activity media, and <code>SharePostPreview</code> through their current paths.</p>
-      <p><strong>Files:</strong> <code>frontend/src/components/PostCard.tsx</code>, <code>frontend/src/components/SharedPostEmbed.tsx</code>, <code>frontend/src/index.css</code></p>
+      <h3>T1 — Center standard media and shared embeds, then land multi-photo navigation at the album</h3>
+      <p><strong>Do:</strong> Preserve the canonical <code>min(100%, 36rem)</code> media-stage rule, then restructure <code>PostCard</code> so standalone standard media and standalone <code>SharedPostEmbed</code> render below the avatar/header row as card-level blocks. Keep original media centered inside <code>SharedPostEmbed</code> and use feed-gallery, not compact-gallery, proportions there. Link multi-photo previews to <code>#photos</code>; after detail data loads, position that anchor; autofocus the comment composer only for <code>#comments</code>. Continue to render embedded cards, profile-activity media, and <code>SharePostPreview</code> through their current paths.</p>
+      <p><strong>Files:</strong> <code>frontend/src/components/PostCard.tsx</code>, <code>frontend/src/components/SharedPostEmbed.tsx</code>, <code>frontend/src/components/PostMediaGallery.tsx</code>, <code>frontend/src/pages/PostDetailPage.tsx</code>, <code>frontend/src/index.css</code></p>
       <p><strong>Depends on:</strong> —</p>
       <p><strong>Verify:</strong> frontend typecheck/build; visual acceptance at desktop and mobile widths using single-photo and multi-photo feed posts; post detail, profile timeline, and shared embed regression checks.</p>
     </div>
