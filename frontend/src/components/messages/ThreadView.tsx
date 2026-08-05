@@ -20,12 +20,13 @@ import {
   type MessageEventPayload,
   type MessagePinsUpdatedPayload,
 } from "@/api/socket";
-import type { ConversationThemeView, MessagePinActivityView, MessageView, PinnedMessageView, PublicUser, ThemeLogEntry } from "@/api/types";
+import type { ConversationThemeView, MessagePinActivityView, MessageView, PeerPresence, PinnedMessageView, PublicUser, ThemeLogEntry } from "@/api/types";
 import { PinnedMessagesDialog } from "@/components/messages/PinnedMessagesDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCanHover } from "@/hooks/useCanHover";
 import { useConversationSearch } from "@/hooks/useConversationSearch";
 import { useConversationSearchResultFocus } from "@/hooks/useConversationSearchResultFocus";
+import { useFriendPresence } from "@/hooks/useFriendPresence";
 import { useSocketConnected } from "@/hooks/useMessagesSocket";
 import { usePeerTyping, useTypingEmitter } from "@/hooks/useTypingIndicator";
 import { chatThemeCssVars, resolveConversationTheme } from "@/lib/chatThemeApply";
@@ -35,6 +36,19 @@ import { buildThreadTimeline, mergePinActivities, mergeThreadSystemLogs } from "
 import { patchReplyTargetsUnsent, replyTargetPreview } from "@/components/messages/threadViewUtils";
 
 const POLL_MS = 2500;
+
+type ConversationThreadData = {
+  conversationId: string;
+  peer: PublicUser;
+  peerPresence: PeerPresence | null;
+  peerLastReadAt: string | null;
+  messages: MessageView[];
+  hasMore: boolean;
+  theme: ConversationThemeView;
+  themeLogs?: ThemeLogEntry[];
+  pinnedMessages: PinnedMessageView[];
+  pinActivities: MessagePinActivityView[];
+};
 
 function focusComposer(textareaRef: RefObject<HTMLTextAreaElement | null>) {
   requestAnimationFrame(() => {
@@ -72,6 +86,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   const navigate = useNavigate();
   const socketConnected = useSocketConnected();
   const [peer, setPeer] = useState<PublicUser | null>(null);
+  const [initialPeerPresence, setInitialPeerPresence] = useState<PeerPresence | null>(null);
   const [peerLastReadAt, setPeerLastReadAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [hasMore, setHasMore] = useState(false);
@@ -115,6 +130,11 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   const stickToBottomRef = useRef(true);
   const replyTargetIdRef = useRef<string | null>(null);
   const peerIdRef = useRef<string | null>(null);
+  const peerPresence = useFriendPresence(
+    peer?.id ?? "",
+    initialPeerPresence,
+    initialPeerPresence !== null
+  );
   const {
     clearFocusedSearch,
     focusSearchResult,
@@ -155,6 +175,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     const generation = generationRef.current;
     stickToBottomRef.current = true;
     setPeer(null);
+    setInitialPeerPresence(null);
     setPeerLastReadAt(null);
     setMessages([]);
     oldestPagedMessageIdRef.current = null;
@@ -176,19 +197,12 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
 
     async function loadInitial() {
       try {
-        const data = await api.get<{
-          conversationId: string;
-          peer: PublicUser;
-          peerLastReadAt: string | null;
-          messages: MessageView[];
-          hasMore: boolean;
-          theme: ConversationThemeView;
-          themeLogs?: ThemeLogEntry[];
-          pinnedMessages: PinnedMessageView[];
-          pinActivities: MessagePinActivityView[];
-        }>(`/api/messages/conversations/${conversationId}?restore=1`);
+        const data = await api.get<ConversationThreadData>(
+          `/api/messages/conversations/${conversationId}?restore=1`
+        );
         if (generation !== generationRef.current) return;
         setPeer(data.peer);
+        setInitialPeerPresence(data.peerPresence);
         setPeerLastReadAt(data.peerLastReadAt);
         setMessages(data.messages);
         oldestPagedMessageIdRef.current = data.messages[0]?.id ?? null;
@@ -221,19 +235,12 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       const generation = generationRef.current;
       void (async () => {
         try {
-          const data = await api.get<{
-            conversationId: string;
-            peer: PublicUser;
-            peerLastReadAt: string | null;
-            messages: MessageView[];
-            hasMore: boolean;
-            theme: ConversationThemeView;
-            themeLogs?: ThemeLogEntry[];
-            pinnedMessages: PinnedMessageView[];
-            pinActivities: MessagePinActivityView[];
-          }>(`/api/messages/conversations/${conversationId}`);
+          const data = await api.get<ConversationThreadData>(
+            `/api/messages/conversations/${conversationId}`
+          );
           if (generation !== generationRef.current) return;
           setPeer(data.peer);
+          setInitialPeerPresence(data.peerPresence);
           setPeerLastReadAt(data.peerLastReadAt);
           setMessages((prev) => {
             let merged = mergeById(prev, data.messages);
@@ -691,6 +698,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       themeVars={themeVars}
       navigate={navigate}
       peer={peer}
+      peerPresence={peerPresence}
       peerProfilePath={peerProfilePath}
       isSearchOpen={conversationSearch.isSearchOpen}
       onToggleSearch={() => (conversationSearch.isSearchOpen ? cancelSearch() : openSearch())}

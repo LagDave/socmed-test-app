@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import type { CommentView, ReactionSummary } from "@/api/types";
 import { ReplyActionButton } from "@/components/PostActionRow";
-import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { FriendPresenceAvatar } from "@/components/FriendPresenceAvatar";
 import { ReactionBar } from "@/components/ReactionBar";
 import { Button } from "@/components/ui/button";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
@@ -56,11 +56,7 @@ export function CommentItem({
     >
       <div className="flex items-start gap-2.5">
         <Link to={profilePath} className="shrink-0" aria-label={`${comment.author.displayName}'s profile`}>
-          <ProfileAvatar
-            displayName={comment.author.displayName}
-            avatarUrl={comment.author.avatarUrl}
-            size="sm"
-          />
+          <FriendPresenceAvatar user={comment.author} />
         </Link>
 
         <div className="min-w-0 flex-1">

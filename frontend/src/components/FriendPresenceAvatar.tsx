@@ -1,0 +1,28 @@
+import type { PublicUser } from "@/api/types";
+import { OnlinePresenceIndicator } from "@/components/OnlinePresenceIndicator";
+import { ProfileAvatar, type ProfileAvatarSize } from "@/components/ProfileAvatar";
+import { useFriendOnline } from "@/hooks/useFriendOnline";
+
+export function FriendPresenceAvatar({
+  user,
+  size = "sm",
+  className,
+}: {
+  user: PublicUser;
+  size?: ProfileAvatarSize;
+  className?: string;
+}) {
+  const isOnline = useFriendOnline(user.id, user.isOnline, user.isOnline !== undefined);
+
+  return (
+    <span className="relative shrink-0">
+      <ProfileAvatar
+        displayName={user.displayName}
+        avatarUrl={user.avatarUrl}
+        size={size}
+        className={className}
+      />
+      {isOnline && <OnlinePresenceIndicator className="bottom-0 right-0" />}
+    </span>
+  );
+}

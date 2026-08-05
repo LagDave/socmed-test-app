@@ -3,6 +3,7 @@ import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
 import { toPublicUser, type PublicUser } from "../types/user";
 import { NotificationService } from "./NotificationService";
+import { isUserOnline } from "../realtime/PresenceRealtime";
 
 export class FriendshipService {
   static async request(userId: string, targetUsername: string) {
@@ -66,7 +67,10 @@ export class FriendshipService {
   static async mutuals(userId: string): Promise<PublicUser[]> {
     const ids = await FriendshipModel.listAcceptedMutualIds(userId);
     const users = await Promise.all(ids.map((id) => UserModel.findById(id)));
-    return users.filter(Boolean).map((u) => toPublicUser(u!));
+    return users.filter(Boolean).map((user) => ({
+      ...toPublicUser(user!),
+      isOnline: isUserOnline(user!.id),
+    }));
   }
 
   static async areFriendsWith(userId: string, otherUserId: string): Promise<{ areFriends: boolean }> {

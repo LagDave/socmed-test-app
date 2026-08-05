@@ -1,5 +1,6 @@
 import type { PublicUser } from "../types/user";
 import type { ReactionEmoji } from "../models/ReactionModel";
+import type { PeerPresence } from "../realtime/PresenceRealtime";
 
 export type ConversationListLastReaction = {
   emoji: ReactionEmoji;
@@ -27,6 +28,7 @@ export type ConversationListLastPinActivity = {
 export type ConversationListItem = {
   id: string;
   peer: PublicUser;
+  peerPresence: PeerPresence | null;
   lastMessage: {
     id: string;
     body: string | null;

@@ -8,6 +8,7 @@ import { UserModel } from "../models/UserModel";
 import { ReactionModel, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { AppError } from "../utils/AppError";
 import { toPublicUser } from "../types/user";
+import { isUserOnline } from "../realtime/PresenceRealtime";
 
 const createPostSchema = z
   .object({
@@ -96,7 +97,19 @@ async function attachImageUrls(views: PostView[], rows: PostRow[], viewerId: str
   });
 }
 
-async function hydrateBase(posts: PostRow[], viewerId: string): Promise<PostView[]> {
+function toViewerAuthor(
+  author: NonNullable<Awaited<ReturnType<typeof UserModel.findById>>>,
+  mutualFriendIds: ReadonlySet<string>
+): ReturnType<typeof toPublicUser> {
+  const user = toPublicUser(author);
+  return mutualFriendIds.has(author.id) ? { ...user, isOnline: isUserOnline(author.id) } : user;
+}
+
+async function hydrateBase(
+  posts: PostRow[],
+  viewerId: string,
+  mutualFriendIds: ReadonlySet<string>
+): Promise<PostView[]> {
   const authors = await Promise.all(posts.map((p) => UserModel.findById(p.author_id)));
   const summaries = await ReactionModel.summariesForPosts(
     posts.map((p) => p.id),
@@ -112,7 +125,7 @@ async function hydrateBase(posts: PostRow[], viewerId: string): Promise<PostView
       imageUrls: p.image_url ? [p.image_url] : [],
       images: [] as PostImageView[],
       createdAt: p.created_at,
-      author: toPublicUser(author),
+      author: toViewerAuthor(author, mutualFriendIds),
       reactionSummary: summaries.get(p.id) ?? emptyReactionSummary(),
       sharedFromPostId: p.shared_from_post_id,
       sharedFrom: null,
@@ -121,15 +134,21 @@ async function hydrateBase(posts: PostRow[], viewerId: string): Promise<PostView
   return attachImageUrls(views, posts, viewerId);
 }
 
-async function hydrate(posts: PostRow[], viewerId: string): Promise<PostView[]> {
-  const views = await hydrateBase(posts, viewerId);
+async function hydrate(
+  posts: PostRow[],
+  viewerId: string,
+  knownMutualFriendIds?: ReadonlySet<string>
+): Promise<PostView[]> {
+  const mutualFriendIds =
+    knownMutualFriendIds ?? new Set(await FriendshipModel.listAcceptedMutualIds(viewerId));
+  const views = await hydrateBase(posts, viewerId, mutualFriendIds);
   const sharedIds = [
     ...new Set(posts.map((p) => p.shared_from_post_id).filter((id): id is string => Boolean(id))),
   ];
   if (sharedIds.length === 0) return views;
 
   const originals = await PostModel.findByIds(sharedIds);
-  const originalViews = await hydrateBase(originals, viewerId);
+  const originalViews = await hydrateBase(originals, viewerId, mutualFriendIds);
   const byId = new Map(originalViews.map((v) => [v.id, v]));
 
   return views.map((view) => {
@@ -204,7 +223,7 @@ export class PostService {
     const mutualIds = await FriendshipModel.listAcceptedMutualIds(userId);
     const authorIds = [userId, ...mutualIds];
     const rows = await PostModel.listFeed({ authorIds, limit, before });
-    return hydrate(rows, userId);
+    return hydrate(rows, userId, new Set(mutualIds));
   }
 
   static async listByUsername(

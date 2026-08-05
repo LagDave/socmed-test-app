@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { ChevronRight, ImageIcon, MoreVertical, Trash2 } from "lucide-react";
 import type { ConversationListItem } from "@/api/types";
+import { OnlinePresenceIndicator } from "@/components/OnlinePresenceIndicator";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
+import { useFriendPresence } from "@/hooks/useFriendPresence";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -103,6 +105,7 @@ export function ConversationListRow({
 }) {
   const unread = item.unreadCount > 0 || item.hasUnreadReaction;
   const peer = item.peer;
+  const peerPresence = useFriendPresence(peer.id, item.peerPresence, item.peerPresence !== null);
   const profilePath = peer.username ? `/u/${peer.username}` : `/u/${peer.id}`;
   const preview = inboxPreview(item, viewerId);
   const badgeCount =
@@ -127,6 +130,7 @@ export function ConversationListRow({
           size="sm"
           className={cn(unread && "ring-2 ring-primary/30 ring-offset-2 ring-offset-card")}
         />
+        {peerPresence?.isOnline && <OnlinePresenceIndicator className="bottom-0 right-0" />}
         {unread && (
           <span
             className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full border-2 border-card bg-primary"

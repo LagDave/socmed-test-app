@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import type { PostView } from "@/api/types";
 import { PostMediaGallery } from "@/components/PostMediaGallery";
-import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { FriendPresenceAvatar } from "@/components/FriendPresenceAvatar";
 import { postMediaImages } from "@/lib/postMedia";
 import { cn } from "@/lib/utils";
 
@@ -17,11 +17,7 @@ export function SharePostPreview({ post, className }: SharePostPreviewProps) {
   return (
     <div className={cn("shared-post-embed shared-post-embed--preview", className)} aria-hidden="true">
       <div className="flex items-start gap-2.5">
-        <ProfileAvatar
-          displayName={post.author.displayName}
-          avatarUrl={post.author.avatarUrl}
-          size="sm"
-        />
+        <FriendPresenceAvatar user={post.author} />
         <div className="min-w-0 flex-1">
           <p className="font-medium leading-snug">
             {post.author.displayName}
@@ -73,11 +69,7 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
           className="shrink-0"
           aria-label={`${sharedFrom.author.displayName}'s profile`}
         >
-          <ProfileAvatar
-            displayName={sharedFrom.author.displayName}
-            avatarUrl={sharedFrom.author.avatarUrl}
-            size="sm"
-          />
+          <FriendPresenceAvatar user={sharedFrom.author} />
         </Link>
         <div className="min-w-0 flex-1">
           <Link

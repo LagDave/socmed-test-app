@@ -6,6 +6,7 @@ import { MessageService } from "../services/MessageService";
 import { MESSAGE_ACK } from "./MessageRealtime";
 import { logger } from "../logger";
 import { attachTypingHandlers } from "./TypingRelay";
+import { markUserPresenceConnected, markUserPresenceDisconnected } from "./PresenceRealtime";
 
 const SOCKET_PATH = "/socket.io";
 
@@ -80,6 +81,9 @@ export function attachRealtime(httpServer: HttpServer): Server {
     }
     void socket.join(userRoom(userId));
     attachTypingHandlers(socket);
+    void markUserPresenceConnected(userId, socket.id, emitToUser).catch((err) => {
+      logger.error({ err, userId, socketId: socket.id }, "Presence connect handler failed");
+    });
     logger.debug({ userId, socketId: socket.id }, "Socket connected");
     socket.on(MESSAGE_ACK, (payload: unknown) => {
       void (async () => {
@@ -99,6 +103,7 @@ export function attachRealtime(httpServer: HttpServer): Server {
       })();
     });
     socket.on("disconnect", (reason) => {
+      markUserPresenceDisconnected(userId, socket.id, emitToUser);
       logger.debug({ userId, socketId: socket.id, reason }, "Socket disconnected");
     });
   });

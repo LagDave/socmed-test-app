@@ -34,6 +34,7 @@ import { logger } from "../logger";
 import { ChatThemeService, type ConversationThemeView } from "./ChatThemeService";
 import type { ThemeLogEntry } from "../types/themeLog";
 import { parseThemeLog } from "../types/themeLog";
+import { peerPresenceForUser, type PeerPresence } from "../realtime/PresenceRealtime";
 
 async function publishRealtime(work: () => Promise<void>): Promise<void> {
   try {
@@ -299,6 +300,7 @@ export class MessageService {
 
   static async listConversations(userId: string): Promise<ConversationListItem[]> {
     const rows = await ConversationModel.listInboxForUser(userId);
+    const mutualFriendIds = new Set(await FriendshipModel.listAcceptedMutualIds(userId));
     const latestReactions = await MessageReactionModel.latestByConversations(
       rows.map((row) => row.id),
       userId
@@ -308,7 +310,8 @@ export class MessageService {
         this.inboxRowToListItem(
           row,
           toListLastReaction(latestReactions.get(row.id) ?? null),
-          userId
+          userId,
+          mutualFriendIds
         )
       )
       .sort((a, b) => {
@@ -326,6 +329,7 @@ export class MessageService {
   ): Promise<{
     conversationId: string;
     peer: ReturnType<typeof toPublicUser>;
+    peerPresence: PeerPresence | null;
     peerLastReadAt: Date | null;
     messages: MessageView[];
     hasMore: boolean;
@@ -345,10 +349,10 @@ export class MessageService {
     if (!peerUser) throw new AppError("USER_NOT_FOUND", "Peer missing.");
 
     const otherId = peerId(conversation, userId);
-    const freshlyDelivered =
-      (await FriendshipModel.areFriends(userId, otherId))
-        ? await MessageModel.markInboundUndeliveredAsDelivered(conversationId, userId)
-        : [];
+    const areFriends = await FriendshipModel.areFriends(userId, otherId);
+    const freshlyDelivered = areFriends
+      ? await MessageModel.markInboundUndeliveredAsDelivered(conversationId, userId)
+      : [];
     for (const row of freshlyDelivered) {
       if (!row.delivered_at) continue;
       await publishRealtime(async () => {
@@ -378,6 +382,9 @@ export class MessageService {
     return {
       conversationId,
       peer: toPublicUser(peerUser),
+      peerPresence: areFriends
+        ? peerPresenceForUser(peerUser.id, peerUser.last_active_at ?? null)
+        : null,
       peerLastReadAt: peerLastReadAt(conversation, userId),
       messages: await rowsToViews(mergedRows, userId),
       hasMore: mergedRows.length >= MESSAGE_PAGE_SIZE,
@@ -683,7 +690,8 @@ export class MessageService {
   private static inboxRowToListItem(
     row: ConversationInboxRow,
     lastReaction: ConversationListLastReaction | null,
-    viewerId: string
+    viewerId: string,
+    mutualFriendIds: ReadonlySet<string>
   ): ConversationListItem {
     const latest = row.lastMessage;
     const messageAt = latest?.created_at ?? null;
@@ -704,6 +712,9 @@ export class MessageService {
     return {
       id: row.id,
       peer: toPublicUser(row.peer),
+      peerPresence: mutualFriendIds.has(row.peer.id)
+        ? peerPresenceForUser(row.peer.id, row.peer.last_active_at ?? null)
+        : null,
       lastMessage: latest ? lastMessageListShape(latest) : null,
       lastReaction,
       lastSystemLog,
@@ -739,6 +750,7 @@ export class MessageService {
     return {
       id: row.id,
       peer: toPublicUser(peerUser),
+      peerPresence: peerPresenceForUser(peerUser.id, peerUser.last_active_at ?? null),
       lastMessage: latest ? lastMessageListShape(latest) : null,
       lastReaction,
       lastSystemLog,
