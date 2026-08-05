@@ -1,3 +1,4 @@
+import type { Knex } from "knex";
 import { db } from "../database/connection";
 
 export type MessageRow = {
@@ -183,12 +184,16 @@ export class MessageModel {
     return rows.reverse().map(mapListRow);
   }
 
-  static async markUnsent(id: string, senderId: string): Promise<MessageRow | undefined> {
-    const [row] = await db<MessageRow>("messages")
+  static async markUnsent(
+    id: string,
+    senderId: string,
+    trx: Knex = db
+  ): Promise<MessageRow | undefined> {
+    const [row] = await trx<MessageRow>("messages")
       .where({ id, sender_id: senderId })
       .whereNull("unsent_at")
       .update({
-        unsent_at: db.fn.now(),
+        unsent_at: trx.fn.now(),
         body: null,
         image_url: null,
       })

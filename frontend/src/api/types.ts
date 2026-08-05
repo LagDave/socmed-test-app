@@ -107,6 +107,12 @@ export type ConversationListLastSystemLog = {
   updatedBy: string;
 };
 
+export type ConversationListLastPinActivity = {
+  actorDisplayName: string;
+  action: "pinned" | "unpinned";
+  createdAt: string;
+};
+
 export type ConversationListItem = {
   id: string;
   peer: PublicUser;
@@ -121,9 +127,31 @@ export type ConversationListItem = {
   } | null;
   lastReaction: ConversationListLastReaction | null;
   lastSystemLog: ConversationListLastSystemLog | null;
+  lastPinActivity: ConversationListLastPinActivity | null;
   hasUnreadReaction: boolean;
   unreadCount: number;
   lastMessageAt: string | null;
+};
+
+export type PinnedMessageView = {
+  messageId: string;
+  body: string | null;
+  imageUrl: string | null;
+  senderId: string;
+  senderDisplayName: string;
+  senderAvatarUrl: string | null;
+  createdAt: string;
+  pinnedById: string;
+  pinnedAt: string;
+};
+
+export type MessagePinActivityView = {
+  id: string;
+  messageId: string;
+  actorId: string;
+  actorDisplayName: string;
+  action: "pinned" | "unpinned";
+  createdAt: string;
 };
 
 export type ChatThemePreset = {

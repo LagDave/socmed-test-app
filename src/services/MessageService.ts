@@ -17,7 +17,14 @@ import {
   type ConversationLatestReaction,
 } from "../models/MessageReactionModel";
 import { MessageUserDeletionModel } from "../models/MessageUserDeletionModel";
-import { REACTION_EMOJIS, emptyReactionSummary, type ReactionEmoji, type ReactionSummary } from "../models/ReactionModel";
+import { MessagePinService, type MessagePinActivityView, type PinnedMessageView } from "./MessagePinService";
+import type {
+  ConversationListItem,
+  ConversationListLastPinActivity,
+  ConversationListLastReaction,
+  ConversationListLastSystemLog,
+} from "./MessageInboxTypes";
+import { REACTION_EMOJIS, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
 import { isUniqueViolation } from "../utils/dbErrors";
@@ -99,42 +106,6 @@ export type MessageView = {
   replyTo: MessageReplyToView | null;
 };
 
-export type ConversationListLastReaction = {
-  emoji: ReactionEmoji;
-  reactorId: string;
-  messageId: string;
-  messageSenderId: string;
-  messageBody: string | null;
-  messageImageUrl: string | null;
-  reactedAt: Date;
-};
-
-export type ConversationListLastSystemLog = {
-  id: string;
-  text: string;
-  createdAt: Date;
-  updatedBy: string;
-};
-
-export type ConversationListItem = {
-  id: string;
-  peer: ReturnType<typeof toPublicUser>;
-  lastMessage: {
-    id: string;
-    body: string | null;
-    imageUrl: string | null;
-    isUnsent: boolean;
-    senderId: string;
-    createdAt: Date;
-    replyToMessageId: string | null;
-  } | null;
-  lastReaction: ConversationListLastReaction | null;
-  lastSystemLog: ConversationListLastSystemLog | null;
-  hasUnreadReaction: boolean;
-  unreadCount: number;
-  lastMessageAt: Date | null;
-};
-
 function peerId(row: ConversationRow, viewerId: string): string {
   return row.user_a === viewerId ? row.user_b : row.user_a;
 }
@@ -177,15 +148,27 @@ function latestActivityAt(
   messageAt: Date | null,
   reactionAt: Date | null,
   systemLogAt: Date | null,
+  pinActivityAt: Date | null,
   fallback: Date | null
 ): Date | null {
-  const candidates = [messageAt, reactionAt, systemLogAt].filter(
+  const candidates = [messageAt, reactionAt, systemLogAt, pinActivityAt].filter(
     (value): value is Date => value instanceof Date
   );
   if (candidates.length === 0) return fallback;
   return candidates.reduce((latest, current) =>
     current.getTime() > latest.getTime() ? current : latest
   );
+}
+
+function toListLastPinActivity(
+  activity: ConversationInboxRow["latestPinActivity"]
+): ConversationListLastPinActivity | null {
+  if (!activity) return null;
+  return {
+    actorDisplayName: activity.actor_display_name,
+    action: activity.action,
+    createdAt: activity.created_at,
+  };
 }
 
 function peerLastReadAt(row: ConversationRow, viewerId: string): Date | null {
@@ -347,7 +330,9 @@ export class MessageService {
     messages: MessageView[];
     hasMore: boolean;
     theme: ConversationThemeView;
-      themeLogs?: ThemeLogEntry[];
+    themeLogs?: ThemeLogEntry[];
+    pinnedMessages: PinnedMessageView[];
+    pinActivities: MessagePinActivityView[];
   }> {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
@@ -388,6 +373,8 @@ export class MessageService {
       return delivered ? { ...r, delivered_at: delivered } : r;
     });
 
+    const pinState = await MessagePinService.listThreadPinState(conversationId, userId);
+
     return {
       conversationId,
       peer: toPublicUser(peerUser),
@@ -398,6 +385,7 @@ export class MessageService {
       ...(options?.includeThemeLogs
         ? { themeLogs: ChatThemeService.themeLogsFromRow(conversation) }
         : {}),
+      ...pinState,
     };
   }
 
@@ -512,12 +500,25 @@ export class MessageService {
       return rowToView(withReply, userId);
     }
 
-    const row = await MessageModel.markUnsent(messageId, userId);
+    const { row, removedPin } = await db.transaction(async (trx) => {
+      const updated = await MessageModel.markUnsent(messageId, userId, trx);
+      if (!updated) return { row: undefined, removedPin: false };
+      return {
+        row: updated,
+        removedPin: await MessagePinService.deletePinForUnsentMessage(messageId, trx),
+      };
+    });
     if (!row) throw new AppError("MESSAGE_NOT_FOUND", "Message not found or already unsent.");
     const withReply = await MessageModel.findByIdWithReply(row.id);
     if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
     const view = await rowToView(withReply, userId);
-    await publishRealtime(() => MessageRealtime.messageUnsent(conversation, view));
+    await publishRealtime(async () => {
+      await MessageRealtime.messageUnsent(conversation, view);
+      if (removedPin) {
+        const targets = await MessagePinService.listPinnedMessagesForParticipants(conversation);
+        await MessageRealtime.messagePinsUpdated(conversation, targets);
+      }
+    });
     return view;
   }
 
@@ -689,10 +690,13 @@ export class MessageService {
     const reactionAt = lastReaction?.reactedAt ?? null;
     const lastSystemLog = toListLastSystemLog(latestThemeLogFromRow(row));
     const systemLogAt = lastSystemLog?.createdAt ?? null;
+    const lastPinActivity = toListLastPinActivity(row.latestPinActivity);
+    const pinActivityAt = lastPinActivity?.createdAt ?? null;
     const lastActivityAt = latestActivityAt(
       messageAt,
       reactionAt,
       systemLogAt,
+      pinActivityAt,
       row.last_message_at
     );
     const peerUserId = peerId(row, viewerId);
@@ -703,6 +707,7 @@ export class MessageService {
       lastMessage: latest ? lastMessageListShape(latest) : null,
       lastReaction,
       lastSystemLog,
+      lastPinActivity,
       hasUnreadReaction: hasUnreadPeerReaction(
         lastReaction,
         viewerId,
@@ -737,6 +742,7 @@ export class MessageService {
       lastMessage: latest ? lastMessageListShape(latest) : null,
       lastReaction,
       lastSystemLog,
+      lastPinActivity: null,
       hasUnreadReaction: hasUnreadPeerReaction(
         lastReaction,
         viewerId,
@@ -748,6 +754,7 @@ export class MessageService {
         latest?.created_at ?? null,
         lastReaction?.reactedAt ?? null,
         lastSystemLog?.createdAt ?? null,
+        null,
         row.last_message_at
       ),
     };

@@ -1,6 +1,7 @@
 import { ConversationModel } from "../models/ConversationModel";
 import type { ConversationRow } from "../models/ConversationModel";
 import type { MessageView } from "../services/MessageService";
+import type { MessagePinActivityView, PinnedMessageView } from "../services/MessagePinService";
 import type { ConversationThemeView } from "../services/ChatThemeService";
 import type { ThemeLogEntry } from "../types/themeLog";
 import { emitToUser } from "./io";
@@ -15,6 +16,7 @@ export const MESSAGE_ACK = "message:ack";
 export const MESSAGES_UNREAD = "messages:unread";
 export const CONVERSATION_UPDATED = "conversation:updated";
 export const CONVERSATION_THEME = "conversation:theme";
+export const MESSAGE_PINS_UPDATED = "message:pins-updated";
 
 export type MessageDeliveredPayload = {
   messageId: string;
@@ -117,6 +119,21 @@ export const MessageRealtime = {
       emitToUser(userId, CONVERSATION_THEME, payload);
     }
     emitConversationUpdated(conversation);
+  },
+
+  async messagePinsUpdated(
+    conversation: ConversationRow,
+    targets: Array<{ userId: string; pinnedMessages: PinnedMessageView[] }>,
+    pinActivity: MessagePinActivityView | null = null
+  ): Promise<void> {
+    for (const { userId, pinnedMessages } of targets) {
+      emitToUser(userId, MESSAGE_PINS_UPDATED, {
+        conversationId: conversation.id,
+        pinnedMessages,
+        pinActivity,
+      });
+    }
+    if (pinActivity) emitConversationUpdated(conversation);
   },
 
   messageDelivered(senderId: string, payload: MessageDeliveredPayload): void {

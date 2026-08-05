@@ -4,7 +4,14 @@ import type {
   ConversationListItem,
   ConversationSearchResponse,
   ConversationThemeUpdateView,
+  PinnedMessageView,
 } from "@/api/types";
+
+export type PinnedMessagesResponse = {
+  conversationId: string;
+  pinnedMessages: PinnedMessageView[];
+  pinActivity: import("@/api/types").MessagePinActivityView | null;
+};
 
 export async function openConversationWithUsername(username: string): Promise<string> {
   const data = await api.post<{ conversation: ConversationListItem }>(
@@ -16,6 +23,16 @@ export async function openConversationWithUsername(username: string): Promise<st
 
 export async function deleteConversation(conversationId: string): Promise<void> {
   await api.delete(`/api/messages/conversations/${conversationId}`);
+}
+
+export async function setMessagePinned(
+  messageId: string,
+  isPinned: boolean
+): Promise<PinnedMessagesResponse> {
+  if (isPinned) {
+    return api.put<PinnedMessagesResponse>(`/api/messages/messages/${messageId}/pin`);
+  }
+  return api.delete<PinnedMessagesResponse>(`/api/messages/messages/${messageId}/pin`);
 }
 
 export function searchConversationMessages(

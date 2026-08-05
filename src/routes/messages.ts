@@ -20,6 +20,8 @@ messagesRouter.post("/messages/conversations/:id/messages", requireAuth, Message
 messagesRouter.post("/messages/conversations/:id/read", requireAuth, MessagesController.markRead);
 messagesRouter.delete("/messages/messages/:id", requireAuth, MessagesController.unsend);
 messagesRouter.patch("/messages/messages/:id", requireAuth, MessagesController.edit);
+messagesRouter.put("/messages/messages/:id/pin", requireAuth, MessagesController.pinMessage);
+messagesRouter.delete("/messages/messages/:id/pin", requireAuth, MessagesController.unpinMessage);
 messagesRouter.put("/messages/messages/:id/reaction", requireAuth, MessagesController.setReaction);
 messagesRouter.delete(
   "/messages/messages/:id/reaction",

@@ -21,11 +21,18 @@ function inboxPreview(
   const last = item.lastMessage;
   const reaction = item.lastReaction;
   const systemLog = item.lastSystemLog;
+  const pinActivity = item.lastPinActivity;
 
   const messageAt = last?.createdAt ? new Date(last.createdAt).getTime() : 0;
   const reactionAt = reaction?.reactedAt ? new Date(reaction.reactedAt).getTime() : 0;
   const systemLogAt = systemLog?.createdAt ? new Date(systemLog.createdAt).getTime() : 0;
-  const latestAt = Math.max(messageAt, reactionAt, systemLogAt);
+  const pinActivityAt = pinActivity?.createdAt ? new Date(pinActivity.createdAt).getTime() : 0;
+  const latestAt = Math.max(messageAt, reactionAt, systemLogAt, pinActivityAt);
+
+  if (pinActivity && pinActivityAt === latestAt) {
+    const verb = pinActivity.action === "pinned" ? "pinned a message" : "unpinned a message";
+    return { text: `${pinActivity.actorDisplayName} ${verb}`, isMedia: false, isSystemLog: true };
+  }
 
   if (systemLog && systemLogAt === latestAt) {
     return { text: systemLog.text, isMedia: false, isSystemLog: true };

@@ -26,6 +26,11 @@ export type ConversationRow = {
 export type ConversationInboxRow = ConversationRow & {
   peer: UserRow;
   lastMessage: MessageRow | null;
+  latestPinActivity: {
+    actor_display_name: string;
+    action: "pinned" | "unpinned";
+    created_at: Date;
+  } | null;
   unreadCount: number;
 };
 
@@ -50,6 +55,9 @@ type InboxQueryRow = ConversationRow & {
   lm_edited_at: Date | null;
   lm_reply_to_message_id: string | null;
   lm_created_at: Date | null;
+  pa_actor_display_name: string | null;
+  pa_action: "pinned" | "unpinned" | null;
+  pa_created_at: Date | null;
   unread_count: string | number;
 };
 
@@ -127,6 +135,9 @@ export class ConversationModel {
         lm.edited_at AS lm_edited_at,
         lm.reply_to_message_id AS lm_reply_to_message_id,
         lm.created_at AS lm_created_at,
+        pa.actor_display_name AS pa_actor_display_name,
+        pa.action AS pa_action,
+        pa.created_at AS pa_created_at,
         (
           SELECT COUNT(*)::int
           FROM messages m
@@ -150,11 +161,37 @@ export class ConversationModel {
         ORDER BY m.created_at DESC
         LIMIT 1
       ) lm ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT a.action, a.created_at, actor.display_name AS actor_display_name
+        FROM message_pin_activities a
+        INNER JOIN messages pinned_message ON pinned_message.id = a.message_id
+        INNER JOIN users actor ON actor.id = a.actor_id
+        WHERE a.conversation_id = c.id
+          AND pinned_message.unsent_at IS NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM message_user_deletions d
+            WHERE d.message_id = a.message_id AND d.user_id = ?
+          )
+        ORDER BY a.created_at DESC
+        LIMIT 1
+      ) pa ON TRUE
       WHERE (c.user_a = ? OR c.user_b = ?)
         AND ${visibleForUserSql("?")}
       ORDER BY c.last_message_at DESC NULLS LAST, c.created_at DESC
       `,
-      [userId, userId, userId, userId, userId, userId, userId, userId, userId]
+      [
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+      ]
     );
 
     return rows.rows.map((r) => ({
@@ -199,6 +236,14 @@ export class ConversationModel {
             created_at: r.lm_created_at!,
           }
         : null,
+      latestPinActivity:
+        r.pa_actor_display_name && r.pa_action && r.pa_created_at
+          ? {
+              actor_display_name: r.pa_actor_display_name,
+              action: r.pa_action,
+              created_at: r.pa_created_at,
+            }
+          : null,
       unreadCount: Number(r.unread_count ?? 0),
     }));
   }

@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { MessageService } from "../../services/MessageService";
+import { MessagePinService } from "../../services/MessagePinService";
 import { ChatThemeService } from "../../services/ChatThemeService";
 import { ok, fail } from "../../utils/response";
 import { AppError, statusForCode } from "../../utils/AppError";
@@ -123,6 +124,24 @@ export class MessagesController {
     try {
       const message = await MessageService.clearReaction(req.userId!, String(req.params.id));
       return ok(res, { message });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async pinMessage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessagePinService.pinMessage(req.userId!, String(req.params.id));
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async unpinMessage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessagePinService.unpinMessage(req.userId!, String(req.params.id));
+      return ok(res, data);
     } catch (err) {
       return handle(res, err);
     }
