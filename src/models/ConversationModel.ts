@@ -44,6 +44,7 @@ type InboxQueryRow = ConversationRow & {
   peer_avatar_url: string | null;
   peer_cover_url: string | null;
   peer_feed_seen_at: Date | null;
+  peer_last_active_at: Date | null;
   peer_created_at: Date;
   peer_updated_at: Date;
   lm_id: string | null;
@@ -109,6 +110,14 @@ export class ConversationModel {
       .orderBy("created_at", "desc");
   }
 
+  static async listPeerUserIds(userId: string): Promise<string[]> {
+    const [firstUsers, secondUsers] = await Promise.all([
+      db("conversations").where({ user_a: userId }).pluck<string>("user_b"),
+      db("conversations").where({ user_b: userId }).pluck<string>("user_a"),
+    ]);
+    return Array.from(new Set([...firstUsers, ...secondUsers])).filter((id) => id !== userId);
+  }
+
   /** Inbox rows with peer, latest message, and unread count in one SQL round-trip. */
   static async listInboxForUser(userId: string): Promise<ConversationInboxRow[]> {
     const rows = await db.raw<{ rows: InboxQueryRow[] }>(
@@ -124,6 +133,7 @@ export class ConversationModel {
         peer.avatar_url AS peer_avatar_url,
         peer.cover_url AS peer_cover_url,
         peer.feed_seen_at AS peer_feed_seen_at,
+        peer.last_active_at AS peer_last_active_at,
         peer.created_at AS peer_created_at,
         peer.updated_at AS peer_updated_at,
         lm.id AS lm_id,
@@ -219,6 +229,7 @@ export class ConversationModel {
         avatar_url: r.peer_avatar_url,
         cover_url: r.peer_cover_url,
         feed_seen_at: r.peer_feed_seen_at,
+        last_active_at: r.peer_last_active_at,
         created_at: r.peer_created_at,
         updated_at: r.peer_updated_at,
       },

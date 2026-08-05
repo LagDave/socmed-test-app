@@ -53,4 +53,8 @@ export class UserModel {
   static async updateFeedSeenAt(id: string, seenAt: Date): Promise<void> {
     await db("users").where({ id }).update({ feed_seen_at: seenAt });
   }
+
+  static async updateLastActiveAt(id: string, lastActiveAt: Date): Promise<void> {
+    await db("users").where({ id }).update({ last_active_at: lastActiveAt });
+  }
 }

@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { FriendshipModel } from "../models/FriendshipModel";
 import { UserModel } from "../models/UserModel";
+import { isUserOnline } from "../realtime/PresenceRealtime";
 import { PostService } from "./PostService";
 import { AppError } from "../utils/AppError";
 import { toPublicUser, type PublicUser } from "../types/user";
@@ -24,10 +26,15 @@ const profilePatchSchema = z.object({
 });
 
 export class ProfileService {
-  static async getByUsername(username: string): Promise<PublicUser> {
+  static async getByUsername(viewerId: string, username: string): Promise<PublicUser> {
     const row = await UserModel.findByUsername(username);
     if (!row || !row.username) throw new AppError("USER_NOT_FOUND", "User not found.");
-    return toPublicUser(row);
+    const user = toPublicUser(row);
+    const areFriends = await FriendshipModel.areFriends(viewerId, row.id);
+    const isOnline = isUserOnline(row.id);
+    return areFriends
+      ? { ...user, isOnline, lastActiveAt: isOnline ? null : row.last_active_at ?? null }
+      : user;
   }
 
   static async updateMe(userId: string, raw: unknown): Promise<PublicUser> {

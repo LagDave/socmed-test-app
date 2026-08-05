@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { FriendPresenceProvider } from "@/contexts/FriendPresenceProvider";
 import { AppShell } from "@/components/AppShell";
 import { FeedPage } from "@/pages/FeedPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -25,9 +26,10 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <AppShell>
-            <Routes>
+        <FriendPresenceProvider>
+          <BrowserRouter>
+            <AppShell>
+              <Routes>
               <Route path="/" element={<FeedPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
@@ -41,9 +43,10 @@ export default function App() {
               <Route path="/settings" element={<AccountSettingsPage />} />
               <Route path="/u/me" element={<ProfileRedirect />} />
               <Route path="/u/:username" element={<ProfilePage />} />
-            </Routes>
-          </AppShell>
-        </BrowserRouter>
+              </Routes>
+            </AppShell>
+          </BrowserRouter>
+        </FriendPresenceProvider>
       </AuthProvider>
     </ThemeProvider>
   );

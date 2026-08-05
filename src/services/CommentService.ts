@@ -7,6 +7,8 @@ import { ReactionModel, emptyReactionSummary, type ReactionSummary } from "../mo
 import { NotificationService } from "./NotificationService";
 import { AppError } from "../utils/AppError";
 import { toPublicUser } from "../types/user";
+import { FriendshipModel } from "../models/FriendshipModel";
+import { isUserOnline } from "../realtime/PresenceRealtime";
 
 const createCommentSchema = z.object({
   body: z.string().min(1).max(2000),
@@ -29,6 +31,7 @@ export type CommentView = {
 
 async function hydrate(rows: CommentRow[], viewerId: string): Promise<CommentView[]> {
   const authors = await Promise.all(rows.map((r) => UserModel.findById(r.author_id)));
+  const mutualFriendIds = new Set(await FriendshipModel.listAcceptedMutualIds(viewerId));
   const summaries = await ReactionModel.summariesForComments(
     rows.map((r) => r.id),
     viewerId
@@ -44,7 +47,9 @@ async function hydrate(rows: CommentRow[], viewerId: string): Promise<CommentVie
       body: r.body,
       imageUrl: r.image_url,
       createdAt: r.created_at,
-      author: toPublicUser(author),
+      author: mutualFriendIds.has(author.id)
+        ? { ...toPublicUser(author), isOnline: isUserOnline(author.id) }
+        : toPublicUser(author),
       reactionSummary: summaries.get(r.id) ?? emptyReactionSummary(),
     };
   });
