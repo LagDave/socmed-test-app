@@ -48,6 +48,8 @@ export type PostView = {
   createdAt: string;
   author: PublicUser;
   reactionSummary: ReactionSummary;
+  commentCount: number;
+  shareCount: number;
   sharedFromPostId: string | null;
   sharedFrom: PostView | null;
 };

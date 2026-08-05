@@ -129,6 +129,7 @@ export function PostPhotoCommentsPage() {
     setError(null);
     try {
       await api.post(`/api/posts/${post.id}/share`);
+      await load();
       setShareNotice("Shared to your feed.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to share");
@@ -221,6 +222,7 @@ export function PostPhotoCommentsPage() {
             <PostActionRow
               size="md"
               commentCount={commentCount}
+              shareCount={post.shareCount}
               showShare
               shareDisabled={!canShare}
               onShare={canShare ? () => void onShare() : undefined}

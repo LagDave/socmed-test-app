@@ -136,7 +136,6 @@ export function FeedPage() {
               <PostCard
                 post={post}
                 currentUserId={user.id}
-                showActionLabels
                 onDelete={setPendingDeleteId}
                 onShare={openShare}
                 onReactionSummaryChange={patchPostSummary}

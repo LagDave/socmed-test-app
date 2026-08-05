@@ -162,6 +162,7 @@ export function PostDetailPage() {
     setShareNotice(null);
     try {
       await api.post(`/api/posts/${post.id}/share`, { body: caption });
+      await load();
       setShareDialogOpen(false);
       setShareNotice("Shared to your feed.");
     } catch (err) {
@@ -240,7 +241,6 @@ export function PostDetailPage() {
           post={post}
           currentUserId={user.id}
           postMediaMode="detail"
-          showActionLabels
           onDelete={() => setPendingDelete({ type: "post" })}
           onShare={() => openShare()}
           onReactionSummaryChange={(_, summary) => patchPostSummary(summary)}

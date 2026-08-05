@@ -62,6 +62,23 @@ export class CommentModel {
     return outer;
   }
 
+  static async countPostLevelByPostIds(postIds: string[]): Promise<Map<string, number>> {
+    const counts = new Map(postIds.map((postId) => [postId, 0]));
+    if (postIds.length === 0) return counts;
+
+    const rows = await db("comments")
+      .whereIn("post_id", postIds)
+      .whereNull("post_image_id")
+      .select("post_id")
+      .count("* as count")
+      .groupBy("post_id");
+
+    for (const row of rows as Array<{ post_id: string; count: string | number }>) {
+      counts.set(row.post_id, Number(row.count));
+    }
+    return counts;
+  }
+
   static async findById(id: string): Promise<CommentRow | undefined> {
     return db<CommentRow>("comments").where({ id }).first();
   }
