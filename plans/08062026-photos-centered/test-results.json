@@ -1,0 +1,71 @@
+{
+  "plan": "plans/08062026-photos-centered",
+  "generatedAt": "2026-08-06",
+  "status": "In Progress",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Centered multi-photo feed preview",
+      "surface": "ui",
+      "precondition": "Signed in on Feed; a standard post with 2–10 images is visible; isolated acceptance runtime is running.",
+      "steps": [
+        "Open the feed at a desktop viewport at least 1024px wide.",
+        "Locate the multi-photo post preview.",
+        "Compare the gallery's left and right whitespace within the post content area.",
+        "Open the same feed at a narrow mobile viewport."
+      ],
+      "expected": "The gallery's centerline matches the enclosing post card's centerline and it is no wider than 36rem on desktop; at narrow widths it fills the available content width without horizontal overflow; its grid, overlay count, and click-through behavior remain intact.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Single-photo feed post remains centered and functional",
+      "surface": "ui",
+      "precondition": "Signed in on Feed; a standard post with exactly one image is visible; isolated acceptance runtime is running.",
+      "steps": [
+        "View the single-photo post at desktop width.",
+        "Confirm its image stage is centered and uses the same maximum width behavior.",
+        "Click the image."
+      ],
+      "expected": "The single photo follows the same full-card-centered responsive stage and opens the post detail page normally.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Shared media consumers do not regress",
+      "surface": "ui",
+      "precondition": "A multi-photo post, its detail page, a profile-timeline rendering, and a shared-post embed are available in the isolated acceptance runtime.",
+      "steps": [
+        "Open the post detail page from the feed preview.",
+        "View the same or another post in a profile timeline.",
+        "View a shared-post embed containing multiple photos."
+      ],
+      "expected": "Post detail has no clipping or overflow; the entire shared-post embed and its original media are centered on the full feed card and use the normal feed-gallery proportions; profile timeline and compact share-composer preview retain their current sizing and controls.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Frontend build gate",
+      "surface": "cli",
+      "precondition": "T1 implementation is complete.",
+      "steps": [
+        "Run the repository typecheck/build command required by package scripts.",
+        "Run the impacted convention/lint checks if configured."
+      ],
+      "expected": "No errors caused by the CSS change; any pre-existing failures are documented separately.",
+      "status": "pass",
+      "evidence": "2026-08-06: After the Rev 10 shared-original gallery-sizing revision, npm run typecheck and npm run build passed on kylie/photos-centered. npm --prefix frontend run lint completed with the same six pre-existing warnings in AuthContext.tsx, ThemeContext.tsx, MessageQuoteStrip.tsx, PostDetailPage.tsx, and PostPhotoCommentsPage.tsx; none are in the changed files.",
+      "notes": "Visual UI items A1–A3 require the contained -tw runtime and remain pending.",
+      "waiver": ""
+    }
+  ]
+}

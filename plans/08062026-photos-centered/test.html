@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acceptance checklist — Center post photos</title>
+  <style>
+    body { max-width: 840px; margin: 0 auto; padding: 28px 20px; font-family: system-ui, sans-serif; color: #172033; }
+    .note { padding: 12px; border-radius: 8px; background: #eef5ff; } article { margin: 16px 0; padding: 16px; border: 1px solid #d7deea; border-radius: 10px; }
+    label { display: block; margin: 9px 0; } textarea { width: 100%; min-height: 54px; box-sizing: border-box; } button { padding: 9px 12px; font: inherit; }
+  </style>
+</head>
+<body>
+  <h1>Center post photos — acceptance checklist</h1>
+  <p class="note">Source of truth: <code>test-results.json</code>. Run these only against the contained acceptance runtime. This viewer records a human-readable export; copy results into the JSON artifact during execution.</p>
+  <div id="items"></div>
+  <button id="download" type="button">Download completed results</button>
+  <script>
+    const checklist = [
+      ["A1", "Centered multi-photo feed preview", "Desktop: gallery is centered and ≤36rem; mobile: it is fluid without horizontal overflow; grid/click-through stay intact."],
+      ["A2", "Single-photo feed post remains centered and functional", "Single photo is centered at desktop and opens post detail normally."],
+      ["A3", "Shared media consumers do not regress", "Detail has no clipping; profile timeline and shared compact embed retain their current layouts."],
+      ["A4", "Frontend build gate", "Typecheck/build and applicable checks complete without change-caused errors."]
+    ];
+    const items = document.querySelector("#items");
+    checklist.forEach(([id, title, expected]) => {
+      const card = document.createElement("article");
+      card.innerHTML = `<h2>${id} — ${title}</h2><p><strong>Expected:</strong> ${expected}</p><label>Status <select data-id="${id}"><option value="pending">Pending</option><option value="pass">Pass</option><option value="fail">Fail</option></select></label><label>Evidence<textarea data-evidence="${id}" placeholder="Observed evidence, command output, or a written waiver"></textarea></label>`;
+      items.append(card);
+    });
+    document.querySelector("#download").addEventListener("click", () => {
+      const results = checklist.map(([id, title]) => ({ id, title, status: document.querySelector(`[data-id="${id}"]`).value, evidence: document.querySelector(`[data-evidence="${id}"]`).value }));
+      const blob = new Blob([JSON.stringify(results, null, 2)], { type: "application/json" });
+      const link = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "test-results-export.json" });
+      link.click(); URL.revokeObjectURL(link.href);
+    });
+  </script>
+</body>
+</html>

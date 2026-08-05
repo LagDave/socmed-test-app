@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan 08062026 — Center post photos</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    body { max-width: 980px; margin: 0 auto; padding: 32px 20px 56px; background: #111827; color: #e5e7eb; line-height: 1.55; }
+    h1, h2, h3 { line-height: 1.2; color: #fff; } h1 { margin-bottom: 8px; }
+    .status { display: inline-block; padding: 6px 11px; border-radius: 999px; background: #78350f; color: #fef3c7; font-weight: 700; }
+    .meta, .callout { padding: 14px 16px; border: 1px solid #374151; border-radius: 10px; background: #1f2937; }
+    section { margin-top: 28px; } code { color: #bfdbfe; }
+    table { width: 100%; border-collapse: collapse; } th, td { text-align: left; vertical-align: top; padding: 10px; border-bottom: 1px solid #374151; }
+    th { color: #f9fafb; } .risk { border-left: 4px solid #f59e0b; }
+  </style>
+</head>
+<body>
+  <p class="status">In Progress</p>
+  <h1>Center post photos in the feed</h1>
+  <div class="meta">
+    <strong>Plan:</strong> <code>plans/08062026-photos-centered</code><br />
+    <strong>Planning branch:</strong> <code>plan/08062026-photos-centered</code> from <code>kylie/photos-centered</code> @ <code>11712a7</code><br />
+    <strong>Execution target:</strong> <code>kylie/photos-centered</code> → <code>dev</code>
+  </div>
+
+  <section>
+    <h2>Revision Log</h2>
+    <div class="callout">
+      <p><strong>Rev 1 — 08062026:</strong> Planning was paused before scope approval. Added the grill below at the request of the product owner. The proposed implementation, constraints, tasks, and acceptance items below are provisional until the grill is answered; the next revision will record the chosen answers and reconcile the final scope.</p>
+      <p><strong>Rev 2 — 08062026:</strong> Grill approved by kylie: G1 both standard single- and multi-photo feed posts; G2 restore the existing 36rem cap; G3 retain the shared post-detail behavior; G4 fluid on mobile; G5 leave profile activity, timeline embeds, and shared embeds unchanged; G6 CSS-only repair. Scope is now approved for execution.</p>
+      <p><strong>Rev 3 — 08062026:</strong> T1 executed on <code>kylie/photos-centered</code>. Removed the later duplicate <code>.post-media-stage { width: 100%; }</code> override from <code>frontend/src/index.css</code>, restoring the canonical responsive rule. <code>npm run typecheck</code> and <code>npm run build</code> passed; frontend lint completed with six pre-existing warnings outside this change. UI acceptance A1–A3 remains pending a contained <code>-tw</code> runtime.</p>
+      <p><strong>Rev 4 — 08062026:</strong> Product clarification: the redesign goal is geometric centering of standard post photos relative to the entire post card, not merely centering inside the avatar-offset text column. The CSS restoration alone cannot achieve this. T1 expands to move the standard-media stage out of that column in <code>PostCard.tsx</code>, retaining the approved 36rem responsive cap and leaving profile-activity media and embedded surfaces unchanged.</p>
+      <p><strong>Rev 5 — 08062026:</strong> Revised T1 executed on <code>kylie/photos-centered</code>. <code>PostCard</code> now constructs standard media once, retains it inside the existing embedded-card path, and renders it below the avatar/header row for standalone cards. This makes the existing 36rem stage center against the card's symmetric content area. <code>npm run typecheck</code> and <code>npm run build</code> passed; frontend lint has the same six pre-existing warnings outside the changed files. UI acceptance A1–A3 remains pending a contained <code>-tw</code> runtime.</p>
+      <p><strong>Rev 6 — 08062026:</strong> Product clarification: the same visual rule applies to the original post inside a shared-post embed. The embed gallery currently sits in the original author's avatar-offset text column, as confirmed by the supplied screenshot. T1 expands to restructure <code>SharedPostEmbed.tsx</code> so its non-compact original media is a centered sibling below the embedded author/body row. The share composer preview remains compact and out of scope.</p>
+      <p><strong>Rev 7 — 08062026:</strong> Shared-embed portion of T1 executed on <code>kylie/photos-centered</code>. <code>SharedPostEmbed</code> now renders original post media below its avatar/body row inside the canonical centered stage; <code>SharePostPreview</code> remains unchanged. The refactor also removes the prior nested interactive links by letting multi-photo media own its existing post link and linking the original caption separately. <code>npm run typecheck</code> and <code>npm run build</code> passed; frontend lint has the same six pre-existing warnings outside the changed files. UI acceptance A1–A3 remains pending a contained <code>-tw</code> runtime.</p>
+      <p><strong>Rev 8 — 08062026:</strong> Screenshot review identifies the remaining offset: while the media is centered inside <code>SharedPostEmbed</code>, the entire embed is still rendered in the sharing post's avatar-offset text column in <code>PostCard</code>. T1 expands to render standalone shared-post embeds below that outer header row, alongside the existing standalone standard-media treatment. Embedded profile-timeline cards retain their current inline behavior.</p>
+      <p><strong>Rev 9 — 08062026:</strong> Final shared-post placement executed on <code>kylie/photos-centered</code>. <code>PostCard</code> now constructs a share embed once and renders it below the sharer's header row for standalone cards, while embedded cards keep their existing inline placement. This moves the entire shared-post embed—and therefore its already-centered original media—onto the full feed-card centerline. <code>npm run typecheck</code> and <code>npm run build</code> passed; frontend lint has the same six pre-existing warnings outside the changed files. UI acceptance A1–A3 remains pending a contained <code>-tw</code> runtime.</p>
+      <p><strong>Rev 10 — 08062026:</strong> Product feedback: the centered shared-original gallery still looks horizontally compressed because <code>SharedPostEmbed</code> uses <code>PostMediaGallery</code>'s compact mode. T1 expands to render only shared-original multi-photo media with the standard feed-gallery sizing; the compact <code>SharePostPreview</code> stays unchanged.</p>
+      <p><strong>Rev 11 — 08062026:</strong> Shared-original gallery sizing executed on <code>kylie/photos-centered</code>. <code>SharedPostEmbed</code> now passes <code>mode="feed"</code> to multi-photo original media, removing the compact-height cap while leaving <code>SharePostPreview</code> on compact mode. <code>npm run typecheck</code> and <code>npm run build</code> passed; frontend lint has the same six pre-existing warnings outside the changed files. UI acceptance A1–A3 remains pending a contained <code>-tw</code> runtime.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Grill — decisions required before execution</h2>
+    <table>
+      <tr><th>Question</th><th>Recommended answer</th><th>Why it matters</th></tr>
+      <tr>
+        <td><strong>G1 — Which feed photos should center?</strong><br />Only multi-photo grids shown in the screenshot, or both single- and multi-photo standard posts?</td>
+        <td><strong>Both standard single- and multi-photo posts.</strong></td>
+        <td>They use the same media-stage wrapper. Centering only grids would create an inconsistent feed and require a special-case selector.</td>
+      </tr>
+      <tr>
+        <td><strong>G2 — What desktop width should the centered media use?</strong><br />Restore the existing 36rem cap, or choose another maximum width?</td>
+        <td><strong>Restore 36rem.</strong></td>
+        <td>That exact responsive rule already exists in the stylesheet and was introduced for centered media; restoring it is the smallest, lowest-risk correction.</td>
+      </tr>
+      <tr>
+        <td><strong>G3 — Should post detail follow the same correction?</strong><br />The shared stage is rendered by both the feed and post-detail card.</td>
+        <td><strong>Yes, restore the shared centered stage on both.</strong></td>
+        <td>A CSS-only restoration returns the earlier intended behavior everywhere this wrapper is used. Choosing feed-only requires a component modifier and expands the change to <code>PostCard.tsx</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>G4 — How should it behave on mobile?</strong></td>
+        <td><strong>Fluid at the available content width.</strong></td>
+        <td>The max-width should constrain only wider viewports; a fixed desktop width would cause narrow-screen overflow or wasted space.</td>
+      </tr>
+      <tr>
+        <td><strong>G5 — Are profile-activity images, profile timeline posts, and compact shared embeds in scope?</strong></td>
+        <td><strong>No; leave them unchanged.</strong></td>
+        <td>They use separate layout paths. Including them turns a targeted feed repair into a broader media redesign without evidence that they need it.</td>
+      </tr>
+      <tr>
+        <td><strong>G6 — Is a CSS-only regression repair acceptable?</strong><br />No grid redesign, new gallery controls, API work, or dependency.</td>
+        <td><strong>Yes.</strong></td>
+        <td>The fault is the CSS cascade. Keeping the repair to the conflicting declaration protects the media component and its interaction behavior.</td>
+      </tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Why</h2>
+    <p>The feed's post-photo grid is laid out inside the text column that begins after the author avatar, so it appears shifted to the right of the post card's actual center. The screenshot confirms that a width-only CSS restoration cannot deliver the desired design.</p>
+  </section>
+
+  <section>
+    <h2>What</h2>
+    <p>Render standard post media as a card-level block, below the avatar/header row, so its 36rem responsive stage is centered against the whole post card. Render standalone shared-post embeds below the sharing post's header row, then center the original media within that full-width embed using the normal feed-gallery proportions. At smaller widths it remains fluid at 100% width.</p>
+    <p><strong>Done when:</strong> the centerline of a single-photo post, a 2–10 photo preview, and the whole shared-post embed matches the centerline of its enclosing feed card on desktop; neither overflows or becomes unnecessarily narrow on mobile; clicking either still opens the post; profile-activity media, profile timeline, and compact share-composer preview retain their respective layouts.</p>
+  </section>
+
+  <section>
+    <h2>Context</h2>
+    <ul>
+      <li><code>frontend/src/components/PostCard.tsx</code> currently renders <code>PostStandardMedia</code> inside the header's <code>min-w-0 flex-1</code> text column. Its <code>post-media-stage</code> is therefore centered in the remaining width after the avatar, not in the card. Move only standard media to a card-level sibling below that header row.</li>
+      <li><code>frontend/src/components/SharedPostEmbed.tsx</code> renders the original post media inside its own <code>min-w-0 flex-1</code> column beside <code>FriendPresenceAvatar</code>. Move only the non-compact original media below that row; <code>SharePostPreview</code> stays compact.</li>
+      <li>A standalone share still renders <code>SharedPostEmbed</code> inside the sharing post's <code>min-w-0 flex-1</code> column in <code>PostCard</code>. Move that whole embed below the outer header row; its internal centering then aligns with the full feed card.</li>
+      <li><code>SharedPostEmbed</code> currently passes <code>mode="compact"</code> for a multi-photo original, applying the short compact-grid height. Use <code>mode="feed"</code> there only; <code>SharePostPreview</code> keeps <code>mode="compact"</code>.</li>
+      <li><code>frontend/src/components/PostMediaGallery.tsx</code> owns the 2-, 3-, and 4+-photo preview grids. It should not change for this layout repair.</li>
+      <li><code>frontend/src/index.css</code> defines the intended <code>width: min(100%, 36rem)</code> and centering at lines 1013–1018, but a later duplicate <code>.post-media-stage { width: 100%; }</code> at lines 1854–1856 wins in the cascade.</li>
+      <li><code>frontend/src/components/SharedPostEmbed.tsx</code> uses compact media directly and does not use <code>post-media-stage</code>.</li>
+      <li>Closest analog: commit <code>a602a92</code> introduced centered feed media galleries; no new component or design pattern is needed.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Constraints</h2>
+    <table>
+      <tr><th>Must</th><th>Must not</th></tr>
+      <tr>
+        <td>
+          <ul><li>Center standard post media and standalone shared-post embeds against the full standalone card; center original media within the full embed, not any header text column.</li><li>Use standard feed-gallery proportions for shared-original multi-photo media; retain compact proportions in the share composer preview.</li><li>Keep media responsive below 36rem.</li><li>Keep existing crop, grid counts, click-through, reactions, and action rows unchanged.</li><li>Leave one canonical definition for the shared stage width.</li></ul>
+        </td>
+        <td>
+          <ul><li>No API, data model, upload, or gallery-component changes.</li><li>No new dependencies.</li><li>No visual changes to profile-activity media, profile timeline embeds, or shared-post compact media.</li></ul>
+        </td>
+      </tr>
+    </table>
+    <p><strong>Out of scope:</strong> changing photo aspect ratios, creating a lightbox, redesigning the album preview, or centering unrelated feed content.</p>
+  </section>
+
+  <section>
+    <h2>Risk &amp; pushback</h2>
+    <div class="callout risk">
+      <strong>Level 2 — Concern.</strong> Moving media outside the avatar/header row changes the <code>PostCard</code> structure used by feed and post detail. A broad restructure could disturb activity-post media or embed layouts. <strong>Mitigation:</strong> extract the already-computed standard-media node and render it only as a sibling of the header row when <code>variant === "standalone"</code>; preserve the current embedded and activity-media paths unchanged. Do not add a second gallery abstraction or duplicate selector.
+    </div>
+    <table>
+      <tr><th>Consumer</th><th>Expected impact / verification</th></tr>
+      <tr><td>FeedPage → PostCard</td><td>Single-photo and multi-photo media, plus the entire shared-post embed, center on the full card.</td></tr>
+      <tr><td>PostDetailPage → PostCard</td><td>Uses the same card-level standard-media layout; verify no clipping.</td></tr>
+      <tr><td>ProfilePage → embedded PostCard</td><td>Unaffected: embedded media bypasses the stage wrapper.</td></tr>
+      <tr><td>SharedPostEmbed</td><td>Original single- and multi-photo media center on the full embed with standard feed-gallery proportions; the compact share-composer preview remains unchanged.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Tasks</h2>
+    <div class="callout">
+      <h3>T1 — Center standard media and shared embeds without compact gallery compression</h3>
+      <p><strong>Do:</strong> Preserve the canonical <code>min(100%, 36rem)</code> media-stage rule, then restructure <code>PostCard</code> so standalone standard media and standalone <code>SharedPostEmbed</code> render below the avatar/header row as card-level blocks. Keep original media centered inside <code>SharedPostEmbed</code> and use feed-gallery, not compact-gallery, proportions there. Continue to render embedded cards, profile-activity media, and <code>SharePostPreview</code> through their current paths.</p>
+      <p><strong>Files:</strong> <code>frontend/src/components/PostCard.tsx</code>, <code>frontend/src/components/SharedPostEmbed.tsx</code>, <code>frontend/src/index.css</code></p>
+      <p><strong>Depends on:</strong> —</p>
+      <p><strong>Verify:</strong> frontend typecheck/build; visual acceptance at desktop and mobile widths using single-photo and multi-photo feed posts; post detail, profile timeline, and shared embed regression checks.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Verification</h2>
+    <ul>
+      <li>Run <code>npm run typecheck</code> from the repository root (or the project’s equivalent frontend typecheck/build command if scripts differ).</li>
+      <li>Run the acceptance items in <code>test-results.json</code> against an isolated runtime under <code>-tw</code>; record only observed evidence.</li>
+      <li>Check the frontend constitutional guardrails relevant to this CSS-only change: no component/data-flow changes, no added dependencies, and no new frontend convention findings (§13.1, §14.2, §17.1, §17.2).</li>
+    </ul>
+  </section>
+</body>
+</html>
