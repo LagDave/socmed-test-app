@@ -1,3 +1,4 @@
+import type { Knex } from "knex";
 import { db } from "../database/connection";
 
 export type MessageRow = {
@@ -63,6 +64,10 @@ function mapListRow(row: MessageListQueryRow): MessageRowWithReply {
   };
 }
 
+function escapeLikePattern(query: string): string {
+  return query.replace(/[\\%_]/g, "\\$&");
+}
+
 export class MessageModel {
   static async findById(id: string): Promise<MessageRow | undefined> {
     return db<MessageRow>("messages").where({ id }).first();
@@ -97,6 +102,41 @@ export class MessageModel {
     opts: { limit: number; before?: string; viewerId?: string }
   ): Promise<MessageRowWithReply[]> {
     return this.listWithReplyContext(conversationId, opts);
+  }
+
+  static async searchByConversation(
+    conversationId: string,
+    viewerId: string,
+    query: string,
+    limit: number
+  ): Promise<MessageRowWithReply[]> {
+    const pattern = `%${escapeLikePattern(query)}%`;
+    const rows = await db<MessageListQueryRow>("messages as m")
+      .select(
+        "m.*",
+        "parent.id as reply_id",
+        "parent.sender_id as reply_sender_id",
+        "parent.body as reply_body",
+        "parent.image_url as reply_image_url",
+        "parent.unsent_at as reply_unsent_at",
+        "parent_user.display_name as reply_sender_display_name"
+      )
+      .leftJoin("messages as parent", "parent.id", "m.reply_to_message_id")
+      .leftJoin("users as parent_user", "parent_user.id", "parent.sender_id")
+      .where("m.conversation_id", conversationId)
+      .whereNull("m.unsent_at")
+      .whereNotNull("m.body")
+      .whereILike("m.body", pattern)
+      .whereNotExists(function () {
+        this.select(1)
+          .from("message_user_deletions as d")
+          .whereRaw("d.message_id = m.id")
+          .andWhere("d.user_id", viewerId);
+      })
+      .orderBy("m.created_at", "desc")
+      .limit(limit);
+
+    return rows.map(mapListRow);
   }
 
   private static async listWithReplyContext(
@@ -144,12 +184,16 @@ export class MessageModel {
     return rows.reverse().map(mapListRow);
   }
 
-  static async markUnsent(id: string, senderId: string): Promise<MessageRow | undefined> {
-    const [row] = await db<MessageRow>("messages")
+  static async markUnsent(
+    id: string,
+    senderId: string,
+    trx: Knex = db
+  ): Promise<MessageRow | undefined> {
+    const [row] = await trx<MessageRow>("messages")
       .where({ id, sender_id: senderId })
       .whereNull("unsent_at")
       .update({
-        unsent_at: db.fn.now(),
+        unsent_at: trx.fn.now(),
         body: null,
         image_url: null,
       })

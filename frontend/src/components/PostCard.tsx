@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ImageIcon, MoreHorizontal, Trash2, UserRound } from "lucide-react";
 import type { PostView, ReactionSummary } from "@/api/types";
@@ -54,10 +54,16 @@ function ProfileActivityMedia({ body, imageUrl }: { body: string; imageUrl: stri
   );
 }
 
+function wrapFeedMediaStage(node: ReactNode, variant: "standalone" | "embedded") {
+  if (variant === "embedded") return node;
+  return <div className="post-media-stage">{node}</div>;
+}
+
 function PostStandardMedia({
   post,
   postPath,
   mediaMode = "feed",
+  variant = "standalone",
   onReactionSummaryChange,
   onPhotoReactionSummaryChange,
   onShare,
@@ -67,6 +73,7 @@ function PostStandardMedia({
   post: PostView;
   postPath: string;
   mediaMode?: "feed" | "detail";
+  variant?: "standalone" | "embedded";
   currentUserId: string;
   onReactionSummaryChange: (postId: string, summary: ReactionSummary) => void;
   onPhotoReactionSummaryChange?: (postImageId: string, summary: ReactionSummary) => void;
@@ -92,23 +99,25 @@ function PostStandardMedia({
       : undefined;
 
   if (media.length > 1 || mediaMode === "detail") {
-    return (
+    return wrapFeedMediaStage(
       <PostMediaGallery
         media={media}
         postPath={postPath}
         mode={mediaMode === "detail" ? "detail" : "feed"}
         postActions={detailActions}
-      />
+      />,
+      variant
     );
   }
-  return (
+  return wrapFeedMediaStage(
     <Link to={postPath} className="mt-3 block overflow-hidden rounded-xl border border-border/60">
       <img
         src={media[0].url}
         alt=""
         className="max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]"
       />
-    </Link>
+    </Link>,
+    variant
   );
 }
 
@@ -212,6 +221,7 @@ export function PostCard({
           post={post}
           postPath={postPath}
           mediaMode={postMediaMode}
+          variant={variant}
           currentUserId={currentUserId}
           onReactionSummaryChange={onReactionSummaryChange}
           onPhotoReactionSummaryChange={onPhotoReactionSummaryChange}
@@ -301,12 +311,7 @@ export function PostCard({
       </div>
 
       {perPhotoActions ? null : (
-        <div
-          className={cn(
-            "feed-action-row mt-2 mb-3",
-            variant === "standalone" ? "mx-4" : cn("border-t border-border/70 pt-2", POST_MEDIA_BREAKOUT)
-          )}
-        >
+        <div className={cn("feed-action-row mt-2 mb-3", variant === "standalone" && "mx-4")}>
           <PostActionRow
             size="md"
             showLabels={showActionLabels}

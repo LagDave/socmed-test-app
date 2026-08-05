@@ -1,5 +1,7 @@
 import type { Knex } from "knex";
 import { db } from "../database/connection";
+import type { ThemeLogEntry } from "../types/themeLog";
+import { THEME_LOG_LIMIT } from "../types/themeLog";
 import { orderedPair } from "./FriendshipModel";
 import type { UserRow } from "../types/user";
 import type { MessageRow } from "./MessageModel";
@@ -16,6 +18,7 @@ export type ConversationRow = {
   theme: unknown | null;
   theme_updated_at: Date | null;
   theme_updated_by: string | null;
+  theme_log: unknown;
   created_at: Date;
   updated_at: Date;
 };
@@ -23,6 +26,11 @@ export type ConversationRow = {
 export type ConversationInboxRow = ConversationRow & {
   peer: UserRow;
   lastMessage: MessageRow | null;
+  latestPinActivity: {
+    actor_display_name: string;
+    action: "pinned" | "unpinned";
+    created_at: Date;
+  } | null;
   unreadCount: number;
 };
 
@@ -48,6 +56,9 @@ type InboxQueryRow = ConversationRow & {
   lm_edited_at: Date | null;
   lm_reply_to_message_id: string | null;
   lm_created_at: Date | null;
+  pa_actor_display_name: string | null;
+  pa_action: "pinned" | "unpinned" | null;
+  pa_created_at: Date | null;
   unread_count: string | number;
 };
 
@@ -134,6 +145,9 @@ export class ConversationModel {
         lm.edited_at AS lm_edited_at,
         lm.reply_to_message_id AS lm_reply_to_message_id,
         lm.created_at AS lm_created_at,
+        pa.actor_display_name AS pa_actor_display_name,
+        pa.action AS pa_action,
+        pa.created_at AS pa_created_at,
         (
           SELECT COUNT(*)::int
           FROM messages m
@@ -157,11 +171,37 @@ export class ConversationModel {
         ORDER BY m.created_at DESC
         LIMIT 1
       ) lm ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT a.action, a.created_at, actor.display_name AS actor_display_name
+        FROM message_pin_activities a
+        INNER JOIN messages pinned_message ON pinned_message.id = a.message_id
+        INNER JOIN users actor ON actor.id = a.actor_id
+        WHERE a.conversation_id = c.id
+          AND pinned_message.unsent_at IS NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM message_user_deletions d
+            WHERE d.message_id = a.message_id AND d.user_id = ?
+          )
+        ORDER BY a.created_at DESC
+        LIMIT 1
+      ) pa ON TRUE
       WHERE (c.user_a = ? OR c.user_b = ?)
         AND ${visibleForUserSql("?")}
       ORDER BY c.last_message_at DESC NULLS LAST, c.created_at DESC
       `,
-      [userId, userId, userId, userId, userId, userId, userId, userId, userId]
+      [
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+        userId,
+      ]
     );
 
     return rows.rows.map((r) => ({
@@ -176,6 +216,7 @@ export class ConversationModel {
       theme: r.theme ?? null,
       theme_updated_at: r.theme_updated_at ?? null,
       theme_updated_by: r.theme_updated_by ?? null,
+      theme_log: r.theme_log ?? [],
       created_at: r.created_at,
       updated_at: r.updated_at,
       peer: {
@@ -206,11 +247,19 @@ export class ConversationModel {
             created_at: r.lm_created_at!,
           }
         : null,
+      latestPinActivity:
+        r.pa_actor_display_name && r.pa_action && r.pa_created_at
+          ? {
+              actor_display_name: r.pa_actor_display_name,
+              action: r.pa_action,
+              created_at: r.pa_created_at,
+            }
+          : null,
       unreadCount: Number(r.unread_count ?? 0),
     }));
   }
 
-  /** Count of conversations with at least one unread inbound message. */
+  /** Count of conversations with at least one unread inbound message or peer reaction. */
   static async countUnreadConversations(userId: string): Promise<number> {
     const result = await db.raw<{ rows: Array<{ count: string }> }>(
       `
@@ -218,20 +267,36 @@ export class ConversationModel {
       FROM conversations c
       WHERE (c.user_a = ? OR c.user_b = ?)
         AND ${visibleForUserSql("?")}
-        AND EXISTS (
-          SELECT 1
-          FROM messages m
-          WHERE m.conversation_id = c.id
-            AND m.sender_id <> ?
-            AND m.unsent_at IS NULL
-            AND ${messageVisibleForUserSql("m", "?")}
-            AND (
-              CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END IS NULL
-              OR m.created_at > CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END
-            )
+        AND (
+          EXISTS (
+            SELECT 1
+            FROM messages m
+            WHERE m.conversation_id = c.id
+              AND m.sender_id <> ?
+              AND m.unsent_at IS NULL
+              AND ${messageVisibleForUserSql("m", "?")}
+              AND (
+                CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END IS NULL
+                OR m.created_at > CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END
+              )
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM message_reactions mr
+            INNER JOIN messages m ON m.id = mr.message_id
+            WHERE m.conversation_id = c.id
+              AND m.sender_id = ?
+              AND mr.user_id <> ?
+              AND m.unsent_at IS NULL
+              AND ${messageVisibleForUserSql("m", "?")}
+              AND (
+                CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END IS NULL
+                OR mr.updated_at > CASE WHEN c.user_a = ? THEN c.user_a_last_read_at ELSE c.user_b_last_read_at END
+              )
+          )
         )
       `,
-      [userId, userId, userId, userId, userId, userId, userId]
+      [userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId, userId]
     );
     return Number(result.rows[0]?.count ?? 0);
   }
@@ -281,15 +346,27 @@ export class ConversationModel {
   static async updateTheme(
     id: string,
     theme: unknown | null,
-    updatedBy: string
+    updatedBy: string,
+    logEntry: ThemeLogEntry
   ): Promise<ConversationRow | undefined> {
     const now = new Date();
     const [updated] = await db<ConversationRow>("conversations")
       .where({ id })
       .update({
         theme,
-        theme_updated_at: theme === null ? null : now,
-        theme_updated_by: theme === null ? null : updatedBy,
+        theme_updated_at: now,
+        theme_updated_by: updatedBy,
+        theme_log: db.raw(
+          `(SELECT COALESCE(jsonb_agg(entry ORDER BY ordinal), '[]'::jsonb)
+            FROM (
+              SELECT entry, ordinal
+              FROM jsonb_array_elements(COALESCE(theme_log, '[]'::jsonb) || ?::jsonb)
+                WITH ORDINALITY AS theme_entries(entry, ordinal)
+              ORDER BY ordinal DESC
+              LIMIT ?
+            ) AS recent_entries)`,
+          [JSON.stringify([logEntry]), THEME_LOG_LIMIT]
+        ),
         updated_at: db.fn.now(),
       })
       .returning("*");

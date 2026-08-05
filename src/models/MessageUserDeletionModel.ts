@@ -2,6 +2,13 @@ import type { Knex } from "knex";
 import { db } from "../database/connection";
 
 export class MessageUserDeletionModel {
+  static async isDeletedForUser(messageId: string, userId: string): Promise<boolean> {
+    const row = await db("message_user_deletions")
+      .where({ message_id: messageId, user_id: userId })
+      .first();
+    return Boolean(row);
+  }
+
   /** Mark every message in a conversation deleted for one participant. */
   static async markAllInConversationForUser(
     conversationId: string,

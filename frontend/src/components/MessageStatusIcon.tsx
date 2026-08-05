@@ -78,11 +78,14 @@ export function MessageStatusIconForMessage({
   message,
   peerLastReadAt,
   peer,
+  allowSeen = true,
 }: {
   message: { createdAt: string; deliveredAt: string | null };
   peerLastReadAt: string | null;
   peer: PublicUser;
+  allowSeen?: boolean;
 }) {
-  const status = deriveMessageStatus(message, peerLastReadAt);
+  let status = deriveMessageStatus(message, peerLastReadAt);
+  if (!allowSeen && status === "seen") status = "delivered";
   return <MessageStatusIcon status={status} peer={peer} />;
 }

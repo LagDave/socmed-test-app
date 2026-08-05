@@ -43,6 +43,9 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 37 | `08012026-37-friends-ui-upgrade` | Friends unified dashboard card + row polish |
 | 38 | `08012026-38-messages-ui-upgrade` | Messages UI — unified inbox card + thread polish |
 | 39 | `08022026-39-notifications-ui-upgrade` | Notifications soft dashboard UI (beautiful again) |
+| 40 | `08012026-40-comment-section-ui` | Comment section UI polish |
+| 41 | `08022026-41-multi-photo-carousel` | Multi-photo carousel |
+| 42 | `08032026-42-message-settings-sound-move` | Message settings page — relocate notification sound picker from Account Settings |
 
 ## Branch → host (hard rule)
 

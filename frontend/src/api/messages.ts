@@ -1,5 +1,17 @@
 import { api } from "@/api/client";
-import type { ChatTheme, ConversationListItem, ConversationThemeView } from "@/api/types";
+import type {
+  ChatTheme,
+  ConversationListItem,
+  ConversationSearchResponse,
+  ConversationThemeUpdateView,
+  PinnedMessageView,
+} from "@/api/types";
+
+export type PinnedMessagesResponse = {
+  conversationId: string;
+  pinnedMessages: PinnedMessageView[];
+  pinActivity: import("@/api/types").MessagePinActivityView | null;
+};
 
 export async function openConversationWithUsername(username: string): Promise<string> {
   const data = await api.post<{ conversation: ConversationListItem }>(
@@ -13,11 +25,33 @@ export async function deleteConversation(conversationId: string): Promise<void> 
   await api.delete(`/api/messages/conversations/${conversationId}`);
 }
 
+export async function setMessagePinned(
+  messageId: string,
+  isPinned: boolean
+): Promise<PinnedMessagesResponse> {
+  if (isPinned) {
+    return api.put<PinnedMessagesResponse>(`/api/messages/messages/${messageId}/pin`);
+  }
+  return api.delete<PinnedMessagesResponse>(`/api/messages/messages/${messageId}/pin`);
+}
+
+export function searchConversationMessages(
+  conversationId: string,
+  query: string,
+  signal?: AbortSignal
+): Promise<ConversationSearchResponse> {
+  const params = new URLSearchParams({ q: query });
+  return api.get(
+    `/api/messages/conversations/${conversationId}/search?${params.toString()}`,
+    { signal }
+  );
+}
+
 export async function updateConversationTheme(
   conversationId: string,
   payload: ChatTheme | { reset: true }
-): Promise<ConversationThemeView> {
-  return api.put<ConversationThemeView>(
+): Promise<ConversationThemeUpdateView> {
+  return api.put<ConversationThemeUpdateView>(
     `/api/messages/conversations/${conversationId}/theme`,
     payload
   );

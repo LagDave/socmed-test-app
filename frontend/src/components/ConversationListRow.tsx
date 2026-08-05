@@ -13,9 +13,62 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
+import { reactionOption } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
 
-function snippet(item: ConversationListItem): { text: string; isMedia: boolean } {
+function inboxPreview(
+  item: ConversationListItem,
+  viewerId: string | undefined
+): { text: string; isMedia: boolean; isSystemLog?: boolean } {
+  const last = item.lastMessage;
+  const reaction = item.lastReaction;
+  const systemLog = item.lastSystemLog;
+  const pinActivity = item.lastPinActivity;
+
+  const messageAt = last?.createdAt ? new Date(last.createdAt).getTime() : 0;
+  const reactionAt = reaction?.reactedAt ? new Date(reaction.reactedAt).getTime() : 0;
+  const systemLogAt = systemLog?.createdAt ? new Date(systemLog.createdAt).getTime() : 0;
+  const pinActivityAt = pinActivity?.createdAt ? new Date(pinActivity.createdAt).getTime() : 0;
+  const latestAt = Math.max(messageAt, reactionAt, systemLogAt, pinActivityAt);
+
+  if (pinActivity && pinActivityAt === latestAt) {
+    const verb = pinActivity.action === "pinned" ? "pinned a message" : "unpinned a message";
+    return { text: `${pinActivity.actorDisplayName} ${verb}`, isMedia: false, isSystemLog: true };
+  }
+
+  if (systemLog && systemLogAt === latestAt) {
+    return { text: systemLog.text, isMedia: false, isSystemLog: true };
+  }
+
+  if (reaction && viewerId && reactionAt === latestAt) {
+    const glyph = reactionOption(reaction.emoji).glyph;
+    const peerId = item.peer.id;
+    const isPeerReaction = reaction.reactorId === peerId;
+    const isMyMessage = reaction.messageSenderId === viewerId;
+
+    if (isPeerReaction && isMyMessage) {
+      const action = reaction.emoji === "like" ? "Liked" : "Reacted to";
+      return {
+        text: `${glyph} ${action} your message`,
+        isMedia: false,
+      };
+    }
+    if (isPeerReaction) {
+      return { text: `${glyph} Reacted to a message`, isMedia: false };
+    }
+    if (!isMyMessage) {
+      const preview = reaction.messageBody || (reaction.messageImageUrl ? "Photo" : "message");
+      return {
+        text: `${glyph} ${preview}`,
+        isMedia: Boolean(reaction.messageImageUrl && !reaction.messageBody),
+      };
+    }
+  }
+
+  return messageSnippet(item);
+}
+
+function messageSnippet(item: ConversationListItem): { text: string; isMedia: boolean } {
   const last = item.lastMessage;
   if (!last) return { text: "No messages yet", isMedia: false };
   if (last.isUnsent) return { text: "Unsent a message", isMedia: false };
@@ -41,18 +94,22 @@ export function ConversationListRow({
   item,
   onDelete,
   isPeerTyping = false,
+  viewerId,
   className,
 }: {
   item: ConversationListItem;
   onDelete: (id: string, peerName: string) => void;
   isPeerTyping?: boolean;
+  viewerId?: string;
   className?: string;
 }) {
-  const unread = item.unreadCount > 0;
+  const unread = item.unreadCount > 0 || item.hasUnreadReaction;
   const peer = item.peer;
   const peerPresence = useFriendPresence(peer.id, item.peerPresence, item.peerPresence !== null);
   const profilePath = peer.username ? `/u/${peer.username}` : `/u/${peer.id}`;
-  const preview = snippet(item);
+  const preview = inboxPreview(item, viewerId);
+  const badgeCount =
+    item.unreadCount > 0 ? item.unreadCount : item.hasUnreadReaction ? 1 : 0;
 
   return (
     <div
@@ -111,7 +168,11 @@ export function ConversationListRow({
               <span
                 className={cn(
                   "flex min-w-0 items-center gap-1 truncate text-sm",
-                  unread ? "font-medium text-foreground/90" : "text-muted-foreground"
+                  preview.isSystemLog
+                    ? "italic text-muted-foreground/90"
+                    : unread
+                      ? "font-medium text-foreground/90"
+                      : "text-muted-foreground"
                 )}
               >
                 {preview.isMedia && (
@@ -120,9 +181,9 @@ export function ConversationListRow({
                 <span className="truncate">{preview.text}</span>
               </span>
             )}
-            {unread && (
+            {unread && badgeCount > 0 && (
               <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background">
-                {item.unreadCount > 9 ? "9+" : item.unreadCount}
+                {badgeCount > 9 ? "9+" : badgeCount}
               </span>
             )}
           </span>

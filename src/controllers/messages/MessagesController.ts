@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { MessageService } from "../../services/MessageService";
+import { MessagePinService } from "../../services/MessagePinService";
 import { ChatThemeService } from "../../services/ChatThemeService";
 import { ok, fail } from "../../utils/response";
 import { AppError, statusForCode } from "../../utils/AppError";
@@ -44,11 +45,25 @@ export class MessagesController {
     try {
       const before = typeof req.query.before === "string" ? req.query.before : undefined;
       const restoreIfHidden = req.query.restore === "1";
+      const includeThemeLogs = req.query.includeThemeLogs === "1" || restoreIfHidden;
       const data = await MessageService.listMessages(
         req.userId!,
         String(req.params.id),
         before,
-        { restoreIfHidden }
+        { restoreIfHidden, includeThemeLogs }
+      );
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async searchMessages(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessageService.searchMessages(
+        req.userId!,
+        String(req.params.id),
+        req.query.q
       );
       return ok(res, data);
     } catch (err) {
@@ -109,6 +124,24 @@ export class MessagesController {
     try {
       const message = await MessageService.clearReaction(req.userId!, String(req.params.id));
       return ok(res, { message });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async pinMessage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessagePinService.pinMessage(req.userId!, String(req.params.id));
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async unpinMessage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessagePinService.unpinMessage(req.userId!, String(req.params.id));
+      return ok(res, data);
     } catch (err) {
       return handle(res, err);
     }

@@ -56,6 +56,15 @@ export function AppNavbar({
           />
           {user && (
             <NavIconLink
+              to="/messages"
+              label="Messages"
+              variant="pill"
+              badge={messagesCount}
+              icon={<MessageCircle className="size-[18px]" strokeWidth={2} aria-hidden="true" />}
+            />
+          )}
+          {user && (
+            <NavIconLink
               to="/friends"
               label="Friends"
               variant="pill"
@@ -67,13 +76,6 @@ export function AppNavbar({
         <div className="app-navbar-actions" aria-label="Account">
           {user ? (
             <>
-              <NavIconLink
-                to="/messages"
-                label="Messages"
-                variant="action"
-                badge={messagesCount}
-                icon={<MessageCircle className="size-[18px]" strokeWidth={2} aria-hidden="true" />}
-              />
               <NavIconLink
                 to="/notifications"
                 label="Notifications"

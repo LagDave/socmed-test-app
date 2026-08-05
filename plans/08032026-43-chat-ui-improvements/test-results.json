@@ -1,0 +1,8 @@
+{
+  "status": "pending",
+  "items": [
+    {"id":"A1","title":"Open themed conversation","surface":"ui","precondition":"Isolated app runtime with two accepted-friend accounts.","steps":["Open a themed conversation.","Confirm recent theme activity appears once in the timeline.","Keep the thread open for a fallback-poll interval with Socket.IO disabled."],"expected":"Initial theme history appears; polling preserves messages/theme but does not duplicate historical logs.","status":"pending","evidence":"Automated typecheck passed; isolated browser runtime not started.","notes":"Requires --test-worktree runtime.","waiver":null},
+    {"id":"A2","title":"Inbox reaction and theme activity","surface":"ui","precondition":"Same isolated runtime.","steps":["React to the peer’s message with Heart.","Change the chat theme.","Return to the inbox."],"expected":"Inbox reloads once per update, says reaction wording rather than 'Liked' for Heart, and shows the latest activity.","status":"pending","evidence":"Requires Socket.IO/browser acceptance.","notes":"No fabricated click evidence.","waiver":null},
+    {"id":"A3","title":"Concurrent theme writes","surface":"api","precondition":"Disposable database and two authenticated participants.","steps":["Submit simultaneous theme updates.","Read the stored theme_log."],"expected":"Both entries remain in newest-50 order without a lost update.","status":"pending","evidence":"Model SQL reviewed and TypeScript typecheck passed; needs disposable-database integration execution.","notes":"No test runner or disposable DB adapter exists in this branch.","waiver":null}
+  ]
+}
