@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Camera, ImageIcon, MessageCircle, MoreHorizontal, Pencil, Settings, Share2, Trash2, UserRound, Eye, Sparkles } from "lucide-react";
+import { ImageIcon, MessageCircle, MoreHorizontal, Pencil, Settings, Share2, Trash2, UserRound, Eye, Sparkles } from "lucide-react";
 import { api } from "@/api/client";
 import { openConversationWithUsername } from "@/api/messages";
 import type { PostView, PublicUser, ReactionSummary } from "@/api/types";
@@ -9,7 +9,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { PhotoUpdateDialog } from "@/components/PhotoUpdateDialog";
 import { PostCard } from "@/components/PostCard";
-import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { ProfileAvatarMenu } from "@/components/ProfileAvatarMenu";
 import { ViewProfilePictureDialog } from "@/components/ViewProfilePictureDialog";
 import { ViewCoverPhotoDialog } from "@/components/ViewCoverPhotoDialog";
 import { Button } from "@/components/ui/button";
@@ -56,103 +56,6 @@ async function fetchAllProfilePosts(username: string): Promise<PostView[]> {
     if (!before) break;
   }
   return all;
-}
-
-type ProfileAvatarMenuProps = {
-  displayName: string;
-  avatarUrl: string | null;
-  canEdit: boolean;
-  onChangePicture: () => void;
-  onViewPicture: () => void;
-  onRemovePicture: () => void;
-};
-
-function ProfileAvatarMenu({
-  displayName,
-  avatarUrl,
-  canEdit,
-  onChangePicture,
-  onViewPicture,
-  onRemovePicture,
-}: ProfileAvatarMenuProps) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  function run(action: () => void) {
-    setOpen(false);
-    action();
-  }
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-label="Profile picture options"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className="group relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <ProfileAvatar
-          displayName={displayName}
-          avatarUrl={avatarUrl}
-          size="xl"
-          className="bg-card shadow-lg ring-4 ring-card transition-transform duration-200 group-hover:scale-[1.02]"
-        />
-        {canEdit && (
-          <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-            <Camera className="size-6 text-white" aria-hidden="true" />
-          </span>
-        )}
-      </button>
-      {open && (
-        <div role="menu" className="profile-dropdown-menu animate-menu-enter absolute left-full top-1/2 z-30 ml-2 min-w-56 -translate-y-1/2">
-          {canEdit && (
-            <button type="button" role="menuitem" className="profile-dropdown-item" onClick={() => run(onChangePicture)}>
-              <Camera className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              Change profile picture
-            </button>
-          )}
-          {canEdit && <div className="profile-dropdown-divider" />}
-          <button type="button" role="menuitem" className="profile-dropdown-item" onClick={() => run(onViewPicture)}>
-            <Eye className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            View profile picture
-          </button>
-          {canEdit && (
-            <>
-              <div className="profile-dropdown-divider" />
-              <button
-                type="button"
-                role="menuitem"
-                disabled={!avatarUrl}
-                className="profile-dropdown-item text-destructive/90"
-                onClick={() => run(onRemovePicture)}
-              >
-                <Trash2 className="size-4 shrink-0" aria-hidden="true" />
-                Remove profile picture
-              </button>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
 }
 
 type ProfileMenuProps = {
@@ -693,32 +596,20 @@ export function ProfilePage() {
 
         <div className="relative overflow-visible px-5 pb-5">
           <div className="absolute left-5 top-0 z-10 -translate-y-1/2">
-            {canEditAvatar || headerAvatarUrl ? (
-              <>
-                <input
-                  ref={avatarFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(e) => void onHeaderAvatarFile(e.target.files?.[0] || null)}
-                />
-                <ProfileAvatarMenu
-                  displayName={profile.displayName}
-                  avatarUrl={headerAvatarUrl}
-                  canEdit={canEditAvatar}
-                  onChangePicture={() => avatarFileInputRef.current?.click()}
-                  onViewPicture={() => setViewAvatarOpen(true)}
-                  onRemovePicture={() => void removeAvatar()}
-                />
-              </>
-            ) : (
-              <ProfileAvatar
-                displayName={profile.displayName}
-                avatarUrl={headerAvatarUrl}
-                size="xl"
-                className="bg-card shadow-lg ring-4 ring-card"
-              />
-            )}
+            <input
+              ref={avatarFileInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => void onHeaderAvatarFile(e.target.files?.[0] || null)}
+            />
+            <ProfileAvatarMenu
+              user={profile}
+              canEdit={canEditAvatar}
+              onChangePicture={() => avatarFileInputRef.current?.click()}
+              onViewPicture={() => setViewAvatarOpen(true)}
+              onRemovePicture={() => void removeAvatar()}
+            />
           </div>
 
           <div className="pt-16 sm:pl-36 sm:pt-4">

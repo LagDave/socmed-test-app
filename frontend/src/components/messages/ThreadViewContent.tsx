@@ -1,13 +1,15 @@
 import type { CSSProperties, FormEvent, KeyboardEvent, MutableRefObject, RefObject } from "react";
 import { Link, type NavigateFunction } from "react-router-dom";
 import { ChevronLeft, ImagePlus, MoreVertical, Palette, Pin, Search, SendHorizontal, Trash2, X } from "lucide-react";
-import type { ChatTheme, ConversationThemeView, MessageView, PublicUser, ReactionSummary } from "@/api/types";
+import type { ChatTheme, ConversationThemeView, MessageView, PeerPresence, PublicUser, ReactionSummary } from "@/api/types";
 import { ChatThemePicker } from "@/components/ChatThemePicker";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { MessageBubbleRow } from "@/components/MessageBubbleRow";
 import { MessagePinActivityRow } from "@/components/messages/MessagePinActivityRow";
 import { MessageComposerEmojiPicker } from "@/components/MessageComposerEmojiPicker";
 import { MessageDaySeparator, MessageSystemLog, MessagesEmptyThread, MessagesErrorBanner, MessagesThreadSkeleton } from "@/components/MessagesUiHelpers";
+import { OnlinePresenceIndicator } from "@/components/OnlinePresenceIndicator";
+import { PeerPresenceStatus } from "@/components/PeerPresenceStatus";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ type ThreadViewContentProps = {
   themeVars: CSSProperties;
   navigate: NavigateFunction;
   peer: PublicUser | null;
+  peerPresence: PeerPresence | null;
   peerProfilePath: string;
   isSearchOpen: boolean;
   onToggleSearch: () => void;
@@ -91,7 +94,7 @@ type ThreadViewContentProps = {
 
 export function ThreadViewContent(props: ThreadViewContentProps) {
   const {
-    user, resolvedTheme, themeVars, navigate, peer, peerProfilePath, isSearchOpen, onToggleSearch, setThemePickerOpen, onOpenPinnedMessages,
+    user, resolvedTheme, themeVars, navigate, peer, peerPresence, peerProfilePath, isSearchOpen, onToggleSearch, setThemePickerOpen, onOpenPinnedMessages,
     setPendingDelete, conversationId, bottomRef, scrollRef, stickToBottomRef, canHover, setTappedMessageId,
     loadingThread, hasMore, loadingEarlier, loadEarlier, error, setError, isPeerTyping,
     threadTimeline, focusedMessageId, searchHighlightQuery, peerLastReadAt, editingMessageId, tappedMessageId, startEdit, patchMessageReaction, pinnedMessageIds, pinSavingMessageId, changeMessagePin,
@@ -131,21 +134,30 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                 to={peerProfilePath}
                 className="messages-thread-header-profile flex min-w-0 flex-1 items-center gap-3 text-inherit no-underline"
               >
-                <ProfileAvatar
-                  displayName={peer.displayName}
-                  avatarUrl={peer.avatarUrl}
-                  size="sm"
-                  className="messages-thread-header-avatar"
-                />
+                <span className="relative shrink-0">
+                  <ProfileAvatar
+                    displayName={peer.displayName}
+                    avatarUrl={peer.avatarUrl}
+                    size="sm"
+                    className="messages-thread-header-avatar"
+                  />
+                  {peerPresence?.isOnline && <OnlinePresenceIndicator />}
+                </span>
                 <div className="min-w-0">
                   <p className="messages-thread-header-name truncate text-[15px] font-semibold leading-tight tracking-tight">
                     {peer.displayName}
                   </p>
-                  {peer.username && (
+                  {peerPresence ? (
+                    <PeerPresenceStatus
+                      presence={peerPresence}
+                      labelStyle="active"
+                      className="messages-thread-header-handle mt-0.5 block truncate"
+                    />
+                  ) : peer.username ? (
                     <p className="messages-thread-header-handle truncate text-xs leading-snug">
                       @{peer.username}
                     </p>
-                  )}
+                  ) : null}
                 </div>
               </Link>
             ) : (

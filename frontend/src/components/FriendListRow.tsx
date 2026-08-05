@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { PublicUser } from "@/api/types";
-import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { FriendPresenceAvatar } from "@/components/FriendPresenceAvatar";
 
 function profilePath(user: PublicUser): string {
   return `/u/${user.username || user.id}`;
@@ -19,7 +19,7 @@ export function FriendListRow({ user, actions }: FriendListRowProps) {
         to={profilePath(user)}
         className="friends-row-link flex min-w-0 flex-1 items-center gap-3 p-1"
       >
-        <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" className="h-11 w-11 text-base" />
+        <FriendPresenceAvatar user={user} className="h-11 w-11 text-base" />
         <span className="min-w-0">
           <span className="block truncate text-[15px] font-semibold leading-snug">{user.displayName}</span>
           {user.username ? (
