@@ -1,4 +1,4 @@
-import type { CSSProperties, FormEvent, KeyboardEvent, MutableRefObject, RefObject } from "react";
+import { useEffect, useRef, type CSSProperties, type FormEvent, type KeyboardEvent, type MutableRefObject, type RefObject } from "react";
 import { Link, type NavigateFunction } from "react-router-dom";
 import { ChevronLeft, ImagePlus, MoreVertical, Palette, Pin, Search, SendHorizontal, Trash2, X } from "lucide-react";
 import type { ChatTheme, ConversationThemeView, MessageView, PeerPresence, PublicUser, ReactionSummary } from "@/api/types";
@@ -15,7 +15,8 @@ import { TypingIndicator } from "@/components/TypingIndicator";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
-import { formatMessageDay, isSameCalendarDay, messagesShareGroup } from "@/lib/formatMessageDay";
+import { formatMessageDay, isSameCalendarDay, messagesHaveTimeGap, messagesShareGroup } from "@/lib/formatMessageDay";
+import { formatMessageTimeSeparator } from "@/lib/formatRelativeTime";
 import { submitOnEnter } from "@/lib/submitOnEnter";
 import { cn } from "@/lib/utils";
 import type { ResolvedChatTheme } from "@/lib/chatThemeApply";
@@ -24,6 +25,8 @@ import type { ThreadTimelineItem } from "@/components/messages/threadTimeline";
 type PendingDeleteConversation = { id: string; peerName: string };
 type ReplyPreview = { name: string; snippet: string; imageUrl: string | null };
 type SetString = (value: string | null | ((previous: string | null) => string | null)) => void;
+
+const TOP_THREAD_LOAD_ROOT_MARGIN = "96px 0px 0px";
 
 type ThreadViewContentProps = {
   user: PublicUser | null;
@@ -104,6 +107,39 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
     pendingUnsendId, unsending, setPendingUnsendId, confirmUnsend, pendingDelete, deleting,
     confirmDeleteConversation, deleteConversationDescription,
   } = props;
+  const loadEarlierRef = useRef(loadEarlier);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const hasTriggeredAutoLoadRef = useRef(false);
+
+  useEffect(() => {
+    loadEarlierRef.current = loadEarlier;
+  }, [loadEarlier]);
+
+  useEffect(() => {
+    hasTriggeredAutoLoadRef.current = false;
+  }, [conversationId]);
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    const sentinel = topSentinelRef.current;
+    if (!root || !sentinel || loadingThread || loadingEarlier || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          hasTriggeredAutoLoadRef.current = false;
+          return;
+        }
+        if (hasTriggeredAutoLoadRef.current) return;
+        hasTriggeredAutoLoadRef.current = true;
+        void loadEarlierRef.current();
+      },
+      { root, rootMargin: TOP_THREAD_LOAD_ROOT_MARGIN, threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingEarlier, loadingThread, scrollRef]);
+
   return (
     <section className="messages-page space-y-4">
       <div
@@ -246,20 +282,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
             <MessagesThreadSkeleton />
           ) : (
             <div className="messages-thread-list">
-              {hasMore && (
-                <div className="flex justify-center pb-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="messages-load-earlier"
-                    disabled={loadingEarlier}
-                    onClick={() => void loadEarlier()}
-                  >
-                    {loadingEarlier ? "Loading…" : "Load earlier messages"}
-                  </Button>
-                </div>
-              )}
+              <div ref={topSentinelRef} className="h-px" aria-hidden="true" />
               {threadTimeline.length === 0 && peer && !error && (
                 <MessagesEmptyThread peerName={peer.displayName} />
               )}
@@ -294,13 +317,23 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                 const showAvatar = !mine && (!prev || !messagesShareGroup(prev, m));
                 const groupedWithPrev = Boolean(prev && messagesShareGroup(prev, m));
                 const groupedWithNext = Boolean(next && messagesShareGroup(m, next));
+                const compactWithPrevious = Boolean(prev && prev.senderId === m.senderId);
+                const showTimeGap = Boolean(prev && !showDay && messagesHaveTimeGap(prev, m));
 
                 return (
                   <div
                     key={item.key}
-                    className={cn("messages-thread-item", groupedWithPrev && "messages-thread-item-grouped")}
+                    className={cn(
+                      "messages-thread-item",
+                      groupedWithPrev && "messages-thread-item-grouped"
+                    )}
                   >
                     {showDay && <MessageDaySeparator label={formatMessageDay(m.createdAt)} />}
+                    {showTimeGap && (
+                      <time className="message-time-separator" dateTime={m.createdAt}>
+                        {formatMessageTimeSeparator(m.createdAt)}
+                      </time>
+                    )}
                     <MessageBubbleRow
                       message={m}
                       mine={mine}
@@ -309,6 +342,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                       peerLastReadAt={peerLastReadAt}
                       groupedWithPrev={groupedWithPrev}
                       groupedWithNext={groupedWithNext}
+                      compactWithPrevious={compactWithPrevious}
                       peerProfilePath={peerProfilePath}
                       isBeingEdited={editingMessageId === m.id}
                       isSearchFocused={focusedMessageId === m.id}

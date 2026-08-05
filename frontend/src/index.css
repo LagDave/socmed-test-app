@@ -470,15 +470,6 @@ body {
   color: var(--chat-thread-muted);
 }
 
-[data-chat-theme="true"] .messages-thread-pane .messages-load-earlier {
-  color: var(--chat-thread-muted);
-}
-
-[data-chat-theme="true"] .messages-thread-pane .messages-load-earlier:hover {
-  color: var(--chat-thread-fg);
-  background: color-mix(in srgb, var(--chat-thread-fg) 8%, transparent);
-}
-
 [data-chat-theme="true"] .message-day-separator span {
   color: var(--chat-thread-muted);
   border-color: color-mix(in srgb, var(--chat-thread-fg) 18%, transparent);
@@ -692,11 +683,28 @@ body {
 }
 
 .messages-thread-list .messages-thread-item:not(.messages-thread-item-grouped):not(:first-child) {
-  margin-top: 8px;
+  margin-top: 2px !important;
 }
 
 .messages-thread-list .messages-thread-item:has([data-has-reaction="true"]) + .messages-thread-item {
   margin-top: 10px;
+}
+
+.message-time-separator {
+  display: block;
+  margin: 12px 0 8px;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.25;
+  text-align: center;
+}
+
+[data-chat-theme="true"] .message-time-separator {
+  color: var(--chat-thread-fg);
+}
+
+[data-chat-theme="true"] .message-inline-timestamp {
+  color: var(--chat-thread-fg);
 }
 
 .message-bubble {

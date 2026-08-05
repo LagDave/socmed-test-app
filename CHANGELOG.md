@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.34 — 2026-08-06
+
+### Changed
+- Replaced the chat “Load earlier messages” button with automatic top-of-thread history loading
+- Tightened incoming message spacing and added readable, sender-independent time-gap timestamps in themed chats
+
+### Plans
+- `plans/08062026-remove-load-earlier-button` — completed on `kylie/remove-load-earlier-button`
+
 ## 0.1.33 — 2026-08-05
 
 ### Changed
