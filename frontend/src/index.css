@@ -1851,10 +1851,6 @@ body {
   background: color-mix(in srgb, var(--muted-foreground) 35%, transparent);
 }
 
-.post-media-stage {
-  width: 100%;
-}
-
 .post-media-grid-trigger {
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
