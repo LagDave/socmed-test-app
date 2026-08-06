@@ -179,12 +179,30 @@ export function PostCard({
     };
   }, [menuOpen]);
 
+  const standardMedia =
+    !isShare && !isActivity && mediaUrls.length > 0 ? (
+      <PostStandardMedia
+        post={post}
+        postPath={postPath}
+        mediaMode={postMediaMode}
+        variant={variant}
+        currentUserId={currentUserId}
+        onReactionSummaryChange={onReactionSummaryChange}
+        onPhotoReactionSummaryChange={onPhotoReactionSummaryChange}
+        onShare={onShare}
+        sharingPostId={sharingPostId}
+      />
+    ) : null;
+  const sharedPostEmbed = isShare ? (
+    <SharedPostEmbed sharedFrom={post.sharedFrom} className={post.body.trim() ? "mt-2.5" : undefined} />
+  ) : null;
+
   const bodyBlock = isShare ? (
     <>
       {post.body.trim() ? (
         <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/95">{post.body}</p>
       ) : null}
-      <SharedPostEmbed sharedFrom={post.sharedFrom} className={post.body.trim() ? "mt-2.5" : undefined} />
+      {variant === "embedded" ? sharedPostEmbed : null}
     </>
   ) : (
     <>
@@ -216,19 +234,7 @@ export function PostCard({
           </Link>
         )
       ) : null}
-      {!isActivity && mediaUrls.length > 0 ? (
-        <PostStandardMedia
-          post={post}
-          postPath={postPath}
-          mediaMode={postMediaMode}
-          variant={variant}
-          currentUserId={currentUserId}
-          onReactionSummaryChange={onReactionSummaryChange}
-          onPhotoReactionSummaryChange={onPhotoReactionSummaryChange}
-          onShare={onShare}
-          sharingPostId={sharingPostId}
-        />
-      ) : null}
+      {variant === "embedded" ? standardMedia : null}
       {isActivity && post.imageUrl ? (
         <ProfileActivityMedia body={post.body} imageUrl={post.imageUrl} />
       ) : null}
@@ -308,6 +314,7 @@ export function PostCard({
             <div className="mt-2.5">{bodyBlock}</div>
           </div>
         </div>
+        {variant === "standalone" ? (isShare ? sharedPostEmbed : standardMedia) : null}
       </div>
 
       {perPhotoActions ? null : (

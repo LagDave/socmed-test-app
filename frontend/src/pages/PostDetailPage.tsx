@@ -18,6 +18,9 @@ type PendingDelete =
   | { type: "post" }
   | { type: "comment"; comment: CommentView; kind: "comment" | "reply" };
 
+const POST_COMMENTS_HASH = "#comments";
+const POST_PHOTOS_HASH = "#photos";
+
 export function PostDetailPage() {
   const { id } = useParams();
   const location = useLocation();
@@ -98,8 +101,14 @@ export function PostDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!post || location.hash !== "#comments") return;
-    commentsSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    if (!post) return;
+    if (location.hash === POST_COMMENTS_HASH) {
+      commentsSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      return;
+    }
+    if (location.hash === POST_PHOTOS_HASH) {
+      document.getElementById("photos")?.scrollIntoView({ block: "start" });
+    }
   }, [post, location.hash]);
 
   async function submitComment(input: {
@@ -229,6 +238,7 @@ export function PostDetailPage() {
   const cameFromNotifications = isNotificationReturnState(location.state);
   const backPath = cameFromNotifications ? NOTIFICATIONS_PATH : "/";
   const backLabel = cameFromNotifications ? "Back to notifications" : "Back to feed";
+  const shouldAutoFocusComments = location.hash === POST_COMMENTS_HASH;
 
   return (
     <section className="feed-page space-y-5">
@@ -279,7 +289,7 @@ export function PostDetailPage() {
           onReactionSummaryChange={patchCommentSummary}
           sectionRef={commentsSectionRef}
           title="Post comments"
-          composerAutoFocus
+          composerAutoFocus={shouldAutoFocusComments}
         />
       )}
 
@@ -300,7 +310,7 @@ export function PostDetailPage() {
           }
           onReactionSummaryChange={patchCommentSummary}
           sectionRef={commentsSectionRef}
-          composerAutoFocus
+          composerAutoFocus={shouldAutoFocusComments}
         />
       )}
 
