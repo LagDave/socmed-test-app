@@ -11,6 +11,7 @@ import { SharePostDialog } from "@/components/SharePostDialog";
 import { ShareSuccessNotice } from "@/components/ShareSuccessNotice";
 import { Button } from "@/components/ui/button";
 import { groupComments } from "@/lib/groupComments";
+import { isNotificationReturnState, NOTIFICATIONS_PATH } from "@/lib/notificationNavigation";
 import { commentsForPostImage, postMediaImages } from "@/lib/postMedia";
 
 type PendingDelete =
@@ -225,13 +226,16 @@ export function PostDetailPage() {
   const showPostLevelCaptionComments =
     hasPhotoThreads &&
     (postLevelComments.length > 0 || Boolean(post.body.trim()));
+  const cameFromNotifications = isNotificationReturnState(location.state);
+  const backPath = cameFromNotifications ? NOTIFICATIONS_PATH : "/";
+  const backLabel = cameFromNotifications ? "Back to notifications" : "Back to feed";
 
   return (
     <section className="feed-page space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
-        <Link to="/">
+        <Link to={backPath}>
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Back to feed
+          {backLabel}
         </Link>
       </Button>
 
