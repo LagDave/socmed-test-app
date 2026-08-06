@@ -153,10 +153,6 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                       labelStyle="active"
                       className="messages-thread-header-handle mt-0.5 block truncate"
                     />
-                  ) : peer.username ? (
-                    <p className="messages-thread-header-handle truncate text-xs leading-snug">
-                      @{peer.username}
-                    </p>
                   ) : null}
                 </div>
               </Link>
