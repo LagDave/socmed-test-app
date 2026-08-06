@@ -18,8 +18,10 @@ type UseConversationSearchResultFocusParams = {
   scrollRef: RefObject<HTMLDivElement | null>;
   setError: Dispatch<SetStateAction<string | null>>;
   setHasMore: Dispatch<SetStateAction<boolean>>;
+  setHasMoreNewer: Dispatch<SetStateAction<boolean>>;
   setMessages: Dispatch<SetStateAction<MessageView[]>>;
   stickToBottomRef: MutableRefObject<boolean>;
+  newestPagedMessageIdRef: MutableRefObject<string | null>;
 };
 
 function mergeSearchContext(context: MessageView[], result: MessageView): MessageView[] {
@@ -39,8 +41,10 @@ export function useConversationSearchResultFocus({
   scrollRef,
   setError,
   setHasMore,
+  setHasMoreNewer,
   setMessages,
   stickToBottomRef,
+  newestPagedMessageIdRef,
 }: UseConversationSearchResultFocusParams) {
   const [focusedMessageId, setFocusedMessageId] = useState<string | null>(null);
   const [searchHighlightQuery, setSearchHighlightQuery] = useState<string | null>(null);
@@ -67,13 +71,20 @@ export function useConversationSearchResultFocus({
     stickToBottomRef.current = false;
     const generation = generationRef.current;
     try {
-      const data = await api.get<{ messages: MessageView[]; hasMore: boolean }>(
-        `/api/messages/conversations/${conversationId}?before=${encodeURIComponent(message.id)}`
-      );
+      const [olderData, newerData] = await Promise.all([
+        api.get<{ messages: MessageView[]; hasMore: boolean }>(
+          `/api/messages/conversations/${conversationId}?before=${encodeURIComponent(message.id)}`
+        ),
+        api.get<{ messages: MessageView[]; hasMore: boolean }>(
+          `/api/messages/conversations/${conversationId}?after=${encodeURIComponent(message.id)}`
+        ),
+      ]);
       if (generation !== generationRef.current) return;
-      setMessages(mergeSearchContext(data.messages, message));
-      oldestPagedMessageIdRef.current = data.messages[0]?.id ?? message.id;
-      setHasMore(Boolean(data.hasMore));
+      setMessages(mergeSearchContext([...olderData.messages, ...newerData.messages], message));
+      oldestPagedMessageIdRef.current = olderData.messages[0]?.id ?? message.id;
+      newestPagedMessageIdRef.current = newerData.messages.at(-1)?.id ?? message.id;
+      setHasMore(Boolean(olderData.hasMore));
+      setHasMoreNewer(Boolean(newerData.hasMore));
       setFocusedMessageId(message.id);
       setSearchHighlightQuery(query);
     } catch (error) {

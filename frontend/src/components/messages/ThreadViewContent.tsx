@@ -27,6 +27,7 @@ type ReplyPreview = { name: string; snippet: string; imageUrl: string | null };
 type SetString = (value: string | null | ((previous: string | null) => string | null)) => void;
 
 const TOP_THREAD_LOAD_ROOT_MARGIN = "96px 0px 0px";
+const BOTTOM_THREAD_LOAD_ROOT_MARGIN = "0px 0px 96px";
 
 function hasMessageReaction(message: MessageView): boolean {
   return Object.values(message.reactionSummary.counts).some((count) => count > 0);
@@ -53,8 +54,11 @@ type ThreadViewContentProps = {
   setTappedMessageId: SetString;
   loadingThread: boolean;
   hasMore: boolean;
+  hasMoreNewer: boolean;
   loadingEarlier: boolean;
+  loadingNewer: boolean;
   loadEarlier: () => Promise<void>;
+  loadNewer: () => Promise<void>;
   error: string | null;
   setError: (error: string | null) => void;
   isPeerTyping: boolean;
@@ -103,7 +107,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
   const {
     user, resolvedTheme, themeVars, navigate, peer, peerPresence, peerProfilePath, isSearchOpen, onToggleSearch, setThemePickerOpen, onOpenPinnedMessages,
     setPendingDelete, conversationId, bottomRef, scrollRef, stickToBottomRef, canHover, setTappedMessageId,
-    loadingThread, hasMore, loadingEarlier, loadEarlier, error, setError, isPeerTyping,
+    loadingThread, hasMore, hasMoreNewer, loadingEarlier, loadingNewer, loadEarlier, loadNewer, error, setError, isPeerTyping,
     threadTimeline, focusedMessageId, searchHighlightQuery, peerLastReadAt, editingMessageId, tappedMessageId, startEdit, patchMessageReaction, pinnedMessageIds, pinSavingMessageId, changeMessagePin,
     setReplyToMessage, latestOwnMessageId, body, onSend, composeBusy, cancelEdit, replyPreview,
     fileRef, onImage, insertComposerEmoji, textareaRef, setBody, stopTyping, handleComposeKeyDown,
@@ -113,7 +117,9 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
   } = props;
   const loadEarlierRef = useRef(loadEarlier);
   const topSentinelRef = useRef<HTMLDivElement>(null);
+  const bottomSentinelRef = useRef<HTMLDivElement>(null);
   const hasTriggeredAutoLoadRef = useRef(false);
+  const hasTriggeredNewerLoadRef = useRef(false);
 
   useEffect(() => {
     loadEarlierRef.current = loadEarlier;
@@ -121,7 +127,12 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
 
   useEffect(() => {
     hasTriggeredAutoLoadRef.current = false;
+    hasTriggeredNewerLoadRef.current = false;
   }, [conversationId]);
+
+  useEffect(() => {
+    hasTriggeredNewerLoadRef.current = false;
+  }, [focusedMessageId]);
 
   useEffect(() => {
     const root = scrollRef.current;
@@ -143,6 +154,27 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [hasMore, loadingEarlier, loadingThread, scrollRef]);
+
+  useEffect(() => {
+    const root = scrollRef.current;
+    const sentinel = bottomSentinelRef.current;
+    if (!root || !sentinel || loadingThread || loadingNewer || !hasMoreNewer) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          hasTriggeredNewerLoadRef.current = false;
+          return;
+        }
+        if (hasTriggeredNewerLoadRef.current) return;
+        hasTriggeredNewerLoadRef.current = true;
+        void loadNewer();
+      },
+      { root, rootMargin: BOTTOM_THREAD_LOAD_ROOT_MARGIN, threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreNewer, loadingNewer, loadingThread, loadNewer, scrollRef]);
 
   return (
     <section className="messages-page space-y-4">
@@ -380,6 +412,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
               })}
             </div>
           )}
+          <div ref={bottomSentinelRef} className="h-px" aria-hidden="true" />
           <div ref={bottomRef} />
         </div>
 
