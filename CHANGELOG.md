@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.38 — 2026-08-07
+
+### Changed
+- Replaced pinned-message cards with compact, plain in-thread system logs
+- Personalized pin activity copy: actors see “You pinned a message”; other participants see the actor’s first name only
+
+### Plans
+- `plans/08072026-pinned-message-gap-fix` — completed on `kylie/pinned-message-gap-fix`
+
 ## 0.1.37 — 2026-08-06
 
 ### Added
