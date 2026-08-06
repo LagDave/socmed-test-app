@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.35 — 2026-08-06
+
+### Changed
+- Continued chat history toward newer messages after selecting an older search result, without breaking older-history loading
+- Hid the visual scrollbar in the chat pane while preserving scrolling and automatic pagination
+
+### Plans
+- `plans/08062026-remove-load-earlier-button` — completed on `kylie/remove-load-earlier-button`
+
 ## 0.1.34 — 2026-08-06
 
 ### Changed
