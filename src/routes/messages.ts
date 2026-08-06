@@ -14,6 +14,8 @@ messagesRouter.get(
 );
 messagesRouter.get("/messages/conversations/:id", requireAuth, MessagesController.listMessages);
 messagesRouter.delete("/messages/conversations/:id", requireAuth, MessagesController.hideConversation);
+messagesRouter.put("/messages/conversations/:id/pin", requireAuth, MessagesController.pinConversation);
+messagesRouter.delete("/messages/conversations/:id/pin", requireAuth, MessagesController.unpinConversation);
 messagesRouter.get("/messages/conversations/:id/theme", requireAuth, MessagesController.getTheme);
 messagesRouter.put("/messages/conversations/:id/theme", requireAuth, MessagesController.updateTheme);
 messagesRouter.post("/messages/conversations/:id/messages", requireAuth, MessagesController.send);

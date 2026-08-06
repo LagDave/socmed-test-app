@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.37 — 2026-08-06
+
+### Added
+- Personal inbox profile priority: unlimited pinned chats remain at the top in first-pinned-first order
+- Inbox-row Pin profile / Unpin profile action and compact neutral pin marker
+
+### Plans
+- `plans/08062026-49-pin-profile-priority` — executed on `kylie/pin-profile`
+
 ## 0.1.36 — 2026-08-06
 
 ### Changed

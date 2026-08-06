@@ -102,6 +102,9 @@ export const MessageRealtime = {
     emitToUser(userId, CONVERSATION_UPDATED, { conversationId: conversation.id });
     await emitUnreadForUser(userId);
   },
+  conversationPriorityUpdated(userId: string, conversationId: string): void {
+    emitToUser(userId, CONVERSATION_UPDATED, { conversationId });
+  },
 
   async conversationTheme(
     conversation: ConversationRow,

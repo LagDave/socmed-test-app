@@ -10,11 +10,15 @@ const OPEN_THRESHOLD = 44;
 export function SwipeableConversationListRow({
   item,
   onDelete,
+  onPriorityChange,
+  isPrioritySaving = false,
   isPeerTyping = false,
   viewerId,
 }: {
   item: ConversationListItem;
   onDelete: (id: string, peerName: string) => void;
+  onPriorityChange: (id: string, isPinned: boolean) => void;
+  isPrioritySaving?: boolean;
   isPeerTyping?: boolean;
   viewerId?: string;
 }) {
@@ -123,6 +127,8 @@ export function SwipeableConversationListRow({
         <ConversationListRow
           item={item}
           onDelete={onDelete}
+          onPriorityChange={onPriorityChange}
+          isPrioritySaving={isPrioritySaving}
           isPeerTyping={isPeerTyping}
           viewerId={viewerId}
           className="rounded-xl border-b-0 bg-background"

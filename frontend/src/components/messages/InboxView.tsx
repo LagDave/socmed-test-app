@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
-import { deleteConversation } from "@/api/messages";
+import { deleteConversation, setConversationPriority } from "@/api/messages";
 import { CONVERSATION_UPDATED, getMessagesSocket } from "@/api/socket";
 import type { ConversationListItem } from "@/api/types";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -26,6 +26,7 @@ export function InboxView() {
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteConversation | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [prioritySavingConversationId, setPrioritySavingConversationId] = useState<string | null>(null);
 
   function requestDelete(id: string, peerName: string) {
     setPendingDelete({ id, peerName });
@@ -44,6 +45,18 @@ export function InboxView() {
       setError(e instanceof Error ? e.message : "Failed to delete conversation");
     } finally {
       setDeleting(false);
+    }
+  }
+  async function changeConversationPriority(conversationId: string, isPinned: boolean) {
+    if (prioritySavingConversationId) return;
+    setPrioritySavingConversationId(conversationId);
+    try {
+      await setConversationPriority(conversationId, isPinned);
+      await reloadInbox();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update conversation priority");
+    } finally {
+      setPrioritySavingConversationId(null);
     }
   }
 
@@ -133,6 +146,8 @@ export function InboxView() {
                   key={c.id}
                   item={c}
                   onDelete={requestDelete}
+                  onPriorityChange={changeConversationPriority}
+                  isPrioritySaving={prioritySavingConversationId === c.id}
                   isPeerTyping={Boolean(typingByConversation[c.id])}
                   viewerId={user?.id}
                 />

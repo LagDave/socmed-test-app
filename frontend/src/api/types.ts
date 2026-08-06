@@ -119,6 +119,7 @@ export type ConversationListLastPinActivity = {
 
 export type ConversationListItem = {
   id: string;
+  isPinned: boolean;
   peer: PublicUser;
   peerPresence: PeerPresence | null;
   lastMessage: {
