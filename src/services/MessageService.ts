@@ -17,6 +17,7 @@ import {
   type ConversationLatestReaction,
 } from "../models/MessageReactionModel";
 import { MessageUserDeletionModel } from "../models/MessageUserDeletionModel";
+import { ConversationPinModel } from "../models/ConversationPinModel";
 import { MessagePinService, type MessagePinActivityView, type PinnedMessageView } from "./MessagePinService";
 import type {
   ConversationListItem,
@@ -305,20 +306,9 @@ export class MessageService {
       rows.map((row) => row.id),
       userId
     );
-    return rows
-      .map((row) =>
-        this.inboxRowToListItem(
-          row,
-          toListLastReaction(latestReactions.get(row.id) ?? null),
-          userId,
-          mutualFriendIds
-        )
-      )
-      .sort((a, b) => {
-        const aTime = a.lastMessageAt?.getTime() ?? 0;
-        const bTime = b.lastMessageAt?.getTime() ?? 0;
-        return bTime - aTime;
-      });
+    return rows.map((row) => ({ item: this.inboxRowToListItem(row, toListLastReaction(latestReactions.get(row.id) ?? null), userId, mutualFriendIds), pinnedAt: row.pinnedAt }))
+      .sort((a, b) => a.item.isPinned !== b.item.isPinned ? (a.item.isPinned ? -1 : 1) : a.item.isPinned ? (a.pinnedAt?.getTime() ?? 0) - (b.pinnedAt?.getTime() ?? 0) || a.item.id.localeCompare(b.item.id) : (b.item.lastMessageAt?.getTime() ?? 0) - (a.item.lastMessageAt?.getTime() ?? 0) || a.item.id.localeCompare(b.item.id))
+      .map(({ item }) => item);
   }
 
   static async listMessages(
@@ -649,6 +639,7 @@ export class MessageService {
 
     const updated = await db.transaction(async (trx) => {
       await MessageUserDeletionModel.markAllInConversationForUser(conversationId, userId, trx);
+      await ConversationPinModel.deleteForUser(conversationId, userId, trx);
       return ConversationModel.setHidden(conversationId, userId, new Date(), trx);
     });
 
@@ -711,6 +702,7 @@ export class MessageService {
 
     return {
       id: row.id,
+      isPinned: row.isPinned,
       peer: toPublicUser(row.peer),
       peerPresence: mutualFriendIds.has(row.peer.id)
         ? peerPresenceForUser(row.peer.id, row.peer.last_active_at ?? null)
@@ -744,11 +736,13 @@ export class MessageService {
       viewerId,
       lastReadAt(row, viewerId)
     );
+    const isPinned = await ConversationPinModel.isPinnedForUser(row.id, viewerId);
 
     const lastSystemLog = toListLastSystemLog(latestThemeLogFromRow(row));
 
     return {
       id: row.id,
+      isPinned,
       peer: toPublicUser(peerUser),
       peerPresence: peerPresenceForUser(peerUser.id, peerUser.last_active_at ?? null),
       lastMessage: latest ? lastMessageListShape(latest) : null,

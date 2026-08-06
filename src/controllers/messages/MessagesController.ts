@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import { MessageService } from "../../services/MessageService";
 import { MessagePinService } from "../../services/MessagePinService";
+import { ConversationPriorityService } from "../../services/ConversationPriorityService";
 import { ChatThemeService } from "../../services/ChatThemeService";
 import { ok, fail } from "../../utils/response";
 import { AppError, statusForCode } from "../../utils/AppError";
@@ -145,6 +146,14 @@ export class MessagesController {
     } catch (err) {
       return handle(res, err);
     }
+  }
+  static async pinConversation(req: AuthedRequest, res: Response): Promise<Response> {
+    try { return ok(res, await ConversationPriorityService.pin(req.userId!, String(req.params.id))); }
+    catch (err) { return handle(res, err); }
+  }
+  static async unpinConversation(req: AuthedRequest, res: Response): Promise<Response> {
+    try { return ok(res, await ConversationPriorityService.unpin(req.userId!, String(req.params.id))); }
+    catch (err) { return handle(res, err); }
   }
 
   static async unreadCount(req: AuthedRequest, res: Response): Promise<Response> {

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ChevronRight, ImageIcon, MoreVertical, Trash2 } from "lucide-react";
+import { ChevronRight, ImageIcon, MoreVertical, Pin, Trash2 } from "lucide-react";
 import type { ConversationListItem } from "@/api/types";
 import { OnlinePresenceIndicator } from "@/components/OnlinePresenceIndicator";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
@@ -93,12 +93,16 @@ function messageSnippet(item: ConversationListItem): { text: string; isMedia: bo
 export function ConversationListRow({
   item,
   onDelete,
+  onPriorityChange,
+  isPrioritySaving = false,
   isPeerTyping = false,
   viewerId,
   className,
 }: {
   item: ConversationListItem;
   onDelete: (id: string, peerName: string) => void;
+  onPriorityChange: (id: string, isPinned: boolean) => void;
+  isPrioritySaving?: boolean;
   isPeerTyping?: boolean;
   viewerId?: string;
   className?: string;
@@ -142,10 +146,14 @@ export function ConversationListRow({
       <Link to={`/messages/${item.id}`} className="flex min-w-0 flex-1 items-center gap-2">
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
-            <span className={cn("truncate", unread ? "font-semibold" : "font-medium")}>
-              {peer.displayName}
-              {peer.username && (
+            <span className={cn("flex min-w-0 items-center gap-1 truncate", unread ? "font-semibold" : "font-medium")}>
+              <span className="truncate">{peer.displayName}{peer.username && (
                 <span className="font-normal text-muted-foreground"> @{peer.username}</span>
+              )}</span>
+              {item.isPinned && (
+                <span className="inline-flex shrink-0 text-foreground/70" aria-label="Pinned profile">
+                  <Pin className="size-3 fill-current" strokeWidth={2.25} aria-hidden="true" />
+                </span>
               )}
             </span>
             {item.lastMessageAt && (
@@ -209,6 +217,10 @@ export function ConversationListRow({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem disabled={isPrioritySaving} onSelect={() => onPriorityChange(item.id, !item.isPinned)}>
+            <Pin className="mr-2 h-4 w-4" />
+            {item.isPinned ? "Unpin profile" : "Pin profile"}
+          </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
             onSelect={() => onDelete(item.id, peer.displayName)}
