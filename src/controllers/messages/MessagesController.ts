@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import { MessageService } from "../../services/MessageService";
 import { MessagePinService } from "../../services/MessagePinService";
+import { ConversationPriorityService } from "../../services/ConversationPriorityService";
 import { ChatThemeService } from "../../services/ChatThemeService";
 import { ok, fail } from "../../utils/response";
 import { AppError, statusForCode } from "../../utils/AppError";
@@ -44,12 +45,17 @@ export class MessagesController {
   static async listMessages(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const before = typeof req.query.before === "string" ? req.query.before : undefined;
+      const after = typeof req.query.after === "string" ? req.query.after : undefined;
+      if (before && after) {
+        return fail(res, 400, "MESSAGE_VALIDATION", "Use one message cursor at a time.");
+      }
       const restoreIfHidden = req.query.restore === "1";
       const includeThemeLogs = req.query.includeThemeLogs === "1" || restoreIfHidden;
       const data = await MessageService.listMessages(
         req.userId!,
         String(req.params.id),
         before,
+        after,
         { restoreIfHidden, includeThemeLogs }
       );
       return ok(res, data);
@@ -145,6 +151,14 @@ export class MessagesController {
     } catch (err) {
       return handle(res, err);
     }
+  }
+  static async pinConversation(req: AuthedRequest, res: Response): Promise<Response> {
+    try { return ok(res, await ConversationPriorityService.pin(req.userId!, String(req.params.id))); }
+    catch (err) { return handle(res, err); }
+  }
+  static async unpinConversation(req: AuthedRequest, res: Response): Promise<Response> {
+    try { return ok(res, await ConversationPriorityService.unpin(req.userId!, String(req.params.id))); }
+    catch (err) { return handle(res, err); }
   }
 
   static async unreadCount(req: AuthedRequest, res: Response): Promise<Response> {

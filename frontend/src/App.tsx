@@ -12,6 +12,7 @@ import { ProfilePage } from "@/pages/ProfilePage";
 import { FriendsPage } from "@/pages/FriendsPage";
 import { AccountSettingsPage } from "@/pages/AccountSettingsPage";
 import { NotificationsPage } from "@/pages/NotificationsPage";
+import { NotificationSettingsPage } from "@/pages/NotificationSettingsPage";
 import { MessageSettingsPage } from "@/pages/MessageSettingsPage";
 import { MessagesPage } from "@/pages/MessagesPage";
 
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="/messages" element={<MessagesPage />} />
               <Route path="/messages/settings" element={<MessageSettingsPage />} />
               <Route path="/messages/:conversationId" element={<MessagesPage />} />
+              <Route path="/notifications/settings" element={<NotificationSettingsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/settings" element={<AccountSettingsPage />} />
               <Route path="/u/me" element={<ProfileRedirect />} />

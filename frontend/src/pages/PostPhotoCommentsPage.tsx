@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft, Camera, MessageCircle } from "lucide-react";
 import { api } from "@/api/client";
 import type { CommentView, PostImageView, PostView, ReactionSummary } from "@/api/types";
@@ -10,6 +10,7 @@ import { PostActionRow } from "@/components/PostActionRow";
 import { ReactionBar } from "@/components/ReactionBar";
 import { Button } from "@/components/ui/button";
 import { groupComments } from "@/lib/groupComments";
+import { isNotificationReturnState, NOTIFICATIONS_PATH } from "@/lib/notificationNavigation";
 import { canSharePost } from "@/lib/sharePost";
 import { commentsForPostImage, postMediaImages } from "@/lib/postMedia";
 import { emptyReactionSummary } from "@/lib/reactions";
@@ -18,6 +19,7 @@ type PendingDelete = { comment: CommentView; kind: "comment" | "reply" };
 
 export function PostPhotoCommentsPage() {
   const { postId, photoId } = useParams();
+  const location = useLocation();
   const { user } = useAuth();
   const [post, setPost] = useState<PostView | null>(null);
   const [comments, setComments] = useState<CommentView[]>([]);
@@ -129,6 +131,7 @@ export function PostPhotoCommentsPage() {
     setError(null);
     try {
       await api.post(`/api/posts/${post.id}/share`);
+      await load();
       setShareNotice("Shared to your feed.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to share");
@@ -165,12 +168,15 @@ export function PostPhotoCommentsPage() {
   }
 
   if (!photo) {
+    const cameFromNotifications = isNotificationReturnState(location.state);
+    const backPath = cameFromNotifications ? NOTIFICATIONS_PATH : `/posts/${post.id}`;
+    const backLabel = cameFromNotifications ? "Back to notifications" : "Back to post";
     return (
       <section className="feed-page space-y-4">
         <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
-          <Link to={`/posts/${post.id}`}>
+          <Link to={backPath}>
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Back to post
+            {backLabel}
           </Link>
         </Button>
         <p className="text-sm text-muted-foreground">Photo not found.</p>
@@ -179,6 +185,9 @@ export function PostPhotoCommentsPage() {
   }
 
   const postPath = `/posts/${post.id}`;
+  const cameFromNotifications = isNotificationReturnState(location.state);
+  const backPath = cameFromNotifications ? NOTIFICATIONS_PATH : postPath;
+  const backLabel = cameFromNotifications ? "Back to notifications" : "Back to post";
   const canShare = user ? canSharePost(user.id, post) : false;
   const photoTitle =
     media.length > 1 ? `Photo ${photoIndex + 1} comments` : "Photo comments";
@@ -188,9 +197,9 @@ export function PostPhotoCommentsPage() {
   return (
     <section className="feed-page space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
-        <Link to={postPath}>
+        <Link to={backPath}>
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Back to post
+          {backLabel}
         </Link>
       </Button>
 
@@ -221,6 +230,7 @@ export function PostPhotoCommentsPage() {
             <PostActionRow
               size="md"
               commentCount={commentCount}
+              shareCount={post.shareCount}
               showShare
               shareDisabled={!canShare}
               onShare={canShare ? () => void onShare() : undefined}

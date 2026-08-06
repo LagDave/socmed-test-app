@@ -63,58 +63,38 @@ export class NotificationService {
   }
 
   static async list(userId: string): Promise<NotificationView[]> {
-    const friendItems = await this.listPendingFriendRequests(userId);
+    const pendingFriendshipIds = new Set(
+      (await FriendshipModel.listIncoming(userId)).map((friendship) => friendship.id)
+    );
     const rows = await NotificationModel.listForRecipient(userId);
-    const activityRows = rows.filter((r) => r.type !== "friend_request");
-    const actors = await Promise.all(activityRows.map((r) => UserModel.findById(r.actor_id)));
-    const activityItems = activityRows.map((r, i) => {
-      const actor = actors[i];
+    const visibleRows = rows.filter(
+      (row) => row.type !== "friend_request" || pendingFriendshipIds.has(row.friendship_id ?? "")
+    );
+    const actors = await Promise.all(visibleRows.map((row) => UserModel.findById(row.actor_id)));
+    const items = visibleRows.map((row, index) => {
+      const actor = actors[index];
       if (!actor) throw new AppError("USER_NOT_FOUND", "Actor missing.");
       const publicActor = toPublicUser(actor);
       return {
-        id: r.id,
-        type: r.type,
-        isRead: r.is_read,
-        createdAt: r.created_at,
+        id: row.id,
+        type: row.type,
+        isRead: row.is_read,
+        createdAt: row.created_at,
         actor: publicActor,
-        postId: r.post_id,
-        commentId: r.comment_id,
-        postImageId: r.post_image_id ?? null,
-        friendshipId: r.friendship_id,
-        message: messageFor(r.type, publicActor.displayName),
+        postId: row.post_id,
+        commentId: row.comment_id,
+        postImageId: row.post_image_id ?? null,
+        friendshipId: row.friendship_id,
+        message: messageFor(row.type, publicActor.displayName),
       };
     });
-    return [...friendItems, ...activityItems].sort(
+    return items.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
-  static async listPendingFriendRequests(userId: string): Promise<NotificationView[]> {
-    const incoming = await FriendshipModel.listIncoming(userId);
-    const items: NotificationView[] = [];
-    for (const row of incoming) {
-      const actorId = row.requester_id;
-      const actor = await UserModel.findById(actorId);
-      if (!actor) continue;
-      const publicActor = toPublicUser(actor);
-      items.push({
-        id: `friend-request-${row.id}`,
-        type: "friend_request",
-        isRead: false,
-        createdAt: row.created_at,
-        actor: publicActor,
-        postId: null,
-        commentId: null,
-        postImageId: null,
-        friendshipId: row.id,
-        message: messageFor("friend_request", publicActor.displayName),
-      });
-    }
-    return items;
-  }
-
-  static async markAllRead(userId: string): Promise<void> {
-    const updated = await NotificationModel.markAllRead(userId, ACTIVITY_TYPES);
+  static async markRead(userId: string, notificationId: string): Promise<void> {
+    const updated = await NotificationModel.markRead(userId, notificationId);
     if (updated > 0) {
       await this.publishCountUpdated(userId);
     }
@@ -126,9 +106,9 @@ export class NotificationService {
 
   static async counts(userId: string): Promise<{ notifications: number; feed: number }> {
     const unreadActivity = await NotificationModel.countUnread(userId, ACTIVITY_TYPES);
-    const pendingFriends = (await FriendshipModel.listIncoming(userId)).length;
+    const unreadFriendRequests = await NotificationModel.countUnreadPendingFriendRequests(userId);
     const feed = await this.unreadFriendPostCount(userId);
-    return { notifications: unreadActivity + pendingFriends, feed };
+    return { notifications: unreadActivity + unreadFriendRequests, feed };
   }
 
   static async unreadFriendPostCount(userId: string): Promise<number> {

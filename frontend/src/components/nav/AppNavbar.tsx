@@ -1,9 +1,10 @@
-import { Bell, Home, MessageCircle, Users } from "lucide-react";
+import { Bell, ChevronRight, Home, LogOut, MessageCircle, Moon, Sun, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { PublicUser } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
+import type { Theme } from "@/lib/theme";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ export type AppNavbarProps = {
   feedCount: number;
   messagesCount: number;
   notificationCount: number;
+  theme: Theme;
   onToggleTheme: () => void;
   onLogout: () => void;
 };
@@ -32,6 +34,7 @@ export function AppNavbar({
   feedCount,
   messagesCount,
   notificationCount,
+  theme,
   onToggleTheme,
   onLogout,
 }: AppNavbarProps) {
@@ -104,29 +107,52 @@ export function AppNavbar({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="profile-dropdown-menu animate-menu-enter z-50 min-w-56 border-border bg-card p-1.5 text-card-foreground"
+                  className="app-navbar-profile-menu animate-menu-enter z-50"
                 >
                   <DropdownMenuItem asChild>
-                    <Link to={profilePath} className="profile-dropdown-item outline-none">
-                      Profile
+                    <Link
+                      to={profilePath}
+                      aria-label={`View ${user.displayName}'s profile`}
+                      className="app-navbar-profile-menu-summary"
+                    >
+                      <ProfileAvatar
+                        displayName={user.displayName}
+                        avatarUrl={user.avatarUrl}
+                        size="sm"
+                        className="app-navbar-profile-menu-avatar"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="app-navbar-profile-menu-name truncate">{user.displayName}</span>
+                        {user.username && (
+                          <span className="app-navbar-profile-menu-handle truncate">@{user.username}</span>
+                        )}
+                      </span>
+                      <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator className="app-navbar-profile-menu-divider" />
                   <DropdownMenuItem
-                    className="profile-dropdown-item cursor-pointer outline-none focus:bg-transparent data-[highlighted]:bg-accent"
+                    className="app-navbar-profile-menu-item"
                     onSelect={() => {
                       onToggleTheme();
                     }}
                   >
-                    Switch mode
+                    {theme === "dark" ? (
+                      <Sun className="size-[18px] shrink-0" aria-hidden="true" />
+                    ) : (
+                      <Moon className="size-[18px] shrink-0" aria-hidden="true" />
+                    )}
+                    <span>{theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}</span>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="profile-dropdown-divider mx-2 my-1 h-px bg-border" />
+                  <DropdownMenuSeparator className="app-navbar-profile-menu-divider" />
                   <DropdownMenuItem
-                    className="profile-dropdown-item cursor-pointer outline-none focus:bg-transparent data-[highlighted]:bg-accent"
+                    className="app-navbar-profile-menu-item app-navbar-profile-menu-item-destructive"
                     onSelect={() => {
                       void onLogout();
                     }}
                   >
-                    Log out
+                    <LogOut className="size-[18px] shrink-0" aria-hidden="true" />
+                    <span>Log out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

@@ -60,6 +60,23 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
   const profilePath = `/u/${sharedFrom.author.username || sharedFrom.author.id}`;
   const postPath = `/posts/${sharedFrom.id}`;
   const media = postMediaImages(sharedFrom);
+  const originalMedia =
+    media.length > 1 ? (
+      <PostMediaGallery media={media} postPath={postPath} mode="feed" className="mt-2.5" />
+    ) : media.length === 1 ? (
+      <Link
+        to={postPath}
+        className="group/embed mt-2.5 block rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+      >
+        <div className="shared-post-embed-media overflow-hidden rounded-lg">
+          <img
+            src={media[0].url}
+            alt=""
+            className="max-h-96 w-full object-cover transition-transform duration-300 group-hover/embed:scale-[1.01]"
+          />
+        </div>
+      </Link>
+    ) : null;
 
   return (
     <div className={cn("shared-post-embed", className)}>
@@ -81,34 +98,19 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
               <span className="font-normal text-muted-foreground">{` @${sharedFrom.author.username}`}</span>
             ) : null}
           </Link>
-          <Link
-            to={postPath}
-            className="group/embed mt-1 block rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-          >
-            {sharedFrom.body ? (
+          {sharedFrom.body ? (
+            <Link
+              to={postPath}
+              className="group/embed mt-1 block rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+            >
               <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90 transition-colors group-hover/embed:text-foreground">
                 {sharedFrom.body}
               </p>
-            ) : null}
-            {media.length > 1 ? (
-              <PostMediaGallery
-                media={media}
-                postPath={postPath}
-                mode="compact"
-                className="mt-2.5"
-              />
-            ) : media.length === 1 ? (
-              <div className="shared-post-embed-media mt-2.5 overflow-hidden rounded-lg">
-                <img
-                  src={media[0].url}
-                  alt=""
-                  className="max-h-96 w-full object-cover transition-transform duration-300 group-hover/embed:scale-[1.01]"
-                />
-              </div>
-            ) : null}
-          </Link>
+            </Link>
+          ) : null}
         </div>
       </div>
+      {originalMedia ? <div className="post-media-stage">{originalMedia}</div> : null}
     </div>
   );
 }

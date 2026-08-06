@@ -3,12 +3,13 @@ import { Smile } from "lucide-react";
 import { api } from "@/api/client";
 import type { ReactionEmoji, ReactionSummary } from "@/api/types";
 import { ReactionIcon } from "@/components/ReactionIcon";
-import { ReactionsListPopover } from "@/components/ReactionsListPopover";
+import { ReactionsListDialog } from "@/components/ReactionsListDialog";
 import { REACTION_OPTIONS, reactionOption } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
 
 const HOLD_MS = 350;
 const EXPAND_DELAY_MS = 220;
+const HOVER_CLOSE_DELAY_MS = 180;
 
 const SIZE = {
   md: {
@@ -95,10 +96,14 @@ export function ReactionBar({
   const rootRef = useRef<HTMLDivElement>(null);
   const holdTimerRef = useRef<number | null>(null);
   const expandTimerRef = useRef<number | null>(null);
+  const collapseTimerRef = useRef<number | null>(null);
   const pickerId = useId();
+  const isDefault = variant === "default";
   const isInline = variant === "inline";
   const isToolbar = variant === "toolbar";
   const isPopup = isInline || isToolbar;
+  const showsFloatingPicker = isDefault || isPopup;
+  const usesHoverTrigger = isDefault;
   const s = SIZE[isToolbar ? "toolbar" : isInline ? "inline" : size];
 
   const path =
@@ -142,18 +147,31 @@ export function ReactionBar({
     }
   }
 
+  function clearCollapseTimer() {
+    if (collapseTimerRef.current !== null) {
+      window.clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
+    }
+  }
+
   function scheduleExpand() {
+    clearCollapseTimer();
     clearExpandTimer();
     expandTimerRef.current = window.setTimeout(() => setExpanded(true), EXPAND_DELAY_MS);
   }
 
-  function collapse() {
+  function scheduleCollapse() {
     clearExpandTimer();
-    setExpanded(false);
+    clearCollapseTimer();
+    collapseTimerRef.current = window.setTimeout(() => {
+      setExpanded(false);
+      collapseTimerRef.current = null;
+    }, HOVER_CLOSE_DELAY_MS);
   }
 
   function toggleList() {
     clearExpandTimer();
+    clearCollapseTimer();
     setExpanded(false);
     setListOpen((open) => !open);
   }
@@ -175,6 +193,7 @@ export function ReactionBar({
       }
       setPopEmoji(emoji);
       window.setTimeout(() => setPopEmoji(null), 280);
+      clearCollapseTimer();
       setExpanded(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Reaction failed";
@@ -202,7 +221,7 @@ export function ReactionBar({
       ? ""
       : isInline
         ? "bg-card shadow-[0_2px_8px_rgba(0,0,0,0.12)] ring-1 ring-border/60"
-        : cn("border border-border/80 bg-background", expanded ? s.pickerPad : "p-px")
+        : "border border-border/80 bg-background p-px"
   );
 
   const toolbarTriggerContent = (
@@ -242,7 +261,7 @@ export function ReactionBar({
             }}
           >
             <ReactionIcon emoji={opt.emoji} className={s.icon} />
-            {!isPopup && (
+            {isDefault && (
               <span
                 className={cn(
                   "pointer-events-none absolute left-1/2 -translate-x-1/2",
@@ -272,32 +291,38 @@ export function ReactionBar({
       <div className={cn("flex flex-wrap items-center", isPopup ? "gap-0" : s.leftGap)}>
         <div
           className="relative inline-flex"
-          onMouseEnter={isPopup ? undefined : scheduleExpand}
-          onMouseLeave={isPopup ? undefined : collapse}
+          onMouseEnter={usesHoverTrigger ? scheduleExpand : undefined}
+          onMouseLeave={usesHoverTrigger ? scheduleCollapse : undefined}
         >
-          {expanded && isPopup && (
+          {expanded && showsFloatingPicker && (
             <div
               id={pickerId}
               className={cn(
                 "message-reaction-popup absolute bottom-full z-30 mb-1.5 inline-flex items-center rounded-full bg-popover shadow-lg ring-1 ring-border/60",
                 s.pickerPad,
                 s.pickerGap,
-                pickerAlign === "end" && "right-0 translate-x-0.5",
-                pickerAlign === "start" && "left-0 -translate-x-1",
-                pickerAlign === "center" && "left-1/2 -translate-x-1/2"
+                isDefault
+                  ? "left-0"
+                  : pickerAlign === "end"
+                    ? "right-0 translate-x-0.5"
+                    : pickerAlign === "start"
+                      ? "left-0 -translate-x-1"
+                      : "left-1/2 -translate-x-1/2"
               )}
               role="listbox"
               aria-label="Choose reaction"
+              onMouseEnter={usesHoverTrigger ? clearCollapseTimer : undefined}
+              onMouseLeave={usesHoverTrigger ? scheduleCollapse : undefined}
             >
               {pickerOptions}
             </div>
           )}
           <div className={shellClass}>
-            {(!expanded || isPopup) && (
+            {(!expanded || showsFloatingPicker) && (
               <button
                 type="button"
                 disabled={busy}
-                aria-label={isPopup ? "React to message" : triggerLabel}
+                aria-label={isInline || isToolbar ? "React to message" : triggerLabel}
                 aria-expanded={expanded}
                 aria-controls={pickerId}
                 className={cn(
@@ -308,21 +333,20 @@ export function ReactionBar({
                       "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
                       triggerClassName
                     ),
-                  !isPopup && "hover:bg-accent",
+                  usesHoverTrigger && "hover:bg-accent",
                   isInline && !isToolbar && "hover:bg-muted/80",
                   "disabled:pointer-events-none disabled:opacity-50",
-                  expanded && !isPopup && "sr-only"
                 )}
                 onClick={() => {
                   clearExpandTimer();
-                  if (isPopup) {
-                    setExpanded((open) => !open);
-                  } else {
+                  if (usesHoverTrigger) {
                     setExpanded(true);
+                  } else {
+                    setExpanded((open) => !open);
                   }
                 }}
                 onPointerDown={(e) => {
-                  if (isPopup) return;
+                  if (!usesHoverTrigger) return;
                   if (e.pointerType === "touch" || e.pointerType === "pen") {
                     clearHoldTimer();
                     holdTimerRef.current = window.setTimeout(() => setExpanded(true), HOLD_MS);
@@ -349,7 +373,7 @@ export function ReactionBar({
                     <ReactionIcon emoji={triggerEmoji} className={s.triggerIcon} />
                   )}
                 </span>
-                {!isPopup && (
+                {isDefault && (
                   <span
                     className={cn(
                       "pointer-events-none absolute left-1/2 -translate-x-1/2",
@@ -362,16 +386,6 @@ export function ReactionBar({
                   </span>
                 )}
               </button>
-            )}
-            {expanded && !isPopup && (
-              <div
-                id={pickerId}
-                className={cn("inline-flex items-center", s.pickerGap)}
-                role="listbox"
-                aria-label="Choose reaction"
-              >
-                {pickerOptions}
-              </div>
             )}
           </div>
         </div>
@@ -404,7 +418,7 @@ export function ReactionBar({
             </span>
             <span>{totalCount}</span>
           </button>
-          <ReactionsListPopover
+          <ReactionsListDialog
             targetType={targetType}
             targetId={targetId}
             summary={summary}

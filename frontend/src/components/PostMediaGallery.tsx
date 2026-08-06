@@ -15,6 +15,7 @@ export type PostMediaActionsConfig = {
   onShare?: (postId: string) => void;
   sharingPostId?: string | null;
   canShare: boolean;
+  shareCount: number;
 };
 
 type PostMediaGalleryProps = {
@@ -30,6 +31,8 @@ type GridPreviewProps = {
   compact: boolean;
   postPath?: string;
 };
+
+const POST_PHOTOS_ANCHOR = "photos";
 
 function GridCell({
   src,
@@ -103,7 +106,7 @@ function PostMediaGridPreview({ imageUrls, compact, postPath }: GridPreviewProps
   if (postPath) {
     return (
       <Link
-        to={postPath}
+        to={`${postPath}#${POST_PHOTOS_ANCHOR}`}
         className={shellClass}
         aria-label={`View post with ${count} photos`}
       >
@@ -169,6 +172,7 @@ function PostPhotoSlide({
             size="md"
             commentTo={commentPath}
             commentCount={commentCount}
+            shareCount={postActions.shareCount}
             showShare
             shareDisabled={!postActions.canShare}
             onShare={
@@ -218,7 +222,7 @@ function PostMediaAlbum({
         detail && "post-media-gallery--detail",
         className
       )}
-      id={detail ? "photos" : undefined}
+      id={detail ? POST_PHOTOS_ANCHOR : undefined}
       aria-label={`Photo album, ${media.length} images`}
     >
       <div className="flex items-center justify-between gap-3 border-b border-border/40 bg-gradient-to-b from-muted/35 to-transparent px-4 py-3">

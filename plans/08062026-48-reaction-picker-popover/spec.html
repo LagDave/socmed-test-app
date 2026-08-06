@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan 08062026-48 — Reaction picker dialog</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    body { max-width: 960px; margin: 0 auto; padding: 32px 20px 56px; background: #111827; color: #e5e7eb; line-height: 1.55; }
+    h1, h2, h3 { line-height: 1.2; color: #fff; } h1 { margin-bottom: 8px; }
+    .status { display: inline-block; padding: 6px 11px; border-radius: 999px; background: #78350f; color: #fef3c7; font-weight: 700; }
+    .meta, .callout { padding: 14px 16px; border: 1px solid #374151; border-radius: 10px; background: #1f2937; }
+    section { margin-top: 28px; } code { color: #bfdbfe; }
+    table { width: 100%; border-collapse: collapse; } th, td { text-align: left; vertical-align: top; padding: 10px; border-bottom: 1px solid #374151; }
+    th { color: #f9fafb; } .risk { border-left: 4px solid #f59e0b; }
+  </style>
+</head>
+<body>
+  <p class="status">In Progress</p>
+  <h1>Improve the reaction picker and reaction-list dialog</h1>
+  <div class="meta">
+    <strong>Plan:</strong> <code>plans/08062026-48-reaction-picker-popover</code><br />
+    <strong>Execution branch:</strong> <code>kylie/reactions-ui</code> → <code>dev</code><br />
+    <strong>Pull request:</strong> #73 — <em>feat: improve reaction picker and dialog</em>
+  </div>
+
+  <section><h2>Why</h2><p>The prior reaction list was an anchor-bound popover. It could be constrained or poorly placed near viewport edges and was not a reliable small-screen experience. The reaction picker should continue to update the existing reaction summary while the people list opens in a stable, dismissible dialog.</p></section>
+
+  <section><h2>What</h2><p>Replace <code>ReactionsListPopover</code> with a portal-based, responsive <code>ReactionsListDialog</code>. The dialog opens from the existing reaction summary, supports all/current-emoji filtering, handles loading, empty, error, and truncation states, and uses a scrollable list. It appears as a bottom sheet on small screens and a centered dialog on larger screens.</p><p><strong>Done when:</strong> selecting a reaction still updates its summary; opening the summary shows the correct people and counts; filter chips update the result set; backdrop, close control, Escape, and profile navigation close the dialog; and page scrolling is restored after dismissal.</p></section>
+
+  <section><h2>Context</h2><ul>
+    <li><code>frontend/src/components/ReactionBar.tsx</code> owns picker timing, reaction mutation, summary display, and the dialog open state.</li>
+    <li><code>frontend/src/components/ReactionsListDialog.tsx</code> is the new presentation surface. It reuses <code>useReactionsList</code>, <code>REACTION_OPTIONS</code>, <code>ReactionIcon</code>, and <code>ProfileAvatar</code>.</li>
+    <li><code>frontend/src/components/ReactionsListPopover.tsx</code> is removed; do not retain a parallel list implementation.</li>
+    <li>Consumers include post, comment, and post-image reaction bars. Message reactions retain their existing behavior because the dialog target type does not include messages.</li>
+  </ul></section>
+
+  <section><h2>Constraints</h2><table><tr><th>Must</th><th>Must not</th></tr><tr><td><ul><li>Preserve existing reaction mutation endpoints and summary callbacks.</li><li>Use the shared reaction-list hook and option definitions.</li><li>Provide an accessible modal name, Escape dismissal, visible close control, and backdrop dismissal.</li><li>Reset the selected filter and hook state when closed.</li><li>Prevent background scrolling only while the dialog is open.</li></ul></td><td><ul><li>No API, schema, or reaction-counting change.</li><li>No new dependency or second reaction-list abstraction.</li><li>No change to message-reaction flows.</li></ul></td></tr></table></section>
+
+  <section><h2>Risk &amp; blast radius</h2><div class="callout risk"><strong>Level 2 — Concern.</strong> This moves a shared interaction from a locally positioned popover to a portal modal. Incorrect cleanup can trap the page in a scroll-locked state, while incorrect dismissal behavior can lose the current interaction. <strong>Mitigation:</strong> centralize close cleanup in the dialog effect, retain the existing hook contract, and verify post, comment, and post-image surfaces at desktop and mobile widths.</div><table><tr><th>Consumer</th><th>Expected impact / verification</th></tr><tr><td>Post reaction summary</td><td>Opens a stable list dialog and preserves list filtering.</td></tr><tr><td>Comment reaction summary</td><td>Uses the same dialog without changing reply or reaction mutation behavior.</td></tr><tr><td>Post-image reaction summary</td><td>Uses the same dialog with the post-image reaction endpoint.</td></tr><tr><td>Message reactions</td><td>Unchanged; verify no dialog target-type expansion accidentally reaches them.</td></tr></table></section>
+
+  <section><h2>Tasks</h2><div class="callout"><h3>T1 — Replace the anchored reaction-list popover</h3><p><strong>Do:</strong> create the portal-based dialog with a labelled modal surface, focus its close control on open, support Escape/backdrop/close/profile-link dismissal, lock background scrolling while open, and reset filtering on close.</p><p><strong>Files:</strong> <code>frontend/src/components/ReactionsListDialog.tsx</code>, <code>frontend/src/components/ReactionsListPopover.tsx</code></p><p><strong>Depends on:</strong> —</p><p><strong>Verify:</strong> A1, A3.</p></div><div class="callout"><h3>T2 — Wire the existing reaction summary to the dialog</h3><p><strong>Do:</strong> retain the picker’s current mutation and summary logic, use dialog state for people-list visibility, and remove obsolete popover positioning logic.</p><p><strong>Files:</strong> <code>frontend/src/components/ReactionBar.tsx</code></p><p><strong>Depends on:</strong> T1</p><p><strong>Verify:</strong> A1–A3.</p></div></section>
+
+  <section><h2>Verification</h2><ul><li>Run frontend typecheck, lint, and build before finalization.</li><li>Run <code>test-results.json</code> in a contained <code>-tw</code> runtime and record observed evidence only.</li><li>Confirm no new dependencies or duplicate reaction-list implementation were introduced.</li></ul></section>
+
+  <section><h2>Revision Log</h2><div class="callout"><p><strong>Rev 0 — 2026-08-06:</strong> Created retrospectively from PR #73 because the implementation commit omitted the required plan and acceptance artifacts. This documents the code already on <code>kylie/reactions-ui</code>; no application code is changed by this plan-artifact commit.</p></div></section>
+</body>
+</html>

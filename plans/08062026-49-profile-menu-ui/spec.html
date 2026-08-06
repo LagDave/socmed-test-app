@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profile Menu UI Upgrade Spec</title>
+  <style>
+    :root { color-scheme:light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; line-height:1.5; }
+    .shell { width:min(1120px,calc(100% - 32px)); margin:0 auto; padding:48px 0; }.hero,.card,.task { border:1px solid var(--line); border-radius:8px; background:var(--paper); }.hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }.card { padding:28px; margin-top:16px; }.task { padding:20px; margin-top:12px; background:var(--soft); }
+    .top { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }.eyebrow,dt { color:var(--muted); font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }.eyebrow { margin:0; }.pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:#fff; font-size:.78rem; font-weight:800; text-transform:uppercase; }
+    h1 { max-width:900px; margin:0 0 24px; font-size:clamp(2rem,5vw,3.5rem); line-height:.95; } h2 { font-size:1.35rem; } h3,p { margin-top:0; } code { padding:.1rem .3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:.92em; } .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin:0; }.grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; } dd { margin:4px 0 0; font-weight:700; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.94rem; } th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; } th { background:var(--soft); font-size:.78rem; text-transform:uppercase; } ul { padding-left:1.2rem; }.callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }.wire { overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.84rem; white-space:pre; }.checklist { list-style:none; padding-left:0; }.checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div class="top"><p class="eyebrow">Socmed Plan Spec · Seq 49</p><span class="pill">Completed</span></div>
+      <h1>Profile Menu UI Upgrade — Identity-Led Account Panel</h1>
+      <dl class="grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan folder</dt><dd>plans/08062026-49-profile-menu-ui</dd></div>
+        <div><dt>Size</dt><dd>Small (4 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 — global account control</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08062026-49-profile-menu-ui</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/profile-menu-ui</dd></div>
+        <div><dt>Merge target</dt><dd>dev</dd></div>
+      </dl>
+    </header>
+
+    <section class="card" id="why">
+      <h2>Why</h2>
+      <p>The avatar trigger in the completed navbar polish is clear, but the opened panel still reads as a generic three-row utility dropdown: it has no account identity, no icons, and an ambiguous “Switch mode” action. The signed-in menu is the only global place where a person can quickly confirm the active account, reach their profile, change the display mode, or leave the session.</p>
+      <p>This is a focused account-panel upgrade. The navigation bar, routes, API calls, profile-page menus, and signed-out controls are already working and are not candidates for a redesign.</p>
+    </section>
+
+    <section class="card" id="what">
+      <h2>What</h2>
+      <p>Upgrade only the signed-in avatar dropdown in <code>AppNavbar</code> into a compact account panel. It retains the existing actions and semantics while adding a profile summary, meaningful action icons, current-theme-aware language, stronger action grouping, and token-based interaction states.</p>
+      <pre class="wire">CURRENT                                TARGET
+┌──────────────────┐                   ┌──────────────────────────────┐
+│ Profile          │                   │ (avatar)  Display Name        │
+│ Switch mode      │                   │           @username            │
+│ ───────────────  │                   │ ───────────────────────────── │
+│ Log out          │                   │                          ›   │
+└──────────────────┘                   │ ───────────────────────────── │
+                                       │ [moon]   Switch to dark mode  │
+                                       │ ───────────────────────────── │
+                                       │ [logout] Log out              │
+                                       └──────────────────────────────┘</pre>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>The signed-in menu opens as an account panel with the current user’s avatar, display name, and username when available.</li>
+        <li>The summary is the sole route-safe link to <code>profilePath</code>, with a subtle chevron affordance and no nested interactive elements.</li>
+        <li>Profile, theme, and logout retain their existing behavior; theme copy/icon tells the user the <em>next</em> mode.</li>
+        <li>Action rows have Lucide icons, 40px-or-larger effective targets, keyboard focus, hover, and dark-mode contrast.</li>
+        <li>Logout remains visually destructive but is not relocated, hidden behind a confirmation, or changed at the API layer.</li>
+        <li>Profile-page and avatar-image menus retain their existing <code>.profile-dropdown-*</code> appearance and behavior.</li>
+        <li>Frontend typecheck and build pass; acceptance records an interactive signed-in pass in both themes.</li>
+      </ul>
+    </section>
+
+    <section class="card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Decision</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Visual direction</td><td><strong>Compact account card</strong>, not a wider settings flyout.</td><td>Solves the hierarchy gap without adding new navigation or an oversized global popover.</td></tr>
+          <tr><td>2</td><td>Identity block</td><td>Avatar + display name + optional <code>@username</code>, linked as the sole profile entry with a subtle chevron.</td><td>Confirms the active identity, gives the primary action clear hierarchy, and avoids a redundant “View profile” row.</td></tr>
+          <tr><td>3</td><td>Theme action</td><td>Show the next state: “Switch to dark mode” or “Switch to light mode,” with Moon/Sun.</td><td>“Switch mode” is ambiguous; ThemeContext already owns the current state.</td></tr>
+          <tr><td>4</td><td>Styling boundary</td><td>Add navbar-scoped account-menu classes; do not alter <code>.profile-dropdown-menu</code> globally.</td><td>The generic classes are shared by profile-header and profile-avatar picture menus, so a global rewrite would be unscoped scope creep.</td></tr>
+          <tr><td>5</td><td>Dependencies</td><td>Reuse installed <code>lucide-react</code> and Radix dropdown primitives.</td><td>No dependency or design system expansion is justified.</td></tr>
+          <tr><td>6</td><td>Responsive behavior</td><td>Keep the current end-aligned dropdown and navbar trigger.</td><td>This upgrade improves opened-panel content only; no mobile nav or header-layout change.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="context">
+      <h2>Context and blast radius</h2>
+      <p><strong>Primary surface</strong> — <code>frontend/src/components/nav/AppNavbar.tsx</code> is the presentational global navbar. It receives user data, profile path, theme toggle, and logout callback from <code>frontend/src/components/AppShell.tsx</code>; it must not fetch or own session state.</p>
+      <p><strong>Theme state</strong> — <code>ThemeContext</code> exposes the current <code>theme</code> plus <code>toggleTheme</code>. The execution should pass the current theme down from <code>AppShell</code> rather than infer it from DOM classes or create a second source of truth.</p>
+      <p><strong>Shared UI</strong> — <code>ProfileAvatar</code>, <code>components/ui/dropdown-menu.tsx</code>, and the installed Lucide icon set are the closest analogs. The existing avatar is already sized by <code>.app-navbar-profile-avatar</code>; no size-token change is planned.</p>
+      <p><strong>CSS consumer audit</strong> — <code>.profile-dropdown-menu</code>, <code>.profile-dropdown-item</code>, and <code>.profile-dropdown-divider</code> are also used by <code>ProfilePage.tsx</code> and <code>ProfileAvatarMenu.tsx</code>. The new account-panel CSS must be limited to an <code>app-navbar-profile-menu</code> family.</p>
+      <p><strong>Blast radius</strong> — all authenticated routes render <code>AppShell</code>, so visual/accessibility regressions affect Feed, Profiles, Friends, Messages, Notifications, and Settings. The signed-out ThemeToggle + Sign in cluster is not in scope.</p>
+    </section>
+
+    <section class="card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="grid">
+        <div><h3>Must</h3><ul><li>Preserve <code>profilePath</code>, <code>onToggleTheme</code>, and <code>onLogout</code> behavior.</li><li>Use existing B&amp;W CSS variables and current motion/reduced-motion conventions.</li><li>Preserve Radix menu keyboard and dismissal semantics.</li><li>Use <code>displayName</code>, <code>username</code>, and <code>avatarUrl</code> already in <code>PublicUser</code>.</li><li>Update the plan index and acceptance artifacts during execution.</li></ul></div>
+        <div><h3>Must not</h3><ul><li>No backend, API, route, migration, auth, or storage changes.</li><li>No new npm dependency.</li><li>No edits to generic profile dropdown selectors or profile picture menus.</li><li>No alteration to navbar zone layout, badge behavior, or polling/socket logic.</li><li>No separate account-settings link, search, notification flyout, or confirmation dialog.</li></ul></div>
+        <div><h3>Out of scope</h3><ul><li>Profile-page overflow and avatar-photo menus.</li><li>Signed-out navbar design.</li><li>Account Settings page redesign.</li><li>Responsive navbar redesign, mobile drawer, or bottom navigation.</li></ul></div>
+      </div>
+    </section>
+
+    <section class="card" id="risk">
+      <h2>Risk and required pushback</h2>
+      <p><strong>Level 2 — Concern.</strong> This is a global, authentication-adjacent control. The appropriate response is an intentional visual refinement with zero behavioral or API expansion; future-us will hate a profile-menu restyle that quietly forks shared dropdown styling or session behavior.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Shared dropdown CSS restyle changes profile-page menus</td><td>Profile header and avatar image controls</td><td>Use new navbar-only selectors; grep all <code>profile-dropdown</code> consumers before write and after write.</td></tr>
+          <tr><td>Theme label becomes stale or incorrect</td><td>All signed-in routes</td><td>Pass typed <code>theme</code> from ThemeContext through AppShell and derive the next-state label/icon in AppNavbar.</td></tr>
+          <tr><td>Account summary causes nested interactive elements</td><td>Keyboard and screen-reader users</td><td>Make the whole summary a single Radix item rendered as a Link with an explicit “View [name]'s profile” accessible name; keep avatar/text/chevron noninteractive within it.</td></tr>
+          <tr><td>Logout loses visibility or changes semantics</td><td>Session termination flow</td><td>Retain its existing <code>onSelect</code> callback and put it in a distinct, labelled destructive row.</td></tr>
+          <tr><td>New motion ignores user preference</td><td>Motion-sensitive users</td><td>Reuse <code>animate-menu-enter</code>; include new account-menu selectors in the existing reduced-motion rule if they add transitions.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><strong>Required pushback:</strong> “Upgrade” does not authorize making this a settings hub or changing logout/auth flow. Keep it a compact, three-action account panel. Do not modify the shared profile-page menu classes merely because they are convenient.</div>
+    </section>
+
+    <section class="card" id="tasks">
+      <h2>Tasks</h2>
+      <article class="task" id="t0"><h3>T0 — Reconfirm current execution baseline</h3><p><strong>Do:</strong> On <code>kylie/profile-menu-ui</code>, confirm the branch is based on the intended <code>dev</code> tip and re-read current <code>AppNavbar</code>, <code>AppShell</code>, ThemeContext, and all <code>profile-dropdown</code> consumers before modification.</p><p><strong>Files:</strong> git and read-only inspection.</p><p><strong>Depends on:</strong> —</p><p><strong>Verify:</strong> Dirty unrelated changes are surfaced; consumer audit names AppNavbar, ProfilePage, and ProfileAvatarMenu.</p></article>
+      <article class="task" id="t1"><h3>T1 — Add scoped account-panel presentation</h3><p><strong>Do:</strong> Add <code>app-navbar-profile-menu</code> CSS for panel width, one clickable account-summary block with a subtle chevron, identity text, action-row icon, destructive action, divider, focus/hover states, and dark-mode-compatible token shadows. Keep <code>profile-dropdown-*</code> unchanged. Extend the existing reduced-motion guard only if new transitions are introduced.</p><p><strong>Files:</strong> <code>frontend/src/index.css</code>.</p><p><strong>Depends on:</strong> T0.</p><p><strong>Verify:</strong> Token-only colors; no changed generic dropdown selector; 40px-or-larger action-row target.</p></article>
+      <article class="task" id="t2"><h3>T2 — Recompose the signed-in Radix menu</h3><p><strong>Do:</strong> In <code>AppNavbar.tsx</code>, retain the avatar trigger but replace the bare rows with: one profile-summary Link (the sole profile navigation target), an icon-labelled theme action, separator, and destructive logout row. Add a subtle noninteractive chevron to the summary and an explicit accessible label. Derive the Sun/Moon icon and next-mode label from a typed theme prop. Keep callbacks and menu component choices intact.</p><p><strong>Files:</strong> <code>frontend/src/components/nav/AppNavbar.tsx</code>.</p><p><strong>Depends on:</strong> T1.</p><p><strong>Verify:</strong> Exactly one profile navigation target; menu remains keyboard operable; toggle and logout callbacks have no changed endpoint/side effect.</p></article>
+      <article class="task" id="t3"><h3>T3 — Wire current theme into the presentational navbar</h3><p><strong>Do:</strong> Destructure <code>theme</code> alongside <code>toggleTheme</code> in AppShell and pass it to <code>AppNavbar</code>. Do not move existing badge state, effects, sockets, or AuthContext logic.</p><p><strong>Files:</strong> <code>frontend/src/components/AppShell.tsx</code>, <code>frontend/src/components/nav/AppNavbar.tsx</code>.</p><p><strong>Depends on:</strong> T2.</p><p><strong>Verify:</strong> Type-safe prop flow; theme label flips after selection; signed-out controls unchanged.</p></article>
+      <article class="task" id="t4"><h3>T4 — Validate and record acceptance</h3><p><strong>Do:</strong> Run frontend typecheck, lint, and build; run the signed-in manual checks in light and dark mode. Update <code>test-results.json</code>, the plan status/Done checklist, and <code>plans/README.md</code> to list seq 49.</p><p><strong>Files:</strong> <code>plans/08062026-49-profile-menu-ui/test-results.json</code>, <code>plans/08062026-49-profile-menu-ui/spec.html</code>, <code>plans/README.md</code>.</p><p><strong>Depends on:</strong> T3.</p><p><strong>Verify:</strong> Automated gates clean; acceptance rollup Passed or each failure has a written waiver.</p></article>
+    </section>
+
+    <section class="card" id="done"><h2>Done checklist</h2><ul class="checklist"><li><input type="checkbox" checked disabled> Account summary identifies the signed-in user and routes to the profile.</li><li><input type="checkbox" checked disabled> Profile, theme, and logout actions retain their current behavior.</li><li><input type="checkbox" checked disabled> Theme action names and icons state the next mode.</li><li><input type="checkbox" checked disabled> Light, dark, hover, focus, keyboard, and reduced-motion behavior are verified.</li><li><input type="checkbox" checked disabled> ProfilePage and ProfileAvatarMenu keep their generic dropdown styling.</li><li><input type="checkbox" checked disabled> No API/auth/route/polling or dependency change is present.</li><li><input type="checkbox" checked disabled> Typecheck, lint, and build pass; acceptance passes or is waived in writing.</li><li><input type="checkbox" checked disabled> README index and spec status are updated.</li></ul></section>
+    <section class="card" id="revision-log"><h2>Revision log</h2><table><thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>0</td><td>2026-08-06</td><td>Initial planning spec created in fresh linked worktree <code>plan/08062026-49-profile-menu-ui</code>. Locked compact account-panel direction, scoped CSS boundary, current-theme-aware copy, and execution branch <code>kylie/profile-menu-ui</code>.</td></tr><tr><td>1</td><td>2026-08-06</td><td>Human-approved grill decision: the account identity block is the sole profile link, with a subtle chevron and explicit accessible label. Removed the redundant standalone “View profile” row.</td></tr><tr><td>2</td><td>2026-08-06</td><td>Executed T0–T3 on <code>kylie/profile-menu-ui</code>: added scoped account-panel styling; profile-summary link with avatar, optional username, chevron, and accessible name; explicit next-theme mode icon/copy; and a visually destructive logout row. Frontend and root typechecks, frontend build, and API build passed. Lint completed with six pre-existing warnings outside this change. The repository does not define the Constitution-documented <code>check:all</code> script.</td></tr><tr><td>3</td><td>2026-08-06</td><td>Finalized: user confirmed signed-in manual acceptance; all checklist items pass. Changelog entry added for release 0.1.34.</td></tr></tbody></table></section>
+  </main>
+</body>
+</html>

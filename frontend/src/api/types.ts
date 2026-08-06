@@ -48,6 +48,8 @@ export type PostView = {
   createdAt: string;
   author: PublicUser;
   reactionSummary: ReactionSummary;
+  commentCount: number;
+  shareCount: number;
   sharedFromPostId: string | null;
   sharedFrom: PostView | null;
 };
@@ -117,6 +119,7 @@ export type ConversationListLastPinActivity = {
 
 export type ConversationListItem = {
   id: string;
+  isPinned: boolean;
   peer: PublicUser;
   peerPresence: PeerPresence | null;
   lastMessage: {

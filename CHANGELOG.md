@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.1.37 — 2026-08-06
+
+### Added
+- Personal inbox profile priority: unlimited pinned chats remain at the top in first-pinned-first order
+- Inbox-row Pin profile / Unpin profile action and compact neutral pin marker
+
+### Plans
+- `plans/08062026-49-pin-profile-priority` — executed on `kylie/pin-profile`
+
+## 0.1.36 — 2026-08-06
+
+### Changed
+- Continued chat history toward newer messages after selecting an older search result, without breaking older-history loading
+- Hid the visual scrollbar in the chat pane while preserving scrolling and automatic pagination
+
+### Plans
+- `plans/08062026-remove-load-earlier-button` — completed on `kylie/remove-load-earlier-button`
+
+## 0.1.35 — 2026-08-06
+
+### Changed
+- Replaced the chat “Load earlier messages” button with automatic top-of-thread history loading
+- Tightened incoming message spacing and added readable, sender-independent time-gap timestamps in themed chats
+
+### Plans
+- `plans/08062026-remove-load-earlier-button` — completed on `kylie/remove-load-earlier-button`
+
+## 0.1.34 — 2026-08-06
+
+### Changed
+- Rebuilt the avatar dropdown as an identity-led account panel with a single profile link, optional username, clear next-theme mode action, and a visually distinct logout row
+- Scoped account-menu styling to navbar chrome; existing Profile page dropdowns are unchanged
+
+### Plans
+- `plans/08062026-49-profile-menu-ui` — completed on `kylie/profile-menu-ui`
+
 ## 0.1.33 — 2026-08-05
 
 ### Changed

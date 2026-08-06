@@ -17,6 +17,7 @@ import {
   type ConversationLatestReaction,
 } from "../models/MessageReactionModel";
 import { MessageUserDeletionModel } from "../models/MessageUserDeletionModel";
+import { ConversationPinModel } from "../models/ConversationPinModel";
 import { MessagePinService, type MessagePinActivityView, type PinnedMessageView } from "./MessagePinService";
 import type {
   ConversationListItem,
@@ -93,6 +94,11 @@ export type MessageReplyToView = {
   isUnsent: boolean;
 };
 
+type InboxSortItem = {
+  item: ConversationListItem;
+  pinnedAt: Date | null;
+};
+
 export type MessageView = {
   id: string;
   conversationId: string;
@@ -115,6 +121,18 @@ function lastReadAt(row: ConversationRow, viewerId: string): Date | null {
   if (row.user_a === viewerId) return row.user_a_last_read_at;
   if (row.user_b === viewerId) return row.user_b_last_read_at;
   return null;
+}
+
+function compareInboxItems(left: InboxSortItem, right: InboxSortItem): number {
+  if (left.item.isPinned !== right.item.isPinned) {
+    return left.item.isPinned ? -1 : 1;
+  }
+  if (left.item.isPinned) {
+    const pinnedAtDifference = (left.pinnedAt?.getTime() ?? 0) - (right.pinnedAt?.getTime() ?? 0);
+    return pinnedAtDifference || left.item.id.localeCompare(right.item.id);
+  }
+  const activityDifference = (right.item.lastMessageAt?.getTime() ?? 0) - (left.item.lastMessageAt?.getTime() ?? 0);
+  return activityDifference || left.item.id.localeCompare(right.item.id);
 }
 
 function hasUnreadPeerReaction(
@@ -305,26 +323,16 @@ export class MessageService {
       rows.map((row) => row.id),
       userId
     );
-    return rows
-      .map((row) =>
-        this.inboxRowToListItem(
-          row,
-          toListLastReaction(latestReactions.get(row.id) ?? null),
-          userId,
-          mutualFriendIds
-        )
-      )
-      .sort((a, b) => {
-        const aTime = a.lastMessageAt?.getTime() ?? 0;
-        const bTime = b.lastMessageAt?.getTime() ?? 0;
-        return bTime - aTime;
-      });
+    return rows.map((row): InboxSortItem => ({ item: this.inboxRowToListItem(row, toListLastReaction(latestReactions.get(row.id) ?? null), userId, mutualFriendIds), pinnedAt: row.pinnedAt }))
+      .sort(compareInboxItems)
+      .map(({ item }) => item);
   }
 
   static async listMessages(
     userId: string,
     conversationId: string,
     before?: string,
+    after?: string,
     options?: { restoreIfHidden?: boolean; includeThemeLogs?: boolean }
   ): Promise<{
     conversationId: string;
@@ -370,6 +378,7 @@ export class MessageService {
     const rows = await MessageModel.listByConversation(conversationId, {
       limit: MESSAGE_PAGE_SIZE,
       before,
+      after,
       viewerId: userId,
     });
     const mergedRows = rows.map((r) => {
@@ -649,6 +658,7 @@ export class MessageService {
 
     const updated = await db.transaction(async (trx) => {
       await MessageUserDeletionModel.markAllInConversationForUser(conversationId, userId, trx);
+      await ConversationPinModel.deleteForUser(conversationId, userId, trx);
       return ConversationModel.setHidden(conversationId, userId, new Date(), trx);
     });
 
@@ -711,6 +721,7 @@ export class MessageService {
 
     return {
       id: row.id,
+      isPinned: row.isPinned,
       peer: toPublicUser(row.peer),
       peerPresence: mutualFriendIds.has(row.peer.id)
         ? peerPresenceForUser(row.peer.id, row.peer.last_active_at ?? null)
@@ -744,11 +755,13 @@ export class MessageService {
       viewerId,
       lastReadAt(row, viewerId)
     );
+    const isPinned = await ConversationPinModel.isPinnedForUser(row.id, viewerId);
 
     const lastSystemLog = toListLastSystemLog(latestThemeLogFromRow(row));
 
     return {
       id: row.id,
+      isPinned,
       peer: toPublicUser(peerUser),
       peerPresence: peerPresenceForUser(peerUser.id, peerUser.last_active_at ?? null),
       lastMessage: latest ? lastMessageListShape(latest) : null,

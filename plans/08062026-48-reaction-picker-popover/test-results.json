@@ -1,0 +1,10 @@
+{
+  "plan": "plans/08062026-48-reaction-picker-popover",
+  "generatedAt": "2026-08-06",
+  "status": "In Progress",
+  "items": [
+    {"id":"A1","title":"Reaction list opens and dismisses accessibly","surface":"ui","precondition":"An isolated runtime with a post, comment, or post image that has reactions.","steps":["Activate the reaction summary.","Confirm focus moves to the close control and background scrolling is disabled.","Dismiss with Escape, the backdrop, and the close control in separate runs."],"expected":"A labelled dialog appears, each dismissal closes it, and normal page scrolling returns.","status":"pending","evidence":"Static review confirms portal rendering, aria-modal semantics, Escape listener, backdrop button, and overflow cleanup.","notes":"Requires contained browser acceptance.","waiver":""},
+    {"id":"A2","title":"Reaction filtering returns the scoped people list","surface":"ui","precondition":"An isolated runtime with at least two populated reaction emoji types.","steps":["Open the reaction list.","Select each emoji filter and then All.","Compare the heading count and listed people to the selected reaction type."],"expected":"The active filter and the matching entries/counts are correct; an empty, loading, or error state is understandable.","status":"pending","evidence":"Static review confirms filter state is passed to the existing useReactionsList hook.","notes":"Requires controlled reaction fixtures.","waiver":""},
+    {"id":"A3","title":"Dialog works at desktop and mobile sizes","surface":"ui","precondition":"An isolated runtime with enough reactions to scroll the list.","steps":["Open the dialog at desktop width.","Repeat at a narrow mobile width.","Scroll the list, then open a person profile."],"expected":"The dialog is centered on desktop and bottom-aligned on mobile, the list scrolls inside the dialog, and profile navigation closes it.","status":"pending","evidence":"Static review confirms responsive placement classes, max-height, overflow, and link close handling.","notes":"Requires contained browser acceptance.","waiver":""}
+  ]
+}

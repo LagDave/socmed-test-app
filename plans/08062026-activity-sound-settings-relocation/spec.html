@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Activity Sound Settings Relocation</title>
+  <style>
+    :root { color-scheme: light; --ink:#111; --line:#d9d9d9; --soft:#f5f5f5; --muted:#606060; --ok:#166534; }
+    * { box-sizing:border-box; } body { margin:0; font:16px/1.5 ui-sans-serif,system-ui,sans-serif; color:var(--ink); }
+    main { max-width:960px; margin:auto; padding:40px 16px; } header,section { border:1px solid var(--line); border-radius:10px; padding:24px; margin-bottom:16px; }
+    header { border-color:var(--ink); } h1 { margin:.2rem 0 1rem; line-height:1.05; } h2 { margin-top:0; } code { background:var(--soft); padding:.1rem .3rem; border-radius:4px; }
+    .status { color:var(--ok); font-weight:800; text-transform:uppercase; font-size:.8rem; } table { width:100%; border-collapse:collapse; } th,td { border:1px solid var(--line); padding:10px; text-align:left; vertical-align:top; } th { background:var(--soft); }
+    .muted { color:var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="status">Completed</p>
+      <h1>Notification sound settings and unread activity</h1>
+      <p class="muted">Plan folder: <code>plans/08062026-activity-sound-settings-relocation</code> · Branch: <code>kylie/activity-sound-settings → dev</code> · Risk: Level 2</p>
+    </header>
+    <section>
+      <h2>Why and what</h2>
+      <p>Message settings contained both direct-message and activity sound preferences, even though activity events belong to Notifications. Move activity controls to a notification-settings route and make each domain independently enabled.</p>
+      <p>Message sounds remain at <code>/messages/settings</code>. Activity sounds move to <code>/notifications/settings</code>, linked from the Notifications header. Existing shared sound preference remains the fallback for both new toggles, preserving current behavior until a user changes either setting.</p>
+      <p>Activity notifications remain unread when the Notifications page opens. Opening an individual destination or selecting Mark as read changes only that item&apos;s recipient-scoped read state. Pending friend requests remain actionable and counted until confirmed or declined.</p>
+      <p>Refine this behavior to mirror messages: opening an individual comment or reply notification marks only that item read. A friend request gets its own visible Mark as read control, using the existing notification row without accepting or declining it.</p>
+      <p>When a comment or reply is opened from Notifications, its existing back arrow must return to <code>/notifications</code>. Direct visits to a post or photo thread keep their existing Back to feed or Back to post behavior.</p>
+    </section>
+    <section>
+      <h2>Context, constraints, and risk</h2>
+      <ul>
+        <li><code>frontend/src/lib/notificationSounds.ts</code> owns persisted preferences and live audio gating.</li>
+        <li><code>frontend/src/pages/MessageSettingsPage.tsx</code> and <code>frontend/src/pages/NotificationsPage.tsx</code> own the two user-facing domains.</li>
+        <li><code>src/models/NotificationModel.ts</code>, <code>src/services/NotificationService.ts</code>, and the notifications route/controller own comment and reply read state.</li>
+        <li><code>src/models/FriendshipModel.ts</code> and <code>src/services/FriendshipService.ts</code> determine whether a friend-request notification remains visible and pending.</li>
+        <li><code>frontend/src/pages/NotificationsPage.tsx</code> originates notification navigation; <code>PostDetailPage.tsx</code> and <code>PostPhotoCommentsPage.tsx</code> render the destination back links.</li>
+        <li>No migration, dependency, or notification-event changes. The authenticated notification read route is refined from bulk to item-level <code>POST /api/notifications/:id/read</code>.</li>
+        <li>Risk Level 2: an incorrect preference migration could unexpectedly mute audio. Mitigation: read the legacy shared flag as the fallback for both new domain flags.</li>
+        <li>Risk Level 2: a read action could leave the badge stale. Mitigation: refresh the list and count only after the existing endpoint succeeds.</li>
+        <li>Risk Level 2: treating a friend request as read must not accept, decline, or hide it. Mitigation: retain the existing notification row&apos;s <code>is_read</code> state, while filtering visibility by the pending friendship.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Tasks</h2>
+      <table>
+        <thead><tr><th>Task</th><th>Do</th><th>Verify</th></tr></thead>
+        <tbody>
+          <tr><td>T1</td><td>Split persisted enabled state and live playback gates into message and activity domains, with legacy fallback.</td><td>Typecheck and production build.</td></tr>
+          <tr><td>T2</td><td>Split the combined picker into independently saved message and activity settings components.</td><td>Typecheck and static route composition review.</td></tr>
+          <tr><td>T3</td><td>Add <code>/notifications/settings</code> and link it from Notifications; leave Message settings message-only.</td><td>Typecheck, production build, and acceptance checklist.</td></tr>
+          <tr><td>T4</td><td>Stop auto-marking activity notifications as read on page load. The initially planned bulk action was superseded by T5–T6 item-level reads.</td><td>Focused UI behavior, typecheck, build, and acceptance A5.</td></tr>
+          <tr><td>T5</td><td>Replace bulk read interaction with a recipient-scoped read-one method and endpoint. Keep the original friend-request notification row in the list only while its friendship is pending, and count only pending unread friend requests.</td><td>Typecheck; recipient-isolation tests; count-path review.</td></tr>
+          <tr><td>T6</td><td>Mark a comment or reply read when its destination opens; add a Mark as read control for a pending friend request. Update local UI and the navbar count after successful read actions.</td><td>Focused UI behavior, two-user acceptance A6, typecheck, lint, and build.</td></tr>
+          <tr><td>T7</td><td>Pass a whitelisted return-to state from notification links and have post/photo destination back arrows return to Notifications only for that navigation origin.</td><td>Route behavior acceptance A7, typecheck, lint, and build.</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section>
+      <h2>Done</h2>
+      <ul>
+        <li>✓ Message settings render only message sound controls.</li>
+        <li>✓ Notification settings render only activity sound controls.</li>
+        <li>✓ Each domain has its own persisted on/off preference and selected sound.</li>
+        <li>✓ Legacy shared preference is preserved as fallback.</li>
+        <li>✓ Typecheck and production build pass; the two-user audio validation is passed in the acceptance checklist.</li>
+        <li>✓ Opening Notifications preserves unread rows, badge, and navbar count; the superseded bulk action is removed.</li>
+        <li>✓ Opening a comment or reply notification marks only that notification read.</li>
+        <li>✓ Marking a friend request read updates its existing notification row without changing its pending status.</li>
+        <li>✓ Recipient-scoped queries prevent a user from marking another recipient&apos;s notification read.</li>
+        <li>✓ Notification-origin back arrows return to Notifications; direct destination views retain their existing return path.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Revision log</h2>
+      <p><strong>Rev 1 · 2026-08-06</strong> — Created and executed under <code>--instant</code>. Scope is limited to separating and relocating frontend sound settings.</p>
+      <p><strong>Rev 2 · 2026-08-06</strong> — Activity playback volume now uses the same named 38% constant as message playback.</p>
+      <p><strong>Rev 3 · 2026-08-06</strong> — Source-level audio analysis found activity clips average about 8 dB louder than message clips. Activity playback is calibrated to 15% for comparable perceived loudness.</p>
+      <p><strong>Rev 4 · 2026-08-06</strong> — Continued scope: preserve unread activity notifications until the user explicitly selects Mark all as read. This reuses the existing endpoint and adds no backend contract or schema work.</p>
+      <p><strong>Rev 5 · 2026-08-06</strong> — Execution inspection confirmed friend requests are pending workflow items, not persisted read state. The explicit action is therefore named Mark activity as read and does not clear pending friend requests.</p>
+      <p><strong>Rev 6 · 2026-08-06</strong> — Executed T4: page load now performs a read only, and the explicit action calls the existing endpoint before refreshing the list. Re-ran typecheck, lint, and production build.</p>
+      <p><strong>Rev 7 · 2026-08-06</strong> — Continued scope approved: replace bulk read behavior with item-level reads matching message-view semantics. T4&apos;s bulk control will be removed during T6.</p>
+      <p><strong>Rev 8 · 2026-08-06</strong> — Pre-execution inspection found that friend requests already create rows in <code>notifications</code>; the list hid them and synthesized always-unread replacements. The migration plan is removed. Execution will preserve and read those original rows, filtered by the still-pending friendship.</p>
+      <p><strong>Rev 9 · 2026-08-06</strong> — Executed T5–T6. Added recipient-scoped single-notification reads, retained real pending friend-request notification rows, removed the bulk read control, and updated unread counts to exclude read or non-pending friend requests. Typecheck, lint, and production build pass.</p>
+      <p><strong>Rev 10 · 2026-08-06</strong> — Continued scope: preserve a notification navigation origin so the destination back arrow returns to Notifications. The return path is whitelisted; direct links retain current back destinations.</p>
+      <p><strong>Rev 11 · 2026-08-06</strong> — Executed T7. Notification links now carry a trusted return-state marker; post and photo destination back arrows use it only to return to Notifications, otherwise retaining their prior destination. Typecheck, lint, and production build pass.</p>
+      <p><strong>Rev 12 · 2026-08-06</strong> — Finalized after human confirmation that independent two-user audio behavior works. Corrected the source-of-truth summary to reflect the superseded bulk route and completed item-level read endpoint.</p>
+    </section>
+  </main>
+</body>
+</html>

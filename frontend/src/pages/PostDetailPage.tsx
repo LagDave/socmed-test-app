@@ -11,11 +11,15 @@ import { SharePostDialog } from "@/components/SharePostDialog";
 import { ShareSuccessNotice } from "@/components/ShareSuccessNotice";
 import { Button } from "@/components/ui/button";
 import { groupComments } from "@/lib/groupComments";
+import { isNotificationReturnState, NOTIFICATIONS_PATH } from "@/lib/notificationNavigation";
 import { commentsForPostImage, postMediaImages } from "@/lib/postMedia";
 
 type PendingDelete =
   | { type: "post" }
   | { type: "comment"; comment: CommentView; kind: "comment" | "reply" };
+
+const POST_COMMENTS_HASH = "#comments";
+const POST_PHOTOS_HASH = "#photos";
 
 export function PostDetailPage() {
   const { id } = useParams();
@@ -97,8 +101,14 @@ export function PostDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!post || location.hash !== "#comments") return;
-    commentsSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    if (!post) return;
+    if (location.hash === POST_COMMENTS_HASH) {
+      commentsSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      return;
+    }
+    if (location.hash === POST_PHOTOS_HASH) {
+      document.getElementById("photos")?.scrollIntoView({ block: "start" });
+    }
   }, [post, location.hash]);
 
   async function submitComment(input: {
@@ -162,6 +172,7 @@ export function PostDetailPage() {
     setShareNotice(null);
     try {
       await api.post(`/api/posts/${post.id}/share`, { body: caption });
+      await load();
       setShareDialogOpen(false);
       setShareNotice("Shared to your feed.");
     } catch (err) {
@@ -225,13 +236,17 @@ export function PostDetailPage() {
   const showPostLevelCaptionComments =
     hasPhotoThreads &&
     (postLevelComments.length > 0 || Boolean(post.body.trim()));
+  const cameFromNotifications = isNotificationReturnState(location.state);
+  const backPath = cameFromNotifications ? NOTIFICATIONS_PATH : "/";
+  const backLabel = cameFromNotifications ? "Back to notifications" : "Back to feed";
+  const shouldAutoFocusComments = location.hash === POST_COMMENTS_HASH;
 
   return (
     <section className="feed-page space-y-5">
       <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
-        <Link to="/">
+        <Link to={backPath}>
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Back to feed
+          {backLabel}
         </Link>
       </Button>
 
@@ -240,7 +255,6 @@ export function PostDetailPage() {
           post={post}
           currentUserId={user.id}
           postMediaMode="detail"
-          showActionLabels
           onDelete={() => setPendingDelete({ type: "post" })}
           onShare={() => openShare()}
           onReactionSummaryChange={(_, summary) => patchPostSummary(summary)}
@@ -275,7 +289,7 @@ export function PostDetailPage() {
           onReactionSummaryChange={patchCommentSummary}
           sectionRef={commentsSectionRef}
           title="Post comments"
-          composerAutoFocus
+          composerAutoFocus={shouldAutoFocusComments}
         />
       )}
 
@@ -296,7 +310,7 @@ export function PostDetailPage() {
           }
           onReactionSummaryChange={patchCommentSummary}
           sectionRef={commentsSectionRef}
-          composerAutoFocus
+          composerAutoFocus={shouldAutoFocusComments}
         />
       )}
 

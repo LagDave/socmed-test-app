@@ -25,6 +25,8 @@ export type ConversationRow = {
 
 export type ConversationInboxRow = ConversationRow & {
   peer: UserRow;
+  isPinned: boolean;
+  pinnedAt: Date | null;
   lastMessage: MessageRow | null;
   latestPinActivity: {
     actor_display_name: string;
@@ -59,6 +61,7 @@ type InboxQueryRow = ConversationRow & {
   pa_actor_display_name: string | null;
   pa_action: "pinned" | "unpinned" | null;
   pa_created_at: Date | null;
+  cp_pinned_at: Date | null;
   unread_count: string | number;
 };
 
@@ -148,6 +151,7 @@ export class ConversationModel {
         pa.actor_display_name AS pa_actor_display_name,
         pa.action AS pa_action,
         pa.created_at AS pa_created_at,
+        cp.pinned_at AS cp_pinned_at,
         (
           SELECT COUNT(*)::int
           FROM messages m
@@ -163,6 +167,7 @@ export class ConversationModel {
       FROM conversations c
       INNER JOIN users peer
         ON peer.id = CASE WHEN c.user_a = ? THEN c.user_b ELSE c.user_a END
+      LEFT JOIN conversation_pins cp ON cp.conversation_id = c.id AND cp.user_id = ?
       LEFT JOIN LATERAL (
         SELECT m.*
         FROM messages m
@@ -188,9 +193,16 @@ export class ConversationModel {
       ) pa ON TRUE
       WHERE (c.user_a = ? OR c.user_b = ?)
         AND ${visibleForUserSql("?")}
-      ORDER BY c.last_message_at DESC NULLS LAST, c.created_at DESC
+      ORDER BY
+        CASE WHEN cp.pinned_at IS NULL THEN 1 ELSE 0 END,
+        CASE WHEN cp.pinned_at IS NULL THEN NULL ELSE cp.pinned_at END ASC NULLS LAST,
+        CASE WHEN cp.pinned_at IS NULL THEN NULL ELSE c.id END ASC NULLS LAST,
+        CASE WHEN cp.pinned_at IS NULL THEN c.last_message_at END DESC NULLS LAST,
+        CASE WHEN cp.pinned_at IS NULL THEN c.created_at END DESC NULLS LAST,
+        c.id ASC
       `,
       [
+        userId,
         userId,
         userId,
         userId,
@@ -219,6 +231,8 @@ export class ConversationModel {
       theme_log: r.theme_log ?? [],
       created_at: r.created_at,
       updated_at: r.updated_at,
+      isPinned: r.cp_pinned_at !== null,
+      pinnedAt: r.cp_pinned_at,
       peer: {
         id: r.peer_id,
         email: r.peer_email,
