@@ -259,9 +259,6 @@ export function PostCard({
                     to={profilePath}
                   >
                     {post.author.displayName}
-                    {post.author.username ? (
-                      <span className="font-normal text-muted-foreground">{` @${post.author.username}`}</span>
-                    ) : null}
                   </Link>
                 )}
                 <time

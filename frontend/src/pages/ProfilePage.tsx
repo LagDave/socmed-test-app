@@ -522,7 +522,6 @@ export function ProfilePage() {
     );
   }
 
-  const handle = profile.username ? `@${profile.username}` : "@no-username";
   const profilePath = profile.username ? `/u/${profile.username}` : "/u/me";
   const postCount = posts.length;
   const headerAvatarUrl = profile.avatarUrl;
@@ -616,7 +615,6 @@ export function ProfilePage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{profile.displayName}</h1>
-                <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{handle}</p>
               </div>
 
               {!isSelf && profile.username && (

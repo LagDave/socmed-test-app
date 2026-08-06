@@ -147,9 +147,7 @@ export function ConversationListRow({
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
             <span className={cn("flex min-w-0 items-center gap-1 truncate", unread ? "font-semibold" : "font-medium")}>
-              <span className="truncate">{peer.displayName}{peer.username && (
-                <span className="font-normal text-muted-foreground"> @{peer.username}</span>
-              )}</span>
+              <span className="truncate">{peer.displayName}</span>
               {item.isPinned && (
                 <span className="inline-flex shrink-0 text-foreground/70" aria-label="Pinned profile">
                   <Pin className="size-3 fill-current" strokeWidth={2.25} aria-hidden="true" />

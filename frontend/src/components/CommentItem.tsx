@@ -104,9 +104,6 @@ export function CommentItem({
               >
                 {comment.author.displayName}
               </Link>
-              {comment.author.username ? (
-                <span className="text-[13px] text-muted-foreground">@{comment.author.username}</span>
-              ) : null}
             </div>
 
             {comment.body ? (
