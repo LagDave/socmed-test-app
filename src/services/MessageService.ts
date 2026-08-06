@@ -94,6 +94,11 @@ export type MessageReplyToView = {
   isUnsent: boolean;
 };
 
+type InboxSortItem = {
+  item: ConversationListItem;
+  pinnedAt: Date | null;
+};
+
 export type MessageView = {
   id: string;
   conversationId: string;
@@ -116,6 +121,18 @@ function lastReadAt(row: ConversationRow, viewerId: string): Date | null {
   if (row.user_a === viewerId) return row.user_a_last_read_at;
   if (row.user_b === viewerId) return row.user_b_last_read_at;
   return null;
+}
+
+function compareInboxItems(left: InboxSortItem, right: InboxSortItem): number {
+  if (left.item.isPinned !== right.item.isPinned) {
+    return left.item.isPinned ? -1 : 1;
+  }
+  if (left.item.isPinned) {
+    const pinnedAtDifference = (left.pinnedAt?.getTime() ?? 0) - (right.pinnedAt?.getTime() ?? 0);
+    return pinnedAtDifference || left.item.id.localeCompare(right.item.id);
+  }
+  const activityDifference = (right.item.lastMessageAt?.getTime() ?? 0) - (left.item.lastMessageAt?.getTime() ?? 0);
+  return activityDifference || left.item.id.localeCompare(right.item.id);
 }
 
 function hasUnreadPeerReaction(
@@ -306,8 +323,8 @@ export class MessageService {
       rows.map((row) => row.id),
       userId
     );
-    return rows.map((row) => ({ item: this.inboxRowToListItem(row, toListLastReaction(latestReactions.get(row.id) ?? null), userId, mutualFriendIds), pinnedAt: row.pinnedAt }))
-      .sort((a, b) => a.item.isPinned !== b.item.isPinned ? (a.item.isPinned ? -1 : 1) : a.item.isPinned ? (a.pinnedAt?.getTime() ?? 0) - (b.pinnedAt?.getTime() ?? 0) || a.item.id.localeCompare(b.item.id) : (b.item.lastMessageAt?.getTime() ?? 0) - (a.item.lastMessageAt?.getTime() ?? 0) || a.item.id.localeCompare(b.item.id))
+    return rows.map((row): InboxSortItem => ({ item: this.inboxRowToListItem(row, toListLastReaction(latestReactions.get(row.id) ?? null), userId, mutualFriendIds), pinnedAt: row.pinnedAt }))
+      .sort(compareInboxItems)
       .map(({ item }) => item);
   }
 

@@ -193,7 +193,13 @@ export class ConversationModel {
       ) pa ON TRUE
       WHERE (c.user_a = ? OR c.user_b = ?)
         AND ${visibleForUserSql("?")}
-      ORDER BY CASE WHEN cp.pinned_at IS NULL THEN 1 ELSE 0 END, cp.pinned_at ASC NULLS LAST, c.id ASC, c.last_message_at DESC NULLS LAST, c.created_at DESC
+      ORDER BY
+        CASE WHEN cp.pinned_at IS NULL THEN 1 ELSE 0 END,
+        CASE WHEN cp.pinned_at IS NULL THEN NULL ELSE cp.pinned_at END ASC NULLS LAST,
+        CASE WHEN cp.pinned_at IS NULL THEN NULL ELSE c.id END ASC NULLS LAST,
+        CASE WHEN cp.pinned_at IS NULL THEN c.last_message_at END DESC NULLS LAST,
+        CASE WHEN cp.pinned_at IS NULL THEN c.created_at END DESC NULLS LAST,
+        c.id ASC
       `,
       [
         userId,
