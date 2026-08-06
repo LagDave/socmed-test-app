@@ -90,7 +90,9 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   const [peerLastReadAt, setPeerLastReadAt] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [hasMore, setHasMore] = useState(false);
+  const [hasMoreNewer, setHasMoreNewer] = useState(false);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [loadingNewer, setLoadingNewer] = useState(false);
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -126,6 +128,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const generationRef = useRef(0);
+  const newestPagedMessageIdRef = useRef<string | null>(null);
   const themePickerOpenRef = useRef(false);
   const stickToBottomRef = useRef(true);
   const replyTargetIdRef = useRef<string | null>(null);
@@ -148,8 +151,10 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     scrollRef,
     setError,
     setHasMore,
+    setHasMoreNewer,
     setMessages,
     stickToBottomRef,
+    newestPagedMessageIdRef,
   });
 
   useEffect(() => {
@@ -179,7 +184,9 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
     setPeerLastReadAt(null);
     setMessages([]);
     oldestPagedMessageIdRef.current = null;
+    newestPagedMessageIdRef.current = null;
     setHasMore(false);
+    setHasMoreNewer(false);
     setError(null);
     setBody("");
     setEditingMessageId(null);
@@ -206,7 +213,9 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
         setPeerLastReadAt(data.peerLastReadAt);
         setMessages(data.messages);
         oldestPagedMessageIdRef.current = data.messages[0]?.id ?? null;
+        newestPagedMessageIdRef.current = data.messages.at(-1)?.id ?? null;
         setHasMore(Boolean(data.hasMore));
+        setHasMoreNewer(false);
         setConversationTheme(data.theme);
         setSystemLogs(data.themeLogs ?? []);
         setPinnedMessages(data.pinnedMessages);
@@ -242,13 +251,15 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
           setPeer(data.peer);
           setInitialPeerPresence(data.peerPresence);
           setPeerLastReadAt(data.peerLastReadAt);
-          setMessages((prev) => {
-            let merged = mergeById(prev, data.messages);
-            for (const msg of data.messages) {
-              if (msg.isUnsent) merged = patchReplyTargetsUnsent(merged, msg.id);
-            }
-            return merged;
-          });
+          if (!hasMoreNewer) {
+            setMessages((prev) => {
+              let merged = mergeById(prev, data.messages);
+              for (const msg of data.messages) {
+                if (msg.isUnsent) merged = patchReplyTargetsUnsent(merged, msg.id);
+              }
+              return merged;
+            });
+          }
           if (!themePickerOpenRef.current) {
             setConversationTheme(data.theme);
           }
@@ -262,7 +273,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       })();
     }, POLL_MS);
     return () => window.clearInterval(id);
-  }, [conversationId, socketConnected]);
+  }, [conversationId, hasMoreNewer, socketConnected]);
 
   useEffect(() => {
     const socket = getMessagesSocket();
@@ -273,6 +284,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       if (msg.conversationId !== conversationId) return;
       if (generation !== generationRef.current) return;
       setMessages((prev) => {
+        if (hasMoreNewer && !prev.some((message) => message.id === msg.id)) return prev;
         const merged = mergeById(prev, [msg]);
         return msg.isUnsent ? patchReplyTargetsUnsent(merged, msg.id) : merged;
       });
@@ -290,6 +302,10 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       const msg = payload.message;
       if (msg.conversationId !== conversationId) return;
       if (generation !== generationRef.current) return;
+      if (hasMoreNewer) {
+        refreshSearch();
+        return;
+      }
       setMessages((prev) => mergeById(prev, [msg]));
       refreshSearch();
       if (msg.senderId === user?.id) return;
@@ -355,7 +371,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       socket.off(MESSAGE_PINS_UPDATED, applyPinnedMessages);
       socket.off(CONVERSATION_THEME, applyTheme);
     };
-  }, [conversationId, refreshSearch, user?.id]);
+  }, [conversationId, hasMoreNewer, refreshSearch, user?.id]);
 
   useLayoutEffect(() => {
     if (loadingThread || !stickToBottomRef.current) return;
@@ -456,6 +472,29 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       setError(e instanceof Error ? e.message : "Failed to load earlier messages");
     } finally {
       if (generation === generationRef.current) setLoadingEarlier(false);
+    }
+  }
+
+  async function loadNewer() {
+    if (loadingNewer || !hasMoreNewer) return;
+    const newestId = newestPagedMessageIdRef.current;
+    if (!newestId) return;
+    const generation = generationRef.current;
+    setLoadingNewer(true);
+    stickToBottomRef.current = false;
+    try {
+      const data = await api.get<ConversationThreadData>(
+        `/api/messages/conversations/${conversationId}?after=${encodeURIComponent(newestId)}`
+      );
+      if (generation !== generationRef.current) return;
+      setMessages((prev) => mergeById(prev, data.messages));
+      newestPagedMessageIdRef.current = data.messages.at(-1)?.id ?? newestPagedMessageIdRef.current;
+      setHasMoreNewer(Boolean(data.hasMore));
+    } catch (error) {
+      if (generation !== generationRef.current) return;
+      setError(error instanceof Error ? error.message : "Failed to load newer messages");
+    } finally {
+      if (generation === generationRef.current) setLoadingNewer(false);
     }
   }
 
@@ -713,8 +752,11 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
       setTappedMessageId={setTappedMessageId}
       loadingThread={loadingThread}
       hasMore={hasMore}
+      hasMoreNewer={hasMoreNewer}
       loadingEarlier={loadingEarlier}
+      loadingNewer={loadingNewer}
       loadEarlier={loadEarlier}
+      loadNewer={loadNewer}
       error={error}
       setError={setError}
       isPeerTyping={isPeerTyping}

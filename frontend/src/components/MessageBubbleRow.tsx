@@ -144,6 +144,7 @@ export function MessageBubbleRow({
   peerLastReadAt,
   groupedWithPrev,
   groupedWithNext,
+  compactWithPrevious = false,
   peerProfilePath,
   isBeingEdited,
   isSearchFocused = false,
@@ -170,6 +171,7 @@ export function MessageBubbleRow({
   peerLastReadAt: string | null;
   groupedWithPrev?: boolean;
   groupedWithNext?: boolean;
+  compactWithPrevious?: boolean;
   peerProfilePath: string;
   isBeingEdited?: boolean;
   isSearchFocused?: boolean;
@@ -216,7 +218,8 @@ export function MessageBubbleRow({
     <div
       className={cn(
         "group flex gap-1.5",
-        mine ? "flex-row-reverse" : "flex-row"
+        mine ? "flex-row-reverse" : "flex-row",
+        !mine && compactWithPrevious && "-mt-2"
       )}
       data-message-row=""
       data-message-id={message.id}
@@ -360,13 +363,13 @@ export function MessageBubbleRow({
           {!message.isUnsent && timestampVisible && (
             <div className={cn("flex items-center gap-1 px-1", mine && "justify-end")}>
               <time
-                className="text-[11px] text-muted-foreground"
+                className="message-inline-timestamp text-[11px] text-muted-foreground"
                 dateTime={message.createdAt}
                 title={formatAbsoluteTime(message.createdAt) || undefined}
               >
                 {formatRelativeTime(message.createdAt)}
               </time>
-              {message.editedAt && <span className="text-[11px] text-muted-foreground">(edited)</span>}
+              {message.editedAt && <span className="message-inline-timestamp text-[11px] text-muted-foreground">(edited)</span>}
             </div>
           )}
         </div>

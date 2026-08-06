@@ -99,7 +99,7 @@ export class MessageModel {
 
   static async listByConversation(
     conversationId: string,
-    opts: { limit: number; before?: string; viewerId?: string }
+    opts: { limit: number; before?: string; after?: string; viewerId?: string }
   ): Promise<MessageRowWithReply[]> {
     return this.listWithReplyContext(conversationId, opts);
   }
@@ -141,7 +141,7 @@ export class MessageModel {
 
   private static async listWithReplyContext(
     conversationId: string,
-    opts: { limit: number; before?: string; ids?: string[]; viewerId?: string }
+    opts: { limit: number; before?: string; after?: string; ids?: string[]; viewerId?: string }
   ): Promise<MessageRowWithReply[]> {
     let q = db<MessageListQueryRow>("messages as m")
       .select(
@@ -154,9 +154,7 @@ export class MessageModel {
         "parent_user.display_name as reply_sender_display_name"
       )
       .leftJoin("messages as parent", "parent.id", "m.reply_to_message_id")
-      .leftJoin("users as parent_user", "parent_user.id", "parent.sender_id")
-      .orderBy("m.created_at", "desc")
-      .limit(opts.limit);
+      .leftJoin("users as parent_user", "parent_user.id", "parent.sender_id");
 
     if (opts.viewerId) {
       q = q.whereNotExists(function () {
@@ -173,15 +171,17 @@ export class MessageModel {
       q = q.where("m.conversation_id", conversationId);
     }
 
-    if (opts.before && !opts.ids?.length) {
-      const before = await this.findById(opts.before);
-      if (before && before.conversation_id === conversationId) {
-        q = q.andWhere("m.created_at", "<", before.created_at);
-      }
+    const cursorId = opts.before ?? opts.after;
+    if (cursorId && !opts.ids?.length) {
+      const cursor = await this.findById(cursorId);
+      if (!cursor || cursor.conversation_id !== conversationId) return [];
+      q = q.andWhere("m.created_at", opts.after ? ">" : "<", cursor.created_at);
     }
 
-    const rows = await q;
-    return rows.reverse().map(mapListRow);
+    const rows = await q
+      .orderBy("m.created_at", opts.after ? "asc" : "desc")
+      .limit(opts.limit);
+    return (opts.after ? rows : rows.reverse()).map(mapListRow);
   }
 
   static async markUnsent(

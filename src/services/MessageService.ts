@@ -325,6 +325,7 @@ export class MessageService {
     userId: string,
     conversationId: string,
     before?: string,
+    after?: string,
     options?: { restoreIfHidden?: boolean; includeThemeLogs?: boolean }
   ): Promise<{
     conversationId: string;
@@ -370,6 +371,7 @@ export class MessageService {
     const rows = await MessageModel.listByConversation(conversationId, {
       limit: MESSAGE_PAGE_SIZE,
       before,
+      after,
       viewerId: userId,
     });
     const mergedRows = rows.map((r) => {

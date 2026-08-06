@@ -5,6 +5,19 @@ export function formatAbsoluteTime(input: string | Date): string {
   return date.toLocaleString();
 }
 
+/** Absolute date and time for message-group separators. */
+export function formatMessageTimeSeparator(input: string | Date): string {
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 /**
  * Human-readable relative time for feed / comment timestamps.
  * Past times → "just now", "5 minutes ago", …; no live ticking.
