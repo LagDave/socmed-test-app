@@ -138,6 +138,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
     const root = scrollRef.current;
     const sentinel = topSentinelRef.current;
     if (!root || !sentinel || loadingThread || loadingEarlier || !hasMore) return;
+    hasTriggeredAutoLoadRef.current = false;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -159,6 +160,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
     const root = scrollRef.current;
     const sentinel = bottomSentinelRef.current;
     if (!root || !sentinel || loadingThread || loadingNewer || !hasMoreNewer) return;
+    hasTriggeredNewerLoadRef.current = false;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
