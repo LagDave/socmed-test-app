@@ -61,6 +61,8 @@ export type PostView = {
   createdAt: Date;
   author: ReturnType<typeof toPublicUser>;
   reactionSummary: ReactionSummary;
+  commentCount: number;
+  shareCount: number;
   sharedFromPostId: string | null;
   sharedFrom: PostView | null;
 };
@@ -110,11 +112,13 @@ async function hydrateBase(
   viewerId: string,
   mutualFriendIds: ReadonlySet<string>
 ): Promise<PostView[]> {
-  const authors = await Promise.all(posts.map((p) => UserModel.findById(p.author_id)));
-  const summaries = await ReactionModel.summariesForPosts(
-    posts.map((p) => p.id),
-    viewerId
-  );
+  const postIds = posts.map((p) => p.id);
+  const [authors, summaries, commentCounts, shareCounts] = await Promise.all([
+    Promise.all(posts.map((p) => UserModel.findById(p.author_id))),
+    ReactionModel.summariesForPosts(postIds, viewerId),
+    CommentModel.countPostLevelByPostIds(postIds),
+    PostModel.countSharesBySourcePostIds(postIds),
+  ]);
   const views = posts.map((p, i) => {
     const author = authors[i];
     if (!author) throw new AppError("USER_NOT_FOUND", "Author missing.");
@@ -127,6 +131,8 @@ async function hydrateBase(
       createdAt: p.created_at,
       author: toViewerAuthor(author, mutualFriendIds),
       reactionSummary: summaries.get(p.id) ?? emptyReactionSummary(),
+      commentCount: commentCounts.get(p.id) ?? 0,
+      shareCount: shareCounts.get(p.id) ?? 0,
       sharedFromPostId: p.shared_from_post_id,
       sharedFrom: null,
     };

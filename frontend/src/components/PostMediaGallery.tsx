@@ -15,6 +15,7 @@ export type PostMediaActionsConfig = {
   onShare?: (postId: string) => void;
   sharingPostId?: string | null;
   canShare: boolean;
+  shareCount: number;
 };
 
 type PostMediaGalleryProps = {
@@ -171,6 +172,7 @@ function PostPhotoSlide({
             size="md"
             commentTo={commentPath}
             commentCount={commentCount}
+            shareCount={postActions.shareCount}
             showShare
             shareDisabled={!postActions.canShare}
             onShare={

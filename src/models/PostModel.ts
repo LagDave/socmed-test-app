@@ -69,6 +69,25 @@ export class PostModel {
     return q;
   }
 
+  static async countSharesBySourcePostIds(postIds: string[]): Promise<Map<string, number>> {
+    const counts = new Map(postIds.map((postId) => [postId, 0]));
+    if (postIds.length === 0) return counts;
+
+    const rows = await db("posts")
+      .whereIn("shared_from_post_id", postIds)
+      .select("shared_from_post_id")
+      .count("* as count")
+      .groupBy("shared_from_post_id");
+
+    for (const row of rows as Array<{
+      shared_from_post_id: string;
+      count: string | number;
+    }>) {
+      counts.set(row.shared_from_post_id, Number(row.count));
+    }
+    return counts;
+  }
+
   static async countByAuthorsSince(authorIds: string[], since: Date): Promise<number> {
     if (authorIds.length === 0) return 0;
     const row = await db("posts")

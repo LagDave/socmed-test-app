@@ -95,6 +95,7 @@ function PostStandardMedia({
           onShare,
           sharingPostId,
           canShare: canSharePost(currentUserId, post),
+          shareCount: post.shareCount,
         }
       : undefined;
 
@@ -133,7 +134,6 @@ type PostCardProps = {
   variant?: "standalone" | "embedded";
   /** Full photo album on post detail; grid + link on feed. */
   postMediaMode?: "feed" | "detail";
-  showActionLabels?: boolean;
   className?: string;
 };
 
@@ -147,7 +147,6 @@ export function PostCard({
   sharingPostId = null,
   variant = "standalone",
   postMediaMode = "feed",
-  showActionLabels = false,
   className,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -321,10 +320,11 @@ export function PostCard({
         <div className={cn("feed-action-row mt-2 mb-3", variant === "standalone" && "mx-4")}>
           <PostActionRow
             size="md"
-            showLabels={showActionLabels}
             commentTo={`/posts/${post.id}#comments`}
+            commentCount={post.commentCount}
             onShare={onShare && canSharePost(currentUserId, post) ? () => onShare(post.id) : undefined}
             shareBusy={sharingPostId === post.id}
+            shareCount={post.shareCount}
           >
             <ReactionBar
               size="md"
