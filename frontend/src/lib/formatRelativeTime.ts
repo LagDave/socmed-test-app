@@ -19,8 +19,8 @@ export function formatMessageTimeSeparator(input: string | Date): string {
 }
 
 /**
- * Human-readable relative time for feed / comment timestamps.
- * Past times → "just now", "5 minutes ago", …; no live ticking.
+ * Compact relative time for feed, comment, message, and notification timestamps.
+ * Past times → "now", "5min", "4hr", …; no live ticking.
  */
 export function formatRelativeTime(input: string | Date, now: Date = new Date()): string {
   const date = input instanceof Date ? input : new Date(input);
@@ -29,29 +29,29 @@ export function formatRelativeTime(input: string | Date, now: Date = new Date())
   const diffSec = Math.round((date.getTime() - now.getTime()) / 1000);
   const abs = Math.abs(diffSec);
 
-  if (abs < 45) return "just now";
+  if (abs < 45) return "now";
 
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-  const sign = diffSec < 0 ? -1 : 1;
+  const prefix = diffSec > 0 ? "in " : "";
+  const formatUnit = (value: number, unit: string) => `${prefix}${value}${unit}`;
 
-  // Cap minutes below 60 so near-hour boundaries roll into hours (avoid "60 minutes ago").
+  // Cap minutes below 60 so near-hour boundaries roll into hours (avoid "60min").
   const minutes = Math.round(abs / 60);
   if (minutes < 60) {
-    return rtf.format(sign * Math.max(1, minutes), "minute");
+    return formatUnit(Math.max(1, minutes), "min");
   }
   if (abs < 60 * 60 * 24) {
-    return rtf.format(sign * Math.max(1, Math.round(abs / 3600)), "hour");
+    return formatUnit(Math.max(1, Math.round(abs / 3600)), "hr");
   }
   if (abs < 60 * 60 * 24 * 7) {
-    return rtf.format(sign * Math.max(1, Math.round(abs / 86400)), "day");
+    return formatUnit(Math.max(1, Math.round(abs / 86400)), "d");
   }
   if (abs < 60 * 60 * 24 * 7 * 5) {
-    return rtf.format(sign * Math.max(1, Math.round(abs / (86400 * 7))), "week");
+    return formatUnit(Math.max(1, Math.round(abs / (86400 * 7))), "w");
   }
   if (abs < 60 * 60 * 24 * 30 * 12) {
-    return rtf.format(sign * Math.max(1, Math.round(abs / (86400 * 30))), "month");
+    return formatUnit(Math.max(1, Math.round(abs / (86400 * 30))), "mo");
   }
-  return rtf.format(sign * Math.max(1, Math.round(abs / (86400 * 365))), "year");
+  return formatUnit(Math.max(1, Math.round(abs / (86400 * 365))), "yr");
 }
 
 /** Compact elapsed time for constrained chat metadata, such as "5m ago". */
