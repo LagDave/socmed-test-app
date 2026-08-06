@@ -61,11 +61,25 @@ export class NotificationModel {
     return Number(row?.count || 0);
   }
 
-  static async markAllRead(recipientId: string, types?: NotificationType[]): Promise<number> {
-    let q = db("notifications").where({ recipient_id: recipientId, is_read: false });
-    if (types && types.length > 0) {
-      q = q.whereIn("type", types);
-    }
-    return q.update({ is_read: true });
+  static async countUnreadPendingFriendRequests(recipientId: string): Promise<number> {
+    const row = await db("notifications as notification")
+      .innerJoin("friendships as friendship", "friendship.id", "notification.friendship_id")
+      .where({
+        "notification.recipient_id": recipientId,
+        "notification.type": "friend_request",
+        "notification.is_read": false,
+        "friendship.status": "pending",
+      })
+      .whereNot("friendship.requester_id", recipientId)
+      .count<{ count: string }>("notification.id as count")
+      .first();
+    return Number(row?.count || 0);
   }
+
+  static async markRead(recipientId: string, notificationId: string): Promise<number> {
+    return db("notifications")
+      .where({ id: notificationId, recipient_id: recipientId, is_read: false })
+      .update({ is_read: true });
+  }
+
 }

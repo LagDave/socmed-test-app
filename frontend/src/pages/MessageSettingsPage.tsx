@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ChevronLeft, Settings } from "lucide-react";
-import { NotificationSoundsSettings } from "@/components/NotificationSoundsSettings";
+import { MessageSoundSettings } from "@/components/notification-sounds/MessageSoundSettings";
 import { Button } from "@/components/ui/button";
 
 export function MessageSettingsPage() {
@@ -15,7 +15,7 @@ export function MessageSettingsPage() {
         <Settings className="h-5 w-5 text-muted-foreground" aria-hidden />
       </header>
 
-      <NotificationSoundsSettings />
+      <MessageSoundSettings />
     </section>
   );
 }

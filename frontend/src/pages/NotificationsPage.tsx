@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Bell, Camera, ChevronRight, MessageSquare, Reply, UserPlus } from "lucide-react";
+import { Bell, Camera, ChevronRight, MessageSquare, Reply, Settings, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { getMessagesSocket, NOTIFICATIONS_COUNT } from "@/api/socket";
@@ -7,6 +7,7 @@ import type { PublicUser } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { Button } from "@/components/ui/button";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
+import { NOTIFICATION_RETURN_STATE } from "@/lib/notificationNavigation";
 import { cn } from "@/lib/utils";
 
 type NotificationType = "friend_request" | "comment_on_post" | "comment_on_photo" | "comment_reply";
@@ -72,11 +73,15 @@ function NotificationSkeleton() {
 function NotificationRow({
   item,
   busyFriendshipId,
+  readNotificationId,
   onFriendAction,
+  onNotificationRead,
 }: {
   item: NotificationItem;
   busyFriendshipId: string | null;
+  readNotificationId: string | null;
   onFriendAction: (friendshipId: string, action: "accept" | "decline") => void;
+  onNotificationRead: (notificationId: string) => void;
 }) {
   const meta = TYPE_META[item.type];
   const Icon = meta.icon;
@@ -88,6 +93,7 @@ function NotificationRow({
     : null;
   const actorHref = profilePath(item.actor);
   const rowLinksToPost = Boolean(destination && !isFriendRequest);
+  const isMarkingRead = readNotificationId === item.id;
 
   const content = (
     <>
@@ -157,6 +163,17 @@ function NotificationRow({
             >
               Decline
             </Button>
+            {!item.isRead && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={isMarkingRead}
+                onClick={() => onNotificationRead(item.id)}
+              >
+                {isMarkingRead ? "Marking…" : "Mark as read"}
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -187,7 +204,12 @@ function NotificationRow({
   if (destination && !isFriendRequest) {
     return (
       <li>
-        <Link to={destination} className={cn(rowClass, "w-full no-underline")}>
+        <Link
+          to={destination}
+          state={NOTIFICATION_RETURN_STATE}
+          className={cn(rowClass, "w-full no-underline")}
+          onClick={() => onNotificationRead(item.id)}
+        >
           {content}
         </Link>
       </li>
@@ -202,11 +224,11 @@ export function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyFriendshipId, setBusyFriendshipId] = useState<string | null>(null);
+  const [readNotificationId, setReadNotificationId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const data = await api.get<{ notifications: NotificationItem[] }>("/api/notifications");
     setItems(data.notifications);
-    await api.post("/api/notifications/read");
   }, []);
 
   useEffect(() => {
@@ -241,6 +263,24 @@ export function NotificationsPage() {
     }
   }
 
+  async function markNotificationRead(notificationId: string) {
+    const notification = items.find((item) => item.id === notificationId);
+    if (!notification || notification.isRead) return;
+
+    setReadNotificationId(notificationId);
+    setError(null);
+    try {
+      await api.post(`/api/notifications/${notificationId}/read`);
+      setItems((current) =>
+        current.map((item) => (item.id === notificationId ? { ...item, isRead: true } : item))
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to mark notification as read");
+    } finally {
+      setReadNotificationId(null);
+    }
+  }
+
   const unreadCount = items.filter((n) => !n.isRead).length;
   const showListHeading = !loading && items.length > 0 && !error;
 
@@ -260,11 +300,18 @@ export function NotificationsPage() {
               </p>
             </div>
           </div>
-          {!loading && unreadCount > 0 && (
-            <span className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
-              {unreadCount} new
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {!loading && unreadCount > 0 && (
+              <span className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+                {unreadCount} new
+              </span>
+            )}
+            <Button asChild variant="ghost" size="icon">
+              <Link to="/notifications/settings" aria-label="Notification settings">
+                <Settings className="size-5" aria-hidden="true" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -309,7 +356,9 @@ export function NotificationsPage() {
                 key={n.id}
                 item={n}
                 busyFriendshipId={busyFriendshipId}
+                readNotificationId={readNotificationId}
                 onFriendAction={(friendshipId, action) => void onFriendAction(friendshipId, action)}
+                onNotificationRead={(notificationId) => void markNotificationRead(notificationId)}
               />
             ))}
           </ul>

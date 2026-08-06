@@ -84,7 +84,7 @@ export const ACTIVITY_SOUND_GROUPS: ActivitySoundGroup[] = ["Digital", "Tone"];
 const MESSAGE_SOUND_ASSET_VERSION = "3";
 
 const PLAYBACK_VOLUME = 0.38;
-const ACTIVITY_PLAYBACK_VOLUME = 0.5;
+const ACTIVITY_PLAYBACK_VOLUME = 0.15;
 
 export const MESSAGE_SOUND_OPTIONS: MessageSoundOption[] = [
   { id: "chime", label: "Chime", description: "Soft marimba note", url: `/sounds/message-chime.wav?v=${MESSAGE_SOUND_ASSET_VERSION}`, group: "Classic" },
@@ -103,7 +103,9 @@ export const MESSAGE_SOUND_OPTIONS: MessageSoundOption[] = [
   { id: "party", label: "Party", description: "Muted thump + chord", url: `/sounds/message-party.wav?v=${MESSAGE_SOUND_ASSET_VERSION}`, group: "Excited" },
 ];
 
-const ENABLED_STORAGE_KEY = "socmed.sounds.enabled";
+const LEGACY_ENABLED_STORAGE_KEY = "socmed.sounds.enabled";
+const MESSAGE_ENABLED_STORAGE_KEY = "socmed.sounds.messageEnabled";
+const ACTIVITY_ENABLED_STORAGE_KEY = "socmed.sounds.activityEnabled";
 const MESSAGE_SOUND_STORAGE_KEY = "socmed.sounds.messageId";
 const ACTIVITY_SOUND_STORAGE_KEY = "socmed.sounds.activityId";
 const MESSAGE_SOUND_TAB_CHANNEL = "socmed-message-sound";
@@ -113,12 +115,15 @@ const ACTIVITY_SOUND_TAB_CHANNEL = "socmed-activity-sound";
 const SILENT_UNLOCK_DATA_URL =
   "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
 
+export type NotificationSoundPreferences = {
+  messageEnabled: boolean;
+  activityEnabled: boolean;
+  messageSoundId: MessageSoundId | null;
+  activitySoundId: ActivitySoundId | null;
+};
+
 type SoundRuntime = {
-  activePrefs: {
-    enabled: boolean;
-    messageSoundId: MessageSoundId | null;
-    activitySoundId: ActivitySoundId | null;
-  };
+  activePrefs: NotificationSoundPreferences;
   isUnlocked: boolean;
   messageAudio: HTMLAudioElement | null;
   activityAudio: HTMLAudioElement | null;
@@ -239,18 +244,19 @@ function isActivitySoundId(value: string): value is ActivitySoundId {
   return ACTIVITY_SOUND_OPTIONS.some((option) => option.id === value);
 }
 
-function readNotificationSoundPreferencesFromStorage(): {
-  enabled: boolean;
-  messageSoundId: MessageSoundId | null;
-  activitySoundId: ActivitySoundId | null;
-} {
-  let enabled = true;
+function readStoredBoolean(key: string, fallback: boolean): boolean {
   try {
-    const raw = localStorage.getItem(ENABLED_STORAGE_KEY);
-    if (raw !== null) enabled = raw === "true";
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw === "true";
   } catch {
-    /* ignore */
+    return fallback;
   }
+}
+
+function readNotificationSoundPreferencesFromStorage(): NotificationSoundPreferences {
+  const legacyEnabled = readStoredBoolean(LEGACY_ENABLED_STORAGE_KEY, true);
+  const messageEnabled = readStoredBoolean(MESSAGE_ENABLED_STORAGE_KEY, legacyEnabled);
+  const activityEnabled = readStoredBoolean(ACTIVITY_ENABLED_STORAGE_KEY, legacyEnabled);
 
   let messageSoundId: MessageSoundId | null = null;
   try {
@@ -268,18 +274,14 @@ function readNotificationSoundPreferencesFromStorage(): {
     /* ignore */
   }
 
-  return { enabled, messageSoundId, activitySoundId };
+  return { messageEnabled, activityEnabled, messageSoundId, activitySoundId };
 }
 
 function syncActivePrefsFromStorage(): void {
   soundRuntime().activePrefs = readNotificationSoundPreferencesFromStorage();
 }
 
-function activePrefs(): {
-  enabled: boolean;
-  messageSoundId: MessageSoundId | null;
-  activitySoundId: ActivitySoundId | null;
-} {
+function activePrefs(): NotificationSoundPreferences {
   return soundRuntime().activePrefs;
 }
 
@@ -427,7 +429,7 @@ export function teardownMessageNotificationSoundListener(): void {
 }
 
 export function areNotificationSoundsEnabled(): boolean {
-  return activePrefs().enabled;
+  return activePrefs().messageEnabled || activePrefs().activityEnabled;
 }
 
 export function getSelectedMessageSoundId(): MessageSoundId | null {
@@ -440,11 +442,13 @@ export function getSelectedActivitySoundId(): ActivitySoundId | null {
 
 export function setNotificationSoundsEnabled(enabled: boolean): void {
   try {
-    localStorage.setItem(ENABLED_STORAGE_KEY, enabled ? "true" : "false");
+    localStorage.setItem(LEGACY_ENABLED_STORAGE_KEY, enabled ? "true" : "false");
+    localStorage.setItem(MESSAGE_ENABLED_STORAGE_KEY, enabled ? "true" : "false");
+    localStorage.setItem(ACTIVITY_ENABLED_STORAGE_KEY, enabled ? "true" : "false");
   } catch {
     /* storage unavailable */
   }
-  soundRuntime().activePrefs = { ...activePrefs(), enabled };
+  soundRuntime().activePrefs = { ...activePrefs(), messageEnabled: enabled, activityEnabled: enabled };
   window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
 }
 
@@ -472,13 +476,59 @@ export function setSelectedActivitySoundId(id: ActivitySoundId | null): void {
   window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
 }
 
+export function saveMessageSoundPreferences(prefs: {
+  enabled: boolean;
+  soundId: MessageSoundId | null;
+}): void {
+  try {
+    localStorage.setItem(MESSAGE_ENABLED_STORAGE_KEY, prefs.enabled ? "true" : "false");
+    if (prefs.soundId) {
+      localStorage.setItem(MESSAGE_SOUND_STORAGE_KEY, prefs.soundId);
+    } else {
+      localStorage.removeItem(MESSAGE_SOUND_STORAGE_KEY);
+    }
+  } catch {
+    /* storage unavailable */
+  }
+  soundRuntime().activePrefs = {
+    ...activePrefs(),
+    messageEnabled: prefs.enabled,
+    messageSoundId: prefs.soundId,
+  };
+  window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
+}
+
+export function saveActivitySoundPreferences(prefs: {
+  enabled: boolean;
+  soundId: ActivitySoundId | null;
+}): void {
+  try {
+    localStorage.setItem(ACTIVITY_ENABLED_STORAGE_KEY, prefs.enabled ? "true" : "false");
+    if (prefs.soundId) {
+      localStorage.setItem(ACTIVITY_SOUND_STORAGE_KEY, prefs.soundId);
+    } else {
+      localStorage.removeItem(ACTIVITY_SOUND_STORAGE_KEY);
+    }
+  } catch {
+    /* storage unavailable */
+  }
+  soundRuntime().activePrefs = {
+    ...activePrefs(),
+    activityEnabled: prefs.enabled,
+    activitySoundId: prefs.soundId,
+  };
+  window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
+}
+
 export function saveNotificationSoundPreferences(prefs: {
   enabled: boolean;
   messageSoundId: MessageSoundId | null;
   activitySoundId: ActivitySoundId | null;
 }): void {
   try {
-    localStorage.setItem(ENABLED_STORAGE_KEY, prefs.enabled ? "true" : "false");
+    localStorage.setItem(LEGACY_ENABLED_STORAGE_KEY, prefs.enabled ? "true" : "false");
+    localStorage.setItem(MESSAGE_ENABLED_STORAGE_KEY, prefs.enabled ? "true" : "false");
+    localStorage.setItem(ACTIVITY_ENABLED_STORAGE_KEY, prefs.enabled ? "true" : "false");
     if (prefs.messageSoundId) {
       localStorage.setItem(MESSAGE_SOUND_STORAGE_KEY, prefs.messageSoundId);
     } else {
@@ -493,21 +543,19 @@ export function saveNotificationSoundPreferences(prefs: {
     /* storage unavailable */
   }
   soundRuntime().activePrefs = {
-    enabled: prefs.enabled,
+    messageEnabled: prefs.enabled,
+    activityEnabled: prefs.enabled,
     messageSoundId: prefs.messageSoundId,
     activitySoundId: prefs.activitySoundId,
   };
   window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
 }
 
-export function readNotificationSoundPreferences(): {
-  enabled: boolean;
-  messageSoundId: MessageSoundId | null;
-  activitySoundId: ActivitySoundId | null;
-} {
+export function readNotificationSoundPreferences(): NotificationSoundPreferences {
   const prefs = activePrefs();
   return {
-    enabled: prefs.enabled,
+    messageEnabled: prefs.messageEnabled,
+    activityEnabled: prefs.activityEnabled,
     messageSoundId: prefs.messageSoundId,
     activitySoundId: prefs.activitySoundId,
   };
@@ -544,7 +592,8 @@ export function warmActiveMessageSound(): void {
 
 export function playNotificationSound(kind: SoundKind): void {
   syncActivePrefsFromStorage();
-  if (!activePrefs().enabled) return;
+  if (kind === "message" && !activePrefs().messageEnabled) return;
+  if (kind === "activity" && !activePrefs().activityEnabled) return;
 
   const url = kind === "message" ? activeMessageSoundUrl() : activeActivitySoundUrl();
   if (!url) return;
@@ -554,7 +603,7 @@ export function playNotificationSound(kind: SoundKind): void {
 /** Live inbound activity sound — deduped per notification and across tabs. */
 export function playActivityNotificationSound(notificationId: string): void {
   syncActivePrefsFromStorage();
-  if (!activePrefs().enabled) return;
+  if (!activePrefs().activityEnabled) return;
   if (shouldSkipActivitySound(notificationId)) return;
 
   const url = activeActivitySoundUrl();
@@ -575,7 +624,7 @@ export function previewActivitySound(id?: ActivitySoundId): void {
 /** Live inbound message sound — one clip only, deduped per message and across tabs. */
 export function playMessageNotificationSound(messageId: string): void {
   syncActivePrefsFromStorage();
-  if (!activePrefs().enabled || !activePrefs().messageSoundId) return;
+  if (!activePrefs().messageEnabled || !activePrefs().messageSoundId) return;
   if (shouldSkipMessageSound(messageId)) return;
 
   const url = activeMessageSoundUrl();
@@ -593,7 +642,13 @@ export function previewMessageSound(id: MessageSoundId): void {
 
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (event) => {
-    if (event.key === ENABLED_STORAGE_KEY || event.key === MESSAGE_SOUND_STORAGE_KEY || event.key === ACTIVITY_SOUND_STORAGE_KEY) {
+    if (
+      event.key === LEGACY_ENABLED_STORAGE_KEY ||
+      event.key === MESSAGE_ENABLED_STORAGE_KEY ||
+      event.key === ACTIVITY_ENABLED_STORAGE_KEY ||
+      event.key === MESSAGE_SOUND_STORAGE_KEY ||
+      event.key === ACTIVITY_SOUND_STORAGE_KEY
+    ) {
       syncActivePrefsFromStorage();
       window.dispatchEvent(new CustomEvent("socmed:sounds-preference"));
     }

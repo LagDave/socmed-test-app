@@ -30,9 +30,9 @@ export class NotificationsController {
     }
   }
 
-  static async markRead(req: AuthedRequest, res: Response): Promise<Response> {
+  static async markOneRead(req: AuthedRequest, res: Response): Promise<Response> {
     try {
-      await NotificationService.markAllRead(req.userId!);
+      await NotificationService.markRead(req.userId!, String(req.params.id));
       return ok(res, { read: true });
     } catch (err) {
       return handle(res, err);

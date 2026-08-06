@@ -1,4 +1,3 @@
-import { FriendshipModel } from "../models/FriendshipModel";
 import { NotificationModel, type NotificationType } from "../models/NotificationModel";
 import { emitToUser } from "./io";
 
@@ -12,8 +11,8 @@ const ACTIVITY_TYPES: NotificationType[] = ["comment_on_post", "comment_on_photo
 
 async function unreadNotificationCount(userId: string): Promise<number> {
   const unreadActivity = await NotificationModel.countUnread(userId, ACTIVITY_TYPES);
-  const pendingFriends = (await FriendshipModel.listIncoming(userId)).length;
-  return unreadActivity + pendingFriends;
+  const unreadFriendRequests = await NotificationModel.countUnreadPendingFriendRequests(userId);
+  return unreadActivity + unreadFriendRequests;
 }
 
 export const NotificationRealtime = {
