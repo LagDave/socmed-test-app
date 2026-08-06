@@ -115,6 +115,9 @@ export function SharePostDialog({
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold leading-snug">
                 {user.displayName}
+                {user.username ? (
+                  <span className="font-normal text-muted-foreground">{` @${user.username}`}</span>
+                ) : null}
               </p>
               <label htmlFor={captionId} className="sr-only">
                 Say something about this post
