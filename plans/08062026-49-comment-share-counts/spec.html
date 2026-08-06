@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan 08062026-49 — Comment and share action counts</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    body { max-width: 960px; margin: 0 auto; padding: 32px 20px 56px; background: #111827; color: #e5e7eb; line-height: 1.55; }
+    h1, h2, h3 { line-height: 1.2; color: #fff; } h1 { margin-bottom: 8px; }
+    .status { display: inline-block; padding: 6px 11px; border-radius: 999px; background: #78350f; color: #fef3c7; font-weight: 700; }
+    .meta, .callout { padding: 14px 16px; border: 1px solid #374151; border-radius: 10px; background: #1f2937; }
+    section { margin-top: 28px; } code { color: #bfdbfe; }
+    table { width: 100%; border-collapse: collapse; } th, td { text-align: left; vertical-align: top; padding: 10px; border-bottom: 1px solid #374151; }
+    th { color: #f9fafb; } .risk { border-left: 4px solid #f59e0b; }
+  </style>
+</head>
+<body>
+  <p class="status">In Progress</p>
+  <h1>Show comment and share action counts</h1>
+  <div class="meta">
+    <strong>Plan:</strong> <code>plans/08062026-49-comment-share-counts</code><br />
+    <strong>Execution branch:</strong> <code>kylie/comment-share-ui</code> → <code>dev</code><br />
+    <strong>Pull request:</strong> #72 — <em>feat: show comment and share action counts</em>
+  </div>
+
+  <section><h2>Why</h2><p>The post action row did not expose the amount of discussion or resharing before a user opened either flow. Feed and detail payloads need efficient aggregate counts, and the action controls need readable visual and accessible labels without turning each post into separate count queries.</p></section>
+
+  <section><h2>What</h2><p>Add <code>commentCount</code> and <code>shareCount</code> to the server and frontend <code>PostView</code> contracts. Hydrate them in batches for the currently loaded posts, then render positive counts beside the comment and share actions, capping visual output at <code>99+</code> while retaining the full number in the accessible label.</p><p><strong>Done when:</strong> post-level comments and direct shares are counted correctly across a feed batch; zero counts remain unobtrusive; visible counts and assistive labels agree; and existing share/comment actions remain functional.</p></section>
+
+  <section><h2>Context</h2><ul>
+    <li><code>src/services/PostService.ts</code> centralizes post-view hydration. It now loads authors, reaction summaries, comment counts, and share counts concurrently before constructing views.</li>
+    <li><code>src/models/CommentModel.ts</code> groups comment counts by <code>post_id</code> and deliberately excludes image comments (<code>post_image_id IS NULL</code>).</li>
+    <li><code>src/models/PostModel.ts</code> groups direct shares by <code>shared_from_post_id</code>.</li>
+    <li><code>frontend/src/api/types.ts</code> mirrors the new response fields; <code>PostCard</code>, <code>SharedPostEmbed</code>, and feed/detail consumers pass them to <code>PostActionRow</code>.</li>
+    <li><code>frontend/src/components/PostActionRow.tsx</code> is the only action-count presentation surface; preserve that single abstraction.</li>
+    <li>Commit <code>b3ea676</code> on this PR also rearranges relative timestamps across social surfaces. It is recorded below to preserve spec-code parity, but it is outside the PR title’s core count feature.</li>
+  </ul></section>
+
+  <section><h2>Constraints</h2><table><tr><th>Must</th><th>Must not</th></tr><tr><td><ul><li>Batch aggregate counts by the current post IDs; return zero for posts with no matching rows.</li><li>Count post-level comments only, excluding comments attached to an individual post image.</li><li>Count direct posts that reference the source post as a share.</li><li>Render positive counts inline and expose the full count in each control’s accessible label.</li><li>Use one shared action-row count component for post-card and embedded-post consumers.</li></ul></td><td><ul><li>No per-post query loop (N+1).</li><li>No duplicated count formatting or parallel frontend action control.</li><li>No schema migration or new dependency.</li><li>No silent inclusion of photo comments in the post discussion count.</li></ul></td></tr></table></section>
+
+  <section><h2>Risk &amp; pushback</h2><div class="callout risk"><strong>Level 2 — Concern.</strong> The hydration path serves feed and detail views; an aggregate query in the mapping loop would create an N+1 performance regression, and ambiguous counting semantics would make the displayed discussion count misleading. <strong>Mitigation:</strong> use two grouped batch queries keyed by post ID, seed defaults for every requested post, and acceptance-test root comments, image comments, zero counts, and shares. <strong>Scope concern:</strong> the timestamp refactor is an unrelated second feature in this PR. It is documented as T3 for parity; future work should be split into a separately titled PR and plan.</div><table><tr><th>Consumer</th><th>Expected impact / verification</th></tr><tr><td>FeedPage and PostDetailPage</td><td>Receive populated post counts through the shared post-view contract.</td></tr><tr><td>PostCard and SharedPostEmbed</td><td>Pass correct values to the action row without affecting reaction controls.</td></tr><tr><td>CommentModel / PostModel</td><td>Run grouped aggregates once per hydrated batch, not once per post.</td></tr><tr><td>Comment and message metadata surfaces</td><td>Timestamp placement changes remain readable and retain their relative-time semantics.</td></tr></table></section>
+
+  <section><h2>Tasks</h2><div class="callout"><h3>T1 — Batch post comment and share aggregates</h3><p><strong>Do:</strong> add grouped model queries for root-comment and direct-share counts; hydrate both alongside existing authors and reaction summaries; expose zero-safe fields in the server view.</p><p><strong>Files:</strong> <code>src/models/CommentModel.ts</code>, <code>src/models/PostModel.ts</code>, <code>src/services/PostService.ts</code></p><p><strong>Depends on:</strong> —</p><p><strong>Verify:</strong> A1–A2.</p></div><div class="callout"><h3>T2 — Render post action counts through the shared UI contract</h3><p><strong>Do:</strong> add client response fields, pass them through post consumers, and render positive counts with a 99+ visual cap and full accessible labels.</p><p><strong>Files:</strong> <code>frontend/src/api/types.ts</code>, <code>frontend/src/components/PostActionRow.tsx</code>, <code>frontend/src/components/PostCard.tsx</code>, <code>frontend/src/components/SharedPostEmbed.tsx</code>, relevant feed/detail components</p><p><strong>Depends on:</strong> T1</p><p><strong>Verify:</strong> A3.</p></div><div class="callout"><h3>T3 — Record the existing timestamp-presentation change</h3><p><strong>Do:</strong> preserve the PR’s existing timestamp repositioning and compact relative-time formatting across comment, conversation, friend-picker, and post surfaces. This is documented for parity only; it should be isolated in future work.</p><p><strong>Files:</strong> <code>frontend/src/lib/formatRelativeTime.ts</code>, comment/message/friend-list components, feed and post-detail pages</p><p><strong>Depends on:</strong> —</p><p><strong>Verify:</strong> A4.</p></div></section>
+
+  <section><h2>Verification</h2><ul><li>Run backend and frontend typecheck/build/lint gates before finalization.</li><li>Run <code>test-results.json</code> in a contained <code>-tw</code> runtime and record observed evidence only.</li><li>Inspect generated SQL/query logs or focused tests to establish that count aggregation is batch-scoped.</li></ul></section>
+
+  <section><h2>Revision Log</h2><div class="callout"><p><strong>Rev 0 — 2026-08-06:</strong> Created retrospectively from PR #72 because its two implementation commits omitted the required plan and acceptance artifacts. This documents the existing code on <code>kylie/comment-share-ui</code>; no application code is changed by this plan-artifact commit.</p></div></section>
+</body>
+</html>
