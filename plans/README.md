@@ -46,6 +46,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 40 | `08012026-40-comment-section-ui` | Comment section UI polish |
 | 41 | `08022026-41-multi-photo-carousel` | Multi-photo carousel |
 | 42 | `08032026-42-message-settings-sound-move` | Message settings page — relocate notification sound picker from Account Settings |
+| 49 | `08062026-49-profile-menu-ui` | Profile menu UI — identity-led account panel |
 
 ## Branch → host (hard rule)
 

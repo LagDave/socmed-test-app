@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.34 — 2026-08-06
+
+### Changed
+- Rebuilt the avatar dropdown as an identity-led account panel with a single profile link, optional username, clear next-theme mode action, and a visually distinct logout row
+- Scoped account-menu styling to navbar chrome; existing Profile page dropdowns are unchanged
+
+### Plans
+- `plans/08062026-49-profile-menu-ui` — completed on `kylie/profile-menu-ui`
+
 ## 0.1.33 — 2026-08-05
 
 ### Changed

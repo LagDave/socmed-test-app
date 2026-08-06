@@ -11,7 +11,7 @@ import { useMessagesSocketConnection } from "@/hooks/useMessagesSocket";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
-  const { toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const socketConnected = useMessagesSocketConnection();
   useMessageNotificationSound();
@@ -102,6 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         feedCount={feedCount}
         messagesCount={messagesCount}
         notificationCount={notificationCount}
+        theme={theme}
         onToggleTheme={toggleTheme}
         onLogout={logout}
       />
