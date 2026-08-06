@@ -302,7 +302,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
 
         <div
           ref={scrollRef}
-          className="messages-thread-pane min-h-0 flex-1 overflow-y-auto px-5 py-3"
+          className="messages-thread-pane scrollbar-none min-h-0 flex-1 overflow-y-auto px-5 py-3"
           style={resolvedTheme.active ? { background: resolvedTheme.background } : undefined}
           onScroll={() => {
             const el = scrollRef.current;
