@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.38 — 2026-08-07
+
+### Changed
+- Set a consistent 3px vertical gap between consecutive chat-bubble rows.
+
+### Plans
+- `plans/08072026-message-gap` — completed on `kylie/message-gap`
+
 ## 0.1.37 — 2026-08-06
 
 ### Added
