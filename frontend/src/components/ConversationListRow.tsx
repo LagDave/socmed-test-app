@@ -144,6 +144,9 @@ export function ConversationListRow({
           <span className="flex items-baseline justify-between gap-2">
             <span className={cn("truncate", unread ? "font-semibold" : "font-medium")}>
               {peer.displayName}
+              {peer.username && (
+                <span className="font-normal text-muted-foreground"> @{peer.username}</span>
+              )}
             </span>
             {item.lastMessageAt && (
               <time

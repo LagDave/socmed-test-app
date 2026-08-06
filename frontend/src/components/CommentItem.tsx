@@ -104,13 +104,9 @@ export function CommentItem({
               >
                 {comment.author.displayName}
               </Link>
-              <time
-                className="comment-meta-time"
-                dateTime={comment.createdAt}
-                title={formatAbsoluteTime(comment.createdAt) || undefined}
-              >
-                {formatRelativeTime(comment.createdAt)}
-              </time>
+              {comment.author.username ? (
+                <span className="text-[13px] text-muted-foreground">@{comment.author.username}</span>
+              ) : null}
             </div>
 
             {comment.body ? (
@@ -138,6 +134,13 @@ export function CommentItem({
               onSummaryChange={onReactionSummaryChange}
               actions={onReply ? <ReplyActionButton onClick={onReply} /> : undefined}
             />
+            <time
+              className="comment-meta-time"
+              dateTime={comment.createdAt}
+              title={formatAbsoluteTime(comment.createdAt) || undefined}
+            >
+              {formatRelativeTime(comment.createdAt)}
+            </time>
           </div>
         </div>
       </div>

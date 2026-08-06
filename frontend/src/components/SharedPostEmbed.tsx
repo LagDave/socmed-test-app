@@ -21,6 +21,9 @@ export function SharePostPreview({ post, className }: SharePostPreviewProps) {
         <div className="min-w-0 flex-1">
           <p className="font-medium leading-snug">
             {post.author.displayName}
+            {post.author.username ? (
+              <span className="font-normal text-muted-foreground">{` @${post.author.username}`}</span>
+            ) : null}
           </p>
           {post.body ? (
             <p className="mt-1.5 whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90">
@@ -74,6 +77,9 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
             to={profilePath}
           >
             {sharedFrom.author.displayName}
+            {sharedFrom.author.username ? (
+              <span className="font-normal text-muted-foreground">{` @${sharedFrom.author.username}`}</span>
+            ) : null}
           </Link>
           <Link
             to={postPath}

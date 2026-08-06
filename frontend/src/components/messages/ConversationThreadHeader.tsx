@@ -50,6 +50,9 @@ export function ConversationThreadHeader({
           />
           <div className="min-w-0">
             <p className="truncate font-semibold leading-snug">{peer.displayName}</p>
+            {peer.username && (
+              <p className="truncate text-xs text-muted-foreground">@{peer.username}</p>
+            )}
           </div>
         </Link>
       ) : (

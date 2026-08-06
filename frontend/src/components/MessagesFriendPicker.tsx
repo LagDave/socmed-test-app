@@ -280,6 +280,9 @@ function FriendListButton({
       <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-semibold">{user.displayName}</span>
+        {user.username && (
+          <span className="block truncate text-sm text-muted-foreground">@{user.username}</span>
+        )}
       </span>
     </button>
   );
