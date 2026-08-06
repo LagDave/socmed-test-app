@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan 08072026 — Compact pinned-message activity rows</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    body { max-width: 960px; margin: 0 auto; padding: 32px 20px 56px; background: #111827; color: #e5e7eb; line-height: 1.55; }
+    h1, h2, h3 { line-height: 1.2; color: #fff; } h1 { margin-bottom: 8px; }
+    .status { display: inline-block; padding: 6px 11px; border-radius: 999px; background: #78350f; color: #fef3c7; font-weight: 700; }
+    .meta, .callout { padding: 14px 16px; border: 1px solid #374151; border-radius: 10px; background: #1f2937; }
+    section { margin-top: 28px; } code { color: #bfdbfe; }
+    table { width: 100%; border-collapse: collapse; } th, td { text-align: left; vertical-align: top; padding: 10px; border-bottom: 1px solid #374151; }
+    th { color: #f9fafb; } .risk { border-left: 4px solid #f59e0b; }
+  </style>
+</head>
+<body>
+  <p class="status">Completed</p>
+  <h1>Compact pinned-message activity rows</h1>
+  <div class="meta">
+    <strong>Plan:</strong> <code>plans/08072026-pinned-message-gap-fix</code><br />
+    <strong>Execution branch:</strong> <code>kylie/pinned-message-gap-fix</code> → <code>dev</code><br />
+    <strong>Planned:</strong> 2026-08-07
+  </div>
+
+  <section>
+    <h2>Why</h2>
+    <p>Pin activity is durable conversation history, but the current activity component gives each event 20px of top and bottom margin. Consecutive events therefore look like unrelated floating notices with an approximately 80–90px visual gap. Its translucent surface also varies against a vertical gradient theme, making otherwise identical events look inconsistent.</p>
+  </section>
+
+  <section>
+    <h2>What and Done</h2>
+    <ul>
+      <li>Render every pin and unpin action as its own chronological timeline event; do not collapse, hide, dismiss, or aggregate repeated events.</li>
+      <li>Reduce consecutive pin-activity spacing to a compact 12px visual gap while preserving day separators and normal message/reaction spacing.</li>
+      <li>Render each activity as a plain, centered system-log line with no card, border, background, icon, or side dividers.</li>
+      <li>Show <code>You pinned a message</code> or <code>You unpinned a message</code> to the actor; show only the first word of the actor’s display name to every other participant.</li>
+      <li>Preserve the semantic <code>role="status"</code> and avoid changes to message, pin, socket, API, or database behavior.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Context</h2>
+    <table>
+      <tr><th>File</th><th>Role</th></tr>
+      <tr><td><code>frontend/src/components/messages/MessagePinActivityRow.tsx</code></td><td>Presentational owner of the pin/unpin event row. It currently carries the excessive <code>my-5</code> margin and inline themed utility variants.</td></tr>
+      <tr><td><code>frontend/src/components/messages/ThreadViewContent.tsx</code></td><td>Active timeline renderer. It owns the wrapper, day-separator placement, and the only call site for <code>MessagePinActivityRow</code>.</td></tr>
+      <tr><td><code>frontend/src/index.css</code></td><td>Established home for chat-thread geometry and theme selectors. Existing variables include <code>--chat-bg-sample</code>, <code>--chat-thread-fg</code>, and <code>--chat-thread-muted</code>.</td></tr>
+      <tr><td><code>frontend/src/lib/chatThemeApply.ts</code></td><td>Closest analog for the stable background sample and derived readable foreground. Read-only context; no change planned.</td></tr>
+      <tr><td><code>frontend/src/components/MessagesUiHelpers.tsx</code></td><td>Closest timeline-separator analog. Read-only context; no change planned.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Constraints</h2>
+    <table>
+      <tr><th>Must</th><th>Must not / Out of scope</th></tr>
+      <tr>
+        <td>
+          <ul>
+            <li>Use the existing theme CSS variables and no new dependency.</li>
+            <li>Keep visual styles in the chat stylesheet and leave the row component presentational.</li>
+            <li>Use plain text with theme-aware muted foreground, without card, border, background, icon, or divider styles.</li>
+            <li>Derive the viewer-relative label only from the existing activity actor ID and signed-in user ID.</li>
+            <li>Verify a gradient theme, a solid/default theme, and adjacent pin events.</li>
+          </ul>
+        </td>
+        <td>
+          <ul>
+            <li>No notification/toast system change; this is conversation history, not a toast.</li>
+            <li>No close control, client-side dismissed-state, animation, aggregation, or count badge.</li>
+            <li>No changes to pin persistence, message ordering, realtime events, API contracts, or migrations.</li>
+            <li>No broad thread-style refactor or change to ordinary message bubble spacing.</li>
+          </ul>
+        </td>
+      </tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Risk &amp; blast radius</h2>
+    <div class="callout risk">
+      <strong>Level 2 — Concern.</strong> A plain system-log line can be mistaken for message content or use the wrong actor-relative label. <strong>Mitigation:</strong> retain a centered, muted, compact treatment; compare <code>activity.actorId</code> with the authenticated viewer’s ID in the existing renderer; verify the actor and the other participant see their respective text.
+    </div>
+    <p><strong>Consumers:</strong> <code>/messages/:conversationId</code> through <code>ThreadView.tsx</code> → <code>ThreadViewContent.tsx</code> → <code>MessagePinActivityRow.tsx</code>; theme variables produced by <code>chatThemeApply.ts</code>; timeline ordering from <code>threadTimeline.ts</code>. Backend pin models, services, routes, sockets, and persistence are explicitly unaffected.</p>
+  </section>
+
+  <section>
+    <h2>Tasks</h2>
+    <div class="callout">
+      <h3>T1 — Give pin activity a scoped visual contract</h3>
+      <p><strong>Do:</strong> render a single plain status line with viewer-relative actor copy. Remove the icon and all card/container elements; accept an <code>isCurrentUser</code> boolean from the existing renderer.</p>
+      <p><strong>Files:</strong> <code>frontend/src/components/messages/MessagePinActivityRow.tsx</code>, <code>frontend/src/components/messages/ThreadViewContent.tsx</code> · <strong>Depends on:</strong> none · <strong>Verify:</strong> A1, A2</p>
+    </div>
+    <div class="callout">
+      <h3>T2 — Align pin activity with plain system-log styling</h3>
+      <p><strong>Do:</strong> retain only narrow row/text CSS for compact centered, muted text and its themed foreground. Delete the card, icon, divider, border, background, and shadow rules. Do not alter message-row, day-separator, or system-log selectors.</p>
+      <p><strong>Files:</strong> <code>frontend/src/index.css</code> · <strong>Depends on:</strong> T1 · <strong>Verify:</strong> A1, A2</p>
+    </div>
+    <div class="callout">
+      <h3>T3 — Verify the focused visual and quality contract</h3>
+      <p><strong>Do:</strong> run the frontend typecheck, lint, and production build; use an isolated runtime to validate repeated pin events on both a gradient and unthemed/default conversation. Record observed results in the acceptance artifact.</p>
+      <p><strong>Files:</strong> <code>plans/08072026-pinned-message-gap-fix/test-results.json</code> · <strong>Depends on:</strong> T1, T2 · <strong>Verify:</strong> A1–A3</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Acceptance and quality gates</h2>
+    <p>The planned source of truth is <code>test-results.json</code>. T3 must record all items as pass, or a written waiver per failed item, before finalization. Required frontend gates: <code>npm run typecheck</code>, <code>npm run lint</code>, and <code>npm run build</code> from <code>frontend/</code>. The implementation must also satisfy Code Constitution §§1.1, 2.1, 4.2, 13.3, 17.1, and 17.2.</p>
+  </section>
+
+  <section>
+    <h2>Revision Log</h2>
+    <div class="callout"><p><strong>Rev 0 — 2026-08-07:</strong> Created after confirming that repeated pin and unpin events must remain individually visible. Scoped to compact, deterministic presentation only; no toast, dismissal, aggregation, or backend change is authorized.</p><p><strong>Rev 1 — 2026-08-07:</strong> Implemented T1–T2 on <code>kylie/pinned-message-gap-fix</code>. Frontend typecheck, lint, and production build passed. The contained runtime started with every required isolation invariant, but browser attachment failed before the UI could be inspected; A1–A2 remain pending rather than being inferred from source.</p><p><strong>Rev 2 — 2026-08-07:</strong> User testing found the themed card too light with harsh black text and requested removal of both side lines. Replaced the themed-card constraint with a dark, pink-tinted opaque surface with white foreground; removed decorative divider markup/styles. Event ordering and all backend behavior remain out of scope.</p><p><strong>Rev 3 — 2026-08-07:</strong> Re-ran the required frontend typecheck, lint, and production build after the visual correction; all passed. A1–A2 remain pending user-visible acceptance of the revised dark card and removed lines.</p><p><strong>Rev 4 — 2026-08-07:</strong> User requested a plain system-log presentation instead of any card/container and viewer-relative copy. Replaced card styling with a centered muted status line; the renderer compares existing actor and viewer IDs so the actor sees “You pinned a message” and the other participant sees the actor’s name.</p><p><strong>Rev 5 — 2026-08-07:</strong> Re-ran the required frontend typecheck, lint, and production build after the plain-system-log revision; all passed. A1–A2 remain pending a two-user visual acceptance run.</p><p><strong>Rev 6 — 2026-08-07:</strong> User requested slightly larger plain-system-log text. Increased only the pin-activity font from 11px to 13px; spacing and all presentation constraints remain unchanged.</p><p><strong>Rev 7 — 2026-08-07:</strong> Re-ran the required frontend typecheck, lint, and production build after the font-size adjustment; all passed.</p><p><strong>Rev 8 — 2026-08-07:</strong> User testing showed the prior font-size adjustment had not affected the pin-activity selector; it had changed an unrelated section-label rule. Restored that rule and set the scoped pin-activity text to 16px. This correction supersedes the 13px target in Rev 6.</p><p><strong>Rev 9 — 2026-08-07:</strong> Verified the scoped 16px CSS selector and re-ran frontend typecheck, lint, and production build; all passed.</p><p><strong>Rev 10 — 2026-08-07:</strong> User requested that the last font-size change be undone. Restored the pin-activity text to 11px; the plain layout and viewer-relative copy remain unchanged.</p><p><strong>Rev 11 — 2026-08-07:</strong> Re-ran frontend typecheck, lint, and production build after the font-size undo; all passed.</p><p><strong>Rev 12 — 2026-08-07:</strong> User requested first-name-only copy for other participants. The actor retains “You pinned a message”; other participants receive the first whitespace-delimited word of the existing display name followed by the action.</p><p><strong>Rev 13 — 2026-08-07:</strong> Re-ran frontend typecheck, lint, and production build after the first-name formatter; all passed.</p><p><strong>Rev 14 — 2026-08-07:</strong> User confirmed the completed pin-activity behavior in the app. A1 and A2 passed, completing the acceptance checklist.</p></div>
+  </section>
+</body>
+</html>

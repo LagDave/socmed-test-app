@@ -1,0 +1,58 @@
+{
+  "plan": "plans/08072026-pinned-message-gap-fix",
+  "generatedAt": "2026-08-07",
+  "status": "passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Adjacent pin events are distinct plain system-log lines",
+      "surface": "ui",
+      "precondition": "An isolated runtime is available with a conversation containing two or more consecutive pin or unpin events on the same calendar day.",
+      "steps": [
+        "Open the conversation thread and locate two adjacent pin-activity events.",
+        "Confirm that each event retains its own pinned/unpinned action text and uses no card, border, background, icon, or side divider lines.",
+        "Confirm the 11px lines have a compact gap with no large blank band.",
+        "Confirm that no close control, count badge, or merged event appears."
+      ],
+      "expected": "Every activity remains chronological and distinct as a compact, plain system-log line.",
+      "status": "pass",
+      "evidence": "2026-08-07: user confirmed the tested plain system-log presentation in the app.",
+      "notes": "Human acceptance confirmation.",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Pin activity uses viewer-relative text across thread themes",
+      "surface": "ui",
+      "precondition": "An isolated runtime has the same conversation available in a gradient chat theme and the default/un-themed appearance.",
+      "steps": [
+        "Open the conversation with a gradient theme such as pink and confirm the plain system-log text remains readable.",
+        "Pin a message as the signed-in user and confirm the line says You pinned a message.",
+        "Open the same conversation as the other participant and confirm the same activity says only the pinning user’s first display-name word followed by pinned a message.",
+        "Switch to the default/un-themed conversation appearance and repeat the readability check.",
+        "Confirm ordinary message bubble, reaction, day-separator, and system-log spacing did not change."
+      ],
+      "expected": "The row is a readable plain system log; each viewer sees the correct actor-relative text; the change is isolated to pin-activity presentation.",
+      "status": "pass",
+      "evidence": "2026-08-07: user confirmed the tested viewer-relative and first-name-only copy in the app.",
+      "notes": "Human acceptance confirmation.",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Frontend quality gates",
+      "surface": "cli",
+      "precondition": "Frontend dependencies are installed.",
+      "steps": [
+        "Run npm run typecheck in frontend/.",
+        "Run npm run lint in frontend/.",
+        "Run npm run build in frontend/."
+      ],
+      "expected": "All commands exit successfully. Any pre-existing advisory is recorded separately from this change.",
+      "status": "pass",
+      "evidence": "2026-08-07: npm run typecheck, npm run lint, and npm run build each exited 0 in frontend/ after the first-name formatter.",
+      "notes": "Lint reported six pre-existing warnings outside changed files; Vite reported its existing bundle-size advisory. Root typecheck and API build also passed. The documented root check:all script is absent.",
+      "waiver": ""
+    }
+  ]
+}
