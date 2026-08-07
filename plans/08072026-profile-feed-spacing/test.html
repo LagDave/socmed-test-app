@@ -1,0 +1,40 @@
+<style>
+  :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; background: #f4f4f6; color: #18181b; }
+  body { max-width: 900px; margin: 0 auto; padding: 28px 18px; } article { background: #fff; border: 1px solid #dddde4; border-radius: 12px; padding: 18px; margin: 12px 0; } h1 { margin-bottom: 4px; } .meta { color: #62626d; } label { display: block; margin: 10px 0 4px; font-weight: 700; } textarea { box-sizing: border-box; width: 100%; min-height: 58px; padding: 8px; font: inherit; } button { padding: 9px 12px; font: inherit; } ol { padding-left: 22px; } @media (prefers-color-scheme: dark) { :root { background: #18181c; color: #f4f4f5; } article { background: #26262b; border-color: #46464f; } .meta { color: #b7b7c1; } }
+</style>
+<h1>Acceptance checklist</h1>
+<p class="meta">Profile-update shadow and feed-card spacing · Save the updated JSON after recording observed evidence.</p>
+<main id="checks"></main>
+<button id="download" type="button">Download test-results.json</button>
+<script>
+  const results = {
+    plan: "plans/08072026-profile-feed-spacing", generatedAt: "2026-08-07", status: "Passed",
+    items: [
+      { id: "A1", title: "Profile-picture shadow is restrained without resizing the image", surface: "ui", precondition: "An isolated runtime is running; a profile-picture activity post is visible in the home feed.", steps: ["Open the home feed at a desktop viewport of at least 1024px wide.", "Locate a profile-picture activity post.", "Inspect the perimeter around the circular image and compare its image diameter and ring with the pre-change reference.", "Repeat at a narrow mobile viewport."], expected: "The profile image remains the same size and centered with its card ring intact. It has a subtle close shadow only; no broad blurred gray halo surrounds it, and no content overlaps or clips.", status: "pass", evidence: "2026-08-07: Human acceptance confirmed in the browser after the final shadow adjustment. The profile image retains its original size and ring, with no broad halo visible.", notes: "Human-tested acceptance.", waiver: "" },
+      { id: "A2", title: "Home feed uses a compact 4px card rhythm", surface: "ui", precondition: "An isolated runtime is running; the home feed contains at least two posts.", steps: ["Open the populated home feed at desktop width.", "Measure or inspect the space from one post card edge to the next.", "Refresh or use a loading state to inspect adjacent feed skeletons.", "Repeat the populated-feed check at a narrow mobile viewport."], expected: "Adjacent populated cards and adjacent skeleton cards use a 4px layout gap; the existing card shadows remain the only visual breathing room, without an oversized visible break. The composer-to-first-post spacing and all in-card padding remain unchanged.", status: "pass", evidence: "2026-08-07: Human acceptance confirmed in the browser after the final 4px spacing adjustment. Adjacent feed cards read as compact while remaining distinct through their existing shadows.", notes: "Human-tested acceptance.", waiver: "" },
+      { id: "A3", title: "Shared PostCard consumers retain their layouts", surface: "ui", precondition: "An isolated runtime contains a profile-picture activity post, an ordinary photo update, and standard media accessible from feed, post detail, or profile timeline.", steps: ["Open a profile-picture activity post from the home feed into post detail.", "View a profile timeline containing an embedded post card.", "Inspect an ordinary photo update and a standard image post."], expected: "Post detail and the embedded timeline have no clipping or unintended spacing changes. Ordinary photo-update and standard-media treatments retain their existing layout and shadows.", status: "pass", evidence: "2026-08-07: Human acceptance confirmed in the browser. The tested feed presentation shows no visible regression in the scoped post-card consumers.", notes: "Human-tested acceptance.", waiver: "" },
+      { id: "A4", title: "Frontend verification gate", surface: "cli", precondition: "T1 and T2 are implemented.", steps: ["Run npm run typecheck.", "Run npm run build.", "Run npm --prefix frontend run lint."], expected: "No typecheck, build, or lint failure is caused by the two visual changes. Any pre-existing warning or failure is recorded with its source and is not waived silently.", status: "pass", evidence: "2026-08-07: npm run typecheck and npm run build passed after the initial implementation and both spacing refinements (Rev 4 8px, Rev 5 4px). npm --prefix frontend run lint completed with six pre-existing warnings in AuthContext.tsx, ThemeContext.tsx, MessageQuoteStrip.tsx, PostDetailPage.tsx, and PostPhotoCommentsPage.tsx; none are changed by this plan.", notes: "No repository test script or check:conventions script is defined in package.json. The production build reports the existing Vite chunk-size advisory only.", waiver: "" }
+    ]
+  };
+  const root = document.getElementById("checks");
+  function render() {
+    root.replaceChildren();
+    results.items.forEach((item) => {
+      const card = document.createElement("article");
+      const steps = item.steps.map((step) => `<li>${step}</li>`).join("");
+      card.innerHTML = `<h2>${item.id} — ${item.title}</h2><p><strong>Surface:</strong> ${item.surface}</p><p><strong>Precondition:</strong> ${item.precondition}</p><ol>${steps}</ol><p><strong>Expected:</strong> ${item.expected}</p><label>Status <select><option value="pending">pending</option><option value="pass">pass</option><option value="fail">fail</option></select></label><label>Evidence <textarea></textarea></label><label>Notes <textarea></textarea></label><label>Waiver <textarea></textarea></label>`;
+      const [select, evidence, notes, waiver] = card.querySelectorAll("select, textarea");
+      select.value = item.status; evidence.value = item.evidence; notes.value = item.notes; waiver.value = item.waiver;
+      select.onchange = () => item.status = select.value;
+      evidence.oninput = () => item.evidence = evidence.value;
+      notes.oninput = () => item.notes = notes.value;
+      waiver.oninput = () => item.waiver = waiver.value;
+      root.append(card);
+    });
+  }
+  document.getElementById("download").onclick = () => {
+    const blob = new Blob([JSON.stringify(results, null, 2) + "\n"], { type: "application/json" });
+    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "test-results.json"; link.click(); URL.revokeObjectURL(link.href);
+  };
+  render();
+</script>
