@@ -131,7 +131,7 @@ function NotificationTypeIcon({ item, Icon }: { item: NotificationItem; Icon: Lu
     const reaction = reactionOption(item.reactionEmoji);
     return (
       <span
-        className="flex size-9 items-center justify-center text-2xl"
+        className="notifications-type-icon flex size-9 items-center justify-center rounded-full bg-secondary text-2xl"
         role="img"
         aria-label={`${reaction.label} reaction`}
       >
