@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.38 — 2026-08-07
+
+### Changed
+- Replaced the duplicated Messages compose chrome with one persistent, accessible New message toolbar action
+- New message search opens from the person-plus action, returns focus on close, and keeps loading/error feedback visible
+- Removed the closed compose panel from populated inboxes; the conversation list now follows directly
+
+### Plans
+- `plans/08072026-remove-new-message-header` — completed on `kylie/message-ui`
+
 ## 0.1.37 — 2026-08-06
 
 ### Added
