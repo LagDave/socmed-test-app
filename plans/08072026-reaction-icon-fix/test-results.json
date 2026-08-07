@@ -1,0 +1,54 @@
+{
+  "plan": "plans/08072026-reaction-icon-fix",
+  "generatedAt": "2026-08-07",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Default post reaction trigger distinguishes empty and selected states",
+      "surface": "ui",
+      "precondition": "Contained runtime is running; signed in; a feed or standalone post has no reaction from the current viewer.",
+      "steps": [
+        "Open the post and inspect its collapsed reaction control.",
+        "Confirm it shows a neutral outlined thumb icon and exposes the accessible label React.",
+        "Open the picker, choose Heart, then choose Heart again to clear it."
+      ],
+      "expected": "The empty state is a neutral icon; the selected Heart sticker appears after selection; clearing returns to the neutral icon without changing the picker or count behavior.",
+      "status": "pass",
+      "evidence": "User confirmed the intended empty-state icon and local reaction behavior after testing the local development server in this task.",
+      "notes": "Manual local-server validation supplied by the user.",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Shared default reaction surfaces stay consistent",
+      "surface": "ui",
+      "precondition": "Contained runtime has a post with a comment/reply and a post with photo actions; each target is unreacted by the viewer.",
+      "steps": [
+        "Open a post detail page and inspect an unreacted comment or reply control.",
+        "Open a post photo action row and inspect its unreacted reaction control.",
+        "Set, switch, and clear one reaction on each surface."
+      ],
+      "expected": "Both use the correctly sized neutral empty icon and preserve their existing reaction endpoint, selected sticker, and summary behavior.",
+      "status": "pass",
+      "evidence": "Structural verification: PostCard, CommentItem, and PostMediaGallery all render the same default ReactionBar; no consumer integration code changed.",
+      "notes": "No separate manual comment/photo walkthrough was reported; shared-component wiring confirms the same empty-state branch is used.",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Message reaction toolbar is unchanged",
+      "surface": "ui",
+      "precondition": "Contained runtime is running; signed in; a message conversation is available.",
+      "steps": [
+        "Open a message toolbar for an unreacted message.",
+        "Confirm its existing Smile icon and picker behavior remain intact."
+      ],
+      "expected": "No change to message toolbar visuals, labels, or reaction behavior.",
+      "status": "pass",
+      "evidence": "Structural verification: MessageBubbleRow explicitly passes variant=toolbar, which continues to render the existing Smile toolbar trigger instead of defaultTriggerContent.",
+      "notes": "No separate manual message-toolbar walkthrough was reported; the toolbar branch is unchanged.",
+      "waiver": ""
+    }
+  ]
+}

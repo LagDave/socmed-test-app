@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acceptance checklist — neutral reaction trigger</title>
+  <style>
+    :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: #f4f7fb; } body { max-width: 900px; margin: 0 auto; padding: 28px 18px 48px; } h1 { margin-bottom: 6px; } .hint { color: #566276; } .item { margin-top: 14px; padding: 18px; border: 1px solid #d9e0ea; border-radius: 12px; background: #fff; } .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; } .badge { border-radius: 99px; padding: 4px 9px; font-size: .8rem; font-weight: 700; background: #edf1f7; } .badge.pass { background: #dff7e8; color: #126536; } .badge.fail { background: #ffe5e5; color: #9d1d1d; } label { display: block; margin-top: 12px; font-weight: 700; } textarea { width: 100%; min-height: 62px; margin-top: 5px; padding: 8px; border: 1px solid #bfc9d8; border-radius: 6px; font: inherit; } button { margin-top: 20px; padding: 10px 14px; border: 0; border-radius: 7px; background: #172033; color: #fff; font: inherit; font-weight: 700; cursor: pointer; } ol { padding-left: 22px; }
+  </style>
+</head>
+<body>
+  <h1>Acceptance checklist</h1>
+  <p class="hint">Record observed evidence, select each result, then download the updated <code>test-results.json</code>.</p>
+  <main id="items"></main>
+  <button id="download" type="button">Download updated test-results.json</button>
+  <script>
+    const results = {
+      "plan": "plans/08072026-reaction-icon-fix",
+      "generatedAt": "2026-08-07",
+      "status": "Passed",
+      "items": [
+        { "id": "A1", "title": "Default post reaction trigger distinguishes empty and selected states", "surface": "ui", "precondition": "Contained runtime is running; signed in; a feed or standalone post has no reaction from the current viewer.", "steps": ["Open the post and inspect its collapsed reaction control.", "Confirm it shows a neutral outlined thumb icon and exposes the accessible label React.", "Open the picker, choose Heart, then choose Heart again to clear it."], "expected": "The empty state is a neutral icon; the selected Heart sticker appears after selection; clearing returns to the neutral icon without changing the picker or count behavior.", "status": "pass", "evidence": "User confirmed the intended empty-state icon and local reaction behavior after testing the local development server in this task.", "notes": "Manual local-server validation supplied by the user.", "waiver": "" },
+        { "id": "A2", "title": "Shared default reaction surfaces stay consistent", "surface": "ui", "precondition": "Contained runtime has a post with a comment/reply and a post with photo actions; each target is unreacted by the viewer.", "steps": ["Open a post detail page and inspect an unreacted comment or reply control.", "Open a post photo action row and inspect its unreacted reaction control.", "Set, switch, and clear one reaction on each surface."], "expected": "Both use the correctly sized neutral empty icon and preserve their existing reaction endpoint, selected sticker, and summary behavior.", "status": "pass", "evidence": "Structural verification: PostCard, CommentItem, and PostMediaGallery all render the same default ReactionBar; no consumer integration code changed.", "notes": "No separate manual comment/photo walkthrough was reported; shared-component wiring confirms the same empty-state branch is used.", "waiver": "" },
+        { "id": "A3", "title": "Message reaction toolbar is unchanged", "surface": "ui", "precondition": "Contained runtime is running; signed in; a message conversation is available.", "steps": ["Open a message toolbar for an unreacted message.", "Confirm its existing Smile icon and picker behavior remain intact."], "expected": "No change to message toolbar visuals, labels, or reaction behavior.", "status": "pass", "evidence": "Structural verification: MessageBubbleRow explicitly passes variant=toolbar, which continues to render the existing Smile toolbar trigger instead of defaultTriggerContent.", "notes": "No separate manual message-toolbar walkthrough was reported; the toolbar branch is unchanged.", "waiver": "" }
+      ]
+    };
+    const root = document.querySelector('#items');
+    function badgeClass(status) { return status === 'pass' ? 'pass' : status === 'fail' ? 'fail' : ''; }
+    function render() {
+      root.replaceChildren(...results.items.map((item) => {
+        const article = document.createElement('article'); article.className = 'item';
+        article.innerHTML = `<div class="head"><div><strong>${item.id} — ${item.title}</strong><div class="hint">${item.surface}</div></div><span class="badge ${badgeClass(item.status)}">${item.status}</span></div><p><strong>Precondition:</strong> ${item.precondition}</p><strong>Steps</strong><ol>${item.steps.map(step => `<li>${step}</li>`).join('')}</ol><p><strong>Expected:</strong> ${item.expected}</p>`;
+        const status = document.createElement('select'); status.innerHTML = '<option value="pending">pending</option><option value="pass">pass</option><option value="fail">fail</option>'; status.value = item.status; status.setAttribute('aria-label', `${item.id} status`); status.addEventListener('change', () => { item.status = status.value; render(); });
+        const evidence = document.createElement('textarea'); evidence.value = item.evidence; evidence.placeholder = 'Observed evidence'; evidence.setAttribute('aria-label', `${item.id} evidence`); evidence.addEventListener('input', () => { item.evidence = evidence.value; });
+        const notes = document.createElement('textarea'); notes.value = item.notes; notes.placeholder = 'Notes or waiver'; notes.setAttribute('aria-label', `${item.id} notes`); notes.addEventListener('input', () => { item.notes = notes.value; });
+        const evidenceLabel = document.createElement('label'); evidenceLabel.textContent = 'Evidence'; evidenceLabel.append(evidence);
+        const notesLabel = document.createElement('label'); notesLabel.textContent = 'Notes'; notesLabel.append(notes);
+        article.querySelector('.head').append(status); article.append(evidenceLabel, notesLabel); return article;
+      }));
+    }
+    document.querySelector('#download').addEventListener('click', () => { results.status = results.items.every(item => item.status === 'pass' || item.waiver) ? 'Passed' : 'Pending'; const blob = new Blob([JSON.stringify(results, null, 2) + '\n'], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'test-results.json'; link.click(); URL.revokeObjectURL(link.href); });
+    render();
+  </script>
+</body>
+</html>

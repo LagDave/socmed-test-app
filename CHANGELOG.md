@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.38 — 2026-08-07
+
+### Fixed
+- Replaced the misleading pre-reaction Like sticker with a neutral outlined thumb icon on default post, comment, and post-photo reaction triggers
+- Preserved selected reaction stickers and updated the unreacted control label to “React”
+
+### Plans
+- `plans/08072026-reaction-icon-fix` — completed on `kylie/reaction-icon-fix`
+
 ## 0.1.37 — 2026-08-06
 
 ### Added
