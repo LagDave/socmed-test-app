@@ -655,28 +655,9 @@ body {
   color: var(--muted-foreground);
 }
 
-.friends-page-canvas {
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--muted) 22%, transparent);
-  padding: 0.875rem;
-}
-
-.dark .friends-page-canvas {
-  background: color-mix(in srgb, var(--muted) 12%, transparent);
-}
-
-.friends-dashboard-card {
-  overflow: hidden;
-  border-radius: 16px;
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--foreground) 6%, transparent),
-    0 8px 24px color-mix(in srgb, var(--foreground) 8%, transparent);
-}
-
 .friends-add-strip {
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: color-mix(in srgb, var(--card) 88%, var(--muted));
-  padding: 1rem 1.125rem;
+  padding: 0.625rem 1.125rem 1rem;
 }
 
 .friends-add-input-track {
@@ -714,11 +695,6 @@ body {
   color: var(--foreground);
 }
 
-.friends-stat-chip-muted {
-  color: var(--muted-foreground);
-  font-weight: 500;
-}
-
 .friends-section-divider {
   border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
@@ -737,6 +713,57 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted-foreground);
+}
+
+.friends-empty-state {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1rem 1.125rem 1.25rem;
+}
+
+.friends-empty-state-icon {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 30%, transparent);
+}
+
+.friends-empty-state-copy {
+  min-width: 0;
+}
+
+.friends-empty-state-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.friends-empty-state-description {
+  margin-top: 0.125rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.friends-empty-state-action {
+  margin-left: auto;
+}
+
+@media (max-width: 480px) {
+  .friends-empty-state {
+    align-items: flex-start;
+  }
+
+  .friends-empty-state-action {
+    width: 100%;
+    margin-left: 3.625rem;
+  }
 }
 
 .messages-compose-strip {

@@ -47,6 +47,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 41 | `08022026-41-multi-photo-carousel` | Multi-photo carousel |
 | 42 | `08032026-42-message-settings-sound-move` | Message settings page — relocate notification sound picker from Account Settings |
 | 49 | `08062026-49-profile-menu-ui` | Profile menu UI — identity-led account panel |
+| 50 | `08072026-50-friends-tone-down` | Friends page visual tone-down — restrained surface + compact empty states |
 
 ## Branch → host (hard rule)
 
