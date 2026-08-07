@@ -4,6 +4,18 @@
   "status": "In Progress",
   "items": [
     {
+      "id": "A0",
+      "title": "Default reaction trigger applies Like on click",
+      "surface": "ui",
+      "precondition": "Signed in; a visible post, comment, or photo has no reaction from the current user.",
+      "steps": ["Click the visible Like/reaction trigger once.", "Confirm the trigger changes to Like and the reaction count updates.", "Click the trigger again.", "Confirm the current user's Like is removed.", "Hover the trigger, then touch long-press it on a touch device, and confirm the emoji picker still opens."],
+      "expected": "A normal click toggles the current reaction (Like when none exists); hover and long-press preserve access to the full emoji picker.",
+      "status": "pending",
+      "evidence": "2026-08-07: static typecheck, build, and lint passed. Browser interaction could not run because the local in-app browser webview did not attach.",
+      "notes": "Run manually in the isolated acceptance runtime before --done.",
+      "waiver": ""
+    },
+    {
       "id": "A1",
       "title": "Reaction notification is created for a post and updates in place",
       "surface": "ui",

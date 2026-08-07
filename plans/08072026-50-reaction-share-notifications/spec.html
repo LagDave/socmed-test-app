@@ -127,6 +127,7 @@ Mia shared your post</div>
       <h2>Revision Log</h2>
       <p><strong>Rev 0 · 2026-08-07:</strong> Initial approved planning artifact. User confirmed posts, comments, post photos, and shares; planner locked idempotent reaction notifications with emoji updates and deletion on reaction removal.</p>
       <p><strong>Rev 1 · 2026-08-07:</strong> Execution started. The implementation keeps reaction and notification mutations transactionally consistent, and share-wrapper creation and its notification are also one transaction. No scope deviation.</p>
+      <p><strong>Rev 2 · 2026-08-07:</strong> Quickfix within scope: the default reaction trigger now applies/toggles Like on click, while hover and touch long-press continue to open the emoji picker. Added focused acceptance coverage for this control.</p>
     </section>
   </main>
 </body>
