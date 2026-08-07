@@ -24,27 +24,42 @@ import { cn } from "@/lib/utils";
 const messageActionBtnClass =
   "flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground";
 
-function messageReactionEmoji(summary: MessageView["reactionSummary"]): ReactionEmoji | null {
-  if (summary.viewerEmoji) return summary.viewerEmoji;
-  return REACTION_OPTIONS.find((option) => summary.counts[option.emoji] > 0)?.emoji ?? null;
+const MINIMUM_COUNT_FOR_REACTION_TOTAL = 2;
+
+function messageReactionEntries(summary: MessageView["reactionSummary"]) {
+  return REACTION_OPTIONS.map(({ emoji }) => ({ emoji, count: summary.counts[emoji] })).filter(
+    ({ count }) => count > 0
+  );
 }
 
 function MessageReactionBadge({
-  emoji,
+  reactions,
   mine,
+  themed,
 }: {
-  emoji: ReactionEmoji;
+  reactions: Array<{ emoji: ReactionEmoji; count: number }>;
   mine: boolean;
+  themed: boolean;
 }) {
   return (
     <span
       className={cn(
-        "message-reaction-badge absolute bottom-0 z-20 inline-flex translate-y-[30%] items-center justify-center rounded-full bg-white p-px shadow-[0_1px_2px_rgba(0,0,0,0.1)]",
+        "message-reaction-badge absolute bottom-0 z-20 inline-flex translate-y-[30%] items-center gap-0.5 rounded-full px-1 py-px shadow-[0_1px_2px_rgba(0,0,0,0.1)]",
+        themed
+          ? "border border-[var(--chat-accent)] bg-[color-mix(in_srgb,var(--chat-accent)_14%,white)] text-black"
+          : "bg-white text-black",
         mine ? "right-2" : "left-1"
       )}
       aria-hidden="true"
     >
-      <ReactionIcon emoji={emoji} className="text-base leading-none" />
+      {reactions.map(({ emoji, count }) => (
+        <span key={emoji} className="inline-flex items-center gap-px">
+          <ReactionIcon emoji={emoji} className="text-base leading-none" />
+          {count >= MINIMUM_COUNT_FOR_REACTION_TOTAL && (
+            <span className="text-[11px] font-semibold leading-none">{count}</span>
+          )}
+        </span>
+      ))}
     </span>
   );
 }
@@ -194,8 +209,8 @@ export function MessageBubbleRow({
   const [timestampVisible, setTimestampVisible] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const canEdit = mine && !message.isUnsent && Boolean(message.body?.trim());
-  const reactionEmoji = messageReactionEmoji(message.reactionSummary);
-  const showReactionBadge = !message.isUnsent && reactionEmoji !== null;
+  const reactionEntries = messageReactionEntries(message.reactionSummary);
+  const showReactionBadge = !message.isUnsent && reactionEntries.length > 0;
   const imageOnlyPlain = Boolean(
     !message.isUnsent && message.imageUrl && !message.body?.trim() && !message.replyTo
   );
@@ -323,8 +338,8 @@ export function MessageBubbleRow({
                     </>
                   )}
                 </div>
-                {showReactionBadge && reactionEmoji && (
-                  <MessageReactionBadge emoji={reactionEmoji} mine={mine} />
+                {showReactionBadge && (
+                  <MessageReactionBadge reactions={reactionEntries} mine={mine} themed={themed} />
                 )}
               </div>
               {!message.isUnsent && !isBeingEdited && (

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.38 — 2026-08-07
+
+### Changed
+- Message bubbles now display every participant reaction; repeated matching reactions show a count
+- Reaction badges use a light chat-theme accent tint and outline while preserving readable count text across themes
+
+### Plans
+- `plans/08072026-message-both-react` — completed on `kylie/message-both-react`
+
 ## 0.1.37 — 2026-08-06
 
 ### Added
