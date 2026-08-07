@@ -1,0 +1,79 @@
+{
+  "plan": "plans/08072026-50-reaction-share-notifications",
+  "generatedAt": "2026-08-07",
+  "status": "Not Run",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Reaction notification is created for a post and updates in place",
+      "surface": "ui",
+      "precondition": "Two mutual users: owner has an original post and both users are signed in on separate sessions.",
+      "steps": ["As the other user, react Like to the owner’s post.", "Open or refresh the owner’s Notifications page and verify the alert.", "Change the reaction to Haha and refresh via the live event.", "Verify there is still one alert, now with 😂 and Haha wording."],
+      "expected": "The owner sees one unread row that first says the actor liked the post, then updates to the selected reaction without becoming a duplicate or resetting read state.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Comment and photo reaction notifications target the correct owner and destination",
+      "surface": "ui",
+      "precondition": "Owner has a comment on another user’s post and a post with a photo; actor can react to both.",
+      "steps": ["React to the owner’s comment with Heart.", "React to the owner’s photo with Wow.", "Open owner Notifications and click each row."],
+      "expected": "Rows say reacted ❤️ to your comment and reacted 😮 to your photo, and navigate respectively to the post comments and the correct photo page.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Removing a reaction retracts its notification",
+      "surface": "ui",
+      "precondition": "A visible unread reaction notification exists for the post, comment, or photo.",
+      "steps": ["As the actor, remove the matching reaction.", "Observe the owner’s open Notifications page or refresh it.", "Check the unread badge/count."],
+      "expected": "The matching notification disappears and unread count decreases when applicable; unrelated alerts remain.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Share creates an original-post notification",
+      "surface": "ui",
+      "precondition": "Two mutual users and an original post owned by the recipient.",
+      "steps": ["As the other user, share the owner’s original post.", "Open the owner’s Notifications page.", "Click the share notification."],
+      "expected": "A single new row says the actor shared your post, increments unread count, and opens the original post. A rejected self-share or invalid share creates no alert.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Self actions and existing notification rows do not regress",
+      "surface": "ui",
+      "precondition": "A user has their own post and existing friend request/comment/reply notifications.",
+      "steps": ["React to your own post, comment, and photo.", "Open Notifications.", "Inspect and operate existing comment/reply/friend-request rows."],
+      "expected": "No self-action notification is created. Existing rows retain correct icons, links, confirm/decline actions, mark-read behavior, skeleton, and empty-state behavior.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Database and build gates pass",
+      "surface": "cli",
+      "precondition": "Execution worktree with dependencies installed and isolated database configured.",
+      "steps": ["Run the new migration and its rollback/reapply safely in the isolated database.", "Run npm run typecheck, npm run build, frontend lint, and the repository convention check if present.", "Confirm duplicate reaction-alert writes are prevented by the migration indexes."],
+      "expected": "All applicable checks pass; migration is reversible; no type, build, lint, or convention error introduced by this feature.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "No automated service-test harness exists in the current repository; acceptance includes the required behavioral checks.",
+      "waiver": ""
+    }
+  ]
+}
