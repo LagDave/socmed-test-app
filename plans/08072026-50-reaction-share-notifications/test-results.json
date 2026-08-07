@@ -83,8 +83,8 @@
       "steps": ["Run the new migration and its rollback/reapply safely in the isolated database.", "Run npm run typecheck, npm run build, frontend lint, and the repository convention check if present.", "Confirm duplicate reaction-alert writes are prevented by the migration indexes."],
       "expected": "All applicable checks pass; migration is reversible; no type, build, lint, or convention error introduced by this feature.",
       "status": "pending",
-      "evidence": "2026-08-07: npm run typecheck and npm run build passed. npm --prefix frontend run lint completed with existing warnings only. The repository has no check:conventions script and no contained acceptance runtime adapter.",
-      "notes": "No automated service-test harness exists in the current repository. Migration and behavioral checks remain pending because execution is not running against shared infrastructure; use --test-worktree once a contained runtime is available.",
+      "evidence": "2026-08-07: local development database migration batch 19 applied successfully; notifications.reaction_emoji and the three notifications_reaction_* unique indexes were verified. npm run typecheck and npm run build passed. npm --prefix frontend run lint completed with existing warnings only. The repository has no check:conventions script.",
+      "notes": "No automated service-test harness exists in the current repository. Rollback/reapply and browser behavioral checks remain pending for the isolated acceptance runtime.",
       "waiver": ""
     }
   ]
