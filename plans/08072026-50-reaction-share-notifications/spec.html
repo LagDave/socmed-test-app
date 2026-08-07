@@ -18,7 +18,7 @@
 <body>
   <main>
     <header>
-      <div class="top"><p class="eyebrow">Socmed Plan Spec · Seq 50</p><span class="status">Pending Execution</span></div>
+      <div class="top"><p class="eyebrow">Socmed Plan Spec · Seq 50</p><span class="status">In Progress</span></div>
       <h1>Reaction and Share Notifications</h1>
       <dl class="grid">
         <div><dt>Plan folder</dt><dd>plans/08072026-50-reaction-share-notifications</dd></div>
@@ -126,6 +126,7 @@ Mia shared your post</div>
     <section>
       <h2>Revision Log</h2>
       <p><strong>Rev 0 · 2026-08-07:</strong> Initial approved planning artifact. User confirmed posts, comments, post photos, and shares; planner locked idempotent reaction notifications with emoji updates and deletion on reaction removal.</p>
+      <p><strong>Rev 1 · 2026-08-07:</strong> Execution started. The implementation keeps reaction and notification mutations transactionally consistent, and share-wrapper creation and its notification are also one transaction. No scope deviation.</p>
     </section>
   </main>
 </body>

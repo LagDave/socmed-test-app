@@ -1,16 +1,37 @@
 import { useCallback, useEffect, useState } from "react";
-import { Bell, Camera, ChevronRight, MessageSquare, Reply, Settings, UserPlus } from "lucide-react";
+import {
+  Bell,
+  Camera,
+  ChevronRight,
+  Forward,
+  MessageSquare,
+  Reply,
+  Settings,
+  ThumbsUp,
+  UserPlus,
+  type LucideIcon,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { getMessagesSocket, NOTIFICATIONS_COUNT } from "@/api/socket";
-import type { PublicUser } from "@/api/types";
+import type { PublicUser, ReactionEmoji } from "@/api/types";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { ReactionIcon } from "@/components/ReactionIcon";
 import { Button } from "@/components/ui/button";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import { NOTIFICATION_RETURN_STATE } from "@/lib/notificationNavigation";
+import { reactionOption } from "@/lib/reactionOptions";
 import { cn } from "@/lib/utils";
 
-type NotificationType = "friend_request" | "comment_on_post" | "comment_on_photo" | "comment_reply";
+type NotificationType =
+  | "friend_request"
+  | "comment_on_post"
+  | "comment_on_photo"
+  | "comment_reply"
+  | "reaction_on_post"
+  | "reaction_on_comment"
+  | "reaction_on_photo"
+  | "post_shared";
 
 type NotificationItem = {
   id: string;
@@ -22,12 +43,13 @@ type NotificationItem = {
   commentId: string | null;
   postImageId: string | null;
   friendshipId: string | null;
+  reactionEmoji: ReactionEmoji | null;
   message: string;
 };
 
 const TYPE_META: Record<
   NotificationType,
-  { icon: typeof UserPlus; label: string; action: string }
+  { icon: LucideIcon; label: string; action: string }
 > = {
   friend_request: {
     icon: UserPlus,
@@ -49,7 +71,61 @@ const TYPE_META: Record<
     label: "Reply",
     action: "replied to your comment",
   },
+  reaction_on_post: {
+    icon: ThumbsUp,
+    label: "Reaction",
+    action: "reacted to your post",
+  },
+  reaction_on_comment: {
+    icon: ThumbsUp,
+    label: "Reaction",
+    action: "reacted to your comment",
+  },
+  reaction_on_photo: {
+    icon: ThumbsUp,
+    label: "Reaction",
+    action: "reacted to your photo",
+  },
+  post_shared: {
+    icon: Forward,
+    label: "Share",
+    action: "shared your post",
+  },
 };
+
+function isReactionNotification(item: NotificationItem): boolean {
+  return item.type.startsWith("reaction_on_");
+}
+
+function reactionTarget(type: NotificationType): "post" | "comment" | "photo" {
+  switch (type) {
+    case "reaction_on_comment":
+      return "comment";
+    case "reaction_on_photo":
+      return "photo";
+    default:
+      return "post";
+  }
+}
+
+function NotificationAction({ item }: { item: NotificationItem }) {
+  if (!isReactionNotification(item) || !item.reactionEmoji) {
+    return <span className="text-foreground/85">{TYPE_META[item.type].action}</span>;
+  }
+
+  const target = reactionTarget(item.type);
+  if (item.reactionEmoji === "like") {
+    return <span className="text-foreground/85">liked your {target}</span>;
+  }
+
+  const reaction = reactionOption(item.reactionEmoji);
+  return (
+    <span className="text-foreground/85">
+      reacted <ReactionIcon emoji={item.reactionEmoji} className="mx-0.5 align-text-bottom" />
+      <span className="sr-only">{reaction.label} </span>to your {target}
+    </span>
+  );
+}
 
 function profilePath(user: PublicUser): string {
   return `/u/${user.username || user.id}`;
@@ -127,7 +203,7 @@ function NotificationRow({
               {item.actor.displayName}
             </Link>
           )}{" "}
-          <span className="text-foreground/85">{meta.action}</span>
+          <NotificationAction item={item} />
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="notifications-type-pill">{meta.label}</span>
@@ -296,7 +372,7 @@ export function NotificationsPage() {
               <p className="profile-section-label mb-1">Activity</p>
               <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Friend requests, comments, and replies from your network.
+                Friend requests, comments, reactions, and shares from your network.
               </p>
             </div>
           </div>
