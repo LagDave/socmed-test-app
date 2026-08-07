@@ -11,6 +11,7 @@
 - Restored reaction, comment, and share controls on profile and cover activity post detail pages
 - Restored missing historical migration files so database migration validation succeeds
 - Refined reaction-notification emoji contrast and its subtle trailing marker
+- Notifications now safely render a generic fallback for unknown activity types
 
 ### Plans
 - `plans/08072026-50-reaction-share-notifications` — completed on `kylie/notification-update`

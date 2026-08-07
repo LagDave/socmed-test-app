@@ -16,6 +16,18 @@
       "waiver": ""
     },
     {
+      "id": "A8",
+      "title": "Unknown notification types fall back safely",
+      "surface": "none",
+      "precondition": "None; this is a defensive rendering path for notification types introduced before the frontend type map is updated.",
+      "steps": ["Run frontend typecheck, lint, and production build.", "Review the row renderer's runtime type guard and generic metadata fallback."],
+      "expected": "Any unrecognized notification type renders as a generic Notification row with a Bell icon and safe action text instead of throwing; known reaction, share, comment, and friend-request rows retain their type-specific metadata.",
+      "status": "pass",
+      "evidence": "2026-08-07: frontend typecheck and production build passed; lint completed with the existing six unrelated warnings only. Static review confirms the runtime type guard routes unknown strings to generic metadata.",
+      "notes": "No existing UI fixture can inject a malformed or newly introduced notification type without changing backend data; the defensive branch is therefore validated as an internal rendering safeguard.",
+      "waiver": ""
+    },
+    {
       "id": "A0b",
       "title": "Profile and cover activity posts retain their post action row",
       "surface": "ui",
