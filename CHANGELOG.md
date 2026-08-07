@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.38 — 2026-08-07
+
+### Added
+- Notifications when another user reacts to a post, comment, or photo, including the selected reaction glyph
+- Notifications when another user shares an original post
+
+### Fixed
+- Like/reaction trigger now applies Like on a normal click while preserving the full picker on hover or touch long-press
+- Restored reaction, comment, and share controls on profile and cover activity post detail pages
+- Restored missing historical migration files so database migration validation succeeds
+
+### Plans
+- `plans/08072026-50-reaction-share-notifications` — completed on `kylie/notification-update`
+
 ## 0.1.37 — 2026-08-06
 
 ### Added
