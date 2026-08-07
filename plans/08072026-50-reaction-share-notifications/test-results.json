@@ -4,6 +4,18 @@
   "status": "In Progress",
   "items": [
     {
+      "id": "A0b",
+      "title": "Profile and cover activity posts retain their post action row",
+      "surface": "ui",
+      "precondition": "A profile-picture or cover-photo activity post exists; open its post detail page.",
+      "steps": ["Verify the action row beneath the activity card.", "Use reaction, comment, and (for another user's original activity post) share controls.", "Open a regular multi-photo post detail page."],
+      "expected": "Activity posts show their normal post-level reaction/comment/share controls. Ordinary photo-detail posts retain their existing per-photo controls without a duplicate post-level row.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Run in the isolated acceptance runtime before --done.",
+      "waiver": ""
+    },
+    {
       "id": "A0",
       "title": "Default reaction trigger applies Like on click",
       "surface": "ui",

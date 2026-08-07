@@ -160,7 +160,7 @@ export function PostCard({
   const displayBody = profileActivityDisplayBody(post.body);
   const hasCustomCaption = profileActivityHasCustomCaption(post.body);
   const mediaUrls = postMediaUrls(post);
-  const perPhotoActions = postMediaMode === "detail" && mediaUrls.length > 0;
+  const perPhotoActions = !isActivity && postMediaMode === "detail" && mediaUrls.length > 0;
 
   useEffect(() => {
     if (!menuOpen) return;
