@@ -35,7 +35,7 @@ type NotificationType =
 
 type NotificationItem = {
   id: string;
-  type: NotificationType;
+  type: string;
   isRead: boolean;
   createdAt: string;
   actor: PublicUser;
@@ -93,11 +93,29 @@ const TYPE_META: Record<
   },
 };
 
-function isReactionNotification(item: NotificationItem): boolean {
-  return item.type.startsWith("reaction_on_");
+const UNKNOWN_NOTIFICATION_META: { icon: LucideIcon; label: string; action: string } = {
+  icon: Bell,
+  label: "Notification",
+  action: "sent you a notification",
+};
+
+function isNotificationType(type: string): type is NotificationType {
+  return Object.prototype.hasOwnProperty.call(TYPE_META, type);
 }
 
-function reactionTarget(type: NotificationType): "post" | "comment" | "photo" {
+function notificationMeta(type: string): { icon: LucideIcon; label: string; action: string } {
+  return isNotificationType(type) ? TYPE_META[type] : UNKNOWN_NOTIFICATION_META;
+}
+
+function isReactionNotification(item: NotificationItem): boolean {
+  return (
+    item.type === "reaction_on_post" ||
+    item.type === "reaction_on_comment" ||
+    item.type === "reaction_on_photo"
+  );
+}
+
+function reactionTarget(type: string): "post" | "comment" | "photo" {
   switch (type) {
     case "reaction_on_comment":
       return "comment";
@@ -110,7 +128,7 @@ function reactionTarget(type: NotificationType): "post" | "comment" | "photo" {
 
 function NotificationAction({ item }: { item: NotificationItem }) {
   if (!isReactionNotification(item) || !item.reactionEmoji) {
-    return <span className="text-foreground/85">{TYPE_META[item.type].action}</span>;
+    return <span className="text-foreground/85">{notificationMeta(item.type).action}</span>;
   }
 
   const target = reactionTarget(item.type);
@@ -182,7 +200,7 @@ function NotificationRow({
   onFriendAction: (friendshipId: string, action: "accept" | "decline") => void;
   onNotificationRead: (notificationId: string) => void;
 }) {
-  const meta = TYPE_META[item.type];
+  const meta = isNotificationType(item.type) ? TYPE_META[item.type] : UNKNOWN_NOTIFICATION_META;
   const Icon = meta.icon;
   const isFriendRequest = item.type === "friend_request" && item.friendshipId;
   const destination = item.postId
