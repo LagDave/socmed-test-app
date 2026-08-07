@@ -117,7 +117,7 @@ function NotificationAction({ item }: { item: NotificationItem }) {
   const reaction = reactionOption(item.reactionEmoji);
   return (
     <span className="text-foreground/85">
-      reacted <strong className="mx-0.5 inline-block align-text-bottom text-2xl leading-none">
+      reacted <strong className="mx-0.5 inline-block align-text-bottom leading-none">
         <ReactionIcon emoji={item.reactionEmoji} />
         <span className="sr-only">{reaction.label} reaction</span>
       </strong>{" "}

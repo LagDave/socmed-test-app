@@ -9,7 +9,7 @@
       "surface": "ui",
       "precondition": "A notification exists for a non-Like reaction and one exists for Like.",
       "steps": ["Open Notifications.", "Inspect the message and trailing indicator for each reaction row.", "Open a comment, share, and friend-request notification for comparison."],
-      "expected": "Every reaction row shows only its selected emoji prominently, while the surrounding action phrase remains standard contrast. There is no reaction-name label or inline card; the matching emoji remains in the trailing indicator and non-reaction rows retain their existing icons and destinations.",
+      "expected": "Every reaction row shows only its selected emoji at the same size as the surrounding sentence, without a reaction-name label or inline card. The matching emoji remains in the trailing indicator; non-reaction rows retain their existing icons and destinations.",
       "status": "pending",
       "evidence": "",
       "notes": "Manual verification required after this follow-up visual change.",
