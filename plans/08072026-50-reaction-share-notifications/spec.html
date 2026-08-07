@@ -18,7 +18,7 @@
 <body>
   <main>
     <header>
-      <div class="top"><p class="eyebrow">Socmed Plan Spec · Seq 50</p><span class="status">Completed</span></div>
+      <div class="top"><p class="eyebrow">Socmed Plan Spec · Seq 50</p><span class="status">In Progress</span></div>
       <h1>Reaction and Share Notifications</h1>
       <dl class="grid">
         <div><dt>Plan folder</dt><dd>plans/08072026-50-reaction-share-notifications</dd></div>
@@ -131,6 +131,7 @@ Mia shared your post</div>
       <p><strong>Rev 3 · 2026-08-07:</strong> Execution found local migration history referencing two missing filenames. Restored their idempotent historical definitions and made the renamed conversation-pins migration idempotent so Knex validation succeeds on both the existing local database and fresh databases. Applied the notification migration locally; no product scope change.</p>
       <p><strong>Rev 4 · 2026-08-07:</strong> Quickfix within scope: profile and cover activity posts were incorrectly treated as per-photo detail media, which hid their post-level reaction/comment/share row. Exclude activity posts from that condition; ordinary photo-detail posts retain per-photo controls.</p>
       <p><strong>Rev 5 · 2026-08-07:</strong> User completed manual acceptance testing. All acceptance items are recorded as passed; plan finalized.</p>
+      <p><strong>Rev 6 · 2026-08-07:</strong> Follow-up visual clarity: reaction notifications will show a named emoji chip in their message and the same selected emoji in the trailing indicator, replacing the generic thumbs-up. Existing notification types and navigation remain unchanged.</p>
     </section>
   </main>
 </body>

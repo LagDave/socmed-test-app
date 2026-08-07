@@ -114,15 +114,39 @@ function NotificationAction({ item }: { item: NotificationItem }) {
   }
 
   const target = reactionTarget(item.type);
-  if (item.reactionEmoji === "like") {
-    return <span className="text-foreground/85">liked your {target}</span>;
-  }
-
   const reaction = reactionOption(item.reactionEmoji);
   return (
     <span className="text-foreground/85">
-      reacted <ReactionIcon emoji={item.reactionEmoji} className="mx-0.5 align-text-bottom" />
-      <span className="sr-only">{reaction.label} </span>to your {target}
+      reacted{" "}
+      <span className="mx-1 inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-sm font-semibold text-foreground">
+        <ReactionIcon emoji={item.reactionEmoji} className="text-base" />
+        {reaction.label}
+      </span>{" "}
+      to your {target}
+    </span>
+  );
+}
+
+function NotificationTypeIcon({ item, Icon }: { item: NotificationItem; Icon: LucideIcon }) {
+  if (isReactionNotification(item) && item.reactionEmoji) {
+    const reaction = reactionOption(item.reactionEmoji);
+    return (
+      <span
+        className="notifications-type-icon flex size-9 items-center justify-center rounded-full bg-primary/10 text-xl"
+        role="img"
+        aria-label={`${reaction.label} reaction`}
+      >
+        <ReactionIcon emoji={item.reactionEmoji} />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="notifications-type-icon flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+      aria-hidden="true"
+    >
+      <Icon className="size-4" strokeWidth={1.75} />
     </span>
   );
 }
@@ -255,12 +279,7 @@ function NotificationRow({
       </div>
 
       <div className="notifications-row-trailing">
-        <span
-          className="notifications-type-icon flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground"
-          aria-hidden="true"
-        >
-          <Icon className="size-4" strokeWidth={1.75} />
-        </span>
+        <NotificationTypeIcon item={item} Icon={Icon} />
         {destination && !isFriendRequest && (
           <ChevronRight
             className="notifications-row-chevron size-4 text-muted-foreground"

@@ -1,8 +1,20 @@
 {
   "plan": "plans/08072026-50-reaction-share-notifications",
   "generatedAt": "2026-08-07",
-  "status": "Passed",
+  "status": "In Progress",
   "items": [
+    {
+      "id": "A7",
+      "title": "Reaction notifications clearly identify the selected emoji",
+      "surface": "ui",
+      "precondition": "A notification exists for a non-Like reaction and one exists for Like.",
+      "steps": ["Open Notifications.", "Inspect the message and trailing indicator for each reaction row.", "Open a comment, share, and friend-request notification for comparison."],
+      "expected": "Every reaction row shows its selected emoji and reaction name in the message plus the matching emoji in the trailing indicator. Non-reaction rows retain their existing icons and all destinations remain unchanged.",
+      "status": "pending",
+      "evidence": "",
+      "notes": "Manual verification required after this follow-up visual change.",
+      "waiver": ""
+    },
     {
       "id": "A0b",
       "title": "Profile and cover activity posts retain their post action row",
