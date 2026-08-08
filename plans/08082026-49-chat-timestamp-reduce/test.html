@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat timestamp reduction — acceptance</title>
+  <style>body{font:16px/1.5 system-ui;max-width:800px;margin:auto;padding:32px;color:#18181b}li{margin:18px 0}small{color:#52525b}code{background:#f4f4f5;padding:2px 4px;border-radius:3px}</style>
+</head>
+<body>
+  <h1>Chat timestamp reduction — acceptance checklist</h1>
+  <p>Machine-readable source: <code>test-results.json</code>. Run only against an isolated runtime; record pass/fail, evidence, and any waiver in that JSON.</p>
+  <ol>
+    <li><strong>A1 — Time-only ten-minute separator</strong><br><small>Below ten minutes: no separator. At or above ten minutes: a local time only, such as <code>9:18 PM</code>.</small></li>
+    <li><strong>A2 — Day and grouping parity</strong><br><small>Calendar-day labels and same-sender grouping are unchanged.</small></li>
+  </ol>
+</body>
+</html>

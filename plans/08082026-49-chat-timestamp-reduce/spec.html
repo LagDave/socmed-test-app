@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat timestamp reduction</title>
+  <style>
+    :root { color: #18181b; background: #fff; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    body { max-width: 920px; margin: 0 auto; padding: 32px; line-height: 1.55; }
+    header, section { border: 1px solid #d4d4d8; border-radius: 10px; padding: 20px; margin: 16px 0; }
+    .status { display: inline-block; margin: 0 0 12px; padding: 4px 10px; border-radius: 999px; background: #fef3c7; color: #854d0e; font-weight: 750; }
+    h1, h2, h3 { line-height: 1.2; } h1 { margin: 0 0 8px; } h2 { margin-top: 0; }
+    code { padding: 2px 5px; background: #f4f4f5; border-radius: 4px; }
+    .task { border-top: 1px solid #e4e4e7; padding-top: 14px; margin-top: 14px; }
+    .task:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+    ul { padding-left: 22px; } .risk { border-left: 4px solid #f59e0b; padding-left: 14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="status">Status: Completed</p>
+    <h1>Chat timestamp reduction</h1>
+    <p>Plan folder: <code>plans/08082026-49-chat-timestamp-reduce</code> · Execution branch: <code>kylie/chat-timestamp-reduce → dev</code> · Risk: Level 2.</p>
+  </header>
+
+  <section>
+    <h2>Why</h2>
+    <p>Message gaps of ten minutes already receive a separator, but its full date-and-time text (for example, <code>Aug 7, 2026, 9:18 PM</code>) is visually heavy. The desired chat reading is a compact time such as <code>9:18 PM</code>.</p>
+    <h2>What / success criteria</h2>
+    <ul>
+      <li>Keep the existing ten-minute message-gap rule unchanged.</li>
+      <li>Render a qualifying gap separator as a local, time-only label with an hour and two-digit minutes (for example, <code>9:18 PM</code> in a 12-hour locale).</li>
+      <li>Keep current calendar-day separators (<code>Today</code>, <code>Yesterday</code>, or a date) and all message grouping behavior unchanged.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Context</h2>
+    <ul>
+      <li><code>frontend/src/lib/formatMessageDay.ts</code> owns the named 10-minute threshold via <code>messagesHaveTimeGap</code>; it is the source of truth for whether the separator appears.</li>
+      <li><code>frontend/src/lib/formatRelativeTime.ts</code> owns <code>formatMessageTimeSeparator</code>; it currently formats the date and time and is the sole formatting change.</li>
+      <li><code>frontend/src/components/messages/ThreadViewContent.tsx</code> is the only timeline consumer: it renders the formatter only when the gap condition is true and no new calendar day begins.</li>
+      <li>Closest existing formatting pattern: <code>formatAbsoluteTime</code> in the same time-formatting module handles invalid dates before localized browser formatting.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Constraints / out of scope</h2>
+    <ul>
+      <li>Must not alter the 10-minute threshold, message ordering, grouping, day-separator rules, API payloads, database schema, or realtime behavior.</li>
+      <li>Must retain the current invalid-date behavior (empty label).</li>
+      <li>Must use browser-local formatting; the screenshot’s <code>9:18 PM</code> is the expected 12-hour-locale presentation.</li>
+      <li>Out of scope: relative timestamps on posts, comments, inbox rows, search results, and per-message timestamps revealed on click.</li>
+    </ul>
+  </section>
+
+  <section class="risk">
+    <h2>Risk and mitigation — Level 2</h2>
+    <p>Timestamp presentation is shared user-facing behavior: an over-broad formatter change could alter feed or comment labels, while changing the gap predicate would unexpectedly regroup messages. Limit the implementation to <code>formatMessageTimeSeparator</code>, confirm its sole consumer, and behaviorally verify just-below and at-threshold gaps. No persistence or server consumers are in the blast radius.</p>
+  </section>
+
+  <section>
+    <h2>Tasks</h2>
+    <article class="task">
+      <h3>T1 — Reduce the message-gap formatter</h3>
+      <p><strong>Do:</strong> Update only <code>formatMessageTimeSeparator</code> to return a localized time with hour and two-digit minute fields; preserve invalid-input handling.</p>
+      <p><strong>Files:</strong> <code>frontend/src/lib/formatRelativeTime.ts</code></p>
+      <p><strong>Depends on:</strong> None.</p>
+      <p><strong>Verify:</strong> Confirm the function has one UI consumer and produces a time-only label; run frontend typecheck and lint.</p>
+    </article>
+    <article class="task">
+      <h3>T2 — Confirm timeline behavior and record acceptance</h3>
+      <p><strong>Do:</strong> Verify that a 9-minute-59-second same-day gap has no separator, a 10-minute same-day gap shows a time-only separator, and a day change retains its day label.</p>
+      <p><strong>Files:</strong> <code>frontend/src/components/messages/ThreadViewContent.tsx</code> (read-only verification), <code>plans/08082026-49-chat-timestamp-reduce/test-results.json</code></p>
+      <p><strong>Depends on:</strong> T1.</p>
+      <p><strong>Verify:</strong> Run the project typecheck, frontend lint, and the isolated-runtime acceptance items in <code>test-results.json</code>.</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Done</h2>
+    <ul>
+      <li>The ten-minute threshold remains exactly 600,000 ms.</li>
+      <li>Same-day gap separators show no month, day, or year.</li>
+      <li>Calendar-day separators and message grouping retain current behavior.</li>
+      <li>Frontend typecheck and lint pass, and acceptance is recorded as passed or explicitly waived.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Revision log</h2>
+    <p><strong>Rev 1 — 08082026:</strong> Initial plan from the supplied chat screenshot. Scope narrowed to the existing ten-minute message-gap formatter after confirming the threshold is already implemented.</p>
+    <p><strong>Rev 2 — 08082026:</strong> Execution started on <code>kylie/chat-timestamp-reduce</code>. Scope remains limited to the existing message-gap formatter; no product behavior beyond its label is intended to change.</p>
+    <p><strong>Rev 3 — 08082026:</strong> T1 completed. Frontend and project typechecks pass; frontend lint exits cleanly with six pre-existing warnings outside this change. Focused formatter verification returned <code>9:18 PM</code>, retained invalid-date handling, and confirmed the 600,000 ms threshold. Isolated browser acceptance has not run.</p>
+    <p><strong>Rev 4 — 08082026:</strong> Frontend production build passed. The only build advisory is the pre-existing over-500 kB output chunk warning; it is unrelated to this one-function formatting change. Isolated browser acceptance remains pending.</p>
+    <p><strong>Rev 5 — 08082026:</strong> Local behavioral acceptance completed and confirmed by the user. All acceptance items are recorded as passed; spec and implementation are in parity.</p>
+  </section>
+</body>
+</html>
