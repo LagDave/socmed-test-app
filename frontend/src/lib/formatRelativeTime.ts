@@ -5,14 +5,11 @@ export function formatAbsoluteTime(input: string | Date): string {
   return date.toLocaleString();
 }
 
-/** Absolute date and time for message-group separators. */
+/** Local time for message-group separators. */
 export function formatMessageTimeSeparator(input: string | Date): string {
   const date = input instanceof Date ? input : new Date(input);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+  return date.toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
   });

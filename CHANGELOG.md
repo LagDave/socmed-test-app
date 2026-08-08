@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.38 — 2026-08-08
+
+### Changed
+- Chat timeline separators after ten-minute message gaps now display a compact local time (for example, `9:18 PM`) instead of the full date and time
+
+### Plans
+- `plans/08082026-49-chat-timestamp-reduce` — completed on `kylie/chat-timestamp-reduce`
+
 ## 0.1.37 — 2026-08-06
 
 ### Added
