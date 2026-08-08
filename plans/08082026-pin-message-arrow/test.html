@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acceptance checklist — Message menu caret</title>
+  <style>body{max-width:880px;margin:2rem auto;padding:0 1rem;font-family:system-ui,sans-serif;line-height:1.5}article{border:1px solid #ccc;border-radius:10px;padding:1rem;margin:1rem 0}code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}label{font-weight:700}textarea{width:100%;min-height:5rem;margin-top:.5rem}</style>
+</head>
+<body>
+  <h1>Acceptance checklist — Message menu caret</h1>
+  <p>Source of truth: <code>test-results.json</code>. Tick items only after recording real evidence there.</p>
+  <article><label><input type="checkbox" /> A1 — Floating menu with attached caret</label><p>Desktop and mobile; ordinary and collision-flipped placements; caret is visible and trigger-facing.</p></article>
+  <article><label><input type="checkbox" /> A2 — Actions and accessibility</label><p>Pin/Unpin, Edit, Unsend, keyboard interaction, Escape, and outside dismissal remain correct.</p></article>
+  <article><label><input type="checkbox" /> A3 — Other menus unchanged</label><p>Representative inbox, header, and navbar dropdowns have no unexpected caret or layout change.</p></article>
+  <p><label for="notes">Evidence / waivers</label><textarea id="notes" placeholder="Record evidence in test-results.json; do not mark unobserved checks as passed."></textarea></p>
+</body>
+</html>
