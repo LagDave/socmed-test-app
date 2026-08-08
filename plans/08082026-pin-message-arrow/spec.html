@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan 08082026 — Message menu caret</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    body { max-width: 960px; margin: 0 auto; padding: 32px 20px 56px; background: #111827; color: #e5e7eb; line-height: 1.55; }
+    h1, h2, h3 { line-height: 1.2; color: #fff; } h1 { margin-bottom: 8px; }
+    .status { display: inline-block; padding: 6px 11px; border-radius: 999px; background: #78350f; color: #fef3c7; font-weight: 700; }
+    .meta, .callout { padding: 14px 16px; border: 1px solid #374151; border-radius: 10px; background: #1f2937; }
+    section { margin-top: 28px; } code { color: #bfdbfe; }
+    table { width: 100%; border-collapse: collapse; } th, td { text-align: left; vertical-align: top; padding: 10px; border-bottom: 1px solid #374151; }
+    th { color: #f9fafb; } .risk { border-left: 4px solid #f59e0b; }
+  </style>
+</head>
+<body>
+  <p class="status">Completed</p>
+  <h1>Give the message options menu a floating caret</h1>
+  <div class="meta">
+    <strong>Plan:</strong> <code>plans/08082026-pin-message-arrow</code><br />
+    <strong>Execution branch:</strong> <code>kylie/pin-message-arrow</code> → <code>dev</code><br />
+    <strong>Planning branch:</strong> <code>plan/08082026-pin-message-arrow</code>
+  </div>
+
+  <section><h2>Why</h2><p>The message “Pin message” menu is portal-positioned and therefore already floats over the conversation, but it has no visual connection to its three-dot trigger. Add the small popover caret shown in the supplied reference so the menu visibly belongs to the active message action.</p></section>
+
+  <section><h2>What</h2><p>Expose the existing Radix dropdown-arrow primitive through the shared dropdown wrapper, then render it only in the message action menu. The normal placement changes from beside the action toolbar to directly above the three-dot Message options trigger. Keep the menu floating in the portal and allow its bottom-edge caret to remain visibly connected to the rounded menu surface, with no exposed background seam or gap. The caret’s point must be horizontally aligned with the trigger, as in the supplied reference; when collision handling flips the menu, it must move to the corresponding trigger-facing edge rather than becoming detached or clipped. Keep the three-dot trigger visible while the portal menu owns focus, so the bottom notch remains visibly anchored. The pin action is text-only; remove its current pin/unpin icon.</p><p><strong>Done when:</strong> opening a message’s options exposes a rounded floating menu above a still-visible three-dot action, with a visibly continuous, color-matched bottom notch pointing straight down at it and a text-only Pin/Unpin action; Pin/Unpin, Edit, and Unsend retain their current permissions and actions; the menu remains correctly positioned near every viewport edge; and non-message dropdowns remain visually unchanged.</p></section>
+
+  <section><h2>Context</h2><ul>
+    <li><code>frontend/src/components/MessageBubbleRow.tsx</code> owns the per-message action toolbar and is the sole message options-menu consumer.</li>
+    <li><code>frontend/src/components/ui/dropdown-menu.tsx</code> wraps Radix Dropdown Menu content in a portal and currently clips child overflow for its rounded surface.</li>
+    <li><code>frontend/src/components/messages/ThreadViewContent.tsx</code> owns the overflow-hidden thread card; because the dropdown uses a portal, it must not be changed for this visual adjustment.</li>
+    <li>Other shared-wrapper consumers are the inbox row, conversation header, thread header, navbar, and pinned-message header. They must retain their existing no-caret appearance.</li>
+  </ul></section>
+
+  <section><h2>Constraints</h2><table><tr><th>Must</th><th>Must not</th></tr><tr><td><ul><li>Use the existing Radix dropdown primitive; no positioning dependency or custom document-level placement code.</li><li>Keep the dropdown portal and collision behavior intact.</li><li>Match the menu’s popover/background and border treatment, with the caret visibly outside the rounded menu body.</li><li>Preserve current keyboard focus, Escape, pointer dismissal, menu-item semantics, and disabled pin-save behavior.</li></ul></td><td><ul><li>No API, pinning-state, permission, or message action behavior change.</li><li>No pin or unpin icon in this menu; the action text remains its accessible name.</li><li>No change to shared menu appearance unless that consumer explicitly renders the new arrow.</li><li>No change to the thread-card overflow rules or unrelated message styling.</li><li>No new dependency.</li></ul></td></tr></table></section>
+
+  <section><h2>Risk &amp; blast radius</h2><div class="callout risk"><strong>Level 2 — Concern.</strong> A globally rendered caret or an unchanged <code>overflow-hidden</code> menu surface would either alter unrelated menus or clip the new visual. Changing the normal placement from side-aligned to above-trigger also risks overlap with nearby messages or a caret that misses its trigger. <strong>Mitigation:</strong> export only the primitive wrapper, opt in at the message menu, use Radix top/center placement with collision fallback, give that menu a non-clipping outer surface with a nested rounded body where needed, and verify the pointer’s alignment and every collision side.</div><table><tr><th>Consumer</th><th>Expected impact / verification</th></tr><tr><td>Message options menu</td><td>Opens above the three-dot trigger with a bottom-notch caret while Pin/Unpin, Edit, and Unsend continue to work.</td></tr><tr><td>Message action toolbar</td><td>Remains hover/touch-reveal accessible and does not close before a menu item is selected.</td></tr><tr><td>Shared dropdown wrapper</td><td>Exports an opt-in arrow only; default content preserves its current visuals.</td></tr><tr><td>Inbox, thread/header, navbar, and pinned-message menus</td><td>No caret or spacing/layout change unless explicitly requested later.</td></tr><tr><td>Thread viewport edges</td><td>Radix flips/shifts the menu and keeps the caret attached to the correct edge.</td></tr></table></section>
+
+  <section><h2>Tasks</h2><div class="callout"><h3>T1 — Add an opt-in dropdown-arrow wrapper</h3><p><strong>Do:</strong> expose the Radix dropdown-arrow primitive from the existing UI wrapper and support an unclipped/caret-safe content treatment without changing default dropdown appearances.</p><p><strong>Files:</strong> <code>frontend/src/components/ui/dropdown-menu.tsx</code></p><p><strong>Depends on:</strong> —</p><p><strong>Verify:</strong> A1, A3.</p></div><div class="callout"><h3>T2 — Place the text-only message menu above its trigger</h3><p><strong>Do:</strong> render the opt-in arrow in <code>MessageActionToolbar</code>, use top/center placement above the three-dot trigger, and style the bottom notch to visually join the menu exactly at the trigger’s horizontal position with no exposed seam. Keep the trigger visible while the menu is open, then remove the current Pin/Unpin icon while retaining its text label, collision fallback, and all menu-item callbacks.</p><p><strong>Files:</strong> <code>frontend/src/components/MessageBubbleRow.tsx</code></p><p><strong>Depends on:</strong> T1</p><p><strong>Verify:</strong> A1–A3.</p></div></section>
+
+  <section><h2>Verification</h2><ul><li>Run <code>npm run typecheck</code>, <code>npm run lint</code>, and <code>npm run build</code> in <code>frontend/</code>.</li><li>Run the acceptance checklist in a contained <code>-tw</code> runtime; record observed evidence only.</li><li>Inspect the message menu at desktop and narrow mobile widths, including a message near the top/bottom and both sides of the thread.</li><li>Confirm keyboard opening, item activation, Escape dismissal, and Pin/Unpin action behavior; then open a non-message dropdown to confirm it is unchanged.</li></ul></section>
+
+  <section><h2>Done</h2><ul><li>✅ T1 — The shared wrapper exports an opt-in Radix arrow without changing default menus.</li><li>✅ T2 — The message menu is text-only, opens above the visible three-dot trigger, and has a continuous bottom notch.</li><li>✅ Automated frontend typecheck, lint, and production build passed.</li><li>✅ A1–A3 browser acceptance passed with product-owner confirmation.</li></ul></section>
+
+  <section><h2>Revision Log</h2><div class="callout"><p><strong>Rev 0 — 2026-08-08:</strong> Initial plan created from the supplied visual reference. The caret follows the menu edge facing its trigger so it remains correct when collision handling changes placement.</p><p><strong>Rev 1 — 2026-08-08:</strong> Corrected the intended normal placement from a side-aligned menu to the supplied reference: the menu opens directly above the three-dot action and a bottom-edge notch points straight down to it.</p><p><strong>Rev 2 — 2026-08-08:</strong> Removed the pin icon from the intended menu treatment. Pin/Unpin remains a text-only menu action.</p><p><strong>Rev 3 — 2026-08-08:</strong> Corrected the focus-state regression exposed by the UI check: the three-dot trigger must remain visible while the portal menu is open.</p><p><strong>Rev 4 — 2026-08-08:</strong> Removed the exposed background seam between the popover body and its bottom notch so the menu reads as one continuous surface.</p></div></section>
+</body>
+</html>
