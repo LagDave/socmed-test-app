@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.38 — 2026-08-08
+
+### Changed
+- Message options now open as a text-only floating popover above the three-dot trigger, with a connected bottom notch that remains visually anchored while open
+
+### Plans
+- `plans/08082026-pin-message-arrow` — completed on `kylie/pin-message-arrow`
+
 ## 0.1.37 — 2026-08-06
 
 ### Added

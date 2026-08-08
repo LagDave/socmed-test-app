@@ -6,6 +6,7 @@ const DropdownMenu = DropdownMenuPrimitive.Root;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
+const DropdownMenuArrow = DropdownMenuPrimitive.Arrow;
 
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
@@ -63,4 +64,5 @@ export {
   DropdownMenuSeparator,
   DropdownMenuGroup,
   DropdownMenuPortal,
+  DropdownMenuArrow,
 };

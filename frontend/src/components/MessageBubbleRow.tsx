@@ -1,6 +1,6 @@
 import { useState, type MouseEvent, type TouchEvent } from "react";
 import { Link } from "react-router-dom";
-import { MoreVertical, Pin, PinOff, Reply } from "lucide-react";
+import { MoreVertical, Reply } from "lucide-react";
 import type { MessageView, PublicUser } from "@/api/types";
 import { MessageQuoteStrip } from "@/components/MessageQuoteStrip";
 import { ReactionBar } from "@/components/ReactionBar";
@@ -10,6 +10,7 @@ import { ViewChatImageDialog } from "@/components/ViewChatImageDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuArrow,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
@@ -76,12 +77,15 @@ function MessageActionToolbar({
   onPinChange?: (id: string, isPinned: boolean) => void;
   onError: (message: string) => void;
 }) {
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+
   return (
     <div
       className={cn(
         "message-action-toolbar flex shrink-0 items-center gap-0 self-center transition-opacity",
         mine && "flex-row-reverse",
         "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+        isOptionsMenuOpen && "opacity-100",
         touchRevealed && "opacity-100"
       )}
       onClick={(e) => e.stopPropagation()}
@@ -105,7 +109,7 @@ function MessageActionToolbar({
         <Reply className="h-[15px] w-[15px]" strokeWidth={1.75} aria-hidden="true" />
       </button>
       {(
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={setIsOptionsMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               type="button"
@@ -117,12 +121,17 @@ function MessageActionToolbar({
               <MoreVertical className="h-[15px] w-[15px]" strokeWidth={1.75} aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" side={mine ? "left" : "right"}>
+          <DropdownMenuContent
+            align="center"
+            side="top"
+            sideOffset={10}
+            className="overflow-visible rounded-2xl border-border/70 px-1.5 py-1.5 shadow-lg shadow-black/10"
+          >
+            <DropdownMenuArrow className="-mt-px fill-popover" width={18} height={9} />
             <DropdownMenuItem
               disabled={pinSaving || !onPinChange}
               onSelect={() => onPinChange?.(message.id, !isPinned)}
             >
-              {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
               {isPinned ? "Unpin message" : "Pin message"}
             </DropdownMenuItem>
             {canEdit && (
