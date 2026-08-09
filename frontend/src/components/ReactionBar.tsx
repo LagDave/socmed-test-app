@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Smile } from "lucide-react";
+import { Smile, ThumbsUp } from "lucide-react";
 import { api } from "@/api/client";
 import type { ReactionEmoji, ReactionSummary } from "@/api/types";
 import { ReactionIcon } from "@/components/ReactionIcon";
@@ -15,6 +15,7 @@ const SIZE = {
   md: {
     trigger: "h-9 w-9",
     triggerIcon: "text-[1.5rem]",
+    emptyTriggerIcon: "h-5 w-5",
     icon: "text-[1.5rem]",
     option: "h-9 w-9",
     label: "text-[11px] -bottom-4",
@@ -27,6 +28,7 @@ const SIZE = {
   sm: {
     trigger: "h-6 w-6",
     triggerIcon: "text-[0.95rem]",
+    emptyTriggerIcon: "h-3.5 w-3.5",
     icon: "text-[0.95rem]",
     option: "h-6 w-6",
     label: "text-[10px] -bottom-3.5",
@@ -39,6 +41,7 @@ const SIZE = {
   inline: {
     trigger: "h-7 w-7",
     triggerIcon: "text-sm",
+    emptyTriggerIcon: "h-4 w-4",
     icon: "text-base",
     option: "h-8 w-8",
     label: "text-[10px] -bottom-3.5",
@@ -51,6 +54,7 @@ const SIZE = {
   toolbar: {
     trigger: "h-6 w-6",
     triggerIcon: "h-[15px] w-[15px]",
+    emptyTriggerIcon: "h-[15px] w-[15px]",
     icon: "text-[1.35rem]",
     option: "h-8 w-8",
     label: "text-[10px] -bottom-3.5",
@@ -207,7 +211,7 @@ export function ReactionBar({
   const presentTypes = REACTION_OPTIONS.filter((o) => summary.counts[o.emoji] > 0);
   const totalCount = presentTypes.reduce((sum, o) => sum + summary.counts[o.emoji], 0);
   const triggerEmoji = summary.viewerEmoji;
-  const triggerLabel = reactionOption(triggerEmoji).label;
+  const triggerLabel = triggerEmoji ? reactionOption(triggerEmoji).label : "React";
   const summaryLabel =
     totalCount > 0
       ? `${totalCount} ${totalCount === 1 ? "reaction" : "reactions"}: ${presentTypes
@@ -226,6 +230,16 @@ export function ReactionBar({
 
   const toolbarTriggerContent = (
     <Smile className={s.triggerIcon} strokeWidth={1.75} aria-hidden="true" />
+  );
+
+  const defaultTriggerContent = triggerEmoji ? (
+    <ReactionIcon emoji={triggerEmoji} className={s.triggerIcon} />
+  ) : (
+    <ThumbsUp
+      className={cn(s.emptyTriggerIcon, "text-muted-foreground")}
+      strokeWidth={1.75}
+      aria-hidden="true"
+    />
   );
 
   const inlineTriggerGlyph = summary.viewerEmoji ? (
@@ -370,7 +384,7 @@ export function ReactionBar({
                   ) : isInline ? (
                     inlineTriggerGlyph
                   ) : (
-                    <ReactionIcon emoji={triggerEmoji} className={s.triggerIcon} />
+                    defaultTriggerContent
                   )}
                 </span>
                 {isDefault && (
