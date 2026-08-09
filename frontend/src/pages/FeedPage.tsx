@@ -122,7 +122,7 @@ export function FeedPage() {
       )}
 
       {loading && posts.length === 0 ? (
-        <div className="space-y-5">
+        <div className="space-y-1">
           <FeedPostSkeleton />
           <FeedPostSkeleton />
           <FeedPostSkeleton />
@@ -130,7 +130,7 @@ export function FeedPage() {
       ) : posts.length === 0 ? (
         <FeedEmptyState />
       ) : (
-        <ul className="space-y-5">
+        <ul className="space-y-1">
           {posts.map((post) => (
             <li key={post.id}>
               <PostCard

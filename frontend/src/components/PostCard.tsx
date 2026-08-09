@@ -30,15 +30,11 @@ function ProfileActivityMedia({ body, imageUrl }: { body: string; imageUrl: stri
   if (isAvatar) {
     return (
       <div className={`mt-3 ${POST_MEDIA_BREAKOUT}`}>
-        <div className="relative inline-flex">
-          <div
-            className="absolute -inset-2 rounded-full bg-gradient-to-br from-foreground/10 via-transparent to-foreground/5 blur-sm"
-            aria-hidden="true"
-          />
+        <div className="inline-flex">
           <img
             src={imageUrl}
             alt=""
-            className="relative size-44 rounded-full object-cover shadow-[0_10px_28px_rgba(0,0,0,0.16)] ring-4 ring-card sm:size-48"
+            className="size-44 rounded-full object-cover shadow-[0_4px_12px_rgba(0,0,0,0.12)] ring-4 ring-card sm:size-48"
           />
         </div>
       </div>

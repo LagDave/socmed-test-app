@@ -1,0 +1,101 @@
+<style>
+  :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; background: #f5f5f7; color: #1d1d20; }
+  body { max-width: 980px; margin: 0 auto; padding: 32px 20px 56px; }
+  header, section { background: #fff; border: 1px solid #dedee5; border-radius: 14px; padding: 22px; margin-bottom: 16px; }
+  h1, h2, h3 { margin-top: 0; } h1 { margin-bottom: 8px; } h2 { font-size: 1.1rem; }
+  p, li, td { line-height: 1.55; } code { background: #f0f0f3; border-radius: 4px; padding: 1px 4px; }
+  .status { display: inline-block; border-radius: 999px; background: #fff1cf; color: #725a13; padding: 5px 10px; font-weight: 700; font-size: .85rem; }
+  .meta, table { width: 100%; border-collapse: collapse; } .meta td, .meta th, table td, table th { border-bottom: 1px solid #e5e5ea; padding: 9px; text-align: left; vertical-align: top; }
+  .risk { border-left: 4px solid #b7791f; padding-left: 14px; } .task { border-top: 1px solid #e5e5ea; padding-top: 16px; margin-top: 16px; }
+  .done { list-style: none; padding-left: 0; } .done li { margin: 8px 0; } .done li::before { content: "☐"; margin-right: 9px; } .done.complete li::before { content: "☑"; }
+  @media (prefers-color-scheme: dark) { :root { background: #17171a; color: #f4f4f5; } header, section { background: #242428; border-color: #44444c; } code { background: #34343a; } .meta td, .meta th, table td, table th, .task { border-color: #424249; } .status { background: #4d3d17; color: #ffe7a7; } }
+</style>
+<header>
+  <span class="status">Completed</span>
+  <h1>Profile-update shadow and feed-card spacing</h1>
+  <table class="meta"><tr><th>Plan folder</th><td><code>plans/08072026-profile-feed-spacing</code></td></tr><tr><th>Execution base</th><td><code>dev</code> at <code>c77fb30</code></td></tr><tr><th>Size</th><td>Small — two scoped visual adjustments, no new dependencies or API work</td></tr><tr><th>Target</th><td><code>dev</code></td></tr></table>
+</header>
+
+<section>
+  <h2>Why</h2>
+  <p>The profile-picture activity card’s image has both a blurred backdrop and a broad 10px/28px drop shadow. Together they produce the visible gray halo in the supplied screenshot. Separately, the home-feed cards use a 20px list gap, making successive cards feel more disconnected than intended.</p>
+</section>
+
+<section>
+  <h2>What</h2>
+  <p>Apply exactly two visual changes:</p>
+  <ol>
+    <li>Keep the profile-picture image dimensions and ring unchanged, remove the diffuse decorative halo, and replace its broad shadow with one tighter, lower-opacity shadow.</li>
+    <li>Reduce the raw vertical separation between consecutive home-feed cards and feed loading skeletons from 20px (<code>space-y-5</code>) to 4px (<code>space-y-1</code>), letting the existing card elevation shadows provide the remaining visual separation.</li>
+  </ol>
+  <p><strong>Done when:</strong> profile-picture activity images retain a subtle lift without a cloudy perimeter; normal cards and skeletons use a consistent 4px layout rhythm, with card shadows as the remaining visual separation; post actions, media sizing, post content, and all feed behavior remain unchanged.</p>
+</section>
+
+<section>
+  <h2>Context and closest patterns</h2>
+  <table>
+    <thead><tr><th>File</th><th>Current role / planned touch</th></tr></thead>
+    <tbody>
+      <tr><td><code>frontend/src/components/PostCard.tsx</code></td><td><code>ProfileActivityMedia</code> owns the avatar-update treatment. It currently renders an <code>absolute -inset-2 … blur-sm</code> backdrop and an image shadow of <code>0 10px 28px rgba(0,0,0,0.16)</code>. Change only this profile-picture branch.</td></tr>
+      <tr><td><code>frontend/src/pages/FeedPage.tsx</code></td><td>The loading skeleton wrapper and populated <code>ul</code> both use <code>space-y-5</code>. Change both to <code>space-y-1</code>.</td></tr>
+      <tr><td><code>frontend/src/index.css</code></td><td>Reference only: <code>.feed-card</code> provides the card-level elevation and remains unchanged.</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Closest analog:</strong> use the existing component-local Tailwind treatment in <code>ProfileActivityMedia</code> and preserve the current <code>feed-card</code> elevation token rather than introducing a parallel CSS abstraction.</p>
+</section>
+
+<section>
+  <h2>Constraints</h2>
+  <ul>
+    <li>Do not change the profile-picture image’s <code>size-44 sm:size-48</code> sizing, 4px card ring, centering, caption spacing, or card/action-row padding.</li>
+    <li>Do not change the shared profile header avatar, ordinary photo-update media, standard post media, or <code>.feed-card</code> shadows.</li>
+    <li>Do not alter data fetching, API contracts, post ordering, infinite scroll, reactions, or navigation.</li>
+    <li>No dependency, migration, backend, or new component work.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Risk and blast radius</h2>
+  <p class="risk"><strong>Level 2 — Concern.</strong> <code>PostCard</code> is reused by the home feed, post detail, and embedded profile timeline. A global media or card-style edit would silently alter other post types. <strong>Mitigation:</strong> limit the change to the existing <code>isProfilePicturePost</code> branch; verify all three consumers. The feed-gap change is isolated to <code>FeedPage</code> and must update the skeleton and populated list together.</p>
+  <table>
+    <thead><tr><th>Consumer</th><th>Expected impact / verification</th></tr></thead>
+    <tbody>
+      <tr><td><code>FeedPage → PostCard</code></td><td>Profile-picture activity gets the tighter shadow; populated posts and loading skeletons use 16px gaps.</td></tr>
+      <tr><td><code>PostDetailPage → PostCard</code></td><td>Any profile-picture activity shown in detail gets the same restrained shadow; standard/detail media remains unchanged.</td></tr>
+      <tr><td><code>ProfilePage → PostCard variant=&quot;embedded&quot;</code></td><td>Embedded profile-picture activity retains its current layout and only receives the scoped shadow refinement; timeline card spacing remains unchanged.</td></tr>
+      <tr><td>Other activity and standard media</td><td>Photo updates, galleries, embeds, and shared posts remain on their existing rendering paths.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Tasks</h2>
+  <article class="task"><h3>T1 — Restrain the profile-picture activity shadow</h3><p><strong>Do:</strong> In <code>ProfileActivityMedia</code>, remove the diffuse backdrop layer and use a single tighter, softer shadow on the existing image. Preserve image dimensions, ring, markup outside the shadow layer, and non-avatar activity branch.</p><p><strong>Files:</strong> <code>frontend/src/components/PostCard.tsx</code></p><p><strong>Depends on:</strong> —</p><p><strong>Verify:</strong> desktop and narrow feed views show no broad halo; image remains centered; ordinary photo updates and standard media are unchanged.</p></article>
+  <article class="task"><h3>T2 — Tighten home-feed card rhythm</h3><p><strong>Do:</strong> Change both <code>FeedPage</code> list wrappers from <code>space-y-5</code> to <code>space-y-1</code>. Do not change outer composer spacing or in-card padding.</p><p><strong>Files:</strong> <code>frontend/src/pages/FeedPage.tsx</code></p><p><strong>Depends on:</strong> —</p><p><strong>Verify:</strong> adjacent feed cards and skeleton cards have a 4px layout gap at desktop and narrow widths, with the card shadows still separating cards; composer-to-first-post spacing is unchanged.</p></article>
+  <article class="task"><h3>T3 — Verify and record acceptance</h3><p><strong>Do:</strong> Run the frontend typecheck, build, and lint; complete the contained-runtime acceptance checklist in this folder.</p><p><strong>Files:</strong> <code>plans/08072026-profile-feed-spacing/test-results.json</code>, <code>plans/08072026-profile-feed-spacing/test.html</code></p><p><strong>Depends on:</strong> T1, T2</p><p><strong>Verify:</strong> no change-caused type, build, or lint failures; every acceptance item passes or is explicitly waived.</p></article>
+</section>
+
+<section>
+  <h2>Verification</h2>
+  <ul>
+    <li>Run <code>npm run typecheck</code>, <code>npm run build</code>, and <code>npm --prefix frontend run lint</code>.</li>
+    <li>Run behavioral checks in an isolated <code>-tw</code> runtime only; record observed evidence in <code>test-results.json</code>.</li>
+    <li>Reconfirm the frontend constitutional guardrails: §13.1 (file-size tier), §14.2 (no raw fetch), §17.1 (no console), and §17.2 (no <code>any</code>).</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Done</h2>
+  <ul class="done complete">
+    <li>Only profile-picture activity’s diffuse shadow treatment is reduced; image size and ring are unchanged.</li>
+    <li>Feed cards and feed skeletons have a consistent 4px layout gap, preserving visible separation through the existing card shadows.</li>
+    <li>Post detail, embedded profile timeline, standard media, and ordinary photo updates are regression-checked.</li>
+    <li>Typecheck, build, lint, and contained acceptance results are recorded.</li>
+    <li>Spec-code parity is confirmed; any deviation is documented in an append-only Revision Log.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Revision Log</h2>
+  <table><thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>1</td><td>08072026</td><td>Initial planning spec. Based on the supplied screenshots and visual comparison: implement only the profile-picture shadow refinement and 16px home-feed card/skeleton gap; explicitly exclude image resizing.</td></tr><tr><td>2</td><td>08072026</td><td>Execution started. Scope remains unchanged: remove the diffuse backdrop, tighten the profile-picture shadow, and set home-feed populated/skeleton lists to 16px.</td></tr><tr><td>3</td><td>08072026</td><td>T1 and T2 implemented exactly as scoped. Typecheck and production build passed; lint completed with six pre-existing warnings outside changed files. UI acceptance remains pending a contained <code>-tw</code> runtime.</td></tr><tr><td>4</td><td>08072026</td><td>User visual feedback showed that the 16px layout gap still looked too large once the card shadows were visible. T2 is refined to <code>space-y-2</code> (8px) for populated posts and skeletons; card shadows and all in-card spacing remain unchanged.</td></tr><tr><td>5</td><td>08072026</td><td>User requested a further reduction. T2 now uses <code>space-y-1</code> (4px) for populated posts and skeletons; card shadows remain the only visual breathing room.</td></tr><tr><td>6</td><td>08072026</td><td>Human acceptance confirmed after the final 4px spacing refinement. All acceptance items pass; the plan is completed and ready for commit.</td></tr></tbody></table>
+</section>
