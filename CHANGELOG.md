@@ -3,11 +3,14 @@
 ## 0.1.38 — 2026-08-07
 
 ### Changed
+- Replaced pinned-message cards with compact, plain in-thread system logs
+- Personalized pin activity copy: actors see “You pinned a message”; other participants see the actor’s first name only
 
 ### Plans
 - `plans/08072026-remove-visible-usernames` — completed on `kylie/simplify-identity-ui`
 - `plans/08072026-compact-relative-timestamps` — completed on `kylie/compact-relative-timestamps`
 - `plans/08072026-message-gap` — completed on `kylie/message-gap`
+- `plans/08072026-pinned-message-gap-fix` — completed on `kylie/pinned-message-gap-fix`
 
 ## 0.1.37 — 2026-08-06
 

@@ -592,6 +592,10 @@ body {
   background: color-mix(in srgb, var(--chat-thread-fg) 12%, transparent);
 }
 
+[data-chat-theme="true"] .message-pin-activity {
+  color: var(--chat-thread-muted);
+}
+
 [data-chat-theme="true"] .messages-composer-form {
   background: color-mix(in srgb, var(--chat-composer-bg) 14%, var(--chat-bg-sample));
   border-top-color: color-mix(in srgb, var(--chat-thread-fg) 12%, transparent);
@@ -861,8 +865,18 @@ body {
 }
 
 .messages-thread-list .message-day-separator,
-.messages-thread-list .message-system-log-row {
+.messages-thread-list .message-system-log-row,
+.messages-thread-list .message-pin-activity-row {
   margin-block: 0.375rem;
+}
+
+.message-pin-activity {
+  margin: 0;
+  padding-inline: 0.75rem;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  text-align: center;
 }
 
 .messages-inbox-compose {

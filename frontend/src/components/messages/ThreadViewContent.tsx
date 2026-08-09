@@ -338,7 +338,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                   return (
                     <div key={item.key} className="message-pin-activity-row">
                       {showDay && <MessageDaySeparator label={formatMessageDay(item.createdAt)} />}
-                      <MessagePinActivityRow activity={item.activity} themed={resolvedTheme.active} />
+                      <MessagePinActivityRow activity={item.activity} isCurrentUser={item.activity.actorId === user?.id} />
                     </div>
                   );
                 }
