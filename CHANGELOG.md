@@ -1,16 +1,33 @@
 # Changelog
 
-## 0.1.38 — 2026-08-07
+## 0.1.38 — 2026-08-09
 
 ### Changed
+- Removed visible `@username` labels from posts, shares, comments, reactions, friends, messages, profile, and navbar surfaces while preserving display names and username-based identity behavior
+- Restored compact relative timestamps globally: `now`, `8min`, `4hr`, `2d`, `3w`, `5mo`, and `1yr`, with clear future-time output
+- Moved comment and reply timestamps beside the author name while preserving absolute hover timestamps and Like/Reply controls
+- Set a consistent 3px vertical gap between consecutive chat-bubble rows.
 - Replaced pinned-message cards with compact, plain in-thread system logs
 - Personalized pin activity copy: actors see “You pinned a message”; other participants see the actor’s first name only
+- Replaced the duplicated Messages compose chrome with one persistent, accessible New message toolbar action
+- New message search opens from the person-plus action, returns focus on close, and keeps loading/error feedback visible
+- Removed the closed compose panel from populated inboxes; the conversation list now follows directly
+- Message bubbles now display every participant reaction; repeated matching reactions show a count
+- Reaction badges use a light chat-theme accent tint and outline while preserving readable count text across themes
+- Neutral outlined ThumbsUp for the unreacted reaction trigger (selected stickers unchanged)
+- Friends page visual tone-down: single restrained card surface, compact left-aligned empty states, mutual-count chip removed
+- Profile-update avatar shadow refined; home feed card vertical rhythm tightened (`space-y-1`)
 
 ### Plans
 - `plans/08072026-remove-visible-usernames` — completed on `kylie/simplify-identity-ui`
 - `plans/08072026-compact-relative-timestamps` — completed on `kylie/compact-relative-timestamps`
 - `plans/08072026-message-gap` — completed on `kylie/message-gap`
 - `plans/08072026-pinned-message-gap-fix` — completed on `kylie/pinned-message-gap-fix`
+- `plans/08072026-remove-new-message-header` — completed on `kylie/message-ui`
+- `plans/08072026-reaction-icon-fix` — completed on `kylie/reaction-icon-fix`
+- `plans/08072026-message-both-react` — completed on `kylie/message-both-react`
+- `plans/08072026-50-friends-tone-down` — completed on `kylie/friends-ui-change`
+- `plans/08072026-profile-feed-spacing` — completed on `kylie/profile-feed-spacing`
 
 ## 0.1.37 — 2026-08-06
 
