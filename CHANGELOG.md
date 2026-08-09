@@ -3,13 +3,11 @@
 ## 0.1.38 — 2026-08-07
 
 ### Changed
-- Removed visible `@username` labels from posts, shares, comments, reactions, friends, messages, profile, and navbar surfaces while preserving display names and username-based identity behavior
-- Restored compact relative timestamps globally: `now`, `8min`, `4hr`, `2d`, `3w`, `5mo`, and `1yr`, with clear future-time output
-- Moved comment and reply timestamps beside the author name while preserving absolute hover timestamps and Like/Reply controls
 
 ### Plans
 - `plans/08072026-remove-visible-usernames` — completed on `kylie/simplify-identity-ui`
 - `plans/08072026-compact-relative-timestamps` — completed on `kylie/compact-relative-timestamps`
+- `plans/08072026-message-gap` — completed on `kylie/message-gap`
 
 ## 0.1.37 — 2026-08-06
 

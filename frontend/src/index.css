@@ -766,6 +766,7 @@ body {
 }
 
 .messages-thread-list {
+  --messages-thread-item-gap: 3px;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -776,11 +777,11 @@ body {
 }
 
 .messages-thread-list .messages-thread-item-grouped {
-  margin-top: 2px;
+  margin-top: var(--messages-thread-item-gap);
 }
 
 .messages-thread-list .messages-thread-item:not(.messages-thread-item-grouped):not(:first-child) {
-  margin-top: 2px !important;
+  margin-top: var(--messages-thread-item-gap) !important;
 }
 
 .messages-thread-list .messages-thread-item:has([data-has-reaction="true"]) + .messages-thread-item {
