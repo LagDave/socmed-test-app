@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.38 — 2026-08-07
+
+### Changed
+- Removed visible `@username` labels from posts, shares, comments, reactions, friends, messages, profile, and navbar surfaces while preserving display names and username-based identity behavior
+
+### Plans
+- `plans/08072026-remove-visible-usernames` — completed on `kylie/simplify-identity-ui`
+
 ## 0.1.37 — 2026-08-06
 
 ### Added

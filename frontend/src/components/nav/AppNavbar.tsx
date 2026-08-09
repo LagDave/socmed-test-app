@@ -123,9 +123,6 @@ export function AppNavbar({
                       />
                       <span className="min-w-0 flex-1">
                         <span className="app-navbar-profile-menu-name truncate">{user.displayName}</span>
-                        {user.username && (
-                          <span className="app-navbar-profile-menu-handle truncate">@{user.username}</span>
-                        )}
                       </span>
                       <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
                     </Link>
