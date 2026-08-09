@@ -104,6 +104,13 @@ export function CommentItem({
               >
                 {comment.author.displayName}
               </Link>
+              <time
+                className="comment-meta-time"
+                dateTime={comment.createdAt}
+                title={formatAbsoluteTime(comment.createdAt) || undefined}
+              >
+                {formatRelativeTime(comment.createdAt)}
+              </time>
             </div>
 
             {comment.body ? (
@@ -131,13 +138,6 @@ export function CommentItem({
               onSummaryChange={onReactionSummaryChange}
               actions={onReply ? <ReplyActionButton onClick={onReply} /> : undefined}
             />
-            <time
-              className="comment-meta-time"
-              dateTime={comment.createdAt}
-              title={formatAbsoluteTime(comment.createdAt) || undefined}
-            >
-              {formatRelativeTime(comment.createdAt)}
-            </time>
           </div>
         </div>
       </div>
