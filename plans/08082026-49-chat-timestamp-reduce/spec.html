@@ -94,6 +94,7 @@
     <p><strong>Rev 3 — 08082026:</strong> T1 completed. Frontend and project typechecks pass; frontend lint exits cleanly with six pre-existing warnings outside this change. Focused formatter verification returned <code>9:18 PM</code>, retained invalid-date handling, and confirmed the 600,000 ms threshold. Isolated browser acceptance has not run.</p>
     <p><strong>Rev 4 — 08082026:</strong> Frontend production build passed. The only build advisory is the pre-existing over-500 kB output chunk warning; it is unrelated to this one-function formatting change. Isolated browser acceptance remains pending.</p>
     <p><strong>Rev 5 — 08082026:</strong> Local behavioral acceptance completed and confirmed by the user. All acceptance items are recorded as passed; spec and implementation are in parity.</p>
+    <p><strong>Rev 6 — 08102026:</strong> PR #88 review remediation removed the stacked <code>b904728</code> notifications fallback while replaying this plan’s formatter, acceptance, changelog, and review artifacts directly onto current <code>dev</code>. The resulting branch diff contains no notifications surface changes; reviewer confirmation remains pending.</p>
   </section>
 </body>
 </html>
