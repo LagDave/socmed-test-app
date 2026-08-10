@@ -64,6 +64,18 @@ async function findPostForImage(postId: string) {
   return post;
 }
 
+async function publishReactionNotification(
+  recipientId: string,
+  notification: Awaited<ReturnType<typeof NotificationService.upsertReaction>>
+): Promise<void> {
+  if (!notification) return;
+  if (notification.created) {
+    await NotificationService.publishCreated(recipientId, notification.notification.id);
+    return;
+  }
+  await NotificationService.publishCountUpdated(recipientId);
+}
+
 export class ReactionService {
   static async setOnPost(userId: string, postId: string, raw: unknown): Promise<ReactionSummary> {
     const post = await PostModel.findById(postId);
@@ -79,7 +91,7 @@ export class ReactionService {
         reactionEmoji: emoji,
       }
     );
-    if (notification) await NotificationService.publishCreated(post.author_id, notification.id);
+    await publishReactionNotification(post.author_id, notification);
     return ReactionModel.summaryForPost(postId, userId);
   }
 
@@ -113,7 +125,7 @@ export class ReactionService {
         reactionEmoji: emoji,
       }
     );
-    if (notification) await NotificationService.publishCreated(comment.author_id, notification.id);
+    await publishReactionNotification(comment.author_id, notification);
     return ReactionModel.summaryForComment(commentId, userId);
   }
 
@@ -154,7 +166,7 @@ export class ReactionService {
         reactionEmoji: emoji,
       }
     );
-    if (notification) await NotificationService.publishCreated(post.author_id, notification.id);
+    await publishReactionNotification(post.author_id, notification);
     return ReactionModel.summaryForPostImage(postImageId, userId);
   }
 

@@ -55,6 +55,11 @@ export type NotificationRow = {
   updated_at: Date;
 };
 
+export type ReactionNotificationUpsert = {
+  notification: NotificationRow;
+  created: boolean;
+};
+
 export class NotificationModel {
   static async create(input: {
     recipientId: string;
@@ -84,9 +89,9 @@ export class NotificationModel {
   static async upsertReaction(
     input: ReactionNotificationInput,
     trx?: Knex.Transaction
-  ): Promise<NotificationRow> {
+  ): Promise<ReactionNotificationUpsert> {
     const conn = trx ?? db;
-    const [row] = await conn<NotificationRow>("notifications")
+    const rows = await conn<NotificationRow>("notifications")
       .insert({
         recipient_id: input.recipientId,
         actor_id: input.actorId,
@@ -100,8 +105,13 @@ export class NotificationModel {
       })
       .onConflict(conn.raw(reactionConflictTarget(input.type)))
       .merge({ reaction_emoji: input.reactionEmoji, updated_at: conn.fn.now() })
-      .returning("*");
-    return row;
+      .returning(["*", conn.raw("xmax = 0 AS created")]);
+    const row = rows[0] as (NotificationRow & { created: boolean }) | undefined;
+    if (!row) {
+      throw new Error("Reaction notification upsert did not return a row.");
+    }
+    const { created, ...notification } = row;
+    return { notification, created };
   }
 
   static async deleteReaction(

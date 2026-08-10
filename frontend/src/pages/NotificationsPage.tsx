@@ -132,6 +132,10 @@ function NotificationAction({ item }: { item: NotificationItem }) {
   }
 
   const target = reactionTarget(item.type);
+  if (item.reactionEmoji === "like") {
+    return <span className="text-foreground/85">liked your {target}</span>;
+  }
+
   const reaction = reactionOption(item.reactionEmoji);
   return (
     <span className="text-foreground/85">

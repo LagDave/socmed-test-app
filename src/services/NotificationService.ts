@@ -6,7 +6,9 @@ import {
   type NotificationType,
   type ReactionNotificationInput,
   type ReactionNotificationTarget,
+  type ReactionNotificationUpsert,
 } from "../models/NotificationModel";
+import type { ReactionEmoji } from "../models/ReactionModel";
 import { UserModel } from "../models/UserModel";
 import { FriendshipModel } from "../models/FriendshipModel";
 import { PostModel } from "../models/PostModel";
@@ -54,20 +56,33 @@ function messageFor(
     case "reaction_on_post":
       return reactionEmoji === "like"
         ? `${actorName} liked your post`
-        : `${actorName} reacted ${reactionEmoji ?? ""} to your post`;
+        : `${actorName} reacted ${reactionGlyph(reactionEmoji)} to your post`;
     case "reaction_on_comment":
       return reactionEmoji === "like"
         ? `${actorName} liked your comment`
-        : `${actorName} reacted ${reactionEmoji ?? ""} to your comment`;
+        : `${actorName} reacted ${reactionGlyph(reactionEmoji)} to your comment`;
     case "reaction_on_photo":
       return reactionEmoji === "like"
         ? `${actorName} liked your photo`
-        : `${actorName} reacted ${reactionEmoji ?? ""} to your photo`;
+        : `${actorName} reacted ${reactionGlyph(reactionEmoji)} to your photo`;
     case "post_shared":
       return `${actorName} shared your post`;
     default:
       return `${actorName} sent a notification`;
   }
+}
+
+const REACTION_GLYPHS: Record<ReactionEmoji, string> = {
+  like: "👍",
+  heart: "❤️",
+  haha: "😂",
+  wow: "😮",
+  sad: "😢",
+  angry: "😡",
+};
+
+function reactionGlyph(reactionEmoji: ReactionEmoji | null): string {
+  return reactionEmoji ? REACTION_GLYPHS[reactionEmoji] : "";
 }
 
 export class NotificationService {
@@ -100,7 +115,7 @@ export class NotificationService {
   static async upsertReaction(
     input: ReactionNotificationInput,
     trx?: Knex.Transaction
-  ): Promise<NotificationRow | null> {
+  ): Promise<ReactionNotificationUpsert | null> {
     if (input.recipientId === input.actorId) return null;
     return NotificationModel.upsertReaction(input, trx);
   }

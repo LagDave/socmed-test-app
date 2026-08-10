@@ -1,9 +1,6 @@
 import type { Knex } from "knex";
 
 export async function up(knex: Knex): Promise<void> {
-  const hasConversationPins = await knex.schema.hasTable("conversation_pins");
-  if (hasConversationPins) return;
-
   await knex.schema.createTable("conversation_pins", (table) => {
     table.uuid("id").primary().defaultTo(knex.raw("gen_random_uuid()"));
     table.uuid("conversation_id").notNullable().references("id").inTable("conversations").onDelete("CASCADE");

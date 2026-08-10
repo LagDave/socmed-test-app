@@ -1,7 +1,7 @@
 {
   "plan": "plans/08072026-50-reaction-share-notifications",
-  "generatedAt": "2026-08-07",
-  "status": "Passed",
+  "generatedAt": "2026-08-10",
+  "status": "In Progress",
   "items": [
     {
       "id": "A7",
@@ -58,9 +58,9 @@
       "precondition": "Two mutual users: owner has an original post and both users are signed in on separate sessions.",
       "steps": ["As the other user, react Like to the owner’s post.", "Open or refresh the owner’s Notifications page and verify the alert.", "Change the reaction to Haha and refresh via the live event.", "Verify there is still one alert, now with 😂 and Haha wording."],
       "expected": "The owner sees one unread row that first says the actor liked the post, then updates to the selected reaction without becoming a duplicate or resetting read state.",
-      "status": "pass",
-      "evidence": "2026-08-07: user confirmed manual acceptance testing passed.",
-      "notes": "",
+      "status": "pending",
+      "evidence": "2026-08-07: user confirmed the original implementation. 2026-08-10 correction added focused automated upsert/is_read tests; manual isolated-runtime retest is still required.",
+      "notes": "Pending retest after the reviewed realtime and Like-copy correction.",
       "waiver": ""
     },
     {
@@ -82,9 +82,9 @@
       "precondition": "A visible unread reaction notification exists for the post, comment, or photo.",
       "steps": ["As the actor, remove the matching reaction.", "Observe the owner’s open Notifications page or refresh it.", "Check the unread badge/count."],
       "expected": "The matching notification disappears and unread count decreases when applicable; unrelated alerts remain.",
-      "status": "pass",
-      "evidence": "2026-08-07: user confirmed manual acceptance testing passed.",
-      "notes": "",
+      "status": "pending",
+      "evidence": "2026-08-07: user confirmed the original implementation. 2026-08-10 focused automated targeted-delete coverage passed; manual isolated-runtime retest is still required.",
+      "notes": "Pending retest after the reviewed notification count-path correction.",
       "waiver": ""
     },
     {
@@ -106,9 +106,9 @@
       "precondition": "A user has their own post and existing friend request/comment/reply notifications.",
       "steps": ["React to your own post, comment, and photo.", "Open Notifications.", "Inspect and operate existing comment/reply/friend-request rows."],
       "expected": "No self-action notification is created. Existing rows retain correct icons, links, confirm/decline actions, mark-read behavior, skeleton, and empty-state behavior.",
-      "status": "pass",
-      "evidence": "2026-08-07: user confirmed manual acceptance testing passed.",
-      "notes": "",
+      "status": "pending",
+      "evidence": "2026-08-07: user confirmed the original implementation. 2026-08-10 focused automated self-action service coverage passed; manual isolated-runtime retest is still required.",
+      "notes": "Pending retest after the reviewed reaction-notification correction.",
       "waiver": ""
     },
     {
@@ -118,9 +118,21 @@
       "precondition": "Execution worktree with dependencies installed and isolated database configured.",
       "steps": ["Run the new migration and its rollback/reapply safely in the isolated database.", "Run npm run typecheck, npm run build, frontend lint, and the repository convention check if present.", "Confirm duplicate reaction-alert writes are prevented by the migration indexes."],
       "expected": "All applicable checks pass; migration is reversible; no type, build, lint, or convention error introduced by this feature.",
+      "status": "pending",
+      "evidence": "2026-08-10: npm run typecheck and npm run build passed. npm --prefix frontend run lint completed with six pre-existing warnings. The repository has no check:conventions script. Migration validation was not run because this worktree has no verified isolated runtime manifest.",
+      "notes": "A verified isolated database is required before re-running migration/rollback acceptance.",
+      "waiver": ""
+    },
+    {
+      "id": "A9",
+      "title": "Reviewed reaction-notification model and service paths have focused automated coverage",
+      "surface": "cli",
+      "precondition": "Locked workspace dependencies are installed.",
+      "steps": ["Run npm run test:notifications."],
+      "expected": "The model verifies conflict-upsert merge semantics and exact target deletion; the service verifies notification creation and self-action no-ops.",
       "status": "pass",
-      "evidence": "2026-08-07: local development database migration batch 19 applied successfully; notifications.reaction_emoji and the three notifications_reaction_* unique indexes were verified. npm run typecheck and npm run build passed. npm --prefix frontend run lint completed with existing warnings only. The repository has no check:conventions script. User confirmed manual acceptance testing passed.",
-      "notes": "No automated service-test harness exists in the current repository.",
+      "evidence": "2026-08-10: npm run test:notifications passed 4/4 tests.",
+      "notes": "These focused unit tests supplement, but do not replace, isolated database and browser acceptance.",
       "waiver": ""
     }
   ]

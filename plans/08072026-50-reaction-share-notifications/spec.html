@@ -18,7 +18,7 @@
 <body>
   <main>
     <header>
-      <div class="top"><p class="eyebrow">Socmed Plan Spec · Seq 50</p><span class="status">Completed</span></div>
+      <div class="top"><p class="eyebrow">Socmed Plan Spec · Seq 50</p><span class="status">In Progress</span></div>
       <h1>Reaction and Share Notifications</h1>
       <dl class="grid">
         <div><dt>Plan folder</dt><dd>plans/08072026-50-reaction-share-notifications</dd></div>
@@ -145,6 +145,7 @@ Mia shared your post</div>
       <p><strong>Rev 17 · 2026-08-07:</strong> Native emoji did not respond visibly to font weight. Strengthen only the inline reaction through saturation, contrast, and a darker definition shadow, without changing size or adding a card.</p>
       <p><strong>Rev 18 · 2026-08-07:</strong> User visually approved the final reaction emphasis. Acceptance A7 is passed and the follow-up is finalized.</p>
       <p><strong>Rev 19 · 2026-08-07:</strong> User asked to include the local <code>dev</code> notification safeguard on this feature branch. The row renderer now treats notification types as runtime strings and falls back to generic Bell metadata for an unrecognized value, while known reaction/share rows retain their selected-icon treatment.</p>
+      <p><strong>Rev 20 · 2026-08-10:</strong> Reviewer correction for PR #84: distinguish reaction-notification inserts from emoji updates so only inserts publish <code>notification:new</code>; preserve count refreshes for updates and deletes; restore the locked Like copy; map backend non-Like messages to glyphs; remove the unrelated restored migrations; and add focused notification model/service tests. No product scope expansion. Manual isolated-runtime acceptance remains pending.</p>
     </section>
   </main>
 </body>
