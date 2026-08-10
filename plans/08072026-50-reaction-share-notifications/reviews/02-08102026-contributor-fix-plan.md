@@ -6,7 +6,7 @@ by: zarinakylie
 branch: kylie/notification-update → dev
 spec: plans/08072026-50-reaction-share-notifications/spec.html
 verdict: fix-plan
-status: open
+status: addressed-pending-review
 addresses: [01]
 ---
 
@@ -40,4 +40,4 @@ No broad `NotificationsPage` extraction is planned in this correction round; it 
 
 ## Execution record
 
-Implementation is pending `--execute`; no application code has changed in this review turn. The execution commit and the corresponding spec Revision Log entry will be recorded before requesting reviewer confirmation.
+Executed in `b8b77eb` (`fix(notifications): correct reaction update events`). Spec Rev 20 records the correction. Focused automated coverage, typecheck, build, and frontend lint passed; manual isolated-runtime retests and migration rollback remain pending in the acceptance record. Reviewer confirmation is required before the findings close.
