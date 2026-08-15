@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Streamline the populated inbox composer</title>
+  <style>
+    body{font:16px/1.5 system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 20px;color:#111}header,section{border:1px solid #ddd;border-radius:8px;padding:20px;margin:16px 0}h1{margin:.1rem 0}.status{font-weight:700}code{background:#f5f5f5;padding:2px 4px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px;text-align:left;vertical-align:top}
+  </style>
+</head>
+<body>
+  <header>
+    <p>Socmed Plan Spec</p>
+    <h1>Streamline the populated inbox composer</h1>
+    <p class="status">Status: Completed</p>
+    <p>Execution branch: <code>kylie/message-ui</code> → <code>dev</code></p>
+  </header>
+
+  <section>
+    <h2>Why</h2>
+    <p>The populated inbox currently repeats one task through a header action row, a broad search control, and often a row of compose chips. It leaves a large, low-value block above the conversation list—and hiding the entry point entirely makes starting a message undiscoverable. The inbox needs one persistent, unambiguous New message action.</p>
+  </section>
+
+  <section>
+    <h2>What / Done</h2>
+    <ul>
+      <li>When the inbox already has conversations, do not render the <strong>New message</strong> section heading.</li>
+      <li>Use the existing person-plus toolbar icon as an always-available <strong>New message</strong> action.</li>
+      <li>Show the populated-inbox picker only while that action’s searchable friend list is open; otherwise let the Conversations section follow directly.</li>
+      <li>Remove Manage friends from the Messages toolbar; it remains available on the Friends surface.</li>
+      <li>Keep search opening/closing, Escape handling, focus restoration, and friend selection behavior unchanged once the new-message action is used.</li>
+      <li>Keep the <strong>Friends</strong> heading for a new inbox with no conversations.</li>
+      <li>Pass frontend typecheck, lint, and production build; record the UI acceptance result.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Context</h2>
+    <p><code>frontend/src/components/MessagesFriendPicker.tsx</code> owns the friend-search rendering and selection behavior. <code>frontend/src/components/messages/InboxView.tsx</code> owns the toolbar, the compose container (and its spacing/divider), and the persistent action that controls whether the picker is open. The existing person-plus icon becomes that action; the settings icon remains unchanged.</p>
+  </section>
+
+  <section>
+    <h2>Constraints / Out of scope</h2>
+    <ul>
+      <li>Modify only the picker and page-toolbar presentation/state wiring; do not change API calls, routes, friend selection, or shared CSS.</li>
+      <li>Do not remove the ability to manage friends; retain the Friends surface as its destination.</li>
+      <li>No new dependency, migration, test framework, or unrelated message UI refactor.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Risk</h2>
+    <p><strong>Level 1 — Suggestion.</strong> This is a local presentation and UI-state change. The blast radius is the populated inbox, including its picker loading and error states. Mitigation: keep the picker visible while open, loading, or errored; verify the person-plus action opens search for both new and existing conversations, and preserve the Friends empty-inbox state.</p>
+  </section>
+
+  <section>
+    <h2>Tasks</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Do</th><th>Files</th><th>Depends on</th><th>Verify</th></tr></thead>
+      <tbody>
+        <tr><td>T1</td><td>Make the picker’s search-open state controlled by the inbox so a page-level New message action can open it, while preserving filtering, selection, error handling, and focus return.</td><td><code>frontend/src/components/MessagesFriendPicker.tsx</code></td><td>None</td><td>A1; frontend typecheck, lint, build.</td></tr>
+        <tr><td>T2</td><td>Make the person-plus toolbar icon the always-available New message action; remove Manage friends there and hide the closed populated picker container without hiding loading or error feedback.</td><td><code>frontend/src/components/messages/InboxView.tsx</code></td><td>T1</td><td>A1; frontend typecheck, lint, build.</td></tr>
+        <tr><td>T3</td><td>Record behavioral acceptance for all affected inbox states.</td><td><code>plans/08072026-remove-new-message-header/test-results.json</code></td><td>T1, T2</td><td>Acceptance checklist status.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Revision Log</h2>
+    <table><thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>0</td><td>2026-08-07</td><td>Created from the supplied inbox screenshot. Scope is intentionally limited to the compact-mode <code>New message</code> heading.</td></tr><tr><td>1</td><td>2026-08-07</td><td>Clarified the condition after execution review: <code>compactMode</code> is false during friend search, so the heading is hidden whenever conversations exist. This prevents the removed heading from reappearing in the same inbox flow.</td></tr><tr><td>2</td><td>2026-08-07</td><td>Completed T1 in <code>MessagesFriendPicker</code>. Frontend typecheck, lint, and production build completed; live acceptance is pending an isolated runtime.</td></tr><tr><td>3</td><td>2026-08-07</td><td>User approved a broader composer simplification: hide the populated-inbox compose block when no new friend exists, use one New message trigger otherwise, and relocate Manage friends to the page toolbar.</td></tr><tr><td>4</td><td>2026-08-07</td><td>Clarified implementation ownership: the picker reports new-chat availability so <code>InboxView</code> can hide the existing container and remove its otherwise-empty spacing and divider.</td></tr><tr><td>5</td><td>2026-08-07</td><td>Added error-state protection: availability is reported only after a successful mutual-friends load, so a fetch error remains visible instead of being hidden as an empty compose state.</td></tr><tr><td>6</td><td>2026-08-07</td><td>Completed T1 and T2: the populated composer now collapses only after a successful zero-new-friend result, the New message trigger opens existing search, and Manage friends moved to the toolbar. Typecheck, lint, and production build passed; isolated acceptance remains pending.</td></tr><tr><td>7</td><td>2026-08-07</td><td>Corrected the discoverability regression from review: the persistent person-plus action now opens New message for every inbox, the closed populated picker hides regardless of friend novelty, and Manage friends leaves the toolbar.</td></tr><tr><td>8</td><td>2026-08-07</td><td>Completed the controlled picker handoff. The toolbar opens New message for any inbox state; close and Escape return focus to that trigger. Typecheck, lint, and production build passed; isolated acceptance remains pending.</td></tr><tr><td>9</td><td>2026-08-07</td><td>User confirmed live acceptance A1. All Done items and automated validation are complete; plan finalized.</td></tr></tbody></table>
+  </section>
+</body>
+</html>

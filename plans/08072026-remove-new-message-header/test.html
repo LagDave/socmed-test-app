@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acceptance checklist — Remove New message header</title>
+  <style>body{font:16px/1.5 system-ui,sans-serif;max-width:860px;margin:40px auto;padding:0 20px;color:#111}section{border:1px solid #ddd;border-radius:8px;padding:18px;margin:14px 0}textarea{box-sizing:border-box;width:100%;min-height:120px;font:inherit}button,input{font:inherit}button{padding:.55rem .8rem;margin-top:.75rem}small{color:#555}</style>
+</head>
+<body>
+  <h1>Acceptance checklist</h1>
+  <p>Load <code>test-results.json</code>, update each item after testing, then download the revised file.</p>
+  <input id="file" type="file" accept="application/json">
+  <main id="items"></main>
+  <button id="download" type="button" disabled>Download updated test-results.json</button>
+  <script>
+    let result;
+    const file=document.querySelector('#file'), items=document.querySelector('#items'), download=document.querySelector('#download');
+    function render(){items.innerHTML=''; result.items.forEach((item,index)=>{const section=document.createElement('section');section.innerHTML=`<h2>${item.id}: ${item.title}</h2><p><strong>Precondition:</strong> ${item.precondition}</p><p><strong>Steps:</strong></p><ol>${item.steps.map(step=>`<li>${step}</li>`).join('')}</ol><p><strong>Expected:</strong> ${item.expected}</p><label>Status <select data-index="${index}"><option value="pending">pending</option><option value="pass">pass</option><option value="fail">fail</option></select></label><br><label>Evidence<textarea data-field="evidence" data-index="${index}">${item.evidence||''}</textarea></label><br><label>Notes<textarea data-field="notes" data-index="${index}">${item.notes||''}</textarea></label><br><label>Waiver<textarea data-field="waiver" data-index="${index}">${item.waiver||''}</textarea></label>`;items.append(section);const select=section.querySelector('select');select.value=item.status;select.addEventListener('change',e=>item.status=e.target.value);section.querySelectorAll('textarea').forEach(area=>area.addEventListener('input',e=>item[e.target.dataset.field]=e.target.value));});download.disabled=false;}
+    file.addEventListener('change',async()=>{const selected=file.files[0];if(!selected)return;result=JSON.parse(await selected.text());render();});
+    download.addEventListener('click',()=>{const blob=new Blob([JSON.stringify(result,null,2)+'\n'],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='test-results.json';a.click();URL.revokeObjectURL(url);});
+  </script>
+</body>
+</html>

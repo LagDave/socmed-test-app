@@ -227,10 +227,6 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                       labelStyle="active"
                       className="messages-thread-header-handle mt-0.5 block truncate"
                     />
-                  ) : peer.username ? (
-                    <p className="messages-thread-header-handle truncate text-xs leading-snug">
-                      @{peer.username}
-                    </p>
                   ) : null}
                 </div>
               </Link>
@@ -342,7 +338,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                   return (
                     <div key={item.key} className="message-pin-activity-row">
                       {showDay && <MessageDaySeparator label={formatMessageDay(item.createdAt)} />}
-                      <MessagePinActivityRow activity={item.activity} themed={resolvedTheme.active} />
+                      <MessagePinActivityRow activity={item.activity} isCurrentUser={item.activity.actorId === user?.id} />
                     </div>
                   );
                 }

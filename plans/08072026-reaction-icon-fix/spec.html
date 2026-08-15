@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan 08072026 — Neutral unreacted reaction trigger</title>
+  <style>
+    :root { color-scheme: light; --ink: #172033; --muted: #5b6577; --line: #d9e0ea; --panel: #f7f9fc; --accent: #eef3f9; --warn: #fff7e6; }
+    * { box-sizing: border-box; } body { max-width: 960px; margin: 0 auto; padding: 32px 20px 56px; background: #fff; color: var(--ink); font: 16px/1.55 Inter, ui-sans-serif, system-ui, sans-serif; }
+    h1, h2, h3 { line-height: 1.2; } h1 { margin: 8px 0 18px; font-size: clamp(2rem, 5vw, 3rem); } h2 { margin-top: 0; font-size: 1.3rem; } h3 { margin: 0 0 8px; font-size: 1.05rem; }
+    .status { display: inline-block; border-radius: 999px; padding: 6px 11px; background: #4b2d00; color: #fff4d8; font-size: .78rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+    .meta, section, .task { border: 1px solid var(--line); border-radius: 12px; padding: 20px; background: #fff; } .meta { display: grid; gap: 6px; background: var(--panel); } section { margin-top: 16px; } .task { margin-top: 12px; background: var(--panel); }
+    .callout { border-left: 4px solid #d88900; padding: 12px 14px; background: var(--warn); border-radius: 6px; } code { padding: .08rem .28rem; border-radius: 4px; background: var(--accent); font-size: .92em; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; } th, td { padding: 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; } th { background: var(--panel); } ul { margin-bottom: 0; }
+    .done { list-style: none; padding: 0; } .done li { border-top: 1px solid var(--line); padding: 10px 0; } .done li::before { content: "□"; margin-right: 9px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <p class="status">Completed</p>
+  <h1>Use a neutral icon before the viewer reacts</h1>
+  <div class="meta">
+    <div><strong>Plan folder:</strong> <code>plans/08072026-reaction-icon-fix</code></div>
+    <div><strong>Planning branch:</strong> <code>codex/plan-08072026-reaction-icon-fix</code></div>
+    <div><strong>Execution branch:</strong> <code>kylie/reaction-icon-fix</code> → <code>dev</code></div>
+    <div><strong>Reference:</strong> <code>/Users/zarinakylie/Desktop/download.png</code></div>
+  </div>
+
+  <section>
+    <h2>Why</h2>
+    <p>The collapsed post reaction trigger currently renders the yellow Like sticker even when the viewer has not reacted. That makes an empty state look selected. It should instead begin as a neutral, outlined reaction affordance and switch to the selected reaction’s existing sticker after a successful reaction.</p>
+  </section>
+
+  <section>
+    <h2>What</h2>
+    <p>In the shared default reaction bar, render a muted outlined <code>ThumbsUp</code> icon while <code>summary.viewerEmoji</code> is <code>null</code>. When the viewer has reacted, preserve the existing selected sticker, picker interaction, mutations, summaries, and animations. The unreacted control’s accessible name becomes <q>React</q>; selected controls retain the named reaction label.</p>
+    <p><strong>Done when:</strong> an unreacted post, comment, or post photo presents the neutral icon; selecting a reaction replaces it with that reaction’s sticker; selecting the same reaction again returns it to neutral; and message reaction toolbars remain unchanged.</p>
+  </section>
+
+  <section>
+    <h2>Context</h2>
+    <ul>
+      <li><code>frontend/src/components/ReactionBar.tsx</code> owns the collapsed trigger, picker timing, request mutation, and display state for posts, comments, post images, and messages.</li>
+      <li>The default variant is used by <code>PostCard.tsx</code>, <code>CommentItem.tsx</code>, and <code>PostMediaGallery.tsx</code>. Their empty states will intentionally be consistent.</li>
+      <li>The message toolbar variant already uses the neutral <code>Smile</code> icon and is explicitly out of scope.</li>
+      <li><code>lucide-react</code> is already a frontend dependency and <code>ThumbsUp</code> matches the existing icon-button language. No asset or dependency is required.</li>
+      <li><code>ReactionIcon</code> falls back to the Like sticker for a null emoji. It remains correct for rendered reaction values, but must not be used for this empty trigger.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Constraints</h2>
+    <table>
+      <thead><tr><th>Must</th><th>Must not</th></tr></thead>
+      <tbody><tr>
+        <td><ul><li>Use a compact outlined icon—not a loading skeleton—only for the known unreacted state.</li><li>Preserve all existing API endpoints, set/switch/clear behavior, hover/touch picker interaction, summary counts, and reaction stickers after selection.</li><li>Size the neutral icon appropriately for the existing md and sm default trigger tokens.</li><li>Keep the toolbar variant unchanged.</li></ul></td>
+        <td><ul><li>No backend, schema, route, or response-contract changes.</li><li>No new dependency, icon pack, image asset, or duplicate reaction-state implementation.</li><li>No direct edits to post, comment, post-photo, or message consumers unless required to fix a verified integration break.</li><li>No skeleton: loading is not the state being represented.</li></ul></td>
+      </tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Risk &amp; blast radius</h2>
+    <div class="callout"><strong>Level 2 — Concern.</strong> <code>ReactionBar</code> is shared by three default content surfaces. A null fallback change can accidentally affect selected rendering, icon sizing, or screen-reader labels across all of them. <strong>Mitigation:</strong> branch explicitly on <code>viewerEmoji</code> only in the collapsed default trigger, preserve the existing <code>ReactionIcon</code> path for selected reactions, and validate set/switch/clear across each default consumer.</div>
+    <table>
+      <thead><tr><th>Consumer</th><th>Expected impact / verification</th></tr></thead>
+      <tbody>
+        <tr><td>Feed and standalone posts</td><td>Neutral outlined icon before reacting; selected sticker thereafter.</td></tr>
+        <tr><td>Comments and replies</td><td>Same neutral empty-state distinction at sm size; reply control unaffected.</td></tr>
+        <tr><td>Post-photo actions</td><td>Same behavior for post and per-photo reaction targets; endpoint selection unchanged.</td></tr>
+        <tr><td>Message toolbar</td><td>No visual or behavioral change; it retains its existing Smile trigger.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Tasks</h2>
+    <article class="task">
+      <h3>T1 — Render a neutral empty reaction trigger</h3>
+      <p><strong>Do:</strong> add the existing Lucide <code>ThumbsUp</code> import and render it only when the default reaction bar has no <code>viewerEmoji</code>. Add size tokens or classes as needed so md and sm icons align with their current control dimensions. Preserve the selected <code>ReactionIcon</code> path.</p>
+      <p><strong>Files:</strong> <code>frontend/src/components/ReactionBar.tsx</code></p>
+      <p><strong>Depends on:</strong> —</p>
+      <p><strong>Verify:</strong> A1, A2.</p>
+    </article>
+    <article class="task">
+      <h3>T2 — Correct the empty-state label and guard variants</h3>
+      <p><strong>Do:</strong> make the default unreacted trigger’s accessible label describe the available action (<q>React</q>), while retaining selected-reaction labels. Confirm toolbar and inline variants keep their present trigger content and labels.</p>
+      <p><strong>Files:</strong> <code>frontend/src/components/ReactionBar.tsx</code></p>
+      <p><strong>Depends on:</strong> T1</p>
+      <p><strong>Verify:</strong> A1–A3.</p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Verification</h2>
+    <ul>
+      <li>Run <code>npm run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm run build</code>.</li>
+      <li>Run the acceptance items in a contained <code>-tw</code> runtime and record actual evidence in <code>test-results.json</code>.</li>
+      <li>Confirm there are no new dependencies and no backend or consumer-file changes outside the planned component.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Done</h2>
+    <ul class="done">
+      <li>☑ Default unreacted reaction triggers use a neutral outlined icon at md and sm sizes.</li>
+      <li>☑ Selected reaction stickers, picker, summary, and set/switch/clear behavior are unchanged.</li>
+      <li>☑ The empty-state control announces <q>React</q>; selected controls retain their reaction names.</li>
+      <li>☑ Feed/post validation was confirmed by the user; shared comment/reply and post-photo use the same default component path.</li>
+      <li>☑ Message toolbar behavior is unchanged by its explicit toolbar variant path.</li>
+      <li>☑ Typecheck, lint, and build pass; local acceptance evidence is recorded in <code>test-results.json</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Revision Log</h2>
+    <p><strong>Rev 0 — 2026-08-07:</strong> Created from the request and attached post-card screenshot. Chose a neutral outlined icon instead of a skeleton because the null reaction state is known, not loading.</p>
+    <p><strong>Rev 1 — 2026-08-07:</strong> Began execution on <code>kylie/reaction-icon-fix</code>. The implementation remains within the approved scope: a neutral <code>ThumbsUp</code> only for the default unreacted trigger, existing reaction stickers after selection, and an empty-state accessible label of <q>React</q>.</p>
+    <p><strong>Rev 2 — 2026-08-07:</strong> Completed execution with no scope deviation. <code>npm run typecheck</code>, frontend lint, and <code>npm run build</code> pass. The user confirmed the local-server post behavior; shared default and toolbar paths were verified from their unchanged consumer wiring and recorded in the acceptance artifact.</p>
+  </section>
+</body>
+</html>

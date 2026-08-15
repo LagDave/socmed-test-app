@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { PenLine, Search, User, UserPlus, X } from "lucide-react";
+import { Search, User, X } from "lucide-react";
 import { api } from "@/api/client";
 import { openConversationWithUsername } from "@/api/messages";
 import type { PublicUser } from "@/api/types";
@@ -18,32 +18,26 @@ function matchesQuery(user: PublicUser, query: string): boolean {
   return name.includes(q) || username.includes(q);
 }
 
-function firstName(displayName: string): string {
-  const part = displayName.trim().split(/\s+/)[0];
-  return part || displayName;
-}
-
 type MessagesFriendPickerProps = {
   hasConversations: boolean;
-  existingPeerIds?: string[];
+  isSearchOpen: boolean;
+  onSearchOpenChange: (isOpen: boolean) => void;
+  onFriendPickerStatusChange?: (status: "ready" | "error") => void;
 };
 
 export function MessagesFriendPicker({
   hasConversations,
-  existingPeerIds = [],
+  isSearchOpen,
+  onSearchOpenChange,
+  onFriendPickerStatusChange,
 }: MessagesFriendPickerProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
-  const searchToggleRef = useRef<HTMLButtonElement>(null);
   const [mutuals, setMutuals] = useState<PublicUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
-
-  const existingSet = new Set(existingPeerIds);
-  const newChatFriends = mutuals.filter((u) => !existingSet.has(u.id));
 
   useEffect(() => {
     let cancelled = false;
@@ -66,22 +60,26 @@ export function MessagesFriendPicker({
   }, []);
 
   useEffect(() => {
-    if (!searchOpen) return;
-    inputRef.current?.focus();
-  }, [searchOpen]);
+    if (isSearchOpen) inputRef.current?.focus();
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (!loading) {
+      onFriendPickerStatusChange?.(error ? "error" : "ready");
+    }
+  }, [error, loading, onFriendPickerStatusChange]);
 
   function closeSearch() {
-    setSearchOpen(false);
+    onSearchOpenChange(false);
     setQuery("");
-    searchToggleRef.current?.focus();
   }
 
   function toggleSearch() {
-    if (searchOpen) {
+    if (isSearchOpen) {
       closeSearch();
       return;
     }
-    setSearchOpen(true);
+    onSearchOpenChange(true);
   }
 
   async function openChat(username: string | null) {
@@ -99,57 +97,41 @@ export function MessagesFriendPicker({
   }
 
   const filtered = mutuals.filter((u) => matchesQuery(u, query));
-  const compactMode = hasConversations && !searchOpen;
-  const showComposeStrip = compactMode && newChatFriends.length > 0;
+  const compactMode = hasConversations && !isSearchOpen;
 
   return (
     <section className={cn(compactMode && "messages-compose-section")}>
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="messages-section-label">
-          {hasConversations ? "New message" : "Friends"}
-          {!loading && mutuals.length > 0 && !compactMode && (
-            <span className="font-normal normal-case tracking-normal text-muted-foreground">
-              {" "}
-              ({mutuals.length})
-            </span>
-          )}
-        </h2>
-        <div className="flex items-center gap-0.5">
-          {!loading && mutuals.length > 0 && (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="size-8"
-              aria-label="Manage friends"
-              asChild
-            >
-              <Link to="/friends">
-                <UserPlus className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </Button>
-          )}
+      {!hasConversations && (
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="messages-section-label">
+            Friends
+            {!loading && mutuals.length > 0 && !compactMode && (
+              <span className="font-normal normal-case tracking-normal text-muted-foreground">
+                {" "}
+                ({mutuals.length})
+              </span>
+            )}
+          </h2>
           <Button
-            ref={searchToggleRef}
             type="button"
             size="icon"
             variant="ghost"
             className="size-8"
-            aria-expanded={searchOpen}
-            aria-label={searchOpen ? "Close search" : "Search friends"}
+            aria-expanded={isSearchOpen}
+            aria-label={isSearchOpen ? "Close search" : "Search friends"}
             onClick={toggleSearch}
           >
-            {searchOpen ? (
+            {isSearchOpen ? (
               <X className="h-4 w-4" aria-hidden="true" />
             ) : (
               <Search className="h-4 w-4" aria-hidden="true" />
             )}
           </Button>
         </div>
-      </div>
+      )}
 
-      {searchOpen && (
-        <div className="mt-3">
+      {isSearchOpen && (
+        <div className={cn("mt-3", hasConversations && "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2")}>
           <Input
             ref={inputRef}
             value={query}
@@ -164,6 +146,18 @@ export function MessagesFriendPicker({
             aria-label="Search friends"
             className="rounded-full bg-secondary/60 border-border/60"
           />
+          {hasConversations && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="size-8"
+              aria-label="Close search"
+              onClick={closeSearch}
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
         </div>
       )}
 
@@ -203,7 +197,7 @@ export function MessagesFriendPicker({
             <Link to="/friends">Manage friends</Link>
           </Button>
         </div>
-      ) : searchOpen ? (
+      ) : isSearchOpen ? (
         filtered.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No matching friends</p>
         ) : (
@@ -215,40 +209,7 @@ export function MessagesFriendPicker({
             ))}
           </ul>
         )
-      ) : showComposeStrip ? (
-        <div className="messages-compose-strip mt-3">
-          {newChatFriends.map((u) => (
-            <button
-              key={u.id}
-              type="button"
-              disabled={opening || !u.username}
-              className="messages-compose-chip group disabled:opacity-50"
-              onClick={() => void openChat(u.username)}
-            >
-              <span className="rounded-full ring-2 ring-transparent transition group-hover:ring-border/80 group-focus-visible:ring-ring">
-                <ProfileAvatar
-                  displayName={u.displayName}
-                  avatarUrl={u.avatarUrl}
-                  size="sm"
-                  className="size-12"
-                />
-              </span>
-              <span className="w-full truncate text-center text-[11px] font-medium leading-tight text-foreground">
-                {firstName(u.displayName)}
-              </span>
-            </button>
-          ))}
-        </div>
-      ) : compactMode ? (
-        <button
-          type="button"
-          className="mt-3 flex w-full items-center gap-3 rounded-full border border-border/60 bg-secondary/40 px-4 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-secondary/70"
-          onClick={toggleSearch}
-        >
-          <PenLine className="size-4 shrink-0" aria-hidden="true" />
-          <span>Search friends to message…</span>
-        </button>
-      ) : (
+      ) : !compactMode ? (
         <ul className="mt-2 divide-y divide-border">
           {mutuals.map((u) => (
             <li key={u.id}>
@@ -256,7 +217,7 @@ export function MessagesFriendPicker({
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
     </section>
   );
 }
@@ -280,9 +241,6 @@ function FriendListButton({
       <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-semibold">{user.displayName}</span>
-        {user.username && (
-          <span className="block truncate text-sm text-muted-foreground">@{user.username}</span>
-        )}
       </span>
     </button>
   );

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Settings } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Settings, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
 import { deleteConversation, setConversationPriority } from "@/api/messages";
@@ -12,6 +12,7 @@ import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInboxPeerTyping } from "@/hooks/useTypingIndicator";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type PendingDeleteConversation = { id: string; peerName: string };
 
@@ -27,6 +28,10 @@ export function InboxView() {
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteConversation | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [prioritySavingConversationId, setPrioritySavingConversationId] = useState<string | null>(null);
+  const newMessageTriggerRef = useRef<HTMLButtonElement>(null);
+  const shouldRestoreNewMessageTriggerFocusRef = useRef(false);
+  const [isNewMessagePickerOpen, setIsNewMessagePickerOpen] = useState(false);
+  const [friendPickerStatus, setFriendPickerStatus] = useState<"ready" | "error" | null>(null);
 
   function requestDelete(id: string, peerName: string) {
     setPendingDelete({ id, peerName });
@@ -79,6 +84,18 @@ export function InboxView() {
   }, []);
 
   useEffect(() => {
+    if (!isNewMessagePickerOpen && shouldRestoreNewMessageTriggerFocusRef.current) {
+      newMessageTriggerRef.current?.focus();
+      shouldRestoreNewMessageTriggerFocusRef.current = false;
+    }
+  }, [isNewMessagePickerOpen]);
+
+  function handleNewMessagePickerOpenChange(isOpen: boolean) {
+    if (!isOpen) shouldRestoreNewMessageTriggerFocusRef.current = true;
+    setIsNewMessagePickerOpen(isOpen);
+  }
+
+  useEffect(() => {
     const socket = getMessagesSocket();
     const onUpdated = () => {
       void reloadInbox();
@@ -107,6 +124,17 @@ export function InboxView() {
               {unreadTotal} unread
             </span>
           )}
+          <Button
+            ref={newMessageTriggerRef}
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="New message"
+            aria-expanded={isNewMessagePickerOpen}
+            onClick={() => handleNewMessagePickerOpenChange(true)}
+          >
+            <UserPlus className="h-5 w-5" />
+          </Button>
           <Button asChild variant="ghost" size="icon">
             <Link to="/messages/settings" aria-label="Message settings">
               <Settings className="h-5 w-5" />
@@ -118,10 +146,17 @@ export function InboxView() {
       <div className="feed-card overflow-hidden shadow-sm">
         {error && <MessagesErrorBanner message={error} />}
 
-        <div className="messages-inbox-compose px-4 py-4">
+        <div
+          className={cn(
+            "messages-inbox-compose px-4 py-4",
+            items.length > 0 && !isNewMessagePickerOpen && friendPickerStatus === "ready" && "hidden"
+          )}
+        >
           <MessagesFriendPicker
             hasConversations={items.length > 0}
-            existingPeerIds={items.map((c) => c.peer.id)}
+            isSearchOpen={isNewMessagePickerOpen}
+            onSearchOpenChange={handleNewMessagePickerOpenChange}
+            onFriendPickerStatusChange={setFriendPickerStatus}
           />
         </div>
 

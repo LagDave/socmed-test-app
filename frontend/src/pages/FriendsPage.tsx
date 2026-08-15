@@ -140,25 +140,17 @@ export function FriendsPage() {
             Send requests, manage incoming invites, and message mutuals.
           </p>
         </div>
-        {!loading && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="friends-stat-chip">
-              {mutuals.length} <span className="friends-stat-chip-muted">friends</span>
-            </span>
-            {pendingCount > 0 && (
-              <span className="friends-stat-chip bg-primary text-primary-foreground">
-                {pendingCount} pending
-              </span>
-            )}
-          </div>
+        {!loading && pendingCount > 0 && (
+          <span className="friends-stat-chip bg-primary text-primary-foreground">
+            {pendingCount} pending
+          </span>
         )}
       </div>
 
       {loading ? (
         <FriendsDashboardSkeleton />
       ) : (
-        <div className="friends-page-canvas">
-          <div className="feed-card friends-dashboard-card overflow-hidden">
+        <div className="feed-card overflow-hidden shadow-sm">
           {displayError && (
             <p className="border-b border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
               {displayError}
@@ -173,7 +165,7 @@ export function FriendsPage() {
             }}
           />
 
-          <FriendsSection title="Friend Requests" count={incoming.length}>
+          <FriendsSection title="Friend Requests" count={incoming.length} divided={false}>
             {incoming.length === 0 ? (
               <FriendsEmptyState
                 icon="request"
@@ -317,7 +309,6 @@ export function FriendsPage() {
               </ul>
             )}
           </FriendsSection>
-          </div>
         </div>
       )}
 

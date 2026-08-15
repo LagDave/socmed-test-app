@@ -1,6 +1,6 @@
 import { useState, type MouseEvent, type TouchEvent } from "react";
 import { Link } from "react-router-dom";
-import { MoreVertical, Pin, PinOff, Reply } from "lucide-react";
+import { MoreVertical, Reply } from "lucide-react";
 import type { MessageView, PublicUser } from "@/api/types";
 import { MessageQuoteStrip } from "@/components/MessageQuoteStrip";
 import { ReactionBar } from "@/components/ReactionBar";
@@ -10,6 +10,7 @@ import { ViewChatImageDialog } from "@/components/ViewChatImageDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuArrow,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
@@ -24,27 +25,42 @@ import { cn } from "@/lib/utils";
 const messageActionBtnClass =
   "flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground";
 
-function messageReactionEmoji(summary: MessageView["reactionSummary"]): ReactionEmoji | null {
-  if (summary.viewerEmoji) return summary.viewerEmoji;
-  return REACTION_OPTIONS.find((option) => summary.counts[option.emoji] > 0)?.emoji ?? null;
+const MINIMUM_COUNT_FOR_REACTION_TOTAL = 2;
+
+function messageReactionEntries(summary: MessageView["reactionSummary"]) {
+  return REACTION_OPTIONS.map(({ emoji }) => ({ emoji, count: summary.counts[emoji] })).filter(
+    ({ count }) => count > 0
+  );
 }
 
 function MessageReactionBadge({
-  emoji,
+  reactions,
   mine,
+  themed,
 }: {
-  emoji: ReactionEmoji;
+  reactions: Array<{ emoji: ReactionEmoji; count: number }>;
   mine: boolean;
+  themed: boolean;
 }) {
   return (
     <span
       className={cn(
-        "message-reaction-badge absolute bottom-0 z-20 inline-flex translate-y-[30%] items-center justify-center rounded-full bg-white p-px shadow-[0_1px_2px_rgba(0,0,0,0.1)]",
+        "message-reaction-badge absolute bottom-0 z-20 inline-flex translate-y-[30%] items-center gap-0.5 rounded-full px-1 py-px shadow-[0_1px_2px_rgba(0,0,0,0.1)]",
+        themed
+          ? "border border-[var(--chat-accent)] bg-[color-mix(in_srgb,var(--chat-accent)_14%,white)] text-black"
+          : "bg-white text-black",
         mine ? "right-2" : "left-1"
       )}
       aria-hidden="true"
     >
-      <ReactionIcon emoji={emoji} className="text-base leading-none" />
+      {reactions.map(({ emoji, count }) => (
+        <span key={emoji} className="inline-flex items-center gap-px">
+          <ReactionIcon emoji={emoji} className="text-base leading-none" />
+          {count >= MINIMUM_COUNT_FOR_REACTION_TOTAL && (
+            <span className="text-[11px] font-semibold leading-none">{count}</span>
+          )}
+        </span>
+      ))}
     </span>
   );
 }
@@ -76,12 +92,15 @@ function MessageActionToolbar({
   onPinChange?: (id: string, isPinned: boolean) => void;
   onError: (message: string) => void;
 }) {
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+
   return (
     <div
       className={cn(
         "message-action-toolbar flex shrink-0 items-center gap-0 self-center transition-opacity",
         mine && "flex-row-reverse",
         "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+        isOptionsMenuOpen && "opacity-100",
         touchRevealed && "opacity-100"
       )}
       onClick={(e) => e.stopPropagation()}
@@ -105,7 +124,7 @@ function MessageActionToolbar({
         <Reply className="h-[15px] w-[15px]" strokeWidth={1.75} aria-hidden="true" />
       </button>
       {(
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={setIsOptionsMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               type="button"
@@ -117,12 +136,17 @@ function MessageActionToolbar({
               <MoreVertical className="h-[15px] w-[15px]" strokeWidth={1.75} aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" side={mine ? "left" : "right"}>
+          <DropdownMenuContent
+            align="center"
+            side="top"
+            sideOffset={10}
+            className="overflow-visible rounded-2xl border-border/70 px-1.5 py-1.5 shadow-lg shadow-black/10"
+          >
+            <DropdownMenuArrow className="-mt-px fill-popover" width={18} height={9} />
             <DropdownMenuItem
               disabled={pinSaving || !onPinChange}
               onSelect={() => onPinChange?.(message.id, !isPinned)}
             >
-              {isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
               {isPinned ? "Unpin message" : "Pin message"}
             </DropdownMenuItem>
             {canEdit && (
@@ -194,8 +218,8 @@ export function MessageBubbleRow({
   const [timestampVisible, setTimestampVisible] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const canEdit = mine && !message.isUnsent && Boolean(message.body?.trim());
-  const reactionEmoji = messageReactionEmoji(message.reactionSummary);
-  const showReactionBadge = !message.isUnsent && reactionEmoji !== null;
+  const reactionEntries = messageReactionEntries(message.reactionSummary);
+  const showReactionBadge = !message.isUnsent && reactionEntries.length > 0;
   const imageOnlyPlain = Boolean(
     !message.isUnsent && message.imageUrl && !message.body?.trim() && !message.replyTo
   );
@@ -323,8 +347,8 @@ export function MessageBubbleRow({
                     </>
                   )}
                 </div>
-                {showReactionBadge && reactionEmoji && (
-                  <MessageReactionBadge emoji={reactionEmoji} mine={mine} />
+                {showReactionBadge && (
+                  <MessageReactionBadge reactions={reactionEntries} mine={mine} themed={themed} />
                 )}
               </div>
               {!message.isUnsent && !isBeingEdited && (

@@ -19,11 +19,11 @@ export class PostModel {
     imageUrl?: string | null;
     imageUrls?: string[] | null;
     sharedFromPostId?: string | null;
-  }): Promise<PostRow> {
+  }, trx?: Knex.Transaction): Promise<PostRow> {
     const urls = input.imageUrls ?? (input.imageUrl ? [input.imageUrl] : []);
 
-    return db.transaction(async (trx) => {
-      const [row] = await trx<PostRow>("posts")
+    const createInTransaction = async (transaction: Knex.Transaction): Promise<PostRow> => {
+      const [row] = await transaction<PostRow>("posts")
         .insert({
           author_id: input.authorId,
           body: input.body,
@@ -33,11 +33,13 @@ export class PostModel {
         .returning("*");
 
       if (urls.length > 0) {
-        await PostImageModel.insertMany(row.id, urls, trx);
+        await PostImageModel.insertMany(row.id, urls, transaction);
       }
 
       return row;
-    });
+    };
+
+    return trx ? createInTransaction(trx) : db.transaction(createInTransaction);
   }
 
   static async findById(id: string): Promise<PostRow | undefined> {

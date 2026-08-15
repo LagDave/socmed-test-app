@@ -22,9 +22,6 @@ export function FriendListRow({ user, actions }: FriendListRowProps) {
         <FriendPresenceAvatar user={user} className="h-11 w-11 text-base" />
         <span className="min-w-0">
           <span className="block truncate text-[15px] font-semibold leading-snug">{user.displayName}</span>
-          {user.username ? (
-            <span className="block truncate text-sm text-muted-foreground">@{user.username}</span>
-          ) : null}
         </span>
       </Link>
       <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">{actions}</div>

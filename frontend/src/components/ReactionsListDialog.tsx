@@ -193,9 +193,6 @@ export function ReactionsListDialog({
                 />
                 <span className="min-w-0 flex-1 truncate text-sm">
                   <span className="font-semibold">{entry.user.displayName}</span>
-                  {entry.user.username ? (
-                    <span className="font-normal text-muted-foreground">{` @${entry.user.username}`}</span>
-                  ) : null}
                 </span>
                 <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-muted/70 transition-colors group-hover:bg-background">
                   <ReactionIcon emoji={entry.emoji} className="text-base" />

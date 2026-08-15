@@ -1,0 +1,38 @@
+{
+  "planId": "08072026-message-gap",
+  "title": "Message bubble gap",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "thread-bubble-gap",
+      "title": "Consecutive message bubble spacing",
+      "surface": "ui",
+      "precondition": "Local app is running and a conversation contains consecutive messages from the same sender.",
+      "steps": [
+        "Open a message thread in the local app.",
+        "Inspect consecutive grouped and ungrouped bubbles.",
+        "Compare their vertical spacing with the approved reference."
+      ],
+      "expected": "Grouped and ungrouped consecutive message rows use a consistent 3px gap; reaction-row spacing is unchanged.",
+      "status": "pass",
+      "evidence": "User completed local visual acceptance on 2026-08-07 after selecting the final 3px value.",
+      "notes": "Vite hot reload applied the CSS while the local app was running.",
+      "waiver": null
+    },
+    {
+      "id": "frontend-verification",
+      "title": "Type-check and lint",
+      "surface": "cli",
+      "precondition": "Final CSS and plan changes are present.",
+      "steps": [
+        "Run npm run typecheck.",
+        "Run npm --prefix frontend run lint."
+      ],
+      "expected": "Type-check exits 0 and lint introduces no new warnings or errors.",
+      "status": "pass",
+      "evidence": "Both commands exited 0 on 2026-08-07. Lint reported six pre-existing warnings in MessageQuoteStrip, PostDetailPage, PostPhotoCommentsPage, AuthContext, and ThemeContext.",
+      "notes": "No automated CSS-specific test exists; visual acceptance is covered above.",
+      "waiver": null
+    }
+  ]
+}

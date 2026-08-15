@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Message bubble gap</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; margin: auto; max-width: 900px; padding: 32px; color: #18181b; }
+    section { border: 1px solid #d4d4d8; border-radius: 8px; padding: 20px; margin: 16px 0; }
+    code { background: #f4f4f5; padding: 2px 4px; }
+    .status { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="status">Status: Completed</p>
+    <h1>Message bubble gap</h1>
+    <p>Plan folder: <code>plans/08072026-message-gap</code> · Execution branch: <code>kylie/message-gap → dev</code> · Risk: Level 1.</p>
+  </header>
+
+  <section>
+    <h2>Why / what</h2>
+    <p>Consecutive chat bubbles were closer together than the approved visual reference. Set their shared vertical gap to 3px.</p>
+    <p>Done when grouped and ungrouped consecutive message rows use the same named 3px spacing value, reaction-row spacing remains 10px, and the rendered thread is accepted locally.</p>
+  </section>
+
+  <section>
+    <h2>Context / constraints</h2>
+    <p>Change only <code>frontend/src/index.css</code>, specifically the thread-list row margins. Preserve bubble shapes, shadows, reactions, timestamps, and all non-message row spacing. No dependencies, API, state, or behavior changes.</p>
+  </section>
+
+  <section>
+    <h2>Risk</h2>
+    <p><strong>Level 1:</strong> CSS-only visual adjustment limited to message-thread row spacing. The named custom property keeps grouped and ungrouped rows aligned; the reaction override remains explicit.</p>
+  </section>
+
+  <section>
+    <h2>Tasks</h2>
+    <ol>
+      <li><strong>T1 — Apply shared gap.</strong> Do: define and use a named 3px thread-item gap. Files: <code>frontend/src/index.css</code>. Depends on: none. Verify: both normal margin rules reference the custom property.</li>
+      <li><strong>T2 — Validate.</strong> Do: check types, lint, and visually inspect the local message thread. Files: no code files. Depends on: T1. Verify: commands pass and the user accepts the local render.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Done</h2>
+    <ul>
+      <li>3px shared gap applied to grouped and ungrouped message rows.</li>
+      <li>Existing 10px reaction-row spacing unchanged.</li>
+      <li>Root type-check passes.</li>
+      <li>Frontend lint completes with no new warnings.</li>
+      <li>Local visual acceptance recorded in <code>test-results.json</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Revision log</h2>
+    <p><strong>Rev 1 — 08072026:</strong> Instant execution after local visual comparison. Recorded the final approved 3px value and acceptance evidence; no scope expansion.</p>
+  </section>
+</body>
+</html>
