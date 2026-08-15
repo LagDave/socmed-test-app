@@ -22,15 +22,15 @@ export function FriendsEmptyState({
 }: FriendsEmptyStateProps) {
   const Icon = ICONS[icon];
   return (
-    <div className="friends-empty-state">
-      <span className="friends-empty-state-icon">
-        <Icon className="h-5 w-5 text-muted-foreground/80" aria-hidden="true" strokeWidth={1.25} />
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+      <span className="flex size-16 items-center justify-center rounded-full border border-border/60 bg-secondary/80 shadow-sm">
+        <Icon className="size-7 text-muted-foreground/80" aria-hidden="true" strokeWidth={1.25} />
       </span>
-      <div className="friends-empty-state-copy">
-        <p className="friends-empty-state-title">{title}</p>
-        <p className="friends-empty-state-description">{description}</p>
+      <div className="space-y-1.5">
+        <p className="text-base font-semibold tracking-tight">{title}</p>
+        <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">{description}</p>
       </div>
-      {action ? <div className="friends-empty-state-action">{action}</div> : null}
+      {action}
     </div>
   );
 }
@@ -52,26 +52,19 @@ export function FriendsRowSkeleton() {
 
 export function FriendsDashboardSkeleton() {
   return (
-    <div className="feed-card overflow-hidden shadow-sm" aria-hidden="true">
-      <div className="friends-add-strip">
-        <div className="feed-skeleton h-11 w-full rounded-full" />
-      </div>
-      <div>
-        <div className="friends-section-header">
-          <div className="feed-skeleton h-3 w-24 rounded-md" />
+    <div className="friends-dashboard-skeleton" aria-hidden="true">
+      <div className="flex items-center justify-between gap-4 border-b border-border px-1 pb-3">
+        <div className="flex gap-5">
+          <div className="feed-skeleton h-5 w-16 rounded-md" />
+          <div className="feed-skeleton h-5 w-20 rounded-md" />
+          <div className="feed-skeleton h-5 w-20 rounded-md" />
         </div>
-        <ul className="friends-section-body divide-y divide-border/60">
+        <div className="feed-skeleton h-5 w-24 rounded-md" />
+      </div>
+      <div className="friends-content-section" aria-hidden="true">
+        <div className="feed-skeleton h-5 w-28 rounded-md" />
+        <ul className="friends-list mt-4">
           {Array.from({ length: 2 }, (_, i) => (
-            <FriendsRowSkeleton key={i} />
-          ))}
-        </ul>
-      </div>
-      <div className="friends-section-divider">
-        <div className="friends-section-header">
-          <div className="feed-skeleton h-3 w-16 rounded-md" />
-        </div>
-        <ul className="friends-section-body divide-y divide-border/60">
-          {Array.from({ length: 4 }, (_, i) => (
             <FriendsRowSkeleton key={i} />
           ))}
         </ul>

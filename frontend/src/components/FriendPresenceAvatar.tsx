@@ -8,7 +8,7 @@ export function FriendPresenceAvatar({
   size = "sm",
   className,
 }: {
-  user: PublicUser;
+  user: Pick<PublicUser, "id" | "displayName" | "avatarUrl" | "isOnline">;
   size?: ProfileAvatarSize;
   className?: string;
 }) {

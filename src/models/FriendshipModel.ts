@@ -12,6 +12,14 @@ export type FriendshipRow = {
   updated_at: Date;
 };
 
+export type SuggestedFriendRow = {
+  id: string;
+  display_name: string;
+  username: string;
+  avatar_url: string | null;
+  mutual_friend_count: number;
+};
+
 export function orderedPair(userId: string, otherId: string): { userA: string; userB: string } {
   return userId < otherId
     ? { userA: userId, userB: otherId }
@@ -62,6 +70,55 @@ export class FriendshipModel {
       .where({ status: "accepted" })
       .andWhere((q) => q.where({ user_a: userId }).orWhere({ user_b: userId }));
     return rows.map((r) => (r.user_a === userId ? r.user_b : r.user_a));
+  }
+
+  static async listSuggestedFriends(userId: string, limit: number): Promise<SuggestedFriendRow[]> {
+    const result = await db.raw<{ rows: SuggestedFriendRow[] }>(
+      `
+        WITH my_friends AS (
+          SELECT CASE WHEN user_a = ? THEN user_b ELSE user_a END AS friend_id
+          FROM friendships
+          WHERE status = 'accepted'
+            AND (? = user_a OR ? = user_b)
+        ),
+        candidates AS (
+          SELECT CASE
+            WHEN candidate_friendship.user_a = my_friends.friend_id THEN candidate_friendship.user_b
+            ELSE candidate_friendship.user_a
+          END AS candidate_id
+          FROM friendships AS candidate_friendship
+          INNER JOIN my_friends
+            ON candidate_friendship.user_a = my_friends.friend_id
+            OR candidate_friendship.user_b = my_friends.friend_id
+          WHERE candidate_friendship.status = 'accepted'
+            AND candidate_friendship.user_a <> ?
+            AND candidate_friendship.user_b <> ?
+        )
+        SELECT
+          users.id,
+          users.display_name,
+          users.username,
+          users.avatar_url,
+          COUNT(*)::int AS mutual_friend_count
+        FROM candidates
+        INNER JOIN users ON users.id = candidates.candidate_id
+        WHERE users.username IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM friendships AS existing_friendship
+            WHERE existing_friendship.status IN ('accepted', 'pending')
+              AND (
+                (existing_friendship.user_a = ? AND existing_friendship.user_b = candidates.candidate_id)
+                OR (existing_friendship.user_b = ? AND existing_friendship.user_a = candidates.candidate_id)
+              )
+          )
+        GROUP BY users.id, users.display_name, users.username, users.avatar_url
+        ORDER BY mutual_friend_count DESC, lower(users.display_name) ASC, users.id ASC
+        LIMIT ?
+      `,
+      [userId, userId, userId, userId, userId, userId, userId, limit]
+    );
+    return result.rows;
   }
 
   static async areFriends(userId: string, otherId: string): Promise<boolean> {

@@ -59,6 +59,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 59 | `08082026-49-chat-timestamp-reduce` | Compact time-only chat gap separators |
 | 60 | `08082026-pin-message-arrow` | Connected pin-menu caret on message options |
 | 61 | `08072026-50-reaction-share-notifications` | Activity notifications for reactions and post shares |
+| 62 | `08152026-friends-ui-revamp` | Friends navigation, suggestions, and presence polish |
 
 ## Branch → host (hard rule)
 

@@ -5,6 +5,17 @@ import { toPublicUser, type PublicUser } from "../types/user";
 import { NotificationService } from "./NotificationService";
 import { isUserOnline } from "../realtime/PresenceRealtime";
 
+const FRIEND_SUGGESTION_LIMIT = 6;
+
+export type FriendSuggestion = {
+  id: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  isOnline: boolean;
+  mutualFriendCount: number;
+};
+
 export class FriendshipService {
   static async request(userId: string, targetUsername: string) {
     const target = await UserModel.findByUsername(targetUsername);
@@ -66,10 +77,22 @@ export class FriendshipService {
 
   static async mutuals(userId: string): Promise<PublicUser[]> {
     const ids = await FriendshipModel.listAcceptedMutualIds(userId);
-    const users = await Promise.all(ids.map((id) => UserModel.findById(id)));
-    return users.filter(Boolean).map((user) => ({
-      ...toPublicUser(user!),
-      isOnline: isUserOnline(user!.id),
+    const users = await UserModel.findByIds(ids);
+    return users.map((user) => ({
+      ...toPublicUser(user),
+      isOnline: isUserOnline(user.id),
+    }));
+  }
+
+  static async suggestions(userId: string): Promise<FriendSuggestion[]> {
+    const rows = await FriendshipModel.listSuggestedFriends(userId, FRIEND_SUGGESTION_LIMIT);
+    return rows.map((row) => ({
+      id: row.id,
+      displayName: row.display_name,
+      username: row.username,
+      avatarUrl: row.avatar_url,
+      isOnline: isUserOnline(row.id),
+      mutualFriendCount: row.mutual_friend_count,
     }));
   }
 

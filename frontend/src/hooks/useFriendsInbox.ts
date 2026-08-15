@@ -1,13 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "@/api/client";
-import type { PublicUser } from "@/api/types";
+import {
+  acceptFriendRequest,
+  cancelFriendRequest,
+  declineFriendRequest,
+  getFriendSuggestions,
+  getFriendsInbox,
+  getMutualFriends,
+  removeFriend,
+  sendFriendRequest,
+  type FriendInboxItem,
+} from "@/api/friends";
+import type { FriendSuggestion, PublicUser } from "@/api/types";
 
-export type InboxItem = { id: string; status: string; user: PublicUser };
+export type InboxItem = FriendInboxItem;
 
 export function useFriendsInbox() {
   const [incoming, setIncoming] = useState<InboxItem[]>([]);
   const [outgoing, setOutgoing] = useState<InboxItem[]>([]);
   const [mutuals, setMutuals] = useState<PublicUser[]>([]);
+  const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const loadingRef = useRef(false);
@@ -18,13 +29,15 @@ export function useFriendsInbox() {
     setLoading(true);
     setError(null);
     try {
-      const [inbox, mutualsData] = await Promise.all([
-        api.get<{ incoming: InboxItem[]; outgoing: InboxItem[] }>("/api/friends/inbox"),
-        api.get<{ users: PublicUser[] }>("/api/friends/mutuals"),
+      const [inbox, mutualsData, suggestionsData] = await Promise.all([
+        getFriendsInbox(),
+        getMutualFriends(),
+        getFriendSuggestions(),
       ]);
       setIncoming(inbox.incoming);
       setOutgoing(inbox.outgoing);
       setMutuals(mutualsData.users);
+      setSuggestions(suggestionsData.users);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load friends");
     } finally {
@@ -40,7 +53,7 @@ export function useFriendsInbox() {
   async function sendRequest(username: string) {
     setError(null);
     try {
-      await api.post("/api/friends/request", { username });
+      await sendFriendRequest(username);
       await refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to send request";
@@ -52,7 +65,7 @@ export function useFriendsInbox() {
   async function acceptRequest(id: string) {
     setError(null);
     try {
-      await api.post(`/api/friends/${id}/accept`);
+      await acceptFriendRequest(id);
       await refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to accept request";
@@ -64,7 +77,7 @@ export function useFriendsInbox() {
   async function declineRequest(id: string) {
     setError(null);
     try {
-      await api.post(`/api/friends/${id}/decline`);
+      await declineFriendRequest(id);
       await refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to decline request";
@@ -76,7 +89,7 @@ export function useFriendsInbox() {
   async function cancelRequest(id: string) {
     setError(null);
     try {
-      await api.delete(`/api/friends/${id}`);
+      await cancelFriendRequest(id);
       await refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to cancel request";
@@ -88,7 +101,7 @@ export function useFriendsInbox() {
   async function unfriend(userId: string) {
     setError(null);
     try {
-      await api.delete(`/api/friends/user/${userId}`);
+      await removeFriend(userId);
       await refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to unfriend";
@@ -101,6 +114,7 @@ export function useFriendsInbox() {
     incoming,
     outgoing,
     mutuals,
+    suggestions,
     loading,
     error,
     refresh,
