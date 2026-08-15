@@ -1,11 +1,12 @@
 # Changelog
 
-## 0.1.38 — 2026-08-09
+## 0.1.38 — 2026-08-15
 
 ### Changed
 - Removed visible `@username` labels from posts, shares, comments, reactions, friends, messages, profile, and navbar surfaces while preserving display names and username-based identity behavior
 - Restored compact relative timestamps globally: `now`, `8min`, `4hr`, `2d`, `3w`, `5mo`, and `1yr`, with clear future-time output
 - Moved comment and reply timestamps beside the author name while preserving absolute hover timestamps and Like/Reply controls
+- Chat timeline separators after ten-minute message gaps now display a compact local time (for example, `9:18 PM`) instead of the full date and time
 - Set a consistent 3px vertical gap between consecutive chat-bubble rows.
 - Replaced pinned-message cards with compact, plain in-thread system logs
 - Personalized pin activity copy: actors see “You pinned a message”; other participants see the actor’s first name only
@@ -21,6 +22,7 @@
 ### Plans
 - `plans/08072026-remove-visible-usernames` — completed on `kylie/simplify-identity-ui`
 - `plans/08072026-compact-relative-timestamps` — completed on `kylie/compact-relative-timestamps`
+- `plans/08082026-49-chat-timestamp-reduce` — completed on `kylie/chat-timestamp-reduce`
 - `plans/08072026-message-gap` — completed on `kylie/message-gap`
 - `plans/08072026-pinned-message-gap-fix` — completed on `kylie/pinned-message-gap-fix`
 - `plans/08072026-remove-new-message-header` — completed on `kylie/message-ui`
