@@ -13,10 +13,11 @@
         "Hover the main Friends dashboard card and compare it with its resting state.",
         "Verify the Friends content wrapper is absent and the section title aligns to the navigation’s left edge.",
         "Inspect individual friend rows at rest, on hover, and when keyboard focused.",
+        "Verify consecutive friend rows have no blank gap between them while their actions remain comfortably usable.",
         "Toggle the existing dark theme and inspect again.",
         "Open a non-Friends route such as Feed or Messages."
       ],
-      "expected": "The route presents a calmer Friends surface without a purple accent, content wrapper, dashboard shadow, or individual friend-row card surface; the section title aligns to the navigation and keyboard focus remains visible; other routes keep their existing card styling.",
+      "expected": "The route presents a calmer Friends surface without a purple accent, content wrapper, dashboard shadow, or individual friend-row card surface; entries are compact with no blank list gap, keyboard focus remains visible, and other routes keep their existing card styling.",
       "status": "pending",
       "evidence": "",
       "notes": "",

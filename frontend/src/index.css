@@ -1098,7 +1098,7 @@ body {
 .friends-list,
 .friends-request-groups {
   display: grid;
-  gap: 0.625rem;
+  gap: 0;
   margin: 0;
   padding: 0;
 }
