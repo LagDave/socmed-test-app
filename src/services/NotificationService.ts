@@ -1,4 +1,14 @@
-import { NotificationModel, type NotificationType } from "../models/NotificationModel";
+import type { Knex } from "knex";
+import {
+  ACTIVITY_NOTIFICATION_TYPES,
+  NotificationModel,
+  type NotificationRow,
+  type NotificationType,
+  type ReactionNotificationInput,
+  type ReactionNotificationTarget,
+  type ReactionNotificationUpsert,
+} from "../models/NotificationModel";
+import type { ReactionEmoji } from "../models/ReactionModel";
 import { UserModel } from "../models/UserModel";
 import { FriendshipModel } from "../models/FriendshipModel";
 import { PostModel } from "../models/PostModel";
@@ -25,12 +35,15 @@ export type NotificationView = {
   commentId: string | null;
   postImageId: string | null;
   friendshipId: string | null;
+  reactionEmoji: ReactionNotificationInput["reactionEmoji"] | null;
   message: string;
 };
 
-const ACTIVITY_TYPES: NotificationType[] = ["comment_on_post", "comment_on_photo", "comment_reply"];
-
-function messageFor(type: NotificationType, actorName: string): string {
+function messageFor(
+  type: NotificationType,
+  actorName: string,
+  reactionEmoji: ReactionNotificationInput["reactionEmoji"] | null
+): string {
   switch (type) {
     case "friend_request":
       return `${actorName} sent you a friend request`;
@@ -40,12 +53,52 @@ function messageFor(type: NotificationType, actorName: string): string {
       return `${actorName} commented on your photo`;
     case "comment_reply":
       return `${actorName} replied to your comment`;
+    case "reaction_on_post":
+      return reactionEmoji === "like"
+        ? `${actorName} liked your post`
+        : `${actorName} reacted ${reactionGlyph(reactionEmoji)} to your post`;
+    case "reaction_on_comment":
+      return reactionEmoji === "like"
+        ? `${actorName} liked your comment`
+        : `${actorName} reacted ${reactionGlyph(reactionEmoji)} to your comment`;
+    case "reaction_on_photo":
+      return reactionEmoji === "like"
+        ? `${actorName} liked your photo`
+        : `${actorName} reacted ${reactionGlyph(reactionEmoji)} to your photo`;
+    case "post_shared":
+      return `${actorName} shared your post`;
     default:
       return `${actorName} sent a notification`;
   }
 }
 
+const REACTION_GLYPHS: Record<ReactionEmoji, string> = {
+  like: "👍",
+  heart: "❤️",
+  haha: "😂",
+  wow: "😮",
+  sad: "😢",
+  angry: "😡",
+};
+
+function reactionGlyph(reactionEmoji: ReactionEmoji | null): string {
+  return reactionEmoji ? REACTION_GLYPHS[reactionEmoji] : "";
+}
+
 export class NotificationService {
+  static async createNotification(input: {
+    recipientId: string;
+    actorId: string;
+    type: NotificationType;
+    postId?: string | null;
+    commentId?: string | null;
+    postImageId?: string | null;
+    friendshipId?: string | null;
+  }, trx?: Knex.Transaction): Promise<NotificationRow | null> {
+    if (input.recipientId === input.actorId) return null;
+    return NotificationModel.create(input, trx);
+  }
+
   static async notify(input: {
     recipientId: string;
     actorId: string;
@@ -55,10 +108,29 @@ export class NotificationService {
     postImageId?: string | null;
     friendshipId?: string | null;
   }): Promise<void> {
-    if (input.recipientId === input.actorId) return;
-    const row = await NotificationModel.create(input);
+    const row = await this.createNotification(input);
+    if (row) await this.publishCreated(input.recipientId, row.id);
+  }
+
+  static async upsertReaction(
+    input: ReactionNotificationInput,
+    trx?: Knex.Transaction
+  ): Promise<ReactionNotificationUpsert | null> {
+    if (input.recipientId === input.actorId) return null;
+    return NotificationModel.upsertReaction(input, trx);
+  }
+
+  static async removeReaction(
+    input: ReactionNotificationTarget,
+    trx?: Knex.Transaction
+  ): Promise<number> {
+    if (input.recipientId === input.actorId) return 0;
+    return NotificationModel.deleteReaction(input, trx);
+  }
+
+  static async publishCreated(recipientId: string, notificationId: string): Promise<void> {
     await publishNotificationRealtime(() =>
-      NotificationRealtime.notificationCreated(input.recipientId, row.id)
+      NotificationRealtime.notificationCreated(recipientId, notificationId)
     );
   }
 
@@ -85,7 +157,8 @@ export class NotificationService {
         commentId: row.comment_id,
         postImageId: row.post_image_id ?? null,
         friendshipId: row.friendship_id,
-        message: messageFor(row.type, publicActor.displayName),
+        reactionEmoji: row.reaction_emoji,
+        message: messageFor(row.type, publicActor.displayName, row.reaction_emoji),
       };
     });
     return items.sort(
@@ -105,7 +178,7 @@ export class NotificationService {
   }
 
   static async counts(userId: string): Promise<{ notifications: number; feed: number }> {
-    const unreadActivity = await NotificationModel.countUnread(userId, ACTIVITY_TYPES);
+    const unreadActivity = await NotificationModel.countUnread(userId, ACTIVITY_NOTIFICATION_TYPES);
     const unreadFriendRequests = await NotificationModel.countUnreadPendingFriendRequests(userId);
     const feed = await this.unreadFriendPostCount(userId);
     return { notifications: unreadActivity + unreadFriendRequests, feed };

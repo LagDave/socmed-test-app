@@ -2,6 +2,10 @@
 
 ## 0.1.38 — 2026-08-15
 
+### Added
+- Notifications when another user reacts to a post, comment, or photo, including the selected reaction glyph
+- Notifications when another user shares an original post
+
 ### Changed
 - Removed visible `@username` labels from posts, shares, comments, reactions, friends, messages, profile, and navbar surfaces while preserving display names and username-based identity behavior
 - Restored compact relative timestamps globally: `now`, `8min`, `4hr`, `2d`, `3w`, `5mo`, and `1yr`, with clear future-time output
@@ -20,6 +24,12 @@
 - Profile-update avatar shadow refined; home feed card vertical rhythm tightened (`space-y-1`)
 - Message options now open as a text-only floating popover above the three-dot trigger, with a connected bottom notch that remains visually anchored while open
 
+### Fixed
+- Like/reaction trigger now applies Like on a normal click while preserving the full picker on hover or touch long-press
+- Restored reaction, comment, and share controls on profile and cover activity post detail pages
+- Notifications now safely render a generic fallback for unknown activity types
+- Reaction emoji updates reuse one notification row and do not re-emit `notification:new`
+
 ### Plans
 - `plans/08072026-remove-visible-usernames` — completed on `kylie/simplify-identity-ui`
 - `plans/08072026-compact-relative-timestamps` — completed on `kylie/compact-relative-timestamps`
@@ -32,6 +42,7 @@
 - `plans/08072026-50-friends-tone-down` — completed on `kylie/friends-ui-change`
 - `plans/08072026-profile-feed-spacing` — completed on `kylie/profile-feed-spacing`
 - `plans/08082026-pin-message-arrow` — completed on `kylie/pin-message-arrow`
+- `plans/08072026-50-reaction-share-notifications` — completed on `kylie/notification-update`
 
 ## 0.1.37 — 2026-08-06
 

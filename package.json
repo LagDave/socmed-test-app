@@ -13,7 +13,8 @@
     "start": "node dist/index.js",
     "migrate": "tsx ./node_modules/knex/bin/cli.js --knexfile knexfile.ts migrate:latest",
     "migrate:rollback": "tsx ./node_modules/knex/bin/cli.js --knexfile knexfile.ts migrate:rollback",
-    "typecheck": "tsc -p tsconfig.json --noEmit && npm --prefix frontend run typecheck"
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm --prefix frontend run typecheck",
+    "test:notifications": "node --import tsx --test src/models/NotificationModel.test.ts src/services/NotificationService.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

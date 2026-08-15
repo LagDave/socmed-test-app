@@ -9,6 +9,7 @@ import { ReactionModel, emptyReactionSummary, type ReactionSummary } from "../mo
 import { AppError } from "../utils/AppError";
 import { toPublicUser } from "../types/user";
 import { isUserOnline } from "../realtime/PresenceRealtime";
+import { NotificationService } from "./NotificationService";
 
 const createPostSchema = z
   .object({
@@ -197,12 +198,22 @@ export class PostService {
       throw new AppError("SHARE_FORBIDDEN", "You can only share a mutual friend's post.");
     }
 
-    const row = await PostModel.create({
-      authorId: viewerId,
-      body: caption,
-      imageUrl: null,
-      sharedFromPostId: original.id,
+    const { row, notification } = await PostModel.withTransaction(async (trx) => {
+      const row = await PostModel.create({
+        authorId: viewerId,
+        body: caption,
+        imageUrl: null,
+        sharedFromPostId: original.id,
+      }, trx);
+      const notification = await NotificationService.createNotification({
+        recipientId: original.author_id,
+        actorId: viewerId,
+        type: "post_shared",
+        postId: original.id,
+      }, trx);
+      return { row, notification };
     });
+    if (notification) await NotificationService.publishCreated(original.author_id, notification.id);
     return (await hydrate([row], viewerId))[0];
   }
 

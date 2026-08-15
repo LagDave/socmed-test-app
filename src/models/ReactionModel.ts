@@ -1,3 +1,4 @@
+import type { Knex } from "knex";
 import { db } from "../database/connection";
 
 export const REACTION_EMOJIS = ["like", "heart", "haha", "wow", "sad", "angry"] as const;
@@ -39,12 +40,14 @@ export class ReactionModel {
   static async upsertForPost(
     userId: string,
     postId: string,
-    emoji: ReactionEmoji
+    emoji: ReactionEmoji,
+    trx?: Knex.Transaction
   ): Promise<ReactionRow> {
-    const [row] = await db<ReactionRow>("reactions")
+    const conn = trx ?? db;
+    const [row] = await conn<ReactionRow>("reactions")
       .insert({ user_id: userId, post_id: postId, comment_id: null, post_image_id: null, emoji })
-      .onConflict(db.raw("(user_id, post_id) WHERE post_id IS NOT NULL"))
-      .merge({ emoji, updated_at: db.fn.now() })
+      .onConflict(conn.raw("(user_id, post_id) WHERE post_id IS NOT NULL"))
+      .merge({ emoji, updated_at: conn.fn.now() })
       .returning("*");
     return row;
   }
@@ -52,12 +55,14 @@ export class ReactionModel {
   static async upsertForComment(
     userId: string,
     commentId: string,
-    emoji: ReactionEmoji
+    emoji: ReactionEmoji,
+    trx?: Knex.Transaction
   ): Promise<ReactionRow> {
-    const [row] = await db<ReactionRow>("reactions")
+    const conn = trx ?? db;
+    const [row] = await conn<ReactionRow>("reactions")
       .insert({ user_id: userId, post_id: null, comment_id: commentId, post_image_id: null, emoji })
-      .onConflict(db.raw("(user_id, comment_id) WHERE comment_id IS NOT NULL"))
-      .merge({ emoji, updated_at: db.fn.now() })
+      .onConflict(conn.raw("(user_id, comment_id) WHERE comment_id IS NOT NULL"))
+      .merge({ emoji, updated_at: conn.fn.now() })
       .returning("*");
     return row;
   }
@@ -65,9 +70,11 @@ export class ReactionModel {
   static async upsertForPostImage(
     userId: string,
     postImageId: string,
-    emoji: ReactionEmoji
+    emoji: ReactionEmoji,
+    trx?: Knex.Transaction
   ): Promise<ReactionRow> {
-    const [row] = await db<ReactionRow>("reactions")
+    const conn = trx ?? db;
+    const [row] = await conn<ReactionRow>("reactions")
       .insert({
         user_id: userId,
         post_id: null,
@@ -75,22 +82,34 @@ export class ReactionModel {
         post_image_id: postImageId,
         emoji,
       })
-      .onConflict(db.raw("(user_id, post_image_id) WHERE post_image_id IS NOT NULL"))
-      .merge({ emoji, updated_at: db.fn.now() })
+      .onConflict(conn.raw("(user_id, post_image_id) WHERE post_image_id IS NOT NULL"))
+      .merge({ emoji, updated_at: conn.fn.now() })
       .returning("*");
     return row;
   }
 
-  static async deleteForPost(userId: string, postId: string): Promise<number> {
-    return db("reactions").where({ user_id: userId, post_id: postId }).del();
+  static async deleteForPost(userId: string, postId: string, trx?: Knex.Transaction): Promise<number> {
+    return (trx ?? db)("reactions").where({ user_id: userId, post_id: postId }).del();
   }
 
-  static async deleteForComment(userId: string, commentId: string): Promise<number> {
-    return db("reactions").where({ user_id: userId, comment_id: commentId }).del();
+  static async deleteForComment(
+    userId: string,
+    commentId: string,
+    trx?: Knex.Transaction
+  ): Promise<number> {
+    return (trx ?? db)("reactions").where({ user_id: userId, comment_id: commentId }).del();
   }
 
-  static async deleteForPostImage(userId: string, postImageId: string): Promise<number> {
-    return db("reactions").where({ user_id: userId, post_image_id: postImageId }).del();
+  static async deleteForPostImage(
+    userId: string,
+    postImageId: string,
+    trx?: Knex.Transaction
+  ): Promise<number> {
+    return (trx ?? db)("reactions").where({ user_id: userId, post_image_id: postImageId }).del();
+  }
+
+  static async withTransaction<T>(fn: (trx: Knex.Transaction) => Promise<T>): Promise<T> {
+    return db.transaction(fn);
   }
 
   static async summariesForPosts(

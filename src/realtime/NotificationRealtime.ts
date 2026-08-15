@@ -1,4 +1,7 @@
-import { NotificationModel, type NotificationType } from "../models/NotificationModel";
+import {
+  ACTIVITY_NOTIFICATION_TYPES,
+  NotificationModel,
+} from "../models/NotificationModel";
 import { emitToUser } from "./io";
 
 export const NOTIFICATION_NEW = "notification:new";
@@ -7,10 +10,8 @@ export const NOTIFICATIONS_COUNT = "notifications:count";
 export type NotificationNewPayload = { notificationId: string };
 export type NotificationsCountPayload = { notifications: number };
 
-const ACTIVITY_TYPES: NotificationType[] = ["comment_on_post", "comment_on_photo", "comment_reply"];
-
 async function unreadNotificationCount(userId: string): Promise<number> {
-  const unreadActivity = await NotificationModel.countUnread(userId, ACTIVITY_TYPES);
+  const unreadActivity = await NotificationModel.countUnread(userId, ACTIVITY_NOTIFICATION_TYPES);
   const unreadFriendRequests = await NotificationModel.countUnreadPendingFriendRequests(userId);
   return unreadActivity + unreadFriendRequests;
 }

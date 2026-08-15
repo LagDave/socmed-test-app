@@ -49,7 +49,6 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 49 | `08062026-49-profile-menu-ui` | Profile menu UI — identity-led account panel |
 | 50 | `08072026-50-friends-tone-down` | Friends page visual tone-down — restrained surface + compact empty states |
 | 51 | `08072026-profile-feed-spacing` | Profile-update shadow refinement + tighter home-feed card rhythm |
-
 | 52 | `08072026-remove-visible-usernames` | Remove visible @username labels (display-name identity UI) |
 | 53 | `08072026-compact-relative-timestamps` | Compact relative timestamps + comment time placement |
 | 54 | `08072026-message-gap` | Chat bubble gap token 3px |
@@ -57,6 +56,9 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 56 | `08072026-remove-new-message-header` | Controlled New message picker / inbox compose |
 | 57 | `08072026-reaction-icon-fix` | Neutral unreacted ThumbsUp trigger |
 | 58 | `08072026-message-both-react` | Show both participants’ message reactions |
+| 59 | `08082026-49-chat-timestamp-reduce` | Compact time-only chat gap separators |
+| 60 | `08082026-pin-message-arrow` | Connected pin-menu caret on message options |
+| 61 | `08072026-50-reaction-share-notifications` | Activity notifications for reactions and post shares |
 
 ## Branch → host (hard rule)
 

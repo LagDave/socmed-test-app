@@ -99,6 +99,7 @@ export function ReactionBar({
   const [popEmoji, setPopEmoji] = useState<ReactionEmoji | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const holdTimerRef = useRef<number | null>(null);
+  const holdOpenedPickerRef = useRef(false);
   const expandTimerRef = useRef<number | null>(null);
   const collapseTimerRef = useRef<number | null>(null);
   const pickerId = useId();
@@ -354,7 +355,11 @@ export function ReactionBar({
                 onClick={() => {
                   clearExpandTimer();
                   if (usesHoverTrigger) {
-                    setExpanded(true);
+                    if (holdOpenedPickerRef.current) {
+                      holdOpenedPickerRef.current = false;
+                      return;
+                    }
+                    void applyEmoji(triggerEmoji ?? "like");
                   } else {
                     setExpanded((open) => !open);
                   }
@@ -363,7 +368,11 @@ export function ReactionBar({
                   if (!usesHoverTrigger) return;
                   if (e.pointerType === "touch" || e.pointerType === "pen") {
                     clearHoldTimer();
-                    holdTimerRef.current = window.setTimeout(() => setExpanded(true), HOLD_MS);
+                    holdOpenedPickerRef.current = false;
+                    holdTimerRef.current = window.setTimeout(() => {
+                      holdOpenedPickerRef.current = true;
+                      setExpanded(true);
+                    }, HOLD_MS);
                   }
                 }}
                 onPointerUp={clearHoldTimer}
