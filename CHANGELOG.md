@@ -18,6 +18,7 @@
 - Neutral outlined ThumbsUp for the unreacted reaction trigger (selected stickers unchanged)
 - Friends page visual tone-down: single restrained card surface, compact left-aligned empty states, mutual-count chip removed
 - Profile-update avatar shadow refined; home feed card vertical rhythm tightened (`space-y-1`)
+- Message options now open as a text-only floating popover above the three-dot trigger, with a connected bottom notch that remains visually anchored while open
 
 ### Plans
 - `plans/08072026-remove-visible-usernames` — completed on `kylie/simplify-identity-ui`
@@ -30,6 +31,7 @@
 - `plans/08072026-message-both-react` — completed on `kylie/message-both-react`
 - `plans/08072026-50-friends-tone-down` — completed on `kylie/friends-ui-change`
 - `plans/08072026-profile-feed-spacing` — completed on `kylie/profile-feed-spacing`
+- `plans/08082026-pin-message-arrow` — completed on `kylie/pin-message-arrow`
 
 ## 0.1.37 — 2026-08-06
 

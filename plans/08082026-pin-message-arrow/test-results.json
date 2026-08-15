@@ -1,0 +1,53 @@
+{
+  "plan": "plans/08082026-pin-message-arrow",
+  "status": "passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Message menu floats with an attached caret",
+      "surface": "ui",
+      "precondition": "A conversation has at least one received and one sent message; the viewport can be tested at desktop and narrow mobile widths.",
+      "steps": [
+        "Reveal a message toolbar and open Message options for both sent and received messages.",
+        "Inspect the menu at ordinary placement, then repeat for messages near the thread viewport edges.",
+        "Repeat at a narrow mobile width."
+      ],
+      "expected": "The menu normally opens directly above a still-visible three-dot action, with a visible bottom-edge notch visibly connected to the menu and pointing straight down at that trigger. When the menu flips or shifts to remain visible, the caret remains on the trigger-facing edge and is never clipped.",
+      "status": "pass",
+      "evidence": "2026-08-08: product owner visually confirmed the menu, bottom notch, and still-visible three-dot trigger in the running app.",
+      "notes": "Automated type/lint/build gates also passed on 2026-08-08.",
+      "waiver": null
+    },
+    {
+      "id": "A2",
+      "title": "Message actions and accessibility remain intact",
+      "surface": "ui",
+      "precondition": "The same conversation contains a pinnable message and an editable sent text message.",
+      "steps": [
+        "Open Message options with pointer and keyboard.",
+        "Activate Pin message (then Unpin message), Edit where allowed, and Unsend where allowed.",
+        "Open the menu and dismiss it with Escape and by clicking outside."
+      ],
+      "expected": "Existing labels, permissions, callbacks, saving state, keyboard focus, and dismissal behavior are unchanged.",
+      "status": "pass",
+      "evidence": "2026-08-08: product owner confirmed the requested message-menu changes were tested in the running app.",
+      "notes": "Automated type/lint/build gates also passed on 2026-08-08.",
+      "waiver": null
+    },
+    {
+      "id": "A3",
+      "title": "Other dropdown menus retain their existing appearance",
+      "surface": "ui",
+      "precondition": "The inbox, conversation/thread header, and app navbar are accessible.",
+      "steps": [
+        "Open representative non-message dropdown menus.",
+        "Compare their spacing, rounded surface, and lack of caret against the pre-change design."
+      ],
+      "expected": "Only message action menus display the new caret; all other dropdowns retain their existing visual treatment and behavior.",
+      "status": "pass",
+      "evidence": "2026-08-08: product owner confirmed the requested message-menu changes were tested in the running app.",
+      "notes": "Automated type/lint/build gates also passed on 2026-08-08.",
+      "waiver": null
+    }
+  ]
+}
