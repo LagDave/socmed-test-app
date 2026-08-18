@@ -11,7 +11,6 @@ import { MessageDaySeparator, MessageSystemLog, MessagesEmptyThread, MessagesErr
 import { OnlinePresenceIndicator } from "@/components/OnlinePresenceIndicator";
 import { PeerPresenceStatus } from "@/components/PeerPresenceStatus";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -242,7 +241,6 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
             )}
 
             <div className="messages-thread-header-actions shrink-0">
-              <ThemeToggle className="messages-thread-header-action h-8 w-8 rounded-full" />
               <Button
                 type="button"
                 variant="ghost"

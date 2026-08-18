@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.39 — 2026-08-18
+
+### Added
+- Independent Messenger light/dark mode that persists separately from the profile/global appearance preference
+
+### Changed
+- Messenger mode now themes the full Messages screen, including navigation chrome, while restoring the profile/global mode on other routes
+- Conversation themes derive a darker, high-contrast version of their selected colors in Messenger dark mode
+- Removed the duplicate dark-mode control from conversation headers; the single Messenger mode control remains beside inbox settings
+
 ## 0.1.38 — 2026-08-15
 
 ### Added
