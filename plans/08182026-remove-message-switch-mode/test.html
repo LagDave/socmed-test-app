@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acceptance Checklist — Remove Messages Switch Mode</title>
+  <style>body{max-width:880px;margin:36px auto;padding:0 20px;font:16px/1.5 system-ui,sans-serif;color:#111}article,header{border:1px solid #ddd;border-radius:8px;padding:18px;margin:14px 0}header{border-color:#111}h1{line-height:1.1;margin:0 0 6px}textarea{width:100%;min-height:64px;margin-top:8px}button,select{padding:8px 10px;font:inherit}label{display:block;font-weight:700;margin-top:12px}ol{padding-left:20px}.muted{color:#666}</style>
+</head>
+<body>
+  <header><h1>Acceptance Checklist</h1><p class="muted">Source of truth: <code>test-results.json</code>. Record the run below, download the JSON, then replace the plan’s source-of-truth file with it.</p></header>
+  <main id="items"></main><button id="download" type="button">Download recorded results</button>
+  <script>
+    const items=[
+      {id:"A1",title:"Inbox no longer offers Messages switch mode",surface:"ui",precondition:"Signed in with access to /messages in an isolated runtime.",steps:["Open /messages at desktop and narrow/mobile width.","Inspect the title action group and its keyboard focus order.","Activate New message and Message settings."],expected:"Only New message and Message settings remain as inbox icon actions; no Moon/Sun or switch-mode accessible action is present, and both retained actions work."},
+      {id:"A2",title:"Messages follows the global appearance only",surface:"ui",precondition:"Signed in with a global appearance control and browser storage access.",steps:["Set global light, open /messages, and reload.","Set global dark, open /messages, and reload.","Set a conflicting socmed-messages-theme value if present, then reload."],expected:"Messages follows the global appearance only; the old Messages key has no effect."},
+      {id:"A3",title:"Conversation behavior and palettes remain available",surface:"ui",precondition:"A default conversation and a saved custom conversation theme are available.",steps:["Exercise message search and Customize chat theme in each thread.","Switch the global appearance and revisit both threads.","Check text, controls, and composer readability without sending a message."],expected:"Conversation behavior stays available and default/custom threads are readable under either global appearance."},
+      {id:"A4",title:"Frontend quality gates and dead-reference audit",surface:"cli",precondition:"Frontend dependencies are installed.",steps:["Search production source for removed feature references.","Run frontend typecheck, lint, and build."],expected:"No production references remain and every quality gate succeeds."}
+    ];
+    const root=document.querySelector('#items');
+    for(const item of items){root.insertAdjacentHTML('beforeend',`<article data-id="${item.id}"><h2>${item.id} — ${item.title}</h2><p><strong>Surface:</strong> ${item.surface}</p><p><strong>Precondition:</strong> ${item.precondition}</p><ol>${item.steps.map(step=>`<li>${step}</li>`).join('')}</ol><p><strong>Expected:</strong> ${item.expected}</p><label>Status <select><option value="pending">pending</option><option value="pass">pass</option><option value="fail">fail</option></select></label><label>Evidence / notes / waiver <textarea></textarea></label></article>`)}
+    document.querySelector('#download').addEventListener('click',()=>{const results=[...document.querySelectorAll('article')].map(article=>({id:article.dataset.id,title:items.find(item=>item.id===article.dataset.id).title,surface:items.find(item=>item.id===article.dataset.id).surface,status:article.querySelector('select').value,evidence:article.querySelector('textarea').value}));const status=results.every(item=>item.status==='pass')?'passed':results.some(item=>item.status==='fail')?'failed':'pending';const file=new Blob([JSON.stringify({plan:'plans/08182026-remove-message-switch-mode',status,items:results},null,2)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(file);link.download='test-results-recorded.json';link.click();URL.revokeObjectURL(link.href);});
+  </script>
+</body>
+</html>

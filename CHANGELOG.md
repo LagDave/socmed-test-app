@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.40 — 2026-08-18
+
+### Removed
+- Independent Messages light/dark mode and its inbox switch; Messages now follows the existing global appearance preference.
+
 ## 0.1.39 — 2026-08-18
 
 ### Added
