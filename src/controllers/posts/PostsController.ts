@@ -27,7 +27,7 @@ export class PostsController {
 
   static async share(req: AuthedRequest, res: Response): Promise<Response> {
     try {
-      const post = await PostService.share(req.userId!, String(req.params.id));
+      const post = await PostService.share(req.userId!, String(req.params.id), req.body);
       return ok(res, { post }, 201);
     } catch (err) {
       return handle(res, err);

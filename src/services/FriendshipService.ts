@@ -3,6 +3,17 @@ import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
 import { toPublicUser, type PublicUser } from "../types/user";
 import { NotificationService } from "./NotificationService";
+import { isUserOnline } from "../realtime/PresenceRealtime";
+
+const FRIEND_SUGGESTION_LIMIT = 6;
+
+export type FriendSuggestion = {
+  id: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  mutualFriendCount: number;
+};
 
 export class FriendshipService {
   static async request(userId: string, targetUsername: string) {
@@ -30,6 +41,7 @@ export class FriendshipService {
     const row = rows.find((r) => r.id === friendshipId);
     if (!row) throw new AppError("FRIEND_NOT_FOUND", "Incoming request not found.");
     const updated = await FriendshipModel.updateStatus(friendshipId, "accepted");
+    await NotificationService.publishCountUpdated(userId);
     return updated;
   }
 
@@ -38,6 +50,7 @@ export class FriendshipService {
     const row = rows.find((r) => r.id === friendshipId);
     if (!row) throw new AppError("FRIEND_NOT_FOUND", "Incoming request not found.");
     const updated = await FriendshipModel.updateStatus(friendshipId, "declined");
+    await NotificationService.publishCountUpdated(userId);
     return updated;
   }
 
@@ -46,12 +59,39 @@ export class FriendshipService {
     const row = rows.find((r) => r.id === friendshipId);
     if (!row) throw new AppError("FRIEND_NOT_FOUND", "Outgoing request not found.");
     await FriendshipModel.deleteById(friendshipId);
+    const recipientId = row.user_a === userId ? row.user_b : row.user_a;
+    await NotificationService.publishCountUpdated(recipientId);
+  }
+
+  static async unfriend(userId: string, otherUserId: string) {
+    if (userId === otherUserId) {
+      throw new AppError("FRIEND_VALIDATION", "Cannot unfriend yourself.");
+    }
+    const row = await FriendshipModel.findPair(userId, otherUserId);
+    if (!row || row.status !== "accepted") {
+      throw new AppError("FRIEND_NOT_FOUND", "Friendship not found.");
+    }
+    await FriendshipModel.deleteById(row.id);
   }
 
   static async mutuals(userId: string): Promise<PublicUser[]> {
     const ids = await FriendshipModel.listAcceptedMutualIds(userId);
-    const users = await Promise.all(ids.map((id) => UserModel.findById(id)));
-    return users.filter(Boolean).map((u) => toPublicUser(u!));
+    const users = await UserModel.findByIds(ids);
+    return users.map((user) => ({
+      ...toPublicUser(user),
+      isOnline: isUserOnline(user.id),
+    }));
+  }
+
+  static async suggestions(userId: string): Promise<FriendSuggestion[]> {
+    const rows = await FriendshipModel.listSuggestedFriends(userId, FRIEND_SUGGESTION_LIMIT);
+    return rows.map((row) => ({
+      id: row.id,
+      displayName: row.display_name,
+      username: row.username,
+      avatarUrl: row.avatar_url,
+      mutualFriendCount: row.mutual_friend_count,
+    }));
   }
 
   static async areFriendsWith(userId: string, otherUserId: string): Promise<{ areFriends: boolean }> {

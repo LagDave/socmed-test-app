@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notifications UI Upgrade Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:900px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .layout-ascii { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.82rem; white-space:pre; overflow-x:auto; background:var(--soft); border:1px solid var(--line); border-radius:8px; padding:14px; }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 39</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Notifications UI Upgrade — Beautiful Again</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08022026-39-notifications-ui-upgrade</dd></div>
+        <div><dt>Size</dt><dd>Small (4 tasks, frontend-only)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08022026-39-notifications-ui-upgrade</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/notifications-ui-upgrade</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 16 (notifications feature) · Plan 21 (feed-card baseline on dev)</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 21 intentionally flattened Friends, Profile, Notifications, and Messages onto the Feed’s plain <code>title + feed-card</code> stack. That was correct for consistency, but Notifications lost its dashboard feel: no soft canvas plate, no hero header card with the Bell motif, and a single flat card that reads like a utility list rather than an activity center.</p>
+      <p>Dev already has strong <em>row</em> polish (avatars, type icons, relative timestamps, skeleton loading, nested post links, friend-request actions). The gap is <strong>page composition</strong>, not data or row logic. This plan restores the beautiful Notifications shell without undoing plan 21 globally or regressing row UX.</p>
+      <pre class="layout-ascii">TODAY (dev)                    TARGET (this plan)
+┌ title + subtitle ─────┐     ┌ soft-page-canvas ────────────────┐
+│ badge (outside)       │     │ ┌ header card: Bell + title ────┐ │
+┌─ feed-card ──────────┐│     │ │ unread pill in header row     │ │
+│ rows…                ││     │ └───────────────────────────────┘ │
+└──────────────────────┘│     │ ┌ list card: rows / empty / skel │ │
+                          │     │ └───────────────────────────────┘ │
+                          │     └──────────────────────────────────┘</pre>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <p>Re-skin <code>/notifications</code> with a Notifications-only soft dashboard layout while keeping every current row behavior and API call unchanged.</p>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li><code>/notifications</code> uses a page-local soft canvas plate (<code>soft-page-canvas</code>) with rounded bleed inside AppShell main — Notifications route only</li>
+        <li>Hero header card: Bell icon in bordered circle, bold “Notifications” title, subtitle microcopy, unread count pill when applicable</li>
+        <li>Separate elevated list card beneath the header (not one monolithic <code>feed-card</code> wrapping everything)</li>
+        <li>All existing row polish preserved: <code>ProfileAvatar</code>, type icons, relative time, “New” chip, unread row tint, skeleton loading, empty state, error banner, Confirm/Decline on friend requests, post deep links with nested-link-safe avatar/name handling (<code>686a6b5</code> behavior)</li>
+        <li>Light and dark themes both look intentional; token-driven B&amp;W — no Meta blue hex literals</li>
+        <li>Friends, Feed, Profile, Messages, Account Settings remain on current feed-card layout (plan 21 unchanged)</li>
+        <li>Frontend typecheck + build pass; acceptance checklist passes or carries written waivers</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="decisions">
+      <h2>Locked Decisions</h2>
+      <table>
+        <thead><tr><th>#</th><th>Topic</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Visual direction</td>
+            <td><strong>A — Restore Notifications-only soft dashboard shell</strong></td>
+            <td>Matches “beautiful again” and pre–plan-21 Notifications composition. Reject B (tweak feed-card only) — not enough hierarchy.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Row UX</td>
+            <td><strong>Keep all dev row polish as-is</strong></td>
+            <td><code>NotificationRow</code>, skeletons, and API flows already landed via Jul 31 batch + review fixes. This is a layout pass, not a row rewrite.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Scope</td>
+            <td><strong>Notifications page only</strong></td>
+            <td>Plan 21 global flatten stays. Do not reintroduce soft canvas on Friends/Profile/Messages.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Canvas padding</td>
+            <td><strong>No outer gutter padding on soft-page-canvas</strong></td>
+            <td>Plan 21 Rev 1 lesson: omit <code>px-4 py-6 sm:px-6</code> on the canvas wrapper. Use <code>-mx-4 rounded-2xl</code> bleed + inner card padding only.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>CSS reuse</td>
+            <td><strong>Re-add <code>.soft-page-canvas</code> + <code>.soft-card-shadow</code> in <code>index.css</code></strong></td>
+            <td>Classes were deleted in plan 21 Rev 3. Safe to restore when only Notifications imports them. Use existing CSS variables / token shadows — no hardcoded Facebook hexes.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Stale branch</td>
+            <td><strong>Ignore <code>kylie/notification-page-upgrade</code></strong></td>
+            <td>That branch’s single commit is behind dev and lacks review fixes. Execute on <code>kylie/notifications-ui-upgrade</code> from current dev tip.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Extract components?</td>
+            <td><strong>Restyle in place unless file exceeds ~400 lines</strong></td>
+            <td>Current page ~276 lines. Optional tiny presentational helpers inside the page file only if it clarifies header vs list shell.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Grill defaults (override only if you disagree before <code>-x</code>):</strong>
+        (1) Soft dashboard shell, not feed-card-only tweak. (2) Keep row polish. (3) Notifications-only scope. (4) No backend/API/migration work.
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <p><strong>Page today</strong> — <code>frontend/src/pages/NotificationsPage.tsx</code> (~276 lines): plain <code>&lt;section className="space-y-4"&gt;</code> with title outside and one <code>feed-card overflow-hidden</code> list. Rows are fully featured.</p>
+      <p><strong>Reference “beautiful” snapshot</strong> — commit <code>8a10f69</code> (pre–plan-21): soft canvas, header card with Bell, separate list card, simpler rows. Use that composition; do <em>not</em> revert row markup to plain <code>n.message</code> text.</p>
+      <p><strong>Shell</strong> — <code>AppShell</code> main uses <code>mx-auto max-w-3xl px-4 py-6</code>. Notifications canvas uses <code>-mx-4</code> to bleed to main edges (same pattern as pre-21).</p>
+      <p><strong>Tokens</strong> — <code>frontend/src/index.css</code> B&amp;W variables; <code>.feed-card</code> uses <code>var(--feed-shadow)</code>. Soft card shadow should match or slightly soften that elevation — prefer reusing <code>var(--feed-shadow)</code> before inventing new hex shadows.</p>
+      <p><strong>API surface (unchanged)</strong> — <code>GET /api/notifications</code>, <code>POST /api/notifications/read</code>, <code>POST /api/friends/:id/accept|decline</code>. Header bell counts via <code>GET /api/notifications/counts</code> in AppShell — untouched.</p>
+      <p><strong>Closest analog</strong> — pre-21 Notifications layout + current dev row components. No new layout primitive file required.</p>
+      <p><strong>Blast radius</strong> — visual on <code>/notifications</code> only; <code>index.css</code> adds two classes used exclusively here.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Preserve all notification fetch, mark-read, and friend-action behaviors</li>
+            <li>Preserve nested post link semantics (<code>rowLinksToPost</code> / avatar link split from <code>686a6b5</code>)</li>
+            <li>Keep B&amp;W design tokens — no Meta blue / new brand accent</li>
+            <li>Scope soft canvas to Notifications route only</li>
+            <li>Support light and dark themes</li>
+            <li>Follow frontend layering — presentation in page; API via existing client (§14.x)</li>
+            <li>Index this plan in <code>plans/README.md</code> as seq 39</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>No backend, route, migration, or API contract changes</li>
+            <li>No new npm dependencies</li>
+            <li>No global body or AppShell layout rewrite</li>
+            <li>No soft-page restoration on Friends / Profile / Messages / Account Settings</li>
+            <li>No drive-by refactors of Feed or navbar badge logic</li>
+            <li>Do not merge or cherry-pick stale <code>kylie/notification-page-upgrade</code> wholesale</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Out of scope</h3>
+          <ul>
+            <li>Notification sounds / push / realtime (see plan 34 separately)</li>
+            <li>Filtering tabs (All / Friends / Comments)</li>
+            <li>Pagination or infinite scroll</li>
+            <li>Batch “Mark all read” control (visit already marks read)</li>
+            <li>Extracting a shared <code>SoftDashboardLayout</code> component for other pages</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Notifications becomes a one-off “dashboard island” while sibling pages stay feed-card flat. Mitigated by intentional scope (activity center deserves hierarchy) and token-only styling.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Visual inconsistency vs Feed/Friends</td>
+            <td>Notifications only</td>
+            <td>Document as deliberate; do not re-soften other pages in this PR</td>
+          </tr>
+          <tr>
+            <td>Reintroducing plan-21 outer gutter bug</td>
+            <td>Notifications canvas</td>
+            <td>Lock Decision 4 — no <code>px-4 py-6 sm:px-6</code> on canvas wrapper</td>
+          </tr>
+          <tr>
+            <td>Nested link regression on post rows</td>
+            <td>Comment/reply notification rows</td>
+            <td>T2 explicitly preserves <code>rowLinksToPost</code> behavior; acceptance A4</td>
+          </tr>
+          <tr>
+            <td>Dark-mode card/shadow unreadability</td>
+            <td>Notifications page</td>
+            <td>Use token shadows + <code>bg-card</code>; spot-check theme toggle (acceptance A6)</td>
+          </tr>
+          <tr>
+            <td>CSS class revival affects other pages</td>
+            <td>Global CSS</td>
+            <td>Only NotificationsPage applies <code>soft-page-canvas</code>; grep verify in T1</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>Required pushback:</strong> Do not undo plan 21 globally to “make everything beautiful.” Do not drop row polish to match the old simple list. Do not execute on the stale <code>notification-page-upgrade</code> branch tip.
+      </div>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+
+      <article class="task-card" id="t0">
+        <h3>T0 — Confirm execution branch baseline</h3>
+        <p><strong>Do:</strong> On <code>kylie/notifications-ui-upgrade</code>, confirm HEAD matches <code>dev</code> tip and <code>NotificationsPage.tsx</code> includes current row polish (<code>NotificationRow</code>, skeletons, <code>rowLinksToPost</code>). No feature edits.</p>
+        <p><strong>Files:</strong> git only</p>
+        <p><strong>Depends on:</strong> —</p>
+        <p><strong>Verify:</strong> <code>git merge-base --is-ancestor dev HEAD</code>; page contains <code>ProfileAvatar</code> + <code>NotificationSkeleton</code>.</p>
+      </article>
+
+      <article class="task-card" id="t1">
+        <h3>T1 — Restore soft-page CSS (Notifications consumer only)</h3>
+        <p><strong>Do:</strong> Re-add <code>.soft-page-canvas</code> and <code>.soft-card-shadow</code> to <code>frontend/src/index.css</code> using existing CSS variables (light + <code>.dark</code>). Match pre-21 behavior: canvas background via <code>color-mix</code> on muted/background; shadow subtle on cards. Document in comment: “Used by NotificationsPage only.”</p>
+        <p><strong>Files:</strong> <code>frontend/src/index.css</code></p>
+        <p><strong>Depends on:</strong> T0</p>
+        <p><strong>Verify:</strong> <code>rg soft-page-canvas frontend/src/pages</code> returns only <code>NotificationsPage.tsx</code>.</p>
+      </article>
+
+      <article class="task-card" id="t2">
+        <h3>T2 — Recompose NotificationsPage shell</h3>
+        <p><strong>Do:</strong> Replace outer <code>section.space-y-4 + feed-card</code> with:</p>
+        <ul>
+          <li>Outer <code>div.soft-page-canvas.-mx-4.rounded-2xl</code> → inner <code>mx-auto max-w-2xl space-y-4</code></li>
+          <li>Header card: Bell icon circle, title, subtitle, unread pill aligned right when <code>unreadCount &gt; 0</code> and not loading</li>
+          <li>List card: <code>soft-card-shadow</code>, <code>overflow-hidden</code>, contains error banner + loading skeletons + empty state + <code>NotificationRow</code> list</li>
+        </ul>
+        <p>Keep <code>NotificationRow</code>, <code>NotificationSkeleton</code>, <code>TYPE_META</code>, and load/action logic unchanged unless markup move requires class tweaks only.</p>
+        <p><strong>Files:</strong> <code>frontend/src/pages/NotificationsPage.tsx</code></p>
+        <p><strong>Depends on:</strong> T1</p>
+        <p><strong>Verify:</strong> Visual two-card stack; no single outer <code>feed-card</code>; friend actions + post links still work.</p>
+      </article>
+
+      <article class="task-card" id="t3">
+        <h3>T3 — Build gate + README index</h3>
+        <p><strong>Do:</strong> Run frontend typecheck/build. Add seq 39 row to <code>plans/README.md</code>. Ensure acceptance artifacts match Done criteria.</p>
+        <p><strong>Files:</strong> <code>plans/README.md</code>; plan acceptance files</p>
+        <p><strong>Depends on:</strong> T2</p>
+        <p><strong>Verify:</strong> typecheck/build exit 0; README lists plan 39.</p>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done Checklist</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" checked disabled> Execution on <code>kylie/notifications-ui-upgrade</code> from dev tip (T0)</li>
+        <li><input type="checkbox" checked disabled> <code>.soft-page-canvas</code> + <code>.soft-card-shadow</code> restored; only Notifications uses them (T1)</li>
+        <li><input type="checkbox" checked disabled> Hero header card + separate list card on <code>/notifications</code> (T2)</li>
+        <li><input type="checkbox" checked disabled> Row polish + nested link behavior unchanged (T2)</li>
+        <li><input type="checkbox" checked disabled> Light + dark theme spot-check (acceptance A6)</li>
+        <li><input type="checkbox" checked disabled> Other pages still feed-card layout — plan 21 not regressed</li>
+        <li><input type="checkbox" checked disabled> Frontend typecheck + build clean (T3)</li>
+        <li><input type="checkbox" checked disabled> Acceptance <code>test-results.json</code> rollup Passed</li>
+        <li><input type="checkbox" checked disabled> Spec status → Completed on <code>-d</code>; changelog 0.1.18</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="acceptance">
+      <h2>Acceptance</h2>
+      <p>Runnable checklist: <code>test-results.json</code> + <code>test.html</code> in this folder.</p>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>2026-08-02</td>
+            <td>Initial spec (<code>-s</code>). Locked: Notifications-only soft dashboard shell; keep dev row polish; no plan-21 global revert; no outer canvas gutter padding; ignore stale <code>notification-page-upgrade</code> branch.</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2026-08-02</td>
+            <td>Executed T0–T3 on <code>kylie/notifications-ui-upgrade</code>: restored <code>.soft-page-canvas</code> + <code>.soft-card-shadow</code> in <code>index.css</code>; recomposed <code>NotificationsPage</code> with hero header card + list card; indexed seq 39 in README. Frontend typecheck/build green. UI acceptance pending.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>2026-08-02</td>
+            <td><code>-c</code> visual polish pass: page animation, header gradient, unread left bar, type pills, shimmer skeletons, empty-state panel.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>2026-08-02</td>
+            <td><code>-c</code> row fixes: left-side new dot + stronger edge bar for unread; fix post-link rows (<code>block</code> was breaking flex — icon dropped below content); add margin on COMMENT/REPLY type pill and trailing type-icon bubble column.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>2026-08-02</td>
+            <td><code>-c</code> remove left edge bar and side dot column on unread rows; restyle New badge as soft outline pill with inline dot (matches type-pill family, not solid black).</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>2026-08-02</td>
+            <td>Finalized (<code>-d</code>): acceptance A0–A7 Passed; Done checklist verified; changelog 0.1.18; committed and pushed on <code>kylie/notifications-ui-upgrade</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

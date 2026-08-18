@@ -4,8 +4,11 @@ import { Search, User, X } from "lucide-react";
 import { api } from "@/api/client";
 import { openConversationWithUsername } from "@/api/messages";
 import type { PublicUser } from "@/api/types";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { MessagesInlineError, MessagesRowSkeleton } from "@/components/MessagesUiHelpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 function matchesQuery(user: PublicUser, query: string): boolean {
   const q = query.trim().toLowerCase();
@@ -15,15 +18,25 @@ function matchesQuery(user: PublicUser, query: string): boolean {
   return name.includes(q) || username.includes(q);
 }
 
-export function MessagesFriendPicker({ hasConversations }: { hasConversations: boolean }) {
+type MessagesFriendPickerProps = {
+  hasConversations: boolean;
+  isSearchOpen: boolean;
+  onSearchOpenChange: (isOpen: boolean) => void;
+  onFriendPickerStatusChange?: (status: "ready" | "error") => void;
+};
+
+export function MessagesFriendPicker({
+  hasConversations,
+  isSearchOpen,
+  onSearchOpenChange,
+  onFriendPickerStatusChange,
+}: MessagesFriendPickerProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
-  const searchToggleRef = useRef<HTMLButtonElement>(null);
   const [mutuals, setMutuals] = useState<PublicUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -47,22 +60,26 @@ export function MessagesFriendPicker({ hasConversations }: { hasConversations: b
   }, []);
 
   useEffect(() => {
-    if (!searchOpen) return;
-    inputRef.current?.focus();
-  }, [searchOpen]);
+    if (isSearchOpen) inputRef.current?.focus();
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (!loading) {
+      onFriendPickerStatusChange?.(error ? "error" : "ready");
+    }
+  }, [error, loading, onFriendPickerStatusChange]);
 
   function closeSearch() {
-    setSearchOpen(false);
+    onSearchOpenChange(false);
     setQuery("");
-    searchToggleRef.current?.focus();
   }
 
   function toggleSearch() {
-    if (searchOpen) {
+    if (isSearchOpen) {
       closeSearch();
       return;
     }
-    setSearchOpen(true);
+    onSearchOpenChange(true);
   }
 
   async function openChat(username: string | null) {
@@ -80,31 +97,41 @@ export function MessagesFriendPicker({ hasConversations }: { hasConversations: b
   }
 
   const filtered = mutuals.filter((u) => matchesQuery(u, query));
-  const title = hasConversations ? "New message" : "Friends";
+  const compactMode = hasConversations && !isSearchOpen;
 
   return (
-    <section className="space-y-3 border-t border-border pt-4 first:border-t-0 first:pt-0">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold tracking-wide text-foreground">{title}</h2>
-        <Button
-          ref={searchToggleRef}
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-expanded={searchOpen}
-          aria-label={searchOpen ? "Close search" : "Search friends"}
-          onClick={toggleSearch}
-        >
-          {searchOpen ? (
-            <X className="h-4 w-4" aria-hidden="true" />
-          ) : (
-            <Search className="h-4 w-4" aria-hidden="true" />
-          )}
-        </Button>
-      </div>
+    <section className={cn(compactMode && "messages-compose-section")}>
+      {!hasConversations && (
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="messages-section-label">
+            Friends
+            {!loading && mutuals.length > 0 && !compactMode && (
+              <span className="font-normal normal-case tracking-normal text-muted-foreground">
+                {" "}
+                ({mutuals.length})
+              </span>
+            )}
+          </h2>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="size-8"
+            aria-expanded={isSearchOpen}
+            aria-label={isSearchOpen ? "Close search" : "Search friends"}
+            onClick={toggleSearch}
+          >
+            {isSearchOpen ? (
+              <X className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Search className="h-4 w-4" aria-hidden="true" />
+            )}
+          </Button>
+        </div>
+      )}
 
-      {searchOpen && (
-        <div className="flex items-center gap-2">
+      {isSearchOpen && (
+        <div className={cn("mt-3", hasConversations && "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2")}>
           <Input
             ref={inputRef}
             value={query}
@@ -117,56 +144,104 @@ export function MessagesFriendPicker({ hasConversations }: { hasConversations: b
             }}
             placeholder="Search friends…"
             aria-label="Search friends"
-            className="flex-1"
+            className="rounded-full bg-secondary/60 border-border/60"
           />
+          {hasConversations && (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="size-8"
+              aria-label="Close search"
+              onClick={closeSearch}
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
         </div>
       )}
 
-      {error && <p className="text-sm text-muted-foreground">{error}</p>}
+      {error && (
+        <div className="mt-3">
+          <MessagesInlineError message={error} />
+        </div>
+      )}
 
       {loading ? (
-        <p className="py-4 text-center text-sm text-muted-foreground">Loading friends…</p>
+        compactMode ? (
+          <div className="messages-compose-strip mt-3" aria-hidden="true">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="messages-compose-chip">
+                <div className="size-12 animate-pulse rounded-full bg-secondary" />
+                <div className="h-2.5 w-10 animate-pulse rounded bg-secondary" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3">
+            <MessagesRowSkeleton rows={4} />
+          </div>
+        )
       ) : mutuals.length === 0 && !error ? (
-        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-          <User className="size-10 text-muted-foreground/40" aria-hidden="true" strokeWidth={1.25} />
-          <p className="text-sm text-muted-foreground">
-            No friends yet. Add mutuals on Friends to start chatting here.
-          </p>
+        <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+          <span className="flex size-12 items-center justify-center rounded-full bg-secondary">
+            <User className="size-5 text-muted-foreground/70" aria-hidden="true" strokeWidth={1.25} />
+          </span>
+          <div className="space-y-1">
+            <p className="text-sm font-medium">No friends yet</p>
+            <p className="text-sm text-muted-foreground">
+              Add mutuals on Friends to start chatting here.
+            </p>
+          </div>
           <Button asChild variant="outline" size="sm" className="mt-1">
             <Link to="/friends">Manage friends</Link>
           </Button>
         </div>
-      ) : filtered.length === 0 ? (
-        <p className="py-4 text-center text-sm text-muted-foreground">No matching friends</p>
-      ) : (
-        <ul className="divide-y divide-border">
-          {filtered.map((u) => (
+      ) : isSearchOpen ? (
+        filtered.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">No matching friends</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-border">
+            {filtered.map((u) => (
+              <li key={u.id}>
+                <FriendListButton user={u} opening={opening} onOpen={openChat} />
+              </li>
+            ))}
+          </ul>
+        )
+      ) : !compactMode ? (
+        <ul className="mt-2 divide-y divide-border">
+          {mutuals.map((u) => (
             <li key={u.id}>
-              <button
-                type="button"
-                disabled={opening || !u.username}
-                className="flex w-full items-center justify-between gap-3 py-3 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
-                onClick={() => void openChat(u.username)}
-              >
-                <span className="min-w-0 truncate">
-                  <span className="font-semibold">{u.displayName}</span>{" "}
-                  {u.username && (
-                    <span className="font-normal text-muted-foreground">@{u.username}</span>
-                  )}
-                </span>
-              </button>
+              <FriendListButton user={u} opening={opening} onOpen={openChat} />
             </li>
           ))}
         </ul>
-      )}
-
-      {!loading && mutuals.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          <Link to="/friends" className="underline-offset-2 hover:underline">
-            Manage friends
-          </Link>
-        </p>
-      )}
+      ) : null}
     </section>
+  );
+}
+
+function FriendListButton({
+  user,
+  opening,
+  onOpen,
+}: {
+  user: PublicUser;
+  opening: boolean;
+  onOpen: (username: string | null) => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={opening || !user.username}
+      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/40 disabled:opacity-50"
+      onClick={() => onOpen(user.username)}
+    >
+      <ProfileAvatar displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-semibold">{user.displayName}</span>
+      </span>
+    </button>
   );
 }

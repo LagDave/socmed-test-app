@@ -1,21 +1,26 @@
 import { z } from "zod";
 import { CommentModel, type CommentRow } from "../models/CommentModel";
 import { PostModel } from "../models/PostModel";
+import { PostImageModel } from "../models/PostImageModel";
 import { UserModel } from "../models/UserModel";
 import { ReactionModel, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { NotificationService } from "./NotificationService";
 import { AppError } from "../utils/AppError";
 import { toPublicUser } from "../types/user";
+import { FriendshipModel } from "../models/FriendshipModel";
+import { isUserOnline } from "../realtime/PresenceRealtime";
 
 const createCommentSchema = z.object({
   body: z.string().min(1).max(2000),
   imageUrl: z.string().max(500).nullable().optional(),
   parentId: z.string().uuid().nullable().optional(),
+  postImageId: z.string().uuid().nullable().optional(),
 });
 
 export type CommentView = {
   id: string;
   postId: string;
+  postImageId: string | null;
   parentId: string | null;
   body: string;
   imageUrl: string | null;
@@ -26,6 +31,7 @@ export type CommentView = {
 
 async function hydrate(rows: CommentRow[], viewerId: string): Promise<CommentView[]> {
   const authors = await Promise.all(rows.map((r) => UserModel.findById(r.author_id)));
+  const mutualFriendIds = new Set(await FriendshipModel.listAcceptedMutualIds(viewerId));
   const summaries = await ReactionModel.summariesForComments(
     rows.map((r) => r.id),
     viewerId
@@ -36,11 +42,14 @@ async function hydrate(rows: CommentRow[], viewerId: string): Promise<CommentVie
     return {
       id: r.id,
       postId: r.post_id,
+      postImageId: r.post_image_id ?? null,
       parentId: r.parent_id,
       body: r.body,
       imageUrl: r.image_url,
       createdAt: r.created_at,
-      author: toPublicUser(author),
+      author: mutualFriendIds.has(author.id)
+        ? { ...toPublicUser(author), isOnline: isUserOnline(author.id) }
+        : toPublicUser(author),
       reactionSummary: summaries.get(r.id) ?? emptyReactionSummary(),
     };
   });
@@ -61,6 +70,8 @@ export class CommentService {
 
     const parentId: string | null = input.parentId ?? null;
     let parentAuthorId: string | null = null;
+    let postImageId: string | null = input.postImageId ?? null;
+
     if (parentId) {
       const parent = await CommentModel.findById(parentId);
       if (!parent || parent.post_id !== postId) {
@@ -70,6 +81,12 @@ export class CommentService {
         throw new AppError("COMMENT_VALIDATION", "Parent must be a top-level comment on this post.");
       }
       parentAuthorId = parent.author_id;
+      postImageId = parent.post_image_id ?? null;
+    } else if (postImageId) {
+      const image = await PostImageModel.findById(postImageId);
+      if (!image || image.post_id !== postId) {
+        throw new AppError("COMMENT_VALIDATION", "Photo not found on this post.");
+      }
     }
 
     const row = await CommentModel.create({
@@ -78,6 +95,7 @@ export class CommentService {
       body: input.body,
       imageUrl: input.imageUrl,
       parentId,
+      postImageId,
     });
 
     if (parentId && parentAuthorId) {
@@ -87,6 +105,16 @@ export class CommentService {
         type: "comment_reply",
         postId,
         commentId: row.id,
+        postImageId,
+      });
+    } else if (postImageId) {
+      await NotificationService.notify({
+        recipientId: post.author_id,
+        actorId: userId,
+        type: "comment_on_photo",
+        postId,
+        commentId: row.id,
+        postImageId,
       });
     } else {
       await NotificationService.notify({

@@ -1,0 +1,28 @@
+{
+  "plan": "plans/08072026-remove-new-message-header",
+  "generatedAt": "2026-08-07",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Populated inbox composer simplification",
+      "surface": "ui",
+      "precondition": "Prepare an account with at least one conversation and an account with no conversations.",
+      "steps": [
+        "Open /messages and wait for conversations to load.",
+        "For the populated inbox, confirm no NEW MESSAGE heading or compose block appears above Conversations.",
+        "Select the person-plus toolbar icon labelled New message; confirm the friend search opens and receives focus.",
+        "Search for a friend (including one with an existing conversation), close with Escape and the Close search button, and confirm focus returns to the New message trigger.",
+        "Open a friend and confirm navigation still works.",
+        "Confirm the gear remains Message settings and the person-plus icon no longer routes to Manage friends.",
+        "For the empty inbox, confirm the Friends heading and friend search remain available.",
+        "Simulate or observe a failed mutual-friends request from a populated inbox and confirm its error remains visible."
+      ],
+      "expected": "The person-plus icon is always an accessible New message trigger; it opens the searchable friend picker from every inbox state. A closed populated inbox remains compact, while empty and error states remain visible.",
+      "status": "pass",
+      "evidence": "2026-08-07: user confirmed live acceptance A1. Root typecheck and production build pass after the controlled picker handoff; frontend lint completes with unrelated pre-existing warnings in AuthContext, ThemeContext, MessageQuoteStrip, PostPhotoCommentsPage, and PostDetailPage.",
+      "notes": "Live acceptance completed by the user.",
+      "waiver": ""
+    }
+  ]
+}

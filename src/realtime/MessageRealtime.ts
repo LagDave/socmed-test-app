@@ -1,13 +1,34 @@
 import { ConversationModel } from "../models/ConversationModel";
 import type { ConversationRow } from "../models/ConversationModel";
 import type { MessageView } from "../services/MessageService";
+import type { MessagePinActivityView, PinnedMessageView } from "../services/MessagePinService";
+import type { ConversationThemeView } from "../services/ChatThemeService";
+import type { ThemeLogEntry } from "../types/themeLog";
 import { emitToUser } from "./io";
 
 export const MESSAGE_NEW = "message:new";
 export const MESSAGE_UNSENT = "message:unsent";
+export const MESSAGE_EDITED = "message:edited";
 export const MESSAGE_REACTION = "message:reaction";
+export const MESSAGE_DELIVERED = "message:delivered";
+export const CONVERSATION_PEER_READ = "conversation:peer-read";
+export const MESSAGE_ACK = "message:ack";
 export const MESSAGES_UNREAD = "messages:unread";
 export const CONVERSATION_UPDATED = "conversation:updated";
+export const CONVERSATION_THEME = "conversation:theme";
+export const MESSAGE_PINS_UPDATED = "message:pins-updated";
+
+export type MessageDeliveredPayload = {
+  messageId: string;
+  conversationId: string;
+  deliveredAt: Date;
+};
+
+export type ConversationPeerReadPayload = {
+  conversationId: string;
+  readerId: string;
+  peerLastReadAt: Date;
+};
 
 function participantIds(conversation: ConversationRow): [string, string] {
   return [conversation.user_a, conversation.user_b];
@@ -49,16 +70,80 @@ export const MessageRealtime = {
     await emitUnreadForParticipants(conversation);
   },
 
+  async messageEdited(conversation: ConversationRow, message: MessageView): Promise<void> {
+    const payload = { message };
+    for (const userId of participantIds(conversation)) {
+      emitToUser(userId, MESSAGE_EDITED, payload);
+    }
+    emitConversationUpdated(conversation);
+  },
+
   async messageReaction(
-    targets: Array<{ userId: string; message: MessageView }>
+    conversation: ConversationRow,
+    targets: Array<{ userId: string; message: MessageView }>,
+    _reactorId: string
   ): Promise<void> {
     for (const { userId, message } of targets) {
       emitToUser(userId, MESSAGE_REACTION, { message });
     }
+    emitConversationUpdated(conversation);
+  },
+
+  async unreadCountForUser(userId: string): Promise<void> {
+    await emitUnreadForUser(userId);
   },
 
   async conversationRead(conversation: ConversationRow, readerId: string): Promise<void> {
     emitToUser(readerId, CONVERSATION_UPDATED, { conversationId: conversation.id });
     await emitUnreadForUser(readerId);
+  },
+
+  async conversationHidden(conversation: ConversationRow, userId: string): Promise<void> {
+    emitToUser(userId, CONVERSATION_UPDATED, { conversationId: conversation.id });
+    await emitUnreadForUser(userId);
+  },
+  conversationPriorityUpdated(userId: string, conversationId: string): void {
+    emitToUser(userId, CONVERSATION_UPDATED, { conversationId });
+  },
+
+  async conversationTheme(
+    conversation: ConversationRow,
+    theme: ConversationThemeView,
+    logEntry: ThemeLogEntry
+  ): Promise<void> {
+    const payload = {
+      conversationId: conversation.id,
+      theme: theme.theme,
+      updatedAt: theme.updatedAt?.toISOString() ?? null,
+      updatedBy: theme.updatedBy,
+      logEntry,
+    };
+    for (const userId of participantIds(conversation)) {
+      emitToUser(userId, CONVERSATION_THEME, payload);
+    }
+    emitConversationUpdated(conversation);
+  },
+
+  async messagePinsUpdated(
+    conversation: ConversationRow,
+    targets: Array<{ userId: string; pinnedMessages: PinnedMessageView[] }>,
+    pinActivity: MessagePinActivityView | null = null
+  ): Promise<void> {
+    for (const { userId, pinnedMessages } of targets) {
+      emitToUser(userId, MESSAGE_PINS_UPDATED, {
+        conversationId: conversation.id,
+        pinnedMessages,
+        pinActivity,
+      });
+    }
+    if (pinActivity) emitConversationUpdated(conversation);
+  },
+
+  messageDelivered(senderId: string, payload: MessageDeliveredPayload): void {
+    emitToUser(senderId, MESSAGE_DELIVERED, payload);
+  },
+
+  conversationPeerRead(recipientId: string, payload: ConversationPeerReadPayload): void {
+    emitToUser(recipientId, CONVERSATION_PEER_READ, payload);
   },
 };

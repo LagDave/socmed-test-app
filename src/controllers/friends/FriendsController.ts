@@ -48,9 +48,27 @@ export class FriendsController {
     }
   }
 
+  static async unfriend(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      await FriendshipService.unfriend(req.userId!, String(req.params.userId));
+      return ok(res, { unfriended: true });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
   static async mutuals(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const users = await FriendshipService.mutuals(req.userId!);
+      return ok(res, { users });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async suggestions(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const users = await FriendshipService.suggestions(req.userId!);
       return ok(res, { users });
     } catch (err) {
       return handle(res, err);

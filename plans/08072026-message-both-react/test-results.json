@@ -1,0 +1,55 @@
+{
+  "plan": "plans/08072026-message-both-react",
+  "generatedAt": "2026-08-07",
+  "status": "passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Both participants’ different reactions are visible",
+      "surface": "ui",
+      "precondition": "An isolated runtime has two signed-in users in the same direct conversation.",
+      "steps": ["User A sends a text message.", "User B reacts with one available emoji.", "User A reacts to that same message with a different available emoji.", "Observe the message in both users’ open threads, including after a realtime update or refresh."],
+      "expected": "Both bubbles show the two distinct emoji icons in one compact reaction badge; neither participant’s reaction hides the other.",
+      "status": "pass",
+      "evidence": "2026-08-07: user confirmed the tested two-user conversation shows both distinct reactions on the same message.",
+      "notes": "Human acceptance confirmation.",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Matching reactions show the participant count",
+      "surface": "ui",
+      "precondition": "An isolated runtime has the same two-user conversation.",
+      "steps": ["Have User A and User B choose the same emoji on one message.", "Observe the badge in both threads."],
+      "expected": "The badge shows one instance of the emoji and a visible count of 2, without duplicate icons or loss of either reaction.",
+      "status": "pass",
+      "evidence": "2026-08-07: user confirmed matching participant reactions remain visible with their count.",
+      "notes": "Human acceptance confirmation.",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Bubble and status layout remain intact",
+      "surface": "ui",
+      "precondition": "An isolated runtime includes incoming and outgoing text, image-only, grouped, and themed messages with reaction summaries.",
+      "steps": ["Check incoming and outgoing bubbles with one and two visible reaction types.", "Check image-only and grouped messages.", "Check a sent message that shows delivered or seen status at desktop and narrow mobile widths."],
+      "expected": "Reaction badges remain attached to the correct bubble edge with clear separation from nearby bubbles and no overlap with timestamp, image, toolbar, or delivery/seen status.",
+      "status": "pass",
+      "evidence": "2026-08-07: user confirmed the final badge appearance and text readability in the tested chat theme.",
+      "notes": "Human acceptance confirmation.",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Frontend quality gates",
+      "surface": "cli",
+      "precondition": "Frontend dependencies are installed.",
+      "steps": ["Run npm run typecheck in frontend/.", "Run npm run lint in frontend/.", "Run npm run build in frontend/."],
+      "expected": "All commands succeed; any unrelated pre-existing warning is documented rather than attributed to this change.",
+      "status": "pass",
+      "evidence": "2026-08-07: npm run typecheck and npm run build exited 0. npm run lint exited 0 with six existing warnings in PostDetailPage, PostPhotoCommentsPage, AuthContext, ThemeContext, and MessageQuoteStrip; none are in this change.",
+      "notes": "Vite also reported its existing advisory that the production JavaScript chunk exceeds 500 kB.",
+      "waiver": ""
+    }
+  ]
+}

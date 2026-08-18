@@ -1,0 +1,79 @@
+{
+  "plan": "plans/08062026-49-profile-menu-ui",
+  "generatedAt": "2026-08-06",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Account panel identifies the active user",
+      "surface": "ui",
+      "precondition": "Signed in with a display name; username and avatar are available when possible.",
+      "steps": ["Open the avatar menu from any authenticated route.", "Confirm the account summary shows the current avatar, display name, and @username when present.", "Select the summary and confirm it navigates to the current user's profile."],
+      "expected": "One clearly interactive account summary routes to the profile with no nested-link behavior.",
+      "status": "pass",
+      "evidence": "2026-08-06: User confirmed manual signed-in testing of the account summary, including identity display and profile navigation.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Existing account actions retain their behavior",
+      "surface": "ui",
+      "precondition": "Signed in; use a disposable test session for logout.",
+      "steps": ["Open the menu and confirm no separate View profile row is present.", "Select the theme action.", "Open the menu again and select Log out."],
+      "expected": "The menu has one profile entry only; the theme changes and logout terminates the session exactly as before.",
+      "status": "pass",
+      "evidence": "2026-08-06: User confirmed manual signed-in testing; no separate View profile row remains, theme switching works, and logout retains its behavior.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Theme action reflects the next state",
+      "surface": "ui",
+      "precondition": "Signed in.",
+      "steps": ["Open the menu in light mode and inspect the theme row.", "Switch theme, reopen the menu, and inspect the same row."],
+      "expected": "Light mode offers Sun/Moon copy for switching to dark; dark mode offers the inverse, with a matching icon.",
+      "status": "pass",
+      "evidence": "2026-08-06: User confirmed the light/dark mode action has been manually tested in both states.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Keyboard, focus, and dismissal remain accessible",
+      "surface": "ui",
+      "precondition": "Signed in, desktop browser.",
+      "steps": ["Tab to the avatar trigger and open it with Enter or Space.", "Use arrow keys to traverse the menu and Enter to select a non-logout action.", "Reopen it and dismiss with Escape; inspect visible focus treatment."],
+      "expected": "Radix menu navigation and dismissal work; focus is visible and action rows are comfortably targetable.",
+      "status": "pass",
+      "evidence": "2026-08-06: User confirmed manual interaction testing of the profile menu controls.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Theme and consumer isolation",
+      "surface": "ui",
+      "precondition": "Signed in; profile page is accessible.",
+      "steps": ["Inspect the account panel in light and dark modes.", "Open a ProfilePage overflow or avatar-image menu that uses profile-dropdown classes."],
+      "expected": "Account panel has intentional contrast in both themes, while profile-page menus preserve their prior styling and behavior.",
+      "status": "pass",
+      "evidence": "2026-08-06: User confirmed manual visual testing of the menu changes, including light/dark presentation and isolation from existing profile menus.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Frontend automated gates pass",
+      "surface": "cli",
+      "precondition": "Execution changes are present on kylie/profile-menu-ui.",
+      "steps": ["Run npm run typecheck in frontend.", "Run npm run lint in frontend.", "Run npm run build in frontend."],
+      "expected": "Commands exit successfully; any pre-existing warning is documented separately.",
+      "status": "pass",
+      "evidence": "2026-08-06: npm run typecheck passed in the root and frontend; npm run lint completed with six existing warnings outside this change; npm run build passed in frontend; npm run build:api passed in the root.",
+      "notes": "The root package does not define the Constitution-documented npm run check:all script; npm reported Missing script.",
+      "waiver": ""
+    }
+  ]
+}

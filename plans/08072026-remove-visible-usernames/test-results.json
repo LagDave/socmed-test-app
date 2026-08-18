@@ -1,0 +1,103 @@
+{
+  "planId": "08072026-remove-visible-usernames",
+  "title": "Remove Visible Usernames",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "post-share-social-ui",
+      "title": "Posts, comments, reactions, and sharing show display names only",
+      "surface": "ui",
+      "precondition": "A contained runtime has a post with comments, reactions, a shared post, and an authenticated viewer who can open the share dialog.",
+      "steps": [
+        "At desktop width, inspect a regular post, a comment, the reaction dialog, a shared-post embed, and the share dialog preview/current-user row.",
+        "Repeat at a narrow mobile width.",
+        "Open profile links from each applicable avatar or display name."
+      ],
+      "expected": "No inspected surface renders @username; display names and normal controls remain visible, responsive, and clickable; profile links resolve to the same target.",
+      "status": "pass",
+      "evidence": "2026-08-07: product owner confirmed this full UI acceptance item passed in the local server.",
+      "notes": "Confirmed with a share containing an original post and captioned reshare.",
+      "waiver": null
+    },
+    {
+      "id": "friends-messaging-ui",
+      "title": "Friends, picker, inbox, and thread remove handles without breaking identity actions",
+      "surface": "ui",
+      "precondition": "The viewer has at least one mutual friend with a username and an existing conversation, including a peer whose presence can be observed.",
+      "steps": [
+        "Inspect friend rows, the new-message picker/search result, inbox row, and open thread header at desktop and narrow mobile widths.",
+        "Search the picker by the friend's username and open a conversation.",
+        "Open the peer profile from the inbox avatar/thread header and verify normal navigation."
+      ],
+      "expected": "No handle text is visible; no blank secondary line or action misalignment remains; username search and username-based conversation opening still work; profile routes and presence status remain correct.",
+      "status": "pass",
+      "evidence": "2026-08-07: product owner confirmed this full UI acceptance item passed in the local server.",
+      "notes": "Confirmed for friend, picker, inbox, and thread identity surfaces.",
+      "waiver": null
+    },
+    {
+      "id": "profile-navigation-ui",
+      "title": "Profile header and navbar remove handles while retaining profile identity behavior",
+      "surface": "ui",
+      "precondition": "An authenticated account can view its own profile and another profile with a username.",
+      "steps": [
+        "Inspect own and other profile headers at desktop and narrow mobile widths.",
+        "Open the navbar profile menu and navigate through its profile entry.",
+        "Use the profile copy-link control and verify the copied/opened URL still contains the username route segment."
+      ],
+      "expected": "Visible headers/menu show display names without @username; actions remain aligned and accessible; existing profile navigation and shareable username URL behavior are unchanged.",
+      "status": "pass",
+      "evidence": "2026-08-07: product owner confirmed this full UI acceptance item passed in the local server.",
+      "notes": "Username inputs/edit settings remain intentionally outside this visual assertion.",
+      "waiver": null
+    },
+    {
+      "id": "accessibility",
+      "title": "Identity controls remain meaningfully labelled",
+      "surface": "ui",
+      "precondition": "The implemented UI is available in a contained runtime with browser accessibility inspection or a screen reader.",
+      "steps": [
+        "Inspect post, shared-post, comment, reaction, friend, inbox, thread, navbar, and profile links/buttons after the handle removal.",
+        "Confirm each has a discernible display-name-based accessible name or meaningful visible text.",
+        "Tab through the affected surfaces and activate one profile link in each category."
+      ],
+      "expected": "No control loses its accessible name or focus behavior; raw usernames are not announced solely because they were removed from visible UI.",
+      "status": "pass",
+      "evidence": "2026-08-07: product owner confirmed this full accessibility acceptance item passed in the local server.",
+      "notes": "No targeted aria-label adjustment was required.",
+      "waiver": null
+    },
+    {
+      "id": "identity-boundaries",
+      "title": "Username data and lookup contracts remain intact",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": [
+        "Search frontend source for remaining username references and classify each as a protected route, API/type, lookup, input, or accessibility consumer.",
+        "Verify username-first /u paths in post, comment, reaction, friend, inbox, thread, and profile code remain present.",
+        "Verify friend search and openConversationWithUsername call sites remain present."
+      ],
+      "expected": "All display-only @username renderers are removed; APIs, types, authentication, URL routing, profile copy/redirects, lookups, and message opening are unchanged.",
+      "status": "pass",
+      "evidence": "2026-08-07: residual render search for @${…username}, @{…username}, and ` @${…username}` returned no matches. Protected username routes, ProfilePage fetch/redirect/copy-link behavior, friend matching, and openConversationWithUsername call sites remain present.",
+      "notes": "Read-only source audit passed; do not use a broad username deletion.",
+      "waiver": null
+    },
+    {
+      "id": "quality-gates",
+      "title": "Build, lint, and architecture checks",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": [
+        "Run impacted tests if present, then npm run typecheck, npm run build, and npm --prefix frontend run lint.",
+        "Run available convention checks without treating absent package scripts as a pass.",
+        "Fix execution-caused failures and record any pre-existing/environment failure with evidence."
+      ],
+      "expected": "No execution-caused type, build, lint, or convention failure remains; every unavailable or waived check is documented.",
+      "status": "pass",
+      "evidence": "2026-08-07: npm run typecheck and npm run build passed. npm --prefix frontend run lint exited 0 with six pre-existing warnings in MessageQuoteStrip.tsx, PostDetailPage.tsx, PostPhotoCommentsPage.tsx, AuthContext.tsx, and ThemeContext.tsx. No root test or convention-check script is configured.",
+      "notes": "This visual-only task required no backend migrations or API changes. The production build emitted the existing Vite chunk-size advisory.",
+      "waiver": null
+    }
+  ]
+}

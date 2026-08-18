@@ -1,0 +1,91 @@
+{
+  "plan": "plans/08062026-activity-sound-settings-relocation",
+  "generatedAt": "2026-08-06",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Message settings contain only message controls",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": ["Open /messages/settings", "Confirm the card is titled Message sounds", "Confirm there is no Activity sounds picker"],
+      "expected": "Direct-message sound controls are isolated to Message settings.",
+      "status": "pass",
+      "evidence": "Static composition verification: MessageSettingsPage mounts MessageSoundSettings only.",
+      "notes": "Interactive visual smoke check still recommended.",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Activity settings are available from Notifications",
+      "surface": "ui",
+      "precondition": "Signed in",
+      "steps": ["Open /notifications", "Click the settings gear", "Confirm route is /notifications/settings", "Confirm the card is titled Activity sounds"],
+      "expected": "Activity controls are located in the Notifications domain, not Message settings.",
+      "status": "pass",
+      "evidence": "Static route and composition verification: NotificationsPage links to /notifications/settings; App.tsx registers NotificationSettingsPage; that page mounts ActivitySoundSettings only.",
+      "notes": "Interactive visual smoke check still recommended.",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Message and activity audio can be controlled independently",
+      "surface": "ui",
+      "precondition": "Two signed-in mutual users, socket connected, browser audio unlocked",
+      "steps": ["Enable and select a message sound, then disable activity sounds and save", "Receive a direct message while not viewing that conversation", "Receive a friend request, comment, or reply while not on Notifications"],
+      "expected": "Only the direct-message sound plays; activity sound is silent. Reversing the toggles reverses this result.",
+      "status": "pass",
+      "evidence": "2026-08-06 human confirmation: independent two-user message and activity audio behavior works in the local server session.",
+      "notes": "Confirmed by the user after live testing.",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Typecheck, lint, and production build",
+      "surface": "cli",
+      "precondition": "Dependencies installed",
+      "steps": ["npm run typecheck", "npm --prefix frontend run lint", "npm run build"],
+      "expected": "No failures caused by this change.",
+      "status": "pass",
+      "evidence": "2026-08-06: typecheck and production build passed. Oxlint completed with six pre-existing warnings and no errors.",
+      "notes": "The known warnings are in MessageQuoteStrip, AuthContext, ThemeContext, PostDetailPage, and PostPhotoCommentsPage.",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Unread activity notifications persist until an item is viewed",
+      "surface": "ui",
+      "precondition": "Signed in with at least one unread comment, reply, or friend-request notification",
+      "steps": ["Open /notifications", "Confirm unread activity row highlights and New badges remain visible", "Confirm the navbar notification count remains non-zero", "Confirm no bulk Mark activity as read action is present"],
+      "expected": "Opening the Notifications page does not change activity read state; each notification remains unread until it is individually viewed or marked read.",
+      "status": "pass",
+      "evidence": "2026-08-06 static verification: NotificationsPage load() performs no read mutation and the superseded bulk control is removed.",
+      "notes": "Interactive smoke verification remains recommended.",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Each activity notification is read only when viewed",
+      "surface": "ui",
+      "precondition": "Two signed-in users; recipient has an unread comment/reply and a pending friend request",
+      "steps": ["Open /notifications and confirm both items remain unread", "Open the comment or reply notification and return to Notifications", "Confirm only that row is read and the count decreases by one", "Use Mark as read on the pending friend request", "Confirm it stays pending but no longer contributes to unread count"],
+      "expected": "Read state is individual and recipient-scoped; reading never accepts, declines, or hides a pending friend request.",
+      "status": "pass",
+      "evidence": "2026-08-06 static verification: comment/reply destination links call the recipient-scoped POST /api/notifications/:id/read endpoint; friend-request rows expose the same item-level action. NotificationModel scopes updates to recipient_id and read state; count queries include only unread pending friend-request rows.",
+      "notes": "Friend requests reuse their existing notification rows and remain visible only while pending. Interactive two-user verification remains recommended, including a cross-user authorization attempt.",
+      "waiver": ""
+    },
+    {
+      "id": "A7",
+      "title": "Notification destination back arrow returns to Notifications",
+      "surface": "ui",
+      "precondition": "Signed in with a comment or reply notification that opens a post or photo thread",
+      "steps": ["Open the notification from /notifications", "Confirm the destination shows a back arrow labeled Back to notifications", "Use the arrow", "Open the same destination directly from the feed"],
+      "expected": "Notification-origin navigation returns to /notifications. Direct post or photo visits retain Back to feed or Back to post.",
+      "status": "pass",
+      "evidence": "2026-08-06 static verification: notification destination links carry the trusted return-state marker; PostDetailPage and PostPhotoCommentsPage accept only that boolean marker and resolve it to the fixed /notifications path.",
+      "notes": "Direct destination routes retain their original feed or post return link. Interactive smoke verification remains recommended.",
+      "waiver": ""
+    }
+  ]
+}

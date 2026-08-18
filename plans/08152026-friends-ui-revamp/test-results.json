@@ -1,0 +1,127 @@
+{
+  "plan": "plans/08152026-friends-ui-revamp",
+  "generatedAt": "2026-08-18",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Friends visual hierarchy and theme parity",
+      "surface": "ui",
+      "precondition": "Signed in; isolated runtime is running; open /friends.",
+      "steps": [
+        "Inspect the Friends panel in the current light theme.",
+        "Hover the main Friends dashboard card and compare it with its resting state.",
+        "Verify the Friends content wrapper is absent and the section title aligns to the navigation’s left edge.",
+        "Inspect individual friend rows at rest, on hover, and when keyboard focused.",
+        "Verify consecutive friend rows have no blank list gap between them while their actions remain comfortably usable.",
+        "Toggle the existing dark theme and inspect again.",
+        "Open a non-Friends route such as Feed or Messages."
+      ],
+      "expected": "The route presents a calmer Friends surface without a purple accent, content wrapper, dashboard shadow, or individual friend-row card surface; entries are compact with no blank list gap, keyboard focus remains visible, and other routes keep their existing card styling.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Markup/CSS inspected: .friends-* only; no dashboard card wrapper; rows have transparent hover. Isolated GUI not exercised in this cloud run.",
+      "waiver": "Owner-directed land: visual GUI not available in this environment. CSS is Friends-scoped (.friends-*) and does not change shared .feed-card rules."
+    },
+    {
+      "id": "A2",
+      "title": "Friends, Requests, and Suggested navigation is accessible",
+      "surface": "ui",
+      "precondition": "Signed in; at least one mutual friend and one incoming or outgoing request available when possible.",
+      "steps": [
+        "Select each navigation view with pointer input.",
+        "Use Tab and arrow keys to select views.",
+        "Repeat at 375px width."
+      ],
+      "expected": "Each view shows the intended real data with its inline count, focus remains visible, no server write occurs when switching views, and the layout has no horizontal overflow.",
+      "status": "fail",
+      "evidence": "",
+      "notes": "Rev 11 replaced incomplete tab roles with aria-pressed buttons and kept arrow-key handlers. Isolated GUI not exercised.",
+      "waiver": "Owner-directed land: keyboard/375px GUI not available in this environment. View switching is client state only (no writes)."
+    },
+    {
+      "id": "A3",
+      "title": "Existing friend request lifecycle remains intact",
+      "surface": "ui",
+      "precondition": "Synthetic accounts: requester, recipient, and an unrelated user.",
+      "steps": [
+        "Click Search people, enter a username in the revealed field, and submit the request.",
+        "Verify it appears in Sent Requests and disappears from Suggested if previously listed.",
+        "As the recipient, confirm and then verify it moves to Friends.",
+        "Create another request and decline or cancel it."
+      ],
+      "expected": "Send, confirm, decline, and cancel retain current behavior; all affected panels refresh without stale rows.",
+      "status": "pass",
+      "evidence": "2026-08-18 isolated DB socmed_pr94_accept + API :3294. Alice–Bob accepted, Bob–Carol accepted. GET /api/friends/suggestions as Alice returned Carol (mutualFriendCount 1, no isOnline). POST /api/friends/request username=carol then suggestions []. Inbox outgoing showed the pending Carol row. Mutuals listed Bob with isOnline.",
+      "notes": "Verified over HTTP on the isolated API, not by clicking the SPA.",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Friends-of-friends suggestions are accurate and private",
+      "surface": "api",
+      "precondition": "Synthetic graph: viewer is friends with Alex; Alex is friends with Bea and Casey; viewer has a pending relationship with Casey.",
+      "steps": [
+        "Call GET /api/friends/suggestions as the viewer.",
+        "Inspect every returned object.",
+        "Compare the response to the graph after adding a second shared friend for Bea."
+      ],
+      "expected": "Bea appears once with the correct mutual-friend count and outranks lower-count candidates. Viewer, Alex, Casey, and all direct/pending relationships are absent. Objects have no email field.",
+      "status": "pass",
+      "evidence": "2026-08-18 FriendshipService.suggestions on socmed_pr94_accept: first [Bea count 1]; after Dana mutual [Bea count 2]; keys avatarUrl,displayName,id,mutualFriendCount,username; no email, no isOnline. Loner empty. HTTP Alice suggestions: Carol without isOnline/email.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Suggestion endpoint is protected and index migration applies",
+      "surface": "api",
+      "precondition": "Isolated acceptance database and API runtime.",
+      "steps": [
+        "Run the friend-suggestion migration.",
+        "Request GET /api/friends/suggestions without authentication.",
+        "Request it with a valid authenticated session.",
+        "Inspect the database indexes or migration output."
+      ],
+      "expected": "Migration succeeds; unauthenticated request is rejected; authenticated request succeeds; both accepted-status relationship lookup indexes are present.",
+      "status": "pass",
+      "evidence": "2026-08-18: knex migrate:latest on socmed_pr94_accept (33 migrations). GET /api/friends/suggestions unauthenticated → 401 AUTH_UNAUTHENTICATED. Authenticated register → 200 { users: [] }. pg_indexes includes friendships_status_user_a_index and friendships_status_user_b_index.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Presence and friend actions are truthful and usable",
+      "surface": "ui",
+      "precondition": "Two mutual accounts; one connected to Socket.IO and one disconnected.",
+      "steps": [
+        "Open Friends as the viewer.",
+        "Connect and disconnect the other mutual account.",
+        "Observe the row’s presence treatment.",
+        "Click Message, then open overflow and cancel Unfriend; repeat and confirm Unfriend."
+      ],
+      "expected": "Only real mutual presence changes are shown. Message opens the existing conversation; overflow action is labeled and Unfriend still requires confirmation.",
+      "status": "fail",
+      "evidence": "HTTP mutuals include isOnline; suggestion DTO omits isOnline. SuggestedListPanel passes canViewPresence={false}. Unfriend still uses ConfirmDialog.",
+      "notes": "Live Socket.IO two-client GUI not run.",
+      "waiver": "Owner-directed land: live presence GUI not available. Presence remains the existing friend-only Socket.IO path; suggestions no longer disclose isOnline (PR #94 R2)."
+    },
+    {
+      "id": "A7",
+      "title": "Static validation and build gate",
+      "surface": "cli",
+      "precondition": "Implementation complete in the linked branch worktree.",
+      "steps": [
+        "Run npm run typecheck.",
+        "Run npm run build.",
+        "Run npm --prefix frontend run lint.",
+        "Run the convention check if available."
+      ],
+      "expected": "All execution-caused type, build, lint, and convention failures are fixed before finalization.",
+      "status": "pass",
+      "evidence": "2026-08-18: npm run typecheck clean; npm run build clean; npm --prefix frontend run lint — existing unrelated warnings only (PostPhotoCommentsPage, ThemeContext, AuthContext, MessageQuoteStrip, PostDetailPage). No check:conventions script in this package.json.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

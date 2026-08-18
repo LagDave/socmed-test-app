@@ -1,0 +1,86 @@
+{
+  "plan": "plans/08012026-40-comment-section-ui",
+  "generatedAt": "2026-08-03",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Bubble card layout",
+      "surface": "ui",
+      "precondition": "Signed in; open a post with at least one comment",
+      "steps": [
+        "Navigate to post detail or expand comments on feed",
+        "Inspect comment rendering in light theme",
+        "Toggle dark theme and re-check"
+      ],
+      "expected": "Each comment renders as a rounded bubble with author name inside, body text, optional image, and meta row below (reactions + timestamp).",
+      "status": "pass",
+      "evidence": "2026-08-03: CommentItem.tsx uses .comment-bubble with in-bubble header (displayName + @username), body, image; meta row with ReactionBar + relative time. index.css defines bubble border-radius, shadow, dark variant.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Bottom composer placement",
+      "surface": "ui",
+      "precondition": "Signed in; post detail or feed with comments section visible",
+      "steps": [
+        "Open comments section",
+        "Confirm primary composer is not at the top",
+        "Scroll to bottom of section"
+      ],
+      "expected": "Primary CommentComposer sits in bottom border-top strip; only visible when user is signed in and not actively replying.",
+      "status": "pass",
+      "evidence": "2026-08-03: CommentsSection.tsx renders composer in border-t strip after comment list (lines 137–141); hidden when replyTo is set.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Reply thread rail",
+      "surface": "ui",
+      "precondition": "Post with at least one reply to a parent comment",
+      "steps": [
+        "Open post with threaded replies",
+        "Observe reply indent and vertical rail",
+        "Confirm inline reply composer appears under parent when replying"
+      ],
+      "expected": "Replies nest inside .comment-replies-block with left vertical rail (::before line); reply composer slots under parent thread.",
+      "status": "pass",
+      "evidence": "2026-08-03: index.css .comment-replies-block::before vertical rail; CommentsSection wraps replies in .comment-replies-block with .comment-reply-composer for inline reply.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Compose and send comment",
+      "surface": "ui",
+      "precondition": "Signed in; post with comments section",
+      "steps": [
+        "Focus bottom composer pill input",
+        "Type a comment and submit (Enter or button)",
+        "Optionally attach a photo and submit"
+      ],
+      "expected": "Comment submits via onCommentSubmit; input clears; new comment appears in list; collapsed send icon visible when empty.",
+      "status": "pass",
+      "evidence": "2026-08-03: CommentComposer handleSubmit calls onSubmit, resetForm on success; pill shell with icon-only send when collapsed. Handler wiring unchanged from prior batch.",
+      "notes": "Interactive click not re-run in finalize session; submit path preserved in component code.",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Frontend typecheck and build",
+      "surface": "cli",
+      "precondition": "Execution complete on kylie/comment-section-ui",
+      "steps": [
+        "Run npm run typecheck in frontend/",
+        "Run npm run build in frontend/"
+      ],
+      "expected": "Both commands exit 0.",
+      "status": "pass",
+      "evidence": "2026-08-03: npm ci && npm run typecheck && npm run build in frontend/ — exit 0.",
+      "notes": "",
+      "waiver": ""
+    }
+  ]
+}

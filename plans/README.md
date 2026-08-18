@@ -30,6 +30,37 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 24 | `07292026-24-reaction-summary-layout` | Reaction summary right-aligned cluster + total count |
 | 25 | `07302026-25-feed-composer-avatar` | Facebook-style feed composer + shared ProfileAvatar |
 | 26 | `07302026-26-share-button` | Facebook-style share button for friends' posts |
+| 27 | `07312026-27-messages-typing-indicator` | Messages thread typing indicator (animated dots) |
+| 28 | `07312026-28-messages-status-icons` | Outgoing message status icons (Sent · Delivered · Seen) |
+| 29 | `07312026-29-reply-to-chat` | Messenger-style reply to chat (quote strip + composer preview) |
+| 30 | `07312026-30-default-message-stickers` | Messenger six reactions + composer emoji picker (thread) |
+| 31 | `08012026-31-chat-themes` | Messenger-style chat themes, colors/gradients, word effects |
+| 32 | `08012026-32-edit-message` | Edit message |
+| 33 | `08012026-33-message-delete-conversation` | Delete conversation |
+| 34 | `08012026-34-message-notification-sounds` | Message notification sounds |
+| 35 | `08012026-35-navbar-upgrade` | Navbar visual polish — pill cluster, SocMed wordmark, avatar profile trigger |
+| 36 | `08012026-36-feed-ui-upgrade` | Feed + post detail UI polish — composer pill, centered inset galleries, multi-photo, labeled actions |
+| 37 | `08012026-37-friends-ui-upgrade` | Friends unified dashboard card + row polish |
+| 38 | `08012026-38-messages-ui-upgrade` | Messages UI — unified inbox card + thread polish |
+| 39 | `08022026-39-notifications-ui-upgrade` | Notifications soft dashboard UI (beautiful again) |
+| 40 | `08012026-40-comment-section-ui` | Comment section UI polish |
+| 41 | `08022026-41-multi-photo-carousel` | Multi-photo carousel |
+| 42 | `08032026-42-message-settings-sound-move` | Message settings page — relocate notification sound picker from Account Settings |
+| 49 | `08062026-49-profile-menu-ui` | Profile menu UI — identity-led account panel |
+| 50 | `08072026-50-friends-tone-down` | Friends page visual tone-down — restrained surface + compact empty states |
+| 51 | `08072026-profile-feed-spacing` | Profile-update shadow refinement + tighter home-feed card rhythm |
+| 52 | `08072026-remove-visible-usernames` | Remove visible @username labels (display-name identity UI) |
+| 53 | `08072026-compact-relative-timestamps` | Compact relative timestamps + comment time placement |
+| 54 | `08072026-message-gap` | Chat bubble gap token 3px |
+| 55 | `08072026-pinned-message-gap-fix` | Compact pinned-message activity logs |
+| 56 | `08072026-remove-new-message-header` | Controlled New message picker / inbox compose |
+| 57 | `08072026-reaction-icon-fix` | Neutral unreacted ThumbsUp trigger |
+| 58 | `08072026-message-both-react` | Show both participants’ message reactions |
+| 59 | `08082026-49-chat-timestamp-reduce` | Compact time-only chat gap separators |
+| 60 | `08082026-pin-message-arrow` | Connected pin-menu caret on message options |
+| 61 | `08072026-50-reaction-share-notifications` | Activity notifications for reactions and post shares |
+| 62 | `08152026-friends-ui-revamp` | Friends navigation, suggestions, and presence polish |
+| 63 | `08182026-message-dark-mode` | Independent Messenger light/dark mode |
 
 ## Branch → host (hard rule)
 

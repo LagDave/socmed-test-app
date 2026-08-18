@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Friends UI Revamp Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; --warn:#7c4a00; --risk:#8f1d1d; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; line-height:1.55; }
+    .shell { width:min(1120px,calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .hero,.section,.task { border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    .hero { padding:32px; border-color:var(--ink); margin-bottom:20px; }
+    .section { padding:28px; margin-top:16px; }
+    .task { padding:20px; margin-top:12px; background:var(--soft); }
+    .topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; }
+    .eyebrow,dt { margin:0; color:var(--muted); font-size:.76rem; font-weight:800; text-transform:uppercase; letter-spacing:.045em; }
+    .status { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:99px; background:var(--ink); color:#fff; font-size:.75rem; font-weight:800; text-transform:uppercase; }
+    h1 { max-width:900px; margin:0 0 24px; font-size:clamp(2rem,5vw,3.5rem); line-height:.96; letter-spacing:-.045em; }
+    h2 { margin:0 0 14px; font-size:1.35rem; letter-spacing:-.02em; }
+    h3 { margin:0 0 10px; font-size:1.04rem; }
+    p { margin:0 0 12px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin:0; }
+    .grid > div { border:1px solid var(--line); border-radius:8px; padding:15px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    ul,ol { padding-left:1.2rem; }
+    li + li { margin-top:5px; }
+    code { padding:.08rem .28rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:.9em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.94rem; }
+    th,td { padding:9px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:.74rem; text-transform:uppercase; letter-spacing:.03em; }
+    .callout { margin-top:14px; padding:16px 18px; border:2px solid var(--ink); border-radius:8px; }
+    .callout.warning { border-color:var(--warn); color:#4c2d00; background:#fff8e9; }
+    .callout.risk { border-color:var(--risk); color:#5f1111; background:#fff2f2; }
+    .wire { overflow-x:auto; margin:12px 0; padding:15px; border:1px solid var(--line); border-radius:8px; background:var(--soft); font: .8rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre; }
+    .done { list-style:none; padding-left:0; }
+    .done li { display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div class="topline"><p class="eyebrow">Socmed Plan Spec · Seq 62</p><span class="status">Completed</span></div>
+      <h1>Friends UI Revamp — Simple Friends Navigation, Real Presence, and Suggested Connections</h1>
+      <dl class="grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan folder</dt><dd>plans/08152026-friends-ui-revamp</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/friends-ui-revamp</dd></div>
+        <div><dt>Target</dt><dd>dev</dd></div>
+        <div><dt>Size</dt><dd>Large · 7 tasks · frontend + API</dd></div>
+        <div><dt>Risk</dt><dd>Level 3 · privacy and recommendation query</dd></div>
+      </dl>
+    </header>
+
+    <section class="section" id="why">
+      <h2>Why</h2>
+      <p>The current <code>/friends</code> page is reliable but visually dense: its large unified card, all-caps section labels, and icon-only actions make relationship management feel more administrative than social. The approved direction is a calmer Friends surface: text-first navigation, one quiet search action, split Friends/Requests/Suggested views, and richer row context.</p>
+      <p>Unlike the prior UI-only Friends upgrade (Plan 37), this plan adds one real capability: friends-of-friends suggestions. It also surfaces presence that already exists in the application rather than inventing an “online” label.</p>
+    </section>
+
+    <section class="section" id="what">
+      <h2>What</h2>
+      <p>Revamp the existing <code>/friends</code> route into a monochrome, token-driven Friends surface. Keep the current page color system—no purple accent, new brand palette, or global theme changes. The route continues to be <code>/friends</code>.</p>
+      <pre class="wire">Friends
+Your people, all in one calm place.
+
+Friends (12) · Requests (3) · Suggested (4)             [⌕ Search people]
+                                                               ↓ click only when needed
+                                          [ Search by username                 × ]
+
+┌─ Your friends ───────────────────────────────────────────┐
+│ [Avatar + real online dot]  Dave  @dave · Active now      │
+│                                             [Message] [⋯] │
+└──────────────────────────────────────────────────────────┘
+
+Requests view: incoming and sent request rows with existing Confirm / Decline / Cancel flows.
+Suggested view: friends-of-friends only, “N mutual friends,” no presence indicator, [Add].</pre>
+      <p><strong>Done when:</strong></p>
+      <ul>
+        <li>Current monochrome light/dark tokens remain the visual source of truth; no purple accent or global style changes.</li>
+        <li>Friends, Requests, and Suggested are accessible client-side text-navigation views inside <code>/friends</code>, each with an inline count; switching views does not change a friendship state.</li>
+        <li>A flat <code>Search people</code> action shares that navigation row and reveals a username field only on demand; a search result keeps the existing send-request behavior.</li>
+        <li>Friend rows expose a labeled Message action at desktop widths and a compact accessible treatment on narrow screens; Unfriend stays behind an explicit overflow action and the existing confirmation dialog.</li>
+        <li>Real mutual-friend presence is shown from the established Socket.IO presence system on the Friends view only. Suggested rows do not include <code>isOnline</code> or live presence.</li>
+        <li>Suggested users are second-degree candidates only, exclude self/current accepted friends/pending requests, expose no email, and display their actual mutual-friend count.</li>
+        <li>Profile-link sharing is not implemented.</li>
+        <li>Existing request, search, message, unfriend, loading, error, and reduced-motion behavior survives.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="decisions">
+      <h2>Locked decisions</h2>
+      <table>
+        <thead><tr><th>Topic</th><th>Decision</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>Visual language</td><td>Existing monochrome tokens and Friends-scoped CSS only</td><td>User explicitly rejected the mockup’s purple accent; preserves light/dark parity and avoids a one-off surface.</td></tr>
+          <tr><td>Information architecture</td><td>Text-first Friends / Requests / Suggested navigation with inline counts and a far-right Search people action</td><td>Replaces the oversized segmented control and permanent add-friend composer with a familiar, quiet social-page pattern.</td></tr>
+          <tr><td>Presence</td><td>Reuse current presence payload, provider, and <code>FriendPresenceAvatar</code></td><td><code>GET /api/friends/mutuals</code> already returns <code>isOnline</code>, and Socket.IO already sends friend updates.</td></tr>
+          <tr><td>Suggestions</td><td>Rank friends-of-friends by count of shared accepted friends; cap at 6</td><td>Explainable, deterministic, and supported by the existing friendships graph—no opaque recommendation system.</td></tr>
+          <tr><td>Existing relationships</td><td>Exclude self, accepted friends, and both pending directions; declined candidates may reappear</td><td>A declined request is not an irreversible block in today’s product model. Do not silently add a block/dismiss feature.</td></tr>
+          <tr><td>Suggestion response</td><td>Dedicated safe DTO with display identity, avatar, and mutual count; no email/bio/cover and no <code>isOnline</code></td><td>The existing <code>PublicUser</code> shape includes email. Presence is friend-only via Socket.IO; exposing it on suggestions would be a new disclosure.</td></tr>
+          <tr><td>Profile sharing</td><td>Out of scope</td><td>Explicitly deferred by the user.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warning"><strong>Scope note:</strong> “Suggested” will be empty for a user whose friends have no other accepted friends. That is a correct empty state—not a reason to fill the UI with unrelated accounts.</div>
+    </section>
+
+    <section class="section" id="context">
+      <h2>Context and closest patterns</h2>
+      <ul>
+        <li><code>frontend/src/pages/FriendsPage.tsx</code> already owns Friends loading, request mutations, mutual search, chat navigation, and unfriend confirmation.</li>
+        <li><code>frontend/src/components/FriendsRequestForm.tsx</code>, <code>FriendListRow.tsx</code>, and <code>FriendsEmptyState.tsx</code> are Friends-only presentation pieces and are safe to evolve in place.</li>
+        <li><code>frontend/src/components/FriendPresenceAvatar.tsx</code> already renders a real online indicator using <code>useFriendOnline</code>; <code>FriendPresenceProvider</code> subscribes to <code>presence:friend-update</code>.</li>
+        <li><code>src/realtime/PresenceRealtime.ts</code> emits authenticated mutual-friend presence updates. It is a consumer to preserve, not a subsystem to rewrite.</li>
+        <li><code>src/models/FriendshipModel.ts</code> is the correct location for the new graph query. <code>src/services/FriendshipService.ts</code>, <code>FriendsController.ts</code>, and <code>routes/friends.ts</code> establish the route/service/model path.</li>
+        <li><code>frontend/src/api/messages.ts</code> is the closest frontend domain-API pattern; create a matching <code>api/friends.ts</code> rather than expanding direct HTTP calls in a component.</li>
+        <li><code>frontend/src/index.css</code> contains the existing Friends-scoped canvas, strip, row, and reduced-motion rules. It must not restyle shared <code>.feed-card</code> behavior; the permanent strip is replaced by the page-scoped revealed search field.</li>
+      </ul>
+      <p><strong>Blast radius:</strong> the Friends route, authenticated Friends endpoints, Socket.IO presence display on this route, the friendships query table, and the new safe suggestion DTO. Feed, Messages, Profile, Notifications, AppShell, friendship write semantics, and profile sharing are not changed.</p>
+    </section>
+
+    <section class="section" id="constraints">
+      <h2>Constraints</h2>
+      <div class="grid">
+        <div><h3>Must</h3><ul><li>Preserve authenticated request/accept/decline/cancel/unfriend behavior and response shapes.</li><li>Follow Routes → Controller → Service → Model and Component → hook → API client boundaries.</li><li>Use the shared error contract and existing API client; surface errors in the page banner.</li><li>Respect <code>prefers-reduced-motion</code>, keyboard tab navigation, visible focus, and mobile row constraints.</li><li>Add index support before shipping a second-degree relationship query.</li></ul></div>
+        <div><h3>Must not</h3><ul><li>No hard-coded accent palette or global body/AppShell restyle.</li><li>No fake presence, static suggestions, random users, or invented shared interests.</li><li>No email or other unnecessary profile data in the suggestion response.</li><li>No new dependency, state library, realtime protocol, or database engine.</li><li>No change to profile-link sharing, blocking, privacy settings, or friendship write rules.</li></ul></div>
+        <div><h3>Out of scope</h3><ul><li>Dismiss/block suggested people.</li><li>Server-side pagination, ML ranking, contacts import, or interest-based recommendations.</li><li>Presence privacy settings, multi-device analytics, or a new WebSocket event.</li><li>Friends redesign on Notifications, Messages, Feed, or Profile.</li></ul></div>
+      </div>
+    </section>
+
+    <section class="section" id="risk">
+      <h2>Risk and mitigation</h2>
+      <p><strong>Level 3 — Structural risk.</strong> A suggestions endpoint expands discovery from already-related users to second-degree users. The existing generic <code>PublicUser</code> includes email, so reusing it would broaden exposure of PII. The mitigation is locked into this plan: suggestions use a purpose-built, minimal response type and are authenticated, relationship-derived, and query-indexed.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Consumers / impact</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Discovery endpoint leaks email or presence</td><td>Authenticated users outside a direct friendship</td><td>Return only <code>id</code>, display identity, username, avatar URL, and <code>mutualFriendCount</code>; do not call <code>toPublicUser</code> or <code>isUserOnline</code> for this endpoint.</td></tr>
+          <tr><td>Second-degree query degrades as friendships grow</td><td>Friends page load and database</td><td>Use one set-based model query, limit 6 in the database, and add <code>(status,user_a)</code> and <code>(status,user_b)</code> indexes through a Knex migration.</td></tr>
+          <tr><td>Suggested row becomes actionable after relationship changes</td><td>Friends UI state</td><td>Refresh suggestions after send/accept/decline/cancel/unfriend; a pending or accepted candidate must disappear.</td></tr>
+          <tr><td>View switch regresses keyboard/mobile usability</td><td>Friends route</td><td>Use <code>aria-pressed</code> toggle buttons with arrow-key navigation and a single-column mobile layout; actions retain names for screen readers.</td></tr>
+          <tr><td>Shared CSS restyles other pages</td><td>Feed, Messages, Profile</td><td>Only introduce <code>.friends-*</code> rules; do not modify shared <code>.feed-card</code> declarations.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout risk"><strong>Required guardrail:</strong> if code review finds the minimal DTO cannot be kept separate from the email-bearing <code>PublicUser</code> type, stop the execution and revise the spec before exposing the endpoint.</div>
+    </section>
+
+    <section class="section" id="tasks">
+      <h2>Tasks</h2>
+      <article class="task" id="T1"><h3>T1 — Suggestion query and indexes</h3><dl><div><dt>Do</dt><dd>Add one <code>FriendshipModel</code> set-based query that discovers friends-of-friends, groups by candidate, orders by shared accepted-friend count then stable display name, excludes self/accepted/pending relationships, and limits to six. Add a Knex migration for accepted-status lookups on both relationship columns.</dd></div><div><dt>Files</dt><dd><code>src/models/FriendshipModel.ts</code>; new <code>database/migrations/*_friend_suggestion_indexes.ts</code></dd></div><div><dt>Depends on</dt><dd>Locked suggestion policy</dd></div><div><dt>Verify</dt><dd>Query returns only second-degree candidates, one row per candidate, correct count/order, and no existing/pending relationship.</dd></div></dl></article>
+      <article class="task" id="T2"><h3>T2 — Safe suggestions API contract</h3><dl><div><dt>Do</dt><dd>Define an internal suggestion view and map the model result in <code>FriendshipService.suggestions()</code>; add <code>GET /api/friends/suggestions</code> through the existing controller and authenticated router. Include display identity, avatar, and mutual count only — no email, no <code>isOnline</code>. Preserve the standard success/error envelope.</dd></div><div><dt>Files</dt><dd><code>src/services/FriendshipService.ts</code>; <code>src/controllers/friends/FriendsController.ts</code>; <code>src/routes/friends.ts</code>; <code>src/types/</code> only if a dedicated backend DTO file improves ownership</dd></div><div><dt>Depends on</dt><dd>T1</dd></div><div><dt>Verify</dt><dd>Unauthenticated request remains rejected; authenticated response contains the exact minimal shape and excludes email and <code>isOnline</code>.</dd></div></dl></article>
+      <article class="task" id="T3"><h3>T3 — Frontend Friends API and hub state</h3><dl><div><dt>Do</dt><dd>Create <code>frontend/src/api/friends.ts</code> as the single typed client for inbox, mutuals, suggestions, and friendship mutations. Refactor <code>useFriendsInbox</code> to consume that module. Load inbox and mutuals together; load suggestions in a separate try so a suggestions failure cannot blank Friends/Requests. Refresh every affected list after a mutation.</dd></div><div><dt>Files</dt><dd>new <code>frontend/src/api/friends.ts</code>; <code>frontend/src/api/types.ts</code>; <code>frontend/src/hooks/useFriendsInbox.ts</code></dd></div><div><dt>Depends on</dt><dd>T2</dd></div><div><dt>Verify</dt><dd>All hook calls route through the domain API module; one refresh updates inbox, mutuals, and suggestions after each friendship mutation; suggestions errors stay on the Suggested view.</dd></div></dl></article>
+      <article class="task" id="T4"><h3>T4 — Friends shell, text navigation, and search behavior</h3><dl><div><dt>Do</dt><dd>Restructure <code>FriendsPage</code> while retaining the <code>/friends</code> route: token-native Friends header/subtitle, three semantic text-navigation views with inline counts, and a flat Search people action on the same row. The action reveals a focused username field only on demand; its result preserves the existing send-request behavior. Friends holds the mutual list; Requests holds incoming plus non-empty outgoing; Suggested holds the new list or a truthful empty state. Preserve the in-card error banner, loading skeleton, message navigation, and unfriend dialog.</dd></div><div><dt>Files</dt><dd><code>frontend/src/pages/FriendsPage.tsx</code>; <code>frontend/src/components/FriendsRequestForm.tsx</code>; <code>frontend/src/components/FriendsEmptyState.tsx</code></dd></div><div><dt>Depends on</dt><dd>T3</dd></div><div><dt>Verify</dt><dd>Mouse, keyboard, and narrow-width navigation select the intended panel; search opens/focuses/closes cleanly; no navigation switch performs a server write.</dd></div></dl></article>
+      <article class="task" id="T5"><h3>T5 — Row and action polish with real presence</h3><dl><div><dt>Do</dt><dd>Refine Friends rows to show display name, username, and a truthful online/last-active label only where the existing mutual-friend presence contract permits it. Keep <code>FriendPresenceAvatar</code> as the sole avatar presence renderer. Make Message an explicit primary row action at desktop widths; move Unfriend to an accessible overflow trigger that opens the existing confirmation flow. Add a reusable suggestion row only if it keeps page functions under the Constitution size limit.</dd></div><div><dt>Files</dt><dd><code>frontend/src/components/FriendListRow.tsx</code>; new Friends-scoped presentational component only if required; <code>frontend/src/pages/FriendsPage.tsx</code></dd></div><div><dt>Depends on</dt><dd>T4</dd></div><div><dt>Verify</dt><dd>Online state changes via the existing provider; Message and overflow controls retain accessible names and work at 375px.</dd></div></dl></article>
+      <article class="task" id="T6"><h3>T6 — Monochrome scoped styling and responsive states</h3><dl><div><dt>Do</dt><dd>Adjust only <code>.friends-*</code> styles for softer hierarchy, text navigation with inline-count badges, flat search action/revealed field, row focus, empty/suggested states, and mobile stacking. Remove the Friends dashboard-card wrapper from the page and loading skeleton rather than merely overriding its appearance. The section title aligns with the Friends navigation row’s left edge. Individual friend rows are a simple transparent list with no border, rounded card surface, or hover fill; keyboard focus remains visible through the link focus treatment. All colors derive from existing CSS variables/current tokens; retain the reduced-motion override. Do not change shared card or page styles.</dd></div><div><dt>Files</dt><dd><code>frontend/src/pages/FriendsPage.tsx</code>; <code>frontend/src/components/FriendsEmptyState.tsx</code>; <code>frontend/src/index.css</code></dd></div><div><dt>Depends on</dt><dd>T4–T5</dd></div><div><dt>Verify</dt><dd>Light/dark visual parity; no outer Friends dashboard container or individual row-card surface is visible; the section title and navigation share a left edge; keyboard focus remains visible; Friends/Requests/Suggested and the revealable search control at desktop and 375px; Feed, Messages, and Profile snapshots unchanged.</dd></div></dl></article>
+      <article class="task" id="T7"><h3>T7 — Validation, acceptance, and plan index</h3><dl><div><dt>Do</dt><dd>Run migration on the isolated acceptance database, API contract checks with synthetic accounts, root/frontend typechecks, impacted lint/build commands, and every acceptance item. Update <code>plans/README.md</code> with sequence 62. Record actual evidence or a written waiver; do not mark Passed from source inspection alone.</dd></div><div><dt>Files</dt><dd><code>plans/README.md</code>; <code>plans/08152026-friends-ui-revamp/test-results.json</code>; plan test viewer</dd></div><div><dt>Depends on</dt><dd>T1–T6</dd></div><div><dt>Verify</dt><dd>Type/build gate clean; test-results rollup is Passed or every failed item has a written waiver.</dd></div></dl></article>
+      <div class="callout"><strong>Parallel boundaries:</strong> T1 is backend-model/migration only; T4–T6 are presentation only once the T2 contract is fixed. T3 owns the single frontend API/hook boundary and must not be edited concurrently with the page tasks. T7 runs last.</div>
+    </section>
+
+    <section class="section" id="verification">
+      <h2>Verification requirements</h2>
+      <ul>
+        <li>Run the relevant Knex migration against only the isolated acceptance database and rollback check where practical.</li>
+        <li>Validate the suggestions API with synthetic graph fixtures: second-degree ranking, duplicate shared friends, self/existing/pending exclusion, empty response, auth rejection, no <code>email</code> key, and no <code>isOnline</code> key.</li>
+        <li>Run <code>npm run typecheck</code>, <code>npm run build</code>, <code>npm --prefix frontend run lint</code>, and the project convention check if available. Fix all execution-caused errors before summary.</li>
+        <li>Run the plan acceptance checklist through an isolated runtime. The repository currently has no configured unit-test runner; document that limitation and do not introduce one solely for this revamp.</li>
+        <li>Review frontend code against Code Constitution §§12.1, 12.4, 13.1–13.3, 14.1–14.3, 16.1–16.3, and 17.1–17.2; review backend against §§7.1–7.4, 8.1, 10.3–10.5, and 11.1–11.2.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="done">
+      <h2>Done</h2>
+      <ul class="done">
+        <li><span>☑</span><span>Existing monochrome theme retained; no profile-link sharing or purple accent introduced.</span></li>
+        <li><span>☑</span><span>Friends text-navigation UI with inline counts and a revealable Search people action is semantic, responsive, and preserves existing workflows.</span></li>
+        <li><span>☑</span><span>Presence is supplied only by the established authenticated presence path.</span></li>
+        <li><span>☑</span><span>Suggestions are second-degree, minimal-DTO, authenticated, indexed, and mutation-refreshed.</span></li>
+        <li><span>☑</span><span>Frontend API/hook/component boundaries meet the Code Constitution.</span></li>
+        <li><span>☑</span><span>Migration, typecheck, lint, build, and isolated acceptance evidence are recorded.</span></li>
+        <li><span>☑</span><span>Plan index updated and acceptance checklist Passed or explicitly waived.</span></li>
+      </ul>
+    </section>
+
+    <section class="section" id="revision-log">
+      <h2>Revision log</h2>
+      <table><thead><tr><th>Rev</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>0</td><td>08152026</td><td>Initial <code>--start</code> plan on <code>kylie/friends-ui-revamp</code>. User locked existing monochrome colors, excluded profile-link sharing, and authorized functional suggested connections where supported. Planning confirmed live presence already exists; suggestions require the new protected, relationship-derived endpoint and indexes.</td></tr><tr><td>1</td><td>08152026</td><td>User-approved visual refinement before <code>--execute</code>: retain the Friends page title; replace the People header, oversized segmented control, persistent add-friend composer, sidebar cards, and header total with text navigation. Friends, Requests, and Suggested show inline counts; a flat Search people action sits on the far right of the same row and reveals the username search only when invoked.</td></tr><tr><td>2</td><td>08152026</td><td>Execution clarification: the former mutual-list filter is intentionally removed. Search people is only the on-demand username request flow, while mutual Friends remain an unfiltered list.</td></tr><tr><td>3</td><td>08152026</td><td>User requested removal of the Friends content-card hover shadow. Scope is a Friends-only CSS override of the shared card hover elevation; the resting shadow and all non-Friends cards remain unchanged.</td></tr><tr><td>4</td><td>08152026</td><td>User clarified via screenshot that the visible permanent Friends-card shadow should be removed as well. The scoped override now removes both resting and hover shadows, retaining structural borders and leaving all non-Friends cards unchanged.</td></tr><tr><td>5</td><td>08152026</td><td>User requested removal of the individual friend-card outlines. Rows retain their background, spacing, and hover treatment, but no border; Message controls remain unchanged.</td></tr><tr><td>6</td><td>08152026</td><td>User requested removal of the outer Friends dashboard card itself. The route now uses a transparent, square container with no shadow; only inner spacing and row backgrounds remain.</td></tr><tr><td>7</td><td>08152026</td><td>User clarified the row itself must not read as a card. Each friend entry now has transparent background, no radius, no outline, and no hover fill; focus indication remains.</td></tr><tr><td>8</td><td>08152026</td><td>User clarified that the actual content wrapper must be removed, not styled transparent. Removed it from the rendered page and loading skeleton; section content now aligns to the navigation’s left edge.</td></tr><tr><td>9</td><td>08152026</td><td>Rebase onto current <code>dev</code>: preserve the approved Friends revamp while retaining newer unrelated application changes. The plan index sequence advances from 50 to 62 to follow the current branch.</td></tr><tr><td>10</td><td>08152026</td><td>User requested compact friend entries. Remove list gaps and reduce row vertical padding while retaining avatar-led touch targets and existing action controls.</td></tr><tr><td>11</td><td>08182026</td><td>PR #94 review R1–R5: drop <code>isOnline</code> from the suggestion DTO (friend-only presence path); isolate suggestions fetch; replace incomplete tab roles with <code>aria-pressed</code> view buttons; extract Friends/Requests/Suggested panels; spec hero sequence 62.</td></tr></tbody></table>
+    </section>
+  </main>
+</body>
+</html>

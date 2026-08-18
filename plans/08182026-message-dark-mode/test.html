@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Messages Dark Mode Toggle — Acceptance</title>
+  <style>
+    :root { --paper:#fff; --ink:#0a0a0a; --muted:#626262; --line:#ddd; --soft:#f6f6f6; --pass:#176b38; --fail:#a61b1b; }
+    * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 system-ui,sans-serif; }
+    main { width:min(900px,calc(100% - 32px)); margin:0 auto; padding:38px 0; } header,.item { border:1px solid var(--line); border-radius:9px; padding:22px; } header { border-color:var(--ink); }
+    h1 { margin:0 0 5px; } p { margin:5px 0; } .muted { color:var(--muted); } .item { margin-top:13px; } .item.pass { border-left:5px solid var(--pass); } .item.fail { border-left:5px solid var(--fail); }
+    .status { display:inline-block; margin-top:10px; padding:4px 9px; border-radius:999px; background:var(--soft); font-size:.78rem; font-weight:700; text-transform:uppercase; } ol { padding-left:22px; }
+    button { border:1px solid var(--ink); border-radius:7px; padding:7px 11px; background:var(--paper); color:var(--ink); font:inherit; font-weight:700; cursor:pointer; } button:hover { background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main>
+    <header><h1>Messages Dark Mode Toggle</h1><p class="muted">Acceptance viewer for <code>plans/08182026-message-dark-mode/test-results.json</code>. Update each status and evidence, then download the revised JSON to replace the source file.</p><span id="overall" class="status">Loading</span><p><button id="download" type="button">Download updated test-results.json</button></p></header>
+    <section id="items" aria-live="polite"></section>
+  </main>
+  <script>
+    const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    fetch('./test-results.json').then((r) => r.json()).then((data) => {
+      const overall = document.getElementById('overall');
+      const items = document.getElementById('items');
+      const render = () => {
+        const unresolved = data.items.some((item) => item.status === 'pending');
+        const failed = data.items.some((item) => item.status === 'fail' && !item.waiver);
+        data.status = failed ? 'Failed' : unresolved ? 'In Progress' : 'Passed';
+        overall.textContent = data.status;
+        items.innerHTML = data.items.map((item, index) => `<article class="item ${escapeHtml(item.status)}"><h2>${escapeHtml(item.id)} — ${escapeHtml(item.title)}</h2><p><label><strong>Status:</strong> <select data-index="${index}" data-field="status"><option value="pending" ${item.status === 'pending' ? 'selected' : ''}>pending</option><option value="pass" ${item.status === 'pass' ? 'selected' : ''}>pass</option><option value="fail" ${item.status === 'fail' ? 'selected' : ''}>fail</option></select></label></p><p><strong>Precondition:</strong> ${escapeHtml(item.precondition)}</p><strong>Steps</strong><ol>${item.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol><p><strong>Expected:</strong> ${escapeHtml(item.expected)}</p><p><label><strong>Evidence:</strong><br><textarea data-index="${index}" data-field="evidence" rows="3" style="width:100%">${escapeHtml(item.evidence || '')}</textarea></label></p><p><label><strong>Waiver:</strong><br><textarea data-index="${index}" data-field="waiver" rows="2" style="width:100%">${escapeHtml(item.waiver || '')}</textarea></label></p></article>`).join('');
+      };
+      items.addEventListener('change', (event) => {
+        const field = event.target.dataset.field;
+        if (!field) return;
+        data.items[Number(event.target.dataset.index)][field] = event.target.value;
+        render();
+      });
+      items.addEventListener('input', (event) => {
+        const field = event.target.dataset.field;
+        if (field) data.items[Number(event.target.dataset.index)][field] = event.target.value;
+      });
+      document.getElementById('download').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(data, null, 2) + '\\n'], { type: 'application/json' });
+        const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'test-results.json' });
+        link.click();
+        URL.revokeObjectURL(link.href);
+      });
+      render();
+    }).catch(() => { document.getElementById('overall').textContent = 'Unable to load test-results.json'; });
+  </script>
+</body>
+</html>

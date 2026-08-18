@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reaction and Share Notifications — Plan 50</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#101010; --muted:#626262; --line:#d6d6d6; --soft:#f5f5f5; --warn:#fff7d6; }
+    * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1120px,calc(100% - 32px)); margin:auto; padding:40px 0 64px; } header,section,article { border:1px solid var(--line); border-radius:10px; padding:24px; margin-top:16px; }
+    header { margin-top:0; border-color:var(--ink); } .top { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; } .eyebrow,dt { color:var(--muted); font-size:.75rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+    .status { border-radius:999px; background:var(--ink); color:#fff; padding:7px 12px; font-size:.75rem; font-weight:800; text-transform:uppercase; } h1 { font-size:clamp(2rem,5vw,3.4rem); line-height:1; margin:20px 0 24px; } h2 { margin-top:0; } h3 { margin:0 0 8px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; } .grid > div { border:1px solid var(--line); border-radius:7px; padding:12px; } dd { font-weight:700; margin:3px 0 0; }
+    .callout { margin-top:16px; padding:16px; border:2px solid var(--ink); border-radius:8px; } .risk { background:var(--warn); } article { background:var(--soft); } article dl { margin:0; } article dd { font-weight:400; margin:3px 0 12px; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; } th,td { border:1px solid var(--line); padding:9px; text-align:left; vertical-align:top; } th { background:var(--soft); font-size:.75rem; text-transform:uppercase; } code { background:var(--soft); border:1px solid var(--line); border-radius:4px; padding:.08rem .28rem; } ul { padding-left:1.25rem; } .wire { overflow:auto; white-space:pre-wrap; padding:14px; border:1px solid var(--line); border-radius:7px; background:var(--soft); font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="top"><p class="eyebrow">Socmed Plan Spec · Seq 50</p><span class="status">In Progress</span></div>
+      <h1>Reaction and Share Notifications</h1>
+      <dl class="grid">
+        <div><dt>Plan folder</dt><dd>plans/08072026-50-reaction-share-notifications</dd></div>
+        <div><dt>Size</dt><dd>Medium · 5 tasks · backend, frontend, migration</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 · activity correctness</dd></div>
+        <div><dt>Planning branch</dt><dd>plan/08072026-notification-reactions</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/notification-update</dd></div>
+        <div><dt>Base</dt><dd>Current dev tip at planning time</dd></div>
+      </dl>
+    </header>
+
+    <section>
+      <h2>Why</h2>
+      <p>People can react to posts, comments, and post photos, and can reshare a friend’s post, but the original owner has no activity alert for any of those actions. The Notifications page already supports real-time, unread-counted activity with deep links; this work completes that loop.</p>
+    </section>
+
+    <section>
+      <h2>What</h2>
+      <p>Add real-time, unread-counted notifications when another user reacts to a post, comment, or post photo, and when another user shares their post. Notification rows show the actor’s name, the correct target, and the selected reaction glyph.</p>
+      <div class="wire">Mia likes your post
+Mia reacted 😂 to your post
+Mia reacted ❤️ to your comment
+Mia shared your post</div>
+      <p><strong>Done when:</strong> the recipient sees a single current reaction alert per reactor and target; changing that reaction updates its glyph instead of adding a duplicate; removing it removes the alert; all activity types affect the navbar/page unread count and refresh live; and a share creates a notification linked to the original post.</p>
+      <div class="callout"><strong>Locked product decisions:</strong> cover posts, comments, post photos, and shares. Never notify the actor about their own action. A reaction has one notification per recipient + actor + target: an emoji change updates it while preserving its read state; reaction removal deletes it. Every successful share is a separate, persistent event and creates one notification. No push, email, sound, batching, or notification preferences in this plan.</div>
+    </section>
+
+    <section>
+      <h2>Context and closest analogs</h2>
+      <ul>
+        <li><code>src/services/ReactionService.ts</code> owns post, comment, and photo reaction writes. It already reads the target before writing, so it is the correct place to identify the recipient and request notification changes.</li>
+        <li><code>src/services/PostService.ts#share</code> validates and creates a share wrapper; it is the correct place to notify the original post’s author after a successful share.</li>
+        <li><code>NotificationService.notify</code>, <code>NotificationModel</code>, and <code>NotificationRealtime</code> are the existing service → model → socket flow. Comments and friend requests are the closest existing notification analogs.</li>
+        <li><code>frontend/src/pages/NotificationsPage.tsx</code> contains the notification type map and row renderer. <code>ReactionIcon.tsx</code> and <code>reactionOptions.ts</code> already render the exact six supported glyphs.</li>
+        <li><code>notifications.type</code> is a string. It currently has post/comment/photo target columns but no reaction emoji and no uniqueness guard for a single reaction alert.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Data and UI contract</h2>
+      <table>
+        <thead><tr><th>Event</th><th>Notification type</th><th>Target / destination</th><th>Row copy</th></tr></thead>
+        <tbody>
+          <tr><td>React to post</td><td><code>reaction_on_post</code></td><td><code>post_id</code> → <code>/posts/:postId</code></td><td>“Name liked your post” or “Name reacted [glyph] to your post”</td></tr>
+          <tr><td>React to comment</td><td><code>reaction_on_comment</code></td><td><code>post_id</code> + <code>comment_id</code> → post comments</td><td>“Name liked your comment” or “Name reacted [glyph] to your comment”</td></tr>
+          <tr><td>React to photo</td><td><code>reaction_on_photo</code></td><td><code>post_id</code> + <code>post_image_id</code> → post photo</td><td>“Name liked your photo” or “Name reacted [glyph] to your photo”</td></tr>
+          <tr><td>Share post</td><td><code>post_shared</code></td><td>original <code>post_id</code> → <code>/posts/:postId</code></td><td>“Name shared your post”</td></tr>
+        </tbody>
+      </table>
+      <ul>
+        <li>Add nullable <code>reaction_emoji</code> to <code>notifications</code>, constrained to the existing reaction enum values where the database supports it.</li>
+        <li>Add partial unique indexes for each reaction target type over recipient, actor, type, and its concrete target ID. This gives the model a database-enforced upsert key and prevents duplicate alerts under concurrent requests.</li>
+        <li>The notification API adds <code>reactionEmoji: ReactionEmoji | null</code> to each view. Existing notification response fields and routes stay compatible.</li>
+        <li>Notifications created before this feature remain readable; their new field is null and their current visual treatment stays unchanged.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Constraints</h2>
+      <div class="grid">
+        <div><h3>Must</h3><ul><li>Follow routes → controllers → services → models; no new direct DB access in a service.</li><li>Use the existing six reaction choices and <code>ReactionIcon</code>; no duplicated glyph mapping.</li><li>Keep notification reads stable: an emoji update must not re-mark a read alert as unread.</li><li>Publish a socket count update for create, update, and delete so an open Notifications page refreshes.</li><li>Preserve current comment, friend-request, reaction-summary, share, and navigation behavior.</li></ul></div>
+        <div><h3>Must not</h3><ul><li>No new routes, npm dependencies, notification settings, push/email delivery, sounds, or aggregation.</li><li>No notification on reaction removal after its matching alert has been deleted.</li><li>No notification for self-reactions or self-shares.</li><li>No broad rewrite of the Notifications page or reaction UI.</li></ul></div>
+        <div><h3>Out of scope</h3><ul><li>Reaction notifications for messages.</li><li>“Mark all read,” pagination, grouping (“3 people reacted”), or actor-block/mute rules.</li><li>Backfilling notifications for historical reactions and shares.</li></ul></div>
+      </div>
+    </section>
+
+    <section class="risk">
+      <h2>Risk and pushback</h2>
+      <p><strong>Level 2 — Concern.</strong> This touches user-visible activity, counts, and live refresh. The principal failure mode is stale or duplicated alerts, especially because a reaction is an upsert while a share is a new post.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Emoji switch produces duplicate alerts</td><td>Recipient activity list and unread count</td><td>Partial unique indexes + model-level upsert; preserve <code>is_read</code> on conflict.</td></tr>
+          <tr><td>Reaction removal leaves a lie in activity</td><td>Recipient notification list</td><td>Delete the matching notification only if the reaction deletion succeeded; publish count refresh.</td></tr>
+          <tr><td>Photo reaction cannot identify recipient</td><td>Photo notification</td><td>Resolve the photo’s post and use its author; validate photo belongs to the post as current services do.</td></tr>
+          <tr><td>Unread badge omits new types</td><td>Navbar and Notifications page</td><td>Maintain one shared activity-type definition or update both existing count paths together; verify both socket and HTTP counts.</td></tr>
+          <tr><td>Static row text loses the selected emoji</td><td>Notification page only</td><td>Use the returned <code>reactionEmoji</code> with existing <code>ReactionIcon</code>; retain the current row/link structure.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Required pushback:</strong> do not model this as one generic, unconstrained notification row. Without a durable reaction uniqueness key and matching delete path, concurrent upserts and toggles will make the activity feed untrustworthy.</p>
+    </section>
+
+    <section>
+      <h2>Tasks</h2>
+      <article id="t0"><h3>T0 — Reconfirm execution baseline and consumers</h3><dl><dt>Do</dt><dd>On <code>kylie/notification-update</code>, confirm the branch is clean and based on the current <code>dev</code> tip; re-read the reaction, share, notification, realtime, and Notifications page paths named above. Confirm all API consumers of notification types and counts before edits.</dd><dt>Files</dt><dd>Git and read-only inspection only.</dd><dt>Depends on</dt><dd>—</dd><dt>Verify</dt><dd><code>git merge-base --is-ancestor dev HEAD</code>; grep shows each existing notification type consumer; no unrelated dirty changes.</dd></dl></article>
+      <article id="t1"><h3>T1 — Persist a current reaction notification safely</h3><dl><dt>Do</dt><dd>Add the idempotent Knex migration for <code>notifications.reaction_emoji</code> and the three reaction partial unique indexes. Extend <code>NotificationModel</code> with typed reaction-notification upsert and targeted deletion methods. The upsert updates emoji/timestamp but retains <code>is_read</code>; the delete scopes recipient, actor, type, and the precise target.</dd><dt>Files</dt><dd><code>database/migrations/YYYYMMDDHHMMSS_notification_reaction_activity.ts</code>; <code>src/models/NotificationModel.ts</code>; this plan’s <code>migrations/README.md</code>.</dd><dt>Depends on</dt><dd>T0</dd><dt>Verify</dt><dd>Migration applies and rolls back in an isolated database; duplicate upserts yield one row; each target index rejects a duplicate; deletion cannot remove another target’s alert.</dd></dl></article>
+      <article id="t2"><h3>T2 — Emit and retract reaction activity</h3><dl><dt>Do</dt><dd>Extend <code>NotificationService</code> with typed reaction create/update and removal orchestration, including the user-facing type metadata returned by list. Wire <code>ReactionService</code> post, comment, and photo set/clear operations to resolve the owner and call that service only after the reaction write succeeds. Ensure self-actions are ignored and photo ownership resolves through its post.</dd><dt>Files</dt><dd><code>src/services/NotificationService.ts</code>; <code>src/services/ReactionService.ts</code>.</dd><dt>Depends on</dt><dd>T1</dd><dt>Verify</dt><dd>Set each target reaction as another user creates/updates one alert; switching emoji changes the same row; clearing it removes the alert; self-reactions create none.</dd></dl></article>
+      <article id="t3"><h3>T3 — Notify post owners about shares and count all activity</h3><dl><dt>Do</dt><dd>After a successful share wrapper is created, notify the original post author with <code>post_shared</code> targeting the original post. Extend the notification activity-type count contract and realtime count path to include all reaction and share types. Keep the existing route/controller API unchanged.</dd><dt>Files</dt><dd><code>src/services/PostService.ts</code>; <code>src/services/NotificationService.ts</code>; <code>src/realtime/NotificationRealtime.ts</code>.</dd><dt>Depends on</dt><dd>T1; can be implemented in parallel with T2 once the notification service interface is agreed.</dd><dt>Verify</dt><dd>A valid share creates one alert for the original author and increments unread count; a failed share creates none; incoming socket count makes an already-open page reload.</dd></dl></article>
+      <article id="t4"><h3>T4 — Render reaction and share rows without regressions</h3><dl><dt>Do</dt><dd>Expand the frontend notification type/data metadata, icons, labels, and row text. Render Like as “liked”; render other reactions with <code>ReactionIcon</code> and an accessible descriptive label. Preserve current friend-request actions, post/photo deep links, avatar/name link safety, skeleton, empty state, and mark-read behavior.</dd><dt>Files</dt><dd><code>frontend/src/pages/NotificationsPage.tsx</code>.</dd><dt>Depends on</dt><dd>T2, T3.</dd><dt>Verify</dt><dd>All four new notification types render and navigate to their correct target; switching a reaction updates glyph/copy after socket refresh; existing comment/reply/friend rows remain unchanged.</dd></dl></article>
+      <article id="t5"><h3>T5 — Verification and acceptance evidence</h3><dl><dt>Do</dt><dd>Run migration, backend/frontend typecheck, build, frontend lint, and convention checks available in the repository. Execute every acceptance item in the isolated acceptance runtime and record evidence or an explicit waiver in <code>test-results.json</code>. Update the spec Revision Log before work if execution discovers a scope change.</dd><dt>Files</dt><dd><code>plans/08072026-50-reaction-share-notifications/test-results.json</code>; spec Revision Log only if needed.</dd><dt>Depends on</dt><dd>T1–T4.</dd><dt>Verify</dt><dd>All commands pass or are classified and waived; acceptance roll-up is Passed before <code>--done</code>.</dd></dl></article>
+    </section>
+
+    <section>
+      <h2>Done checklist</h2>
+      <ul>
+        <li>Schema has nullable reaction emoji and database-enforced per-target reaction alert uniqueness.</li>
+        <li>Post, comment, and photo reactions notify the correct owner; emoji changes update, clears retract, and self-actions do nothing.</li>
+        <li>Shares notify the original author, deep-link to the original post, and failed shares notify nobody.</li>
+        <li>Unread HTTP and socket counts include every new type; open Notifications refreshes on create, update, and removal.</li>
+        <li>Rows show actor, target-specific grammar, and the selected non-Like reaction glyph; existing notification behavior remains intact.</li>
+        <li>Migration, typecheck, build, lint, convention check, and isolated acceptance are recorded in <code>test-results.json</code>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Revision Log</h2>
+      <p><strong>Rev 0 · 2026-08-07:</strong> Initial approved planning artifact. User confirmed posts, comments, post photos, and shares; planner locked idempotent reaction notifications with emoji updates and deletion on reaction removal.</p>
+      <p><strong>Rev 1 · 2026-08-07:</strong> Execution started. The implementation keeps reaction and notification mutations transactionally consistent, and share-wrapper creation and its notification are also one transaction. No scope deviation.</p>
+      <p><strong>Rev 2 · 2026-08-07:</strong> Quickfix within scope: the default reaction trigger now applies/toggles Like on click, while hover and touch long-press continue to open the emoji picker. Added focused acceptance coverage for this control.</p>
+      <p><strong>Rev 3 · 2026-08-07:</strong> Execution found local migration history referencing two missing filenames. Restored their idempotent historical definitions and made the renamed conversation-pins migration idempotent so Knex validation succeeds on both the existing local database and fresh databases. Applied the notification migration locally; no product scope change.</p>
+      <p><strong>Rev 4 · 2026-08-07:</strong> Quickfix within scope: profile and cover activity posts were incorrectly treated as per-photo detail media, which hid their post-level reaction/comment/share row. Exclude activity posts from that condition; ordinary photo-detail posts retain per-photo controls.</p>
+      <p><strong>Rev 5 · 2026-08-07:</strong> User completed manual acceptance testing. All acceptance items are recorded as passed; plan finalized.</p>
+      <p><strong>Rev 6 · 2026-08-07:</strong> Follow-up visual clarity: reaction notifications will show a named emoji chip in their message and the same selected emoji in the trailing indicator, replacing the generic thumbs-up. Existing notification types and navigation remain unchanged.</p>
+      <p><strong>Rev 7 · 2026-08-07:</strong> User refined the visual treatment: remove the reaction-name chip. The selected emoji is now the sole, enlarged emphasis in the sentence while its matching trailing indicator remains.</p>
+      <p><strong>Rev 8 · 2026-08-07:</strong> User requested contrast consistency. The inline selected emoji now uses the same soft circular background treatment as the trailing reaction indicator, without restoring a text label.</p>
+      <p><strong>Rev 9 · 2026-08-07:</strong> User removed the inline reaction card. The inline emoji remains enlarged for emphasis, while the separate trailing indicator stays unchanged.</p>
+      <p><strong>Rev 10 · 2026-08-07:</strong> User clarified that the inline reaction action, not a card, needs visual parity with the strong reaction marker. The emoji-only action phrase is now semibold and uses the full foreground contrast.</p>
+      <p><strong>Rev 11 · 2026-08-07:</strong> User clarified the scope further: only the selected emoji is emphasized. The surrounding reaction sentence returns to its original contrast, and the emoji is enlarged without an inline card or label.</p>
+      <p><strong>Rev 12 · 2026-08-07:</strong> User rejected the enlarged emoji. The inline reaction now inherits the normal sentence size; its native color is the sole visual distinction.</p>
+      <p><strong>Rev 13 · 2026-08-07:</strong> User identified the unwanted grey card as the trailing reaction marker. Remove that card and make only the trailing emoji slightly larger; the inline sentence remains unchanged.</p>
+      <p><strong>Rev 14 · 2026-08-07:</strong> User refined the marker again: retain a card, but use the same subtle neutral treatment as existing action controls instead of the stronger reaction tint.</p>
+      <p><strong>Rev 15 · 2026-08-07:</strong> User requested a restrained increase to the inline reaction emoji. It now steps up one size from the sentence text, without a card or label.</p>
+      <p><strong>Rev 16 · 2026-08-07:</strong> User requested stronger inline emphasis without further growth. The inline emoji retains its restrained size and receives a subtle definition shadow.</p>
+      <p><strong>Rev 17 · 2026-08-07:</strong> Native emoji did not respond visibly to font weight. Strengthen only the inline reaction through saturation, contrast, and a darker definition shadow, without changing size or adding a card.</p>
+      <p><strong>Rev 18 · 2026-08-07:</strong> User visually approved the final reaction emphasis. Acceptance A7 is passed and the follow-up is finalized.</p>
+      <p><strong>Rev 19 · 2026-08-07:</strong> User asked to include the local <code>dev</code> notification safeguard on this feature branch. The row renderer now treats notification types as runtime strings and falls back to generic Bell metadata for an unrecognized value, while known reaction/share rows retain their selected-icon treatment.</p>
+      <p><strong>Rev 20 · 2026-08-10:</strong> Reviewer correction for PR #84: distinguish reaction-notification inserts from emoji updates so only inserts publish <code>notification:new</code>; preserve count refreshes for updates and deletes; restore the locked Like copy; map backend non-Like messages to glyphs; remove the unrelated restored migrations; and add focused notification model/service tests. No product scope expansion. Manual isolated-runtime acceptance remains pending.</p>
+    </section>
+  </main>
+</body>
+</html>

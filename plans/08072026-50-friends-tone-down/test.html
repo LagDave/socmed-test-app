@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Friends Tone-Down Acceptance</title>
+  <style>
+    :root{--paper:#fff;--ink:#111;--muted:#666;--line:#ddd;--soft:#f6f6f6;--pass:#087a36;--fail:#b42318}*{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif}.shell{width:min(960px,calc(100% - 32px));margin:auto;padding:40px 0}
+    .hero,.item{border:1px solid var(--line);border-radius:10px;padding:20px}.hero{border-color:var(--ink);margin-bottom:16px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .eyebrow{margin:0;color:var(--muted);font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.pill{border-radius:999px;background:var(--ink);color:#fff;padding:6px 10px;font-size:.75rem;font-weight:800;text-transform:uppercase}.pill.passed{background:var(--pass)}.pill.failed{background:var(--fail)}
+    button{margin:0 8px 12px 0;border:1px solid var(--ink);border-radius:7px;background:var(--paper);padding:8px 12px;font:inherit;font-weight:700}.item{margin-top:10px}.item.pass{border-left:4px solid var(--pass)}.item.fail{border-left:4px solid var(--fail)}
+    h1{margin:10px 0 0;font-size:2rem}h3{margin:0 0 6px}.tag,.status{font-size:.7rem;font-weight:800;text-transform:uppercase}.tag{border:1px solid var(--line);border-radius:999px;padding:2px 7px;color:var(--muted)}.status.pass{color:var(--pass)}.status.fail{color:var(--fail)}
+    dt{margin-top:9px;color:var(--muted);font-size:.72rem;font-weight:700;text-transform:uppercase}dd{margin:2px 0 0}ol{margin:3px 0 0;padding-left:20px}.note{padding:12px;border:1px dashed var(--line);border-radius:8px;background:var(--soft)}
+  </style>
+</head>
+<body><main class="shell">
+  <header class="hero"><div class="top"><p class="eyebrow">Socmed Acceptance Tests</p><span id="pill" class="pill">Not Run</span></div><h1 id="title">Acceptance</h1><p id="meta" class="eyebrow"></p></header>
+  <input id="file" type="file" accept="application/json" hidden><button id="load">Load results file</button><button id="download">Download updated results</button>
+  <p id="note" class="note" hidden></p><div id="list"></div>
+</main>
+<script>
+  let data;
+  const $ = (id) => document.getElementById(id);
+  const statusFor = (entry) => {
+    if (!entry.items || !entry.items.length) return "Not Run";
+    if (entry.items.some((item) => item.status === "fail" && !item.waiver)) return "Failed";
+    if (entry.items.every((item) => item.status === "pass" || (item.status === "fail" && item.waiver))) return "Passed";
+    return entry.items.some((item) => item.status !== "pending") ? "In Progress" : "Not Run";
+  };
+  const appendField = (list, label, value) => {
+    if (!value || (Array.isArray(value) && value.length === 0)) return;
+    const term = document.createElement("dt"); term.textContent = label; list.append(term);
+    const detail = document.createElement("dd");
+    if (Array.isArray(value)) { const steps = document.createElement("ol"); value.forEach((step) => { const item = document.createElement("li"); item.textContent = step; steps.append(item); }); detail.append(steps); }
+    else detail.textContent = value;
+    list.append(detail);
+  };
+  function render() {
+    if (!data) return;
+    const overall = statusFor(data); data.status = overall;
+    $("title").textContent = data.plan || "Acceptance";
+    $("meta").textContent = "Generated " + (data.generatedAt || "—");
+    const pill = $("pill"); pill.textContent = overall; pill.className = "pill " + overall.toLowerCase().replaceAll(" ", "");
+    const list = $("list"); list.replaceChildren();
+    data.items.forEach((item, index) => {
+      const card = document.createElement("article"); card.className = "item " + item.status;
+      const heading = document.createElement("h3");
+      const check = document.createElement("input"); check.type = "checkbox"; check.checked = item.status === "pass";
+      check.addEventListener("change", () => { item.status = check.checked ? "pass" : "pending"; render(); });
+      const name = document.createTextNode(" " + (item.title || item.id) + " ");
+      const surface = document.createElement("span"); surface.className = "tag"; surface.textContent = item.surface || "";
+      const state = document.createElement("span"); state.className = "status " + item.status; state.textContent = item.status || "pending";
+      heading.append(check, name, surface, document.createTextNode(" "), state);
+      const details = document.createElement("dl");
+      appendField(details, "Precondition", item.precondition); appendField(details, "Steps", item.steps); appendField(details, "Expected", item.expected);
+      appendField(details, "Evidence", item.evidence); appendField(details, "Notes", item.notes); appendField(details, "Waiver", item.waiver);
+      card.append(heading, details); list.append(card);
+    });
+  }
+  $("load").addEventListener("click", () => $("file").click());
+  $("file").addEventListener("change", (event) => {
+    const file = event.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { try { data = JSON.parse(reader.result); $("note").hidden = true; render(); } catch { $("note").hidden = false; $("note").textContent = "Could not parse the selected file."; } };
+    reader.readAsText(file);
+  });
+  $("download").addEventListener("click", () => {
+    if (!data) return;
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    link.download = "test-results.json"; link.click();
+  });
+  fetch("./test-results.json").then((response) => response.json()).then((entry) => { data = entry; render(); }).catch(() => {
+    $("note").hidden = false; $("note").textContent = "Auto-load is blocked from file://. Use Load results file.";
+  });
+</script></body></html>

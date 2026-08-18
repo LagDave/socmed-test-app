@@ -23,6 +23,11 @@ export class UserModel {
     return db<UserRow>("users").where({ id }).first();
   }
 
+  static async findByIds(ids: string[]): Promise<UserRow[]> {
+    if (ids.length === 0) return [];
+    return db<UserRow>("users").whereIn("id", ids);
+  }
+
   static async findByEmail(email: string): Promise<UserRow | undefined> {
     return db<UserRow>("users").where({ email: email.toLowerCase() }).first();
   }
@@ -38,6 +43,7 @@ export class UserModel {
       username: string;
       bio: string | null;
       avatar_url: string | null;
+      cover_url: string | null;
     }>
   ): Promise<UserRow | undefined> {
     const [row] = await db<UserRow>("users").where({ id }).update(patch).returning("*");
@@ -46,5 +52,9 @@ export class UserModel {
 
   static async updateFeedSeenAt(id: string, seenAt: Date): Promise<void> {
     await db("users").where({ id }).update({ feed_seen_at: seenAt });
+  }
+
+  static async updateLastActiveAt(id: string, lastActiveAt: Date): Promise<void> {
+    await db("users").where({ id }).update({ last_active_at: lastActiveAt });
   }
 }

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Friends UI Revamp Acceptance</title>
+  <style>
+    :root { --paper:#fff; --ink:#080808; --muted:#606060; --line:#d8d8d8; --soft:#f5f5f5; --pass:#0a6b2e; --fail:#9b1c1c; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; line-height:1.5; }
+    main { width:min(960px,calc(100% - 32px)); margin:0 auto; padding:40px 0; }
+    header,.item,.notice { border:1px solid var(--line); border-radius:9px; }
+    header { padding:28px; border-color:var(--ink); margin-bottom:18px; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    h1 { margin:0; font-size:clamp(1.8rem,4vw,2.6rem); letter-spacing:-.04em; }
+    .meta,.label { color:var(--muted); font-size:.76rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+    .pill { padding:7px 11px; border:1px solid var(--ink); border-radius:99px; background:var(--ink); color:#fff; font-size:.73rem; font-weight:800; text-transform:uppercase; }
+    .pill.pass { background:var(--pass); border-color:var(--pass); } .pill.fail { background:var(--fail); border-color:var(--fail); }
+    .controls { display:flex; flex-wrap:wrap; gap:9px; margin-bottom:18px; }
+    button { border:1px solid var(--ink); border-radius:7px; padding:8px 12px; background:var(--paper); color:var(--ink); font:inherit; font-weight:700; cursor:pointer; }
+    button:hover { background:var(--soft); }
+    .item { margin:10px 0; padding:16px; } .item.pass { border-left:4px solid var(--pass); } .item.fail { border-left:4px solid var(--fail); }
+    .item h2 { margin:0 0 8px; font-size:1rem; display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+    .tag,.state { font-size:.7rem; font-weight:800; text-transform:uppercase; } .tag { padding:2px 7px; border:1px solid var(--line); border-radius:99px; color:var(--muted); } .state.pass { color:var(--pass); } .state.fail { color:var(--fail); } .state.pending { color:var(--muted); }
+    dl { margin:0; } dt { margin-top:9px; color:var(--muted); font-size:.7rem; font-weight:800; text-transform:uppercase; } dd { margin:3px 0 0; } ol { margin:3px 0 0 18px; padding:0; }
+    .notice { padding:12px; background:var(--soft); } code { padding:.05rem .25rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main>
+    <header><div class="top"><p class="meta">Socmed Acceptance Tests</p><span id="status" class="pill">Not Run</span></div><h1 id="title">Friends UI Revamp</h1><p id="meta" class="meta"></p></header>
+    <div class="controls"><input id="file" type="file" accept="application/json" hidden><button id="load" type="button">Load results file</button><button id="save" type="button">Download updated results</button></div>
+    <p id="notice" class="notice" hidden></p><section id="items"></section>
+  </main>
+  <script>
+    let data; const byId = id => document.getElementById(id); const escapeHtml = value => String(value).replace(/[&<>\"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[char]));
+    const rollup = () => { const items = data?.items || []; if (!items.length || items.every(item => item.status === "pending")) return "Not Run"; if (items.some(item => item.status === "fail" && !item.waiver)) return "Failed"; return items.every(item => item.status === "pass" || (item.status === "fail" && item.waiver)) ? "Passed" : "In Progress"; };
+    function render() { if (!data) return; const result = rollup(); data.status = result; byId("title").textContent = data.plan || "Acceptance Tests"; byId("meta").textContent = `Generated ${data.generatedAt || "—"}`; const pill = byId("status"); pill.textContent = result; pill.className = `pill ${result === "Passed" ? "pass" : result === "Failed" ? "fail" : ""}`; byId("items").innerHTML = data.items.map((item,index) => `<article class="item ${escapeHtml(item.status)}"><h2><input aria-label="Mark ${escapeHtml(item.title)} passed" type="checkbox" data-index="${index}" ${item.status === "pass" ? "checked" : ""}>${escapeHtml(item.id)} — ${escapeHtml(item.title)} <span class="tag">${escapeHtml(item.surface)}</span><span class="state ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></h2><dl><dt>Precondition</dt><dd>${escapeHtml(item.precondition)}</dd><dt>Steps</dt><dd><ol>${item.steps.map(step => `<li>${escapeHtml(step)}</li>`).join("")}</ol></dd><dt>Expected</dt><dd>${escapeHtml(item.expected)}</dd>${item.evidence ? `<dt>Evidence</dt><dd>${escapeHtml(item.evidence)}</dd>` : ""}${item.notes ? `<dt>Notes</dt><dd>${escapeHtml(item.notes)}</dd>` : ""}${item.waiver ? `<dt>Waiver</dt><dd>${escapeHtml(item.waiver)}</dd>` : ""}</dl></article>`).join(""); byId("items").querySelectorAll("input").forEach(input => input.addEventListener("change", event => { data.items[Number(event.target.dataset.index)].status = event.target.checked ? "pass" : "pending"; render(); })); }
+    function setData(next) { data = next; byId("notice").hidden = true; render(); }
+    byId("load").addEventListener("click", () => byId("file").click()); byId("file").addEventListener("change", event => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { try { setData(JSON.parse(String(reader.result))); } catch { byId("notice").hidden = false; byId("notice").textContent = "Could not read that JSON results file."; } }; reader.readAsText(file); });
+    byId("save").addEventListener("click", () => { if (!data) return; const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)], {type:"application/json"})); link.download = "test-results.json"; link.click(); URL.revokeObjectURL(link.href); });
+    fetch("./test-results.json").then(response => response.json()).then(setData).catch(() => { byId("notice").hidden = false; byId("notice").innerHTML = "Browsers may block automatic loading from <code>file://</code>. Use Load results file and select test-results.json."; });
+  </script>
+</body>
+</html>

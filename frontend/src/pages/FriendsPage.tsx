@@ -1,168 +1,229 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, User } from "lucide-react";
-import { api } from "@/api/client";
-import type { PublicUser } from "@/api/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import { openConversationWithUsername } from "@/api/messages";
+import type { PublicUser } from "@/api/types";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { FriendsDashboardSkeleton } from "@/components/FriendsEmptyState";
+import { FriendsRequestForm } from "@/components/FriendsRequestForm";
+import {
+  FriendsListPanel,
+  RequestsListPanel,
+  SuggestedListPanel,
+} from "@/components/FriendsViewPanels";
+import { Button } from "@/components/ui/button";
+import { useFriendsInbox } from "@/hooks/useFriendsInbox";
 
-type InboxItem = { id: string; status: string; user: PublicUser };
+type FriendsView = "friends" | "requests" | "suggested";
 
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-      <User className="size-10 text-muted-foreground/40" aria-hidden="true" strokeWidth={1.25} />
-      <p className="text-sm text-muted-foreground">{message}</p>
-    </div>
-  );
-}
-
-function FriendsSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section>
-      <h2 className="text-sm font-semibold tracking-wide text-foreground">{title}</h2>
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
+const FRIENDS_VIEWS: Array<{ id: FriendsView; label: string }> = [
+  { id: "friends", label: "Friends" },
+  { id: "requests", label: "Requests" },
+  { id: "suggested", label: "Suggested" },
+];
 
 export function FriendsPage() {
   const navigate = useNavigate();
-  const [incoming, setIncoming] = useState<InboxItem[]>([]);
-  const [mutuals, setMutuals] = useState<PublicUser[]>([]);
-  const [username, setUsername] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const searchToggleRef = useRef<HTMLButtonElement>(null);
+  const viewButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [activeView, setActiveView] = useState<FriendsView>("friends");
+  const [requestSearchOpen, setRequestSearchOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [openingChat, setOpeningChat] = useState(false);
+  const [sendingSuggestionId, setSendingSuggestionId] = useState<string | null>(null);
+  const [pendingUnfriend, setPendingUnfriend] = useState<PublicUser | null>(null);
+  const [unfriending, setUnfriending] = useState(false);
+  const {
+    incoming,
+    outgoing,
+    mutuals,
+    suggestions,
+    suggestionsError,
+    loading,
+    error,
+    sendRequest,
+    acceptRequest,
+    declineRequest,
+    cancelRequest,
+    unfriend,
+    setError,
+  } = useFriendsInbox();
 
-  async function load() {
-    const inbox = await api.get<{ incoming: InboxItem[]; outgoing: InboxItem[] }>("/api/friends/inbox");
-    const m = await api.get<{ users: PublicUser[] }>("/api/friends/mutuals");
-    setIncoming(inbox.incoming);
-    setMutuals(m.users);
+  const displayError = actionError ?? error;
+  const requestCount = incoming.length + outgoing.length;
+
+  function closeRequestSearch() {
+    setRequestSearchOpen(false);
+    window.requestAnimationFrame(() => searchToggleRef.current?.focus());
   }
 
-  useEffect(() => {
-    void load().catch((e: Error) => setError(e.message));
-  }, []);
+  function selectView(view: FriendsView) {
+    setActiveView(view);
+    setRequestSearchOpen(false);
+  }
 
-  async function onRequest(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    try {
-      await api.post("/api/friends/request", { username });
-      setUsername("");
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
-    }
+  function handleViewKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const nextIndexByKey: Record<string, number> = {
+      ArrowLeft: (index - 1 + FRIENDS_VIEWS.length) % FRIENDS_VIEWS.length,
+      ArrowRight: (index + 1) % FRIENDS_VIEWS.length,
+      Home: 0,
+      End: FRIENDS_VIEWS.length - 1,
+    };
+    const nextIndex = nextIndexByKey[event.key];
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    const nextView = FRIENDS_VIEWS[nextIndex];
+    selectView(nextView.id);
+    viewButtonRefs.current[nextIndex]?.focus();
   }
 
   async function openMessage(peerUsername: string | null) {
-    if (!peerUsername) return;
-    setError(null);
+    if (!peerUsername || openingChat) return;
+    setActionError(null);
+    setOpeningChat(true);
     try {
       const id = await openConversationWithUsername(peerUsername);
       navigate(`/messages/${id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not open chat");
+      setActionError(err instanceof Error ? err.message : "Could not open chat");
+    } finally {
+      setOpeningChat(false);
     }
   }
 
+  async function sendSuggestedRequest(userId: string, username: string) {
+    if (sendingSuggestionId) return;
+    setActionError(null);
+    setError(null);
+    setSendingSuggestionId(userId);
+    try {
+      await sendRequest(username);
+    } catch {
+      // The shared hook exposes the request error in the page banner.
+    } finally {
+      setSendingSuggestionId(null);
+    }
+  }
+
+  async function confirmUnfriend() {
+    if (!pendingUnfriend || unfriending) return;
+    setUnfriending(true);
+    setActionError(null);
+    try {
+      await unfriend(pendingUnfriend.id);
+      setPendingUnfriend(null);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to unfriend");
+    } finally {
+      setUnfriending(false);
+    }
+  }
+
+  const viewCounts: Record<FriendsView, number> = {
+    friends: mutuals.length,
+    requests: requestCount,
+    suggested: suggestions.length,
+  };
+
   return (
-    <section className="space-y-4">
-      <div className="px-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Friends</h1>
-        <p className="text-sm text-muted-foreground">Requests and mutuals.</p>
-      </div>
+    <section className="friends-page">
+      <header className="friends-page-header">
+        <h1>Friends</h1>
+        <p>Your people, all in one calm place.</p>
+      </header>
 
-      <form onSubmit={onRequest} className="feed-card flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
-        <Input
-          className="h-12 flex-1 text-base"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          aria-label="Username"
-        />
-        <Button type="submit" size="lg" className="h-12 shrink-0 px-6">
-          Send Request
-        </Button>
-      </form>
-      {error && <p className="px-1 text-sm text-muted-foreground">{error}</p>}
-
-      <div className="feed-card p-5">
-        <FriendsSection title="Friend Request">
-          {incoming.length === 0 ? (
-            <EmptyState message="No pending requests" />
-          ) : (
-            <ul className="space-y-1">
-              {incoming.map((i) => (
-                <li
-                  key={i.id}
-                  className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-3 last:border-b-0"
+      {loading ? (
+        <FriendsDashboardSkeleton />
+      ) : (
+        <>
+          <div className="friends-view-row">
+            <nav className="friends-view-tabs" aria-label="Friends views">
+              {FRIENDS_VIEWS.map((view, index) => (
+                <button
+                  key={view.id}
+                  ref={(element) => {
+                    viewButtonRefs.current[index] = element;
+                  }}
+                  id={`friends-view-${view.id}`}
+                  type="button"
+                  aria-pressed={activeView === view.id}
+                  className="friends-view-tab"
+                  onClick={() => selectView(view.id)}
+                  onKeyDown={(event) => handleViewKeyDown(event, index)}
                 >
-                  <span>
-                    {i.user.displayName}{" "}
-                    <span className="text-muted-foreground">@{i.user.username}</span>
-                  </span>
-                  <span className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => void api.post(`/api/friends/${i.id}/accept`).then(load)}
-                    >
-                      Confirm
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void api.post(`/api/friends/${i.id}/decline`).then(load)}
-                    >
-                      Decline
-                    </Button>
-                  </span>
-                </li>
+                  {view.label}
+                  <span className="friends-view-count">{viewCounts[view.id]}</span>
+                </button>
               ))}
-            </ul>
-          )}
-        </FriendsSection>
-      </div>
+            </nav>
+            <Button
+              ref={searchToggleRef}
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="friends-search-action"
+              aria-expanded={requestSearchOpen}
+              aria-controls="friends-request-search"
+              onClick={() => setRequestSearchOpen((open) => !open)}
+            >
+              <Search className="h-4 w-4" aria-hidden="true" />
+              Search people
+            </Button>
+          </div>
 
-      <div className="feed-card p-5">
-        <FriendsSection title="Friends">
-          {mutuals.length === 0 ? (
-            <EmptyState message="Your friends will appear here" />
-          ) : (
-            <ul className="space-y-1">
-              {mutuals.map((u) => (
-                <li
-                  key={u.id}
-                  className="flex items-center justify-between gap-2 border-b border-border py-3 last:border-b-0"
-                >
-                  <span>
-                    {u.displayName} <span className="text-muted-foreground">@{u.username}</span>
-                  </span>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    aria-label={`Message ${u.displayName}`}
-                    title="Message"
-                    onClick={() => void openMessage(u.username)}
-                  >
-                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
+          <FriendsRequestForm
+            open={requestSearchOpen}
+            onClose={closeRequestSearch}
+            onSubmit={async (username) => {
+              setActionError(null);
+              setError(null);
+              await sendRequest(username);
+            }}
+          />
+
+          {displayError && <p className="friends-error-banner">{displayError}</p>}
+
+          {activeView === "friends" && (
+            <FriendsListPanel
+              mutuals={mutuals}
+              openingChat={openingChat}
+              onMessage={(username) => void openMessage(username)}
+              onUnfriend={setPendingUnfriend}
+            />
           )}
-        </FriendsSection>
-      </div>
+
+          {activeView === "requests" && (
+            <RequestsListPanel
+              incoming={incoming}
+              outgoing={outgoing}
+              onAccept={(id) => void acceptRequest(id)}
+              onDecline={(id) => void declineRequest(id)}
+              onCancel={(id) => void cancelRequest(id)}
+            />
+          )}
+
+          {activeView === "suggested" && (
+            <SuggestedListPanel
+              suggestions={suggestions}
+              suggestionsError={suggestionsError}
+              sendingSuggestionId={sendingSuggestionId}
+              onAdd={(userId, username) => void sendSuggestedRequest(userId, username)}
+            />
+          )}
+        </>
+      )}
+
+      <ConfirmDialog
+        open={pendingUnfriend !== null}
+        title={`Unfriend ${pendingUnfriend?.displayName ?? "this friend"}?`}
+        description="They will be removed from your friends list. You can send a new request later if you change your mind."
+        confirmLabel="Unfriend"
+        busy={unfriending}
+        onCancel={() => {
+          if (!unfriending) setPendingUnfriend(null);
+        }}
+        onConfirm={() => void confirmUnfriend()}
+      />
     </section>
   );
 }

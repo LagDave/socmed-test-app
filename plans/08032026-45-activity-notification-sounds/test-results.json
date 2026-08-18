@@ -1,0 +1,67 @@
+{
+  "plan": "plans/08032026-45-activity-notification-sounds",
+  "generatedAt": "2026-08-05",
+  "status": "In Progress",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Activity-only sound can be saved and cleared",
+      "surface": "ui",
+      "precondition": "Signed-in user on Message Settings (/messages/settings) with message sound set to None.",
+      "steps": ["Enable notification sounds", "Choose an activity tone and save", "Refresh the page", "Choose No activity sound and save"],
+      "expected": "The activity-only choice persists without a message tone; clearing it persists silence.",
+      "status": "pending",
+      "evidence": "Static contract verified by typecheck: nullable activitySoundId is persisted or removed; save has no message-id gate.",
+      "notes": "Requires browser interaction to verify localStorage/UI persistence.",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Message and activity tones do not interrupt each other",
+      "surface": "ui",
+      "precondition": "Signed-in user has selected both a message and activity tone and completed the browser audio unlock gesture.",
+      "steps": ["Use Preview both", "Trigger or observe close-together message and activity notifications"],
+      "expected": "One domain’s playback does not pause/reset the other domain’s audio element.",
+      "status": "pending",
+      "evidence": "Static contract verified: SoundRuntime has distinct messageAudio and activityAudio; playback stops only its own kind.",
+      "notes": "Requires audible browser verification.",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Badge count follows read and friend-request mutations",
+      "surface": "ui",
+      "precondition": "Two signed-in users; recipient has one unread activity notification and one pending friend request; sockets connected.",
+      "steps": ["Open Notifications to mark activity items read", "Accept or decline the pending request", "Create and cancel another pending request"],
+      "expected": "The recipient badge receives the refreshed count after each count-changing action without a route change.",
+      "status": "pending",
+      "evidence": "Static contract verified: NotificationService emits after changed reads; FriendshipService emits after accept, decline, and cancel.",
+      "notes": "Requires an isolated two-user runtime.",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Open notifications list refreshes on a count event",
+      "surface": "ui",
+      "precondition": "Recipient is on /notifications with a connected socket; second user can create an activity notification.",
+      "steps": ["Keep recipient on Notifications", "Create a comment/reply notification for the recipient"],
+      "expected": "The new notification appears in the open list and then is marked read; no repeated refresh loop occurs.",
+      "status": "pending",
+      "evidence": "Static contract verified: NotificationsPage subscribes to notifications:count; NotificationService emits after reads only if rows changed.",
+      "notes": "Requires a running isolated browser acceptance environment.",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Typecheck, build, and lint",
+      "surface": "cli",
+      "precondition": "Lockfile dependencies installed in the isolated worktree.",
+      "steps": ["npm run typecheck", "npm run build", "npm --prefix frontend run lint"],
+      "expected": "Commands pass with no errors caused by this execution.",
+      "status": "pass",
+      "evidence": "2026-08-05: typecheck, build, and oxlint passed after merging origin/dev into kylie/notification-sound.",
+      "notes": "Existing lint warnings are baseline warnings outside this plan. This branch does not define the Constitution checker script, so its strict check is unavailable here.",
+      "waiver": ""
+    }
+  ]
+}

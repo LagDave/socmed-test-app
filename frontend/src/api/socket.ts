@@ -1,15 +1,70 @@
 import { io, type Socket } from "socket.io-client";
-import type { MessageView } from "./types";
+import type { ChatTheme, MessagePinActivityView, MessageView, PeerPresence, PinnedMessageView } from "./types";
+
+export type ThemeLogEntry = {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedBy: string;
+};
 
 export const MESSAGE_NEW = "message:new";
 export const MESSAGE_UNSENT = "message:unsent";
+export const MESSAGE_EDITED = "message:edited";
 export const MESSAGE_REACTION = "message:reaction";
+export const MESSAGE_DELIVERED = "message:delivered";
+export const CONVERSATION_PEER_READ = "conversation:peer-read";
+export const MESSAGE_ACK = "message:ack";
 export const MESSAGES_UNREAD = "messages:unread";
 export const CONVERSATION_UPDATED = "conversation:updated";
+export const CONVERSATION_THEME = "conversation:theme";
+export const MESSAGE_PINS_UPDATED = "message:pins-updated";
+export const TYPING_START = "typing:start";
+export const TYPING_STOP = "typing:stop";
+export const TYPING_UPDATE = "typing:update";
+export const NOTIFICATION_NEW = "notification:new";
+export const NOTIFICATIONS_COUNT = "notifications:count";
+export const PRESENCE_UPDATE = "presence:update";
+export const FRIEND_PRESENCE_UPDATE = "presence:friend-update";
 
 export type MessageEventPayload = { message: MessageView };
 export type UnreadPayload = { unread: number };
 export type ConversationUpdatedPayload = { conversationId: string };
+export type ConversationThemePayload = {
+  conversationId: string;
+  theme: ChatTheme | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
+  logEntry: ThemeLogEntry;
+};
+export type MessagePinsUpdatedPayload = {
+  conversationId: string;
+  pinnedMessages: PinnedMessageView[];
+  pinActivity: MessagePinActivityView | null;
+};
+export type MessageDeliveredPayload = {
+  messageId: string;
+  conversationId: string;
+  deliveredAt: string;
+};
+export type ConversationPeerReadPayload = {
+  conversationId: string;
+  readerId: string;
+  peerLastReadAt: string;
+};
+export type TypingUpdatePayload = {
+  conversationId: string;
+  userId: string;
+  isTyping: boolean;
+};
+export type NotificationNewPayload = { notificationId: string };
+export type NotificationsCountPayload = { notifications: number };
+export type PresenceUpdatePayload = PeerPresence & { userId: string };
+export type FriendPresenceUpdatePayload = {
+  userId: string;
+  isOnline: boolean;
+  lastActiveAt: string | null;
+};
 
 let socket: Socket | null = null;
 

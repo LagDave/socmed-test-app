@@ -1,6 +1,7 @@
+import type { Knex } from "knex";
 import { db } from "../database/connection";
 
-export const REACTION_EMOJIS = ["like", "heart", "haha", "wow"] as const;
+export const REACTION_EMOJIS = ["like", "heart", "haha", "wow", "sad", "angry"] as const;
 export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 
 export type ReactionRow = {
@@ -8,6 +9,7 @@ export type ReactionRow = {
   user_id: string;
   post_id: string | null;
   comment_id: string | null;
+  post_image_id: string | null;
   emoji: ReactionEmoji;
   created_at: Date;
   updated_at: Date;
@@ -20,11 +22,12 @@ export type ReactionSummary = {
   viewerEmoji: ReactionEmoji | null;
 };
 
+
 export function emptyReactionSummary(): ReactionSummary {
-  return {
-    counts: { like: 0, heart: 0, haha: 0, wow: 0 },
-    viewerEmoji: null,
-  };
+  const counts = Object.fromEntries(
+    REACTION_EMOJIS.map((emoji) => [emoji, 0])
+  ) as ReactionCounts;
+  return { counts, viewerEmoji: null };
 }
 
 type AggregateRow = {
@@ -37,13 +40,14 @@ export class ReactionModel {
   static async upsertForPost(
     userId: string,
     postId: string,
-    emoji: ReactionEmoji
+    emoji: ReactionEmoji,
+    trx?: Knex.Transaction
   ): Promise<ReactionRow> {
-    // Partial unique index: reactions_user_post_unique (user_id, post_id) WHERE post_id IS NOT NULL
-    const [row] = await db<ReactionRow>("reactions")
-      .insert({ user_id: userId, post_id: postId, comment_id: null, emoji })
-      .onConflict(db.raw("(user_id, post_id) WHERE post_id IS NOT NULL"))
-      .merge({ emoji, updated_at: db.fn.now() })
+    const conn = trx ?? db;
+    const [row] = await conn<ReactionRow>("reactions")
+      .insert({ user_id: userId, post_id: postId, comment_id: null, post_image_id: null, emoji })
+      .onConflict(conn.raw("(user_id, post_id) WHERE post_id IS NOT NULL"))
+      .merge({ emoji, updated_at: conn.fn.now() })
       .returning("*");
     return row;
   }
@@ -51,23 +55,61 @@ export class ReactionModel {
   static async upsertForComment(
     userId: string,
     commentId: string,
-    emoji: ReactionEmoji
+    emoji: ReactionEmoji,
+    trx?: Knex.Transaction
   ): Promise<ReactionRow> {
-    // Partial unique index: reactions_user_comment_unique (user_id, comment_id) WHERE comment_id IS NOT NULL
-    const [row] = await db<ReactionRow>("reactions")
-      .insert({ user_id: userId, post_id: null, comment_id: commentId, emoji })
-      .onConflict(db.raw("(user_id, comment_id) WHERE comment_id IS NOT NULL"))
-      .merge({ emoji, updated_at: db.fn.now() })
+    const conn = trx ?? db;
+    const [row] = await conn<ReactionRow>("reactions")
+      .insert({ user_id: userId, post_id: null, comment_id: commentId, post_image_id: null, emoji })
+      .onConflict(conn.raw("(user_id, comment_id) WHERE comment_id IS NOT NULL"))
+      .merge({ emoji, updated_at: conn.fn.now() })
       .returning("*");
     return row;
   }
 
-  static async deleteForPost(userId: string, postId: string): Promise<number> {
-    return db("reactions").where({ user_id: userId, post_id: postId }).del();
+  static async upsertForPostImage(
+    userId: string,
+    postImageId: string,
+    emoji: ReactionEmoji,
+    trx?: Knex.Transaction
+  ): Promise<ReactionRow> {
+    const conn = trx ?? db;
+    const [row] = await conn<ReactionRow>("reactions")
+      .insert({
+        user_id: userId,
+        post_id: null,
+        comment_id: null,
+        post_image_id: postImageId,
+        emoji,
+      })
+      .onConflict(conn.raw("(user_id, post_image_id) WHERE post_image_id IS NOT NULL"))
+      .merge({ emoji, updated_at: conn.fn.now() })
+      .returning("*");
+    return row;
   }
 
-  static async deleteForComment(userId: string, commentId: string): Promise<number> {
-    return db("reactions").where({ user_id: userId, comment_id: commentId }).del();
+  static async deleteForPost(userId: string, postId: string, trx?: Knex.Transaction): Promise<number> {
+    return (trx ?? db)("reactions").where({ user_id: userId, post_id: postId }).del();
+  }
+
+  static async deleteForComment(
+    userId: string,
+    commentId: string,
+    trx?: Knex.Transaction
+  ): Promise<number> {
+    return (trx ?? db)("reactions").where({ user_id: userId, comment_id: commentId }).del();
+  }
+
+  static async deleteForPostImage(
+    userId: string,
+    postImageId: string,
+    trx?: Knex.Transaction
+  ): Promise<number> {
+    return (trx ?? db)("reactions").where({ user_id: userId, post_image_id: postImageId }).del();
+  }
+
+  static async withTransaction<T>(fn: (trx: Knex.Transaction) => Promise<T>): Promise<T> {
+    return db.transaction(fn);
   }
 
   static async summariesForPosts(
@@ -84,8 +126,15 @@ export class ReactionModel {
     return this.summaries("comment_id", commentIds, viewerId);
   }
 
+  static async summariesForPostImages(
+    postImageIds: string[],
+    viewerId: string
+  ): Promise<Map<string, ReactionSummary>> {
+    return this.summaries("post_image_id", postImageIds, viewerId);
+  }
+
   private static async summaries(
-    column: "post_id" | "comment_id",
+    column: "post_id" | "comment_id" | "post_image_id",
     ids: string[],
     viewerId: string
   ): Promise<Map<string, ReactionSummary>> {
@@ -132,5 +181,49 @@ export class ReactionModel {
   static async summaryForComment(commentId: string, viewerId: string): Promise<ReactionSummary> {
     const map = await this.summariesForComments([commentId], viewerId);
     return map.get(commentId) ?? emptyReactionSummary();
+  }
+
+  static async summaryForPostImage(postImageId: string, viewerId: string): Promise<ReactionSummary> {
+    const map = await this.summariesForPostImages([postImageId], viewerId);
+    return map.get(postImageId) ?? emptyReactionSummary();
+  }
+
+  static async listForPost(
+    postId: string,
+    options: { emoji?: ReactionEmoji; limit?: number } = {}
+  ): Promise<ReactionRow[]> {
+    return this.listForTarget("post_id", postId, options);
+  }
+
+  static async listForComment(
+    commentId: string,
+    options: { emoji?: ReactionEmoji; limit?: number } = {}
+  ): Promise<ReactionRow[]> {
+    return this.listForTarget("comment_id", commentId, options);
+  }
+
+  static async listForPostImage(
+    postImageId: string,
+    options: { emoji?: ReactionEmoji; limit?: number } = {}
+  ): Promise<ReactionRow[]> {
+    return this.listForTarget("post_image_id", postImageId, options);
+  }
+
+  private static async listForTarget(
+    column: "post_id" | "comment_id" | "post_image_id",
+    targetId: string,
+    options: { emoji?: ReactionEmoji; limit?: number }
+  ): Promise<ReactionRow[]> {
+    const limit = options.limit ?? 50;
+    let query = db<ReactionRow>("reactions")
+      .where({ [column]: targetId })
+      .orderBy("created_at", "desc")
+      .limit(limit);
+
+    if (options.emoji) {
+      query = query.andWhere({ emoji: options.emoji });
+    }
+
+    return query;
   }
 }

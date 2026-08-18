@@ -1,0 +1,139 @@
+{
+  "plan": "plans/08072026-50-reaction-share-notifications",
+  "generatedAt": "2026-08-10",
+  "status": "In Progress",
+  "items": [
+    {
+      "id": "A7",
+      "title": "Reaction notifications clearly identify the selected emoji",
+      "surface": "ui",
+      "precondition": "A notification exists for a non-Like reaction and one exists for Like.",
+      "steps": ["Open Notifications.", "Inspect the message and trailing indicator for each reaction row.", "Open a comment, share, and friend-request notification for comparison."],
+      "expected": "The inline reaction emoji is slightly larger, high-contrast, and strongly saturated without a label or card. The trailing reaction marker uses a slightly larger emoji inside a subtle neutral card matching existing action controls; non-reaction rows retain their existing icons and destinations.",
+      "status": "pass",
+      "evidence": "2026-08-07: user visually approved the final inline emoji contrast and the subtle trailing reaction marker.",
+      "notes": "User-tested visual follow-up confirmed before finalization.",
+      "waiver": ""
+    },
+    {
+      "id": "A8",
+      "title": "Unknown notification types fall back safely",
+      "surface": "none",
+      "precondition": "None; this is a defensive rendering path for notification types introduced before the frontend type map is updated.",
+      "steps": ["Run frontend typecheck, lint, and production build.", "Review the row renderer's runtime type guard and generic metadata fallback."],
+      "expected": "Any unrecognized notification type renders as a generic Notification row with a Bell icon and safe action text instead of throwing; known reaction, share, comment, and friend-request rows retain their type-specific metadata.",
+      "status": "pass",
+      "evidence": "2026-08-07: frontend typecheck and production build passed; lint completed with the existing six unrelated warnings only. Static review confirms the runtime type guard routes unknown strings to generic metadata.",
+      "notes": "No existing UI fixture can inject a malformed or newly introduced notification type without changing backend data; the defensive branch is therefore validated as an internal rendering safeguard.",
+      "waiver": ""
+    },
+    {
+      "id": "A0b",
+      "title": "Profile and cover activity posts retain their post action row",
+      "surface": "ui",
+      "precondition": "A profile-picture or cover-photo activity post exists; open its post detail page.",
+      "steps": ["Verify the action row beneath the activity card.", "Use reaction, comment, and (for another user's original activity post) share controls.", "Open a regular multi-photo post detail page."],
+      "expected": "Activity posts show their normal post-level reaction/comment/share controls. Ordinary photo-detail posts retain their existing per-photo controls without a duplicate post-level row.",
+      "status": "pass",
+      "evidence": "2026-08-07: user confirmed manual acceptance testing passed.",
+      "notes": "User-tested acceptance confirmed before --done.",
+      "waiver": ""
+    },
+    {
+      "id": "A0",
+      "title": "Default reaction trigger applies Like on click",
+      "surface": "ui",
+      "precondition": "Signed in; a visible post, comment, or photo has no reaction from the current user.",
+      "steps": ["Click the visible Like/reaction trigger once.", "Confirm the trigger changes to Like and the reaction count updates.", "Click the trigger again.", "Confirm the current user's Like is removed.", "Hover the trigger, then touch long-press it on a touch device, and confirm the emoji picker still opens."],
+      "expected": "A normal click toggles the current reaction (Like when none exists); hover and long-press preserve access to the full emoji picker.",
+      "status": "pass",
+      "evidence": "2026-08-07: static typecheck, build, and lint passed. User confirmed manual interaction acceptance testing passed.",
+      "notes": "User-tested acceptance confirmed before --done.",
+      "waiver": ""
+    },
+    {
+      "id": "A1",
+      "title": "Reaction notification is created for a post and updates in place",
+      "surface": "ui",
+      "precondition": "Two mutual users: owner has an original post and both users are signed in on separate sessions.",
+      "steps": ["As the other user, react Like to the owner’s post.", "Open or refresh the owner’s Notifications page and verify the alert.", "Change the reaction to Haha and refresh via the live event.", "Verify there is still one alert, now with 😂 and Haha wording."],
+      "expected": "The owner sees one unread row that first says the actor liked the post, then updates to the selected reaction without becoming a duplicate or resetting read state.",
+      "status": "pending",
+      "evidence": "2026-08-07: user confirmed the original implementation. 2026-08-10 correction added focused automated upsert/is_read tests; manual isolated-runtime retest is still required.",
+      "notes": "Pending retest after the reviewed realtime and Like-copy correction.",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Comment and photo reaction notifications target the correct owner and destination",
+      "surface": "ui",
+      "precondition": "Owner has a comment on another user’s post and a post with a photo; actor can react to both.",
+      "steps": ["React to the owner’s comment with Heart.", "React to the owner’s photo with Wow.", "Open owner Notifications and click each row."],
+      "expected": "Rows say reacted ❤️ to your comment and reacted 😮 to your photo, and navigate respectively to the post comments and the correct photo page.",
+      "status": "pass",
+      "evidence": "2026-08-07: user confirmed manual acceptance testing passed.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Removing a reaction retracts its notification",
+      "surface": "ui",
+      "precondition": "A visible unread reaction notification exists for the post, comment, or photo.",
+      "steps": ["As the actor, remove the matching reaction.", "Observe the owner’s open Notifications page or refresh it.", "Check the unread badge/count."],
+      "expected": "The matching notification disappears and unread count decreases when applicable; unrelated alerts remain.",
+      "status": "pending",
+      "evidence": "2026-08-07: user confirmed the original implementation. 2026-08-10 focused automated targeted-delete coverage passed; manual isolated-runtime retest is still required.",
+      "notes": "Pending retest after the reviewed notification count-path correction.",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Share creates an original-post notification",
+      "surface": "ui",
+      "precondition": "Two mutual users and an original post owned by the recipient.",
+      "steps": ["As the other user, share the owner’s original post.", "Open the owner’s Notifications page.", "Click the share notification."],
+      "expected": "A single new row says the actor shared your post, increments unread count, and opens the original post. A rejected self-share or invalid share creates no alert.",
+      "status": "pass",
+      "evidence": "2026-08-07: user confirmed manual acceptance testing passed.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Self actions and existing notification rows do not regress",
+      "surface": "ui",
+      "precondition": "A user has their own post and existing friend request/comment/reply notifications.",
+      "steps": ["React to your own post, comment, and photo.", "Open Notifications.", "Inspect and operate existing comment/reply/friend-request rows."],
+      "expected": "No self-action notification is created. Existing rows retain correct icons, links, confirm/decline actions, mark-read behavior, skeleton, and empty-state behavior.",
+      "status": "pending",
+      "evidence": "2026-08-07: user confirmed the original implementation. 2026-08-10 focused automated self-action service coverage passed; manual isolated-runtime retest is still required.",
+      "notes": "Pending retest after the reviewed reaction-notification correction.",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Database and build gates pass",
+      "surface": "cli",
+      "precondition": "Execution worktree with dependencies installed and isolated database configured.",
+      "steps": ["Run the new migration and its rollback/reapply safely in the isolated database.", "Run npm run typecheck, npm run build, frontend lint, and the repository convention check if present.", "Confirm duplicate reaction-alert writes are prevented by the migration indexes."],
+      "expected": "All applicable checks pass; migration is reversible; no type, build, lint, or convention error introduced by this feature.",
+      "status": "pending",
+      "evidence": "2026-08-10: npm run typecheck and npm run build passed. npm --prefix frontend run lint completed with six pre-existing warnings. The repository has no check:conventions script. Migration validation was not run because this worktree has no verified isolated runtime manifest.",
+      "notes": "A verified isolated database is required before re-running migration/rollback acceptance.",
+      "waiver": ""
+    },
+    {
+      "id": "A9",
+      "title": "Reviewed reaction-notification model and service paths have focused automated coverage",
+      "surface": "cli",
+      "precondition": "Locked workspace dependencies are installed.",
+      "steps": ["Run npm run test:notifications."],
+      "expected": "The model verifies conflict-upsert merge semantics and exact target deletion; the service verifies notification creation and self-action no-ops.",
+      "status": "pass",
+      "evidence": "2026-08-10: npm run test:notifications passed 4/4 tests.",
+      "notes": "These focused unit tests supplement, but do not replace, isolated database and browser acceptance.",
+      "waiver": ""
+    }
+  ]
+}

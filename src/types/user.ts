@@ -5,7 +5,10 @@ export type PublicUser = {
   username: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  coverUrl: string | null;
   createdAt: Date;
+  isOnline?: boolean;
+  lastActiveAt?: Date | null;
 };
 
 export type UserRow = {
@@ -16,7 +19,9 @@ export type UserRow = {
   username: string | null;
   bio: string | null;
   avatar_url: string | null;
+  cover_url: string | null;
   feed_seen_at?: Date | null;
+  last_active_at?: Date | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -29,6 +34,7 @@ export function toPublicUser(row: UserRow): PublicUser {
     username: row.username,
     bio: row.bio,
     avatarUrl: row.avatar_url,
+    coverUrl: row.cover_url,
     createdAt: row.created_at,
   };
 }

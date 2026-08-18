@@ -1,5 +1,6 @@
 import type { Knex } from "knex";
 import { db } from "../database/connection";
+import { PostImageModel } from "./PostImageModel";
 
 export type PostRow = {
   id: string;
@@ -16,17 +17,29 @@ export class PostModel {
     authorId: string;
     body: string;
     imageUrl?: string | null;
+    imageUrls?: string[] | null;
     sharedFromPostId?: string | null;
-  }): Promise<PostRow> {
-    const [row] = await db<PostRow>("posts")
-      .insert({
-        author_id: input.authorId,
-        body: input.body,
-        image_url: input.imageUrl ?? null,
-        shared_from_post_id: input.sharedFromPostId ?? null,
-      })
-      .returning("*");
-    return row;
+  }, trx?: Knex.Transaction): Promise<PostRow> {
+    const urls = input.imageUrls ?? (input.imageUrl ? [input.imageUrl] : []);
+
+    const createInTransaction = async (transaction: Knex.Transaction): Promise<PostRow> => {
+      const [row] = await transaction<PostRow>("posts")
+        .insert({
+          author_id: input.authorId,
+          body: input.body,
+          image_url: urls[0] ?? null,
+          shared_from_post_id: input.sharedFromPostId ?? null,
+        })
+        .returning("*");
+
+      if (urls.length > 0) {
+        await PostImageModel.insertMany(row.id, urls, transaction);
+      }
+
+      return row;
+    };
+
+    return trx ? createInTransaction(trx) : db.transaction(createInTransaction);
   }
 
   static async findById(id: string): Promise<PostRow | undefined> {
@@ -56,6 +69,25 @@ export class PostModel {
       q = q.andWhere("created_at", "<", opts.before);
     }
     return q;
+  }
+
+  static async countSharesBySourcePostIds(postIds: string[]): Promise<Map<string, number>> {
+    const counts = new Map(postIds.map((postId) => [postId, 0]));
+    if (postIds.length === 0) return counts;
+
+    const rows = await db("posts")
+      .whereIn("shared_from_post_id", postIds)
+      .select("shared_from_post_id")
+      .count("* as count")
+      .groupBy("shared_from_post_id");
+
+    for (const row of rows as Array<{
+      shared_from_post_id: string;
+      count: string | number;
+    }>) {
+      counts.set(row.shared_from_post_id, Number(row.count));
+    }
+    return counts;
   }
 
   static async countByAuthorsSince(authorIds: string[], since: Date): Promise<number> {

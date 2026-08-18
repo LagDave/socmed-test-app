@@ -1,72 +1,26 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Bell, Home, MessageCircle, UserRound, Users } from "lucide-react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { api } from "@/api/client";
-import { getMessagesSocket, MESSAGES_UNREAD, type UnreadPayload } from "@/api/socket";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { getMessagesSocket, MESSAGES_UNREAD, NOTIFICATIONS_COUNT, type UnreadPayload, type NotificationsCountPayload } from "@/api/socket";
+import { AppNavbar } from "@/components/nav/AppNavbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useActivityNotificationSound } from "@/hooks/useActivityNotificationSound";
+import { useMessageNotificationSound } from "@/hooks/useMessageNotificationSound";
 import { useMessagesSocketConnection } from "@/hooks/useMessagesSocket";
-import { cn } from "@/lib/utils";
-
-function NavIcon({
-  to,
-  label,
-  icon,
-  badge,
-}: {
-  to: string;
-  label: string;
-  icon: ReactNode;
-  badge?: number;
-}) {
-  const showBadge = typeof badge === "number" && badge > 0;
-  const badgeLabel = showBadge ? (badge > 9 ? "9+" : String(badge)) : null;
-
-  return (
-    <NavLink
-      to={to}
-      aria-label={label}
-      title={label}
-      className={({ isActive }) =>
-        cn(
-          "relative inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-          isActive && "bg-accent text-foreground"
-        )
-      }
-    >
-      {icon}
-      {showBadge && badgeLabel && (
-        <span
-          className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-bold leading-none text-background"
-          aria-hidden="true"
-        >
-          {badgeLabel}
-        </span>
-      )}
-    </NavLink>
-  );
-}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
-  const { toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const socketConnected = useMessagesSocketConnection();
+  useMessageNotificationSound();
+  useActivityNotificationSound();
   const [notificationCount, setNotificationCount] = useState(0);
   const [feedCount, setFeedCount] = useState(0);
   const [messagesCount, setMessagesCount] = useState(0);
 
   const profilePath = user ? `/u/${user.username || "me"}` : "/login";
-  // Exact segment match — startsWith("/u/alice") false-positives on "/u/alice2"
   const isProfileActive = Boolean(
     user &&
       (location.pathname === profilePath ||
@@ -114,9 +68,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     const onUnread = (payload: UnreadPayload) => {
       if (typeof payload.unread === "number") setMessagesCount(payload.unread);
     };
+    const onNotificationsCount = (payload: NotificationsCountPayload) => {
+      if (typeof payload.notifications === "number") setNotificationCount(payload.notifications);
+    };
     socket.on(MESSAGES_UNREAD, onUnread);
+    socket.on(NOTIFICATIONS_COUNT, onNotificationsCount);
     return () => {
       socket.off(MESSAGES_UNREAD, onUnread);
+      socket.off(NOTIFICATIONS_COUNT, onNotificationsCount);
     };
   }, [user]);
 
@@ -136,95 +95,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-canvas text-foreground">
-      <header className="sticky top-0 z-20 border-b border-border/80 bg-background/95 backdrop-blur">
-        <div className="grid h-14 w-full grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 sm:gap-3">
-          <div className="min-w-0 justify-self-start">
-            <Link to="/" className="truncate text-lg font-semibold tracking-tight">
-              SocMed application
-            </Link>
-          </div>
-
-          <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Primary">
-            <NavIcon
-              to="/"
-              label="Feed"
-              icon={<Home className="h-4 w-4" aria-hidden="true" />}
-              badge={feedCount}
-            />
-            {user && (
-              <NavIcon
-                to="/friends"
-                label="Friends"
-                icon={<Users className="h-4 w-4" aria-hidden="true" />}
-              />
-            )}
-          </nav>
-
-          <div className="flex items-center justify-end gap-1 sm:gap-1.5" aria-label="Account">
-            {user ? (
-              <>
-                <NavIcon
-                  to="/messages"
-                  label="Messages"
-                  icon={<MessageCircle className="h-4 w-4" aria-hidden="true" />}
-                  badge={messagesCount}
-                />
-                <NavIcon
-                  to="/notifications"
-                  label="Notifications"
-                  icon={<Bell className="h-4 w-4" aria-hidden="true" />}
-                  badge={notificationCount}
-                />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "h-9 w-9 text-muted-foreground",
-                        isProfileActive && "bg-accent text-foreground"
-                      )}
-                      aria-label="Profile menu"
-                      title="Profile menu"
-                    >
-                      <UserRound className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link to={profilePath}>Profile</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        toggleTheme();
-                      }}
-                    >
-                      Switch mode
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        void logout();
-                      }}
-                    >
-                      Log out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
-            ) : (
-              <>
-                <ThemeToggle />
-                <Button asChild variant="outline" size="sm" className="ml-1">
-                  <Link to="/login">Sign in</Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-[680px] px-4 py-6">{children}</main>
+      <AppNavbar
+        user={user}
+        profilePath={profilePath}
+        isProfileActive={isProfileActive}
+        feedCount={feedCount}
+        messagesCount={messagesCount}
+        notificationCount={notificationCount}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onLogout={logout}
+      />
+      <main className="mx-auto w-full max-w-[680px] px-5 py-6 sm:px-6">{children}</main>
     </div>
   );
 }

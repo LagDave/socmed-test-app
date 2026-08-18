@@ -65,4 +65,56 @@ export class ReactionsController {
       return handle(res, err);
     }
   }
+
+  static async listOnPost(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactions = await ReactionService.listOnPost(String(req.params.id), req.query);
+      return ok(res, { reactions });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async listOnComment(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactions = await ReactionService.listOnComment(String(req.params.id), req.query);
+      return ok(res, { reactions });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async setOnPostImage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactionSummary = await ReactionService.setOnPostImage(
+        req.userId!,
+        String(req.params.id),
+        req.body
+      );
+      return ok(res, { reactionSummary });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async clearOnPostImage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactionSummary = await ReactionService.clearOnPostImage(
+        req.userId!,
+        String(req.params.id)
+      );
+      return ok(res, { reactionSummary });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async listOnPostImage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const reactions = await ReactionService.listOnPostImage(String(req.params.id), req.query);
+      return ok(res, { reactions });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
 }

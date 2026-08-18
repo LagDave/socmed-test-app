@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Render a time-only separator at the existing ten-minute gap",
+      "surface": "ui",
+      "precondition": "Isolated app runtime with a conversation containing same-day messages that can be sent at controlled intervals.",
+      "steps": [
+        "Send two same-day messages less than ten minutes apart and inspect the timeline.",
+        "Send another same-day message at least ten minutes after its predecessor.",
+        "Inspect the separator immediately above that message."
+      ],
+      "expected": "No separator appears below the threshold. At or above ten minutes, one separator appears with a local time only, such as '9:18 PM'; it contains no month, day, or year.",
+      "status": "pass",
+      "evidence": "User-confirmed local acceptance on 2026-08-08. Automated verification also returned '9:18 PM', rejected an invalid date with an empty label, and confirmed the 600000 ms threshold.",
+      "notes": "No separate browser recording was supplied; user confirmation is the behavioral acceptance evidence.",
+      "waiver": null
+    },
+    {
+      "id": "A2",
+      "title": "Preserve day boundaries and message grouping",
+      "surface": "ui",
+      "precondition": "Same isolated runtime with messages on two calendar days and consecutive same-sender messages.",
+      "steps": [
+        "Open the conversation across a calendar-day boundary.",
+        "Confirm the day label above the first message on the new day.",
+        "Inspect adjacent same-sender messages on both sides of a sub-ten-minute gap."
+      ],
+      "expected": "The day label remains present at the boundary. Existing message grouping remains unchanged, and no new full-date gap label is introduced.",
+      "status": "pass",
+      "evidence": "User-confirmed local acceptance on 2026-08-08. Project and frontend typechecks and the frontend production build passed; frontend lint exited 0 with six pre-existing warnings outside this change.",
+      "notes": "No separate browser recording was supplied; user confirmation is the behavioral acceptance evidence.",
+      "waiver": null
+    }
+  ]
+}

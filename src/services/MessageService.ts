@@ -1,12 +1,30 @@
 import { z } from "zod";
+import { db } from "../database/connection";
 import {
   ConversationModel,
   type ConversationInboxRow,
   type ConversationRow,
 } from "../models/ConversationModel";
 import { FriendshipModel } from "../models/FriendshipModel";
-import { MessageModel, type MessageRow } from "../models/MessageModel";
-import { MessageReactionModel } from "../models/MessageReactionModel";
+import {
+  MessageModel,
+  type MessageReplyContext,
+  type MessageRow,
+  type MessageRowWithReply,
+} from "../models/MessageModel";
+import {
+  MessageReactionModel,
+  type ConversationLatestReaction,
+} from "../models/MessageReactionModel";
+import { MessageUserDeletionModel } from "../models/MessageUserDeletionModel";
+import { ConversationPinModel } from "../models/ConversationPinModel";
+import { MessagePinService, type MessagePinActivityView, type PinnedMessageView } from "./MessagePinService";
+import type {
+  ConversationListItem,
+  ConversationListLastPinActivity,
+  ConversationListLastReaction,
+  ConversationListLastSystemLog,
+} from "./MessageInboxTypes";
 import { REACTION_EMOJIS, emptyReactionSummary, type ReactionSummary } from "../models/ReactionModel";
 import { UserModel } from "../models/UserModel";
 import { AppError } from "../utils/AppError";
@@ -14,6 +32,10 @@ import { isUniqueViolation } from "../utils/dbErrors";
 import { toPublicUser } from "../types/user";
 import { MessageRealtime } from "../realtime/MessageRealtime";
 import { logger } from "../logger";
+import { ChatThemeService, type ConversationThemeView } from "./ChatThemeService";
+import type { ThemeLogEntry } from "../types/themeLog";
+import { parseThemeLog } from "../types/themeLog";
+import { peerPresenceForUser, type PeerPresence } from "../realtime/PresenceRealtime";
 
 async function publishRealtime(work: () => Promise<void>): Promise<void> {
   try {
@@ -24,6 +46,7 @@ async function publishRealtime(work: () => Promise<void>): Promise<void> {
 }
 
 const MESSAGE_PAGE_SIZE = 50;
+const MESSAGE_SEARCH_RESULT_LIMIT = 50;
 const UPLOAD_PATH_RE = /^\/uploads\/[A-Za-z0-9._-]+$/;
 
 const openConversationSchema = z
@@ -39,6 +62,7 @@ const sendMessageSchema = z
   .object({
     body: z.string().max(4000).optional(),
     imageUrl: z.string().max(500).nullable().optional(),
+    replyToMessageId: z.string().uuid().optional(),
   })
   .superRefine((v, ctx) => {
     const body = v.body?.trim() ?? "";
@@ -55,6 +79,26 @@ const reactionSchema = z.object({
   emoji: z.enum(REACTION_EMOJIS),
 });
 
+const editMessageSchema = z.object({
+  body: z.string().max(4000),
+});
+
+const searchMessagesSchema = z.string().trim().min(1).max(200);
+
+export type MessageReplyToView = {
+  id: string;
+  senderId: string;
+  senderDisplayName: string;
+  body: string | null;
+  imageUrl: string | null;
+  isUnsent: boolean;
+};
+
+type InboxSortItem = {
+  item: ConversationListItem;
+  pinnedAt: Date | null;
+};
+
 export type MessageView = {
   id: string;
   conversationId: string;
@@ -63,22 +107,10 @@ export type MessageView = {
   imageUrl: string | null;
   isUnsent: boolean;
   createdAt: Date;
+  editedAt: Date | null;
+  deliveredAt: Date | null;
   reactionSummary: ReactionSummary;
-};
-
-export type ConversationListItem = {
-  id: string;
-  peer: ReturnType<typeof toPublicUser>;
-  lastMessage: {
-    id: string;
-    body: string | null;
-    imageUrl: string | null;
-    isUnsent: boolean;
-    senderId: string;
-    createdAt: Date;
-  } | null;
-  unreadCount: number;
-  lastMessageAt: Date | null;
+  replyTo: MessageReplyToView | null;
 };
 
 function peerId(row: ConversationRow, viewerId: string): string {
@@ -91,14 +123,105 @@ function lastReadAt(row: ConversationRow, viewerId: string): Date | null {
   return null;
 }
 
+function compareInboxItems(left: InboxSortItem, right: InboxSortItem): number {
+  if (left.item.isPinned !== right.item.isPinned) {
+    return left.item.isPinned ? -1 : 1;
+  }
+  if (left.item.isPinned) {
+    const pinnedAtDifference = (left.pinnedAt?.getTime() ?? 0) - (right.pinnedAt?.getTime() ?? 0);
+    return pinnedAtDifference || left.item.id.localeCompare(right.item.id);
+  }
+  const activityDifference = (right.item.lastMessageAt?.getTime() ?? 0) - (left.item.lastMessageAt?.getTime() ?? 0);
+  return activityDifference || left.item.id.localeCompare(right.item.id);
+}
+
+function hasUnreadPeerReaction(
+  reaction: ConversationListLastReaction | null,
+  viewerId: string,
+  peerUserId: string,
+  viewerLastReadAt: Date | null
+): boolean {
+  if (!reaction) return false;
+  if (reaction.reactorId !== peerUserId) return false;
+  if (reaction.messageSenderId !== viewerId) return false;
+  if (!viewerLastReadAt) return true;
+  return reaction.reactedAt > viewerLastReadAt;
+}
+
+function toListLastSystemLog(entry: ThemeLogEntry | null): ConversationListLastSystemLog | null {
+  if (!entry) return null;
+  return {
+    id: entry.id,
+    text: entry.text,
+    createdAt: new Date(entry.createdAt),
+    updatedBy: entry.updatedBy,
+  };
+}
+
+function latestThemeLogFromRow(row: ConversationRow): ThemeLogEntry | null {
+  const logs = parseThemeLog(row.theme_log);
+  return logs.length > 0 ? logs[logs.length - 1]! : null;
+}
+
+function latestActivityAt(
+  messageAt: Date | null,
+  reactionAt: Date | null,
+  systemLogAt: Date | null,
+  pinActivityAt: Date | null,
+  fallback: Date | null
+): Date | null {
+  const candidates = [messageAt, reactionAt, systemLogAt, pinActivityAt].filter(
+    (value): value is Date => value instanceof Date
+  );
+  if (candidates.length === 0) return fallback;
+  return candidates.reduce((latest, current) =>
+    current.getTime() > latest.getTime() ? current : latest
+  );
+}
+
+function toListLastPinActivity(
+  activity: ConversationInboxRow["latestPinActivity"]
+): ConversationListLastPinActivity | null {
+  if (!activity) return null;
+  return {
+    actorDisplayName: activity.actor_display_name,
+    action: activity.action,
+    createdAt: activity.created_at,
+  };
+}
+
+function peerLastReadAt(row: ConversationRow, viewerId: string): Date | null {
+  return lastReadAt(row, peerId(row, viewerId));
+}
+
 function assertParticipant(row: ConversationRow, userId: string): void {
   if (row.user_a !== userId && row.user_b !== userId) {
     throw new AppError("MESSAGE_FORBIDDEN", "Not a participant of this conversation.");
   }
 }
 
-function toMessageView(row: MessageRow, reactionSummary: ReactionSummary): MessageView {
+function toReplyToView(context: MessageReplyContext): MessageReplyToView {
+  const isUnsent = Boolean(context.unsent_at);
+  return {
+    id: context.id,
+    senderId: context.sender_id,
+    senderDisplayName: context.sender_display_name,
+    body: isUnsent ? null : context.body,
+    imageUrl: isUnsent ? null : context.image_url,
+    isUnsent,
+  };
+}
+
+function toMessageView(
+  row: MessageRow | MessageRowWithReply,
+  reactionSummary: ReactionSummary,
+  replyContext?: MessageReplyContext | null
+): MessageView {
   const isUnsent = Boolean(row.unsent_at);
+  const context =
+    replyContext ??
+    ("replyContext" in row ? row.replyContext : null);
+
   return {
     id: row.id,
     conversationId: row.conversation_id,
@@ -107,7 +230,55 @@ function toMessageView(row: MessageRow, reactionSummary: ReactionSummary): Messa
     imageUrl: isUnsent ? null : row.image_url,
     isUnsent,
     createdAt: row.created_at,
+    editedAt: isUnsent ? null : row.edited_at,
+    deliveredAt: row.delivered_at ?? null,
     reactionSummary: isUnsent ? emptyReactionSummary() : reactionSummary,
+    replyTo: context ? toReplyToView(context) : null,
+  };
+}
+
+async function rowsToViews(
+  rows: MessageRowWithReply[],
+  viewerId: string
+): Promise<MessageView[]> {
+  const summaries = await MessageReactionModel.summariesForMessages(
+    rows.filter((r) => !r.unsent_at).map((r) => r.id),
+    viewerId
+  );
+  return rows.map((r) =>
+    toMessageView(r, summaries.get(r.id) ?? emptyReactionSummary())
+  );
+}
+
+async function rowToView(row: MessageRowWithReply, viewerId: string): Promise<MessageView> {
+  const [view] = await rowsToViews([row], viewerId);
+  return view;
+}
+
+function toListLastReaction(
+  reaction: ConversationLatestReaction | null
+): ConversationListLastReaction | null {
+  if (!reaction) return null;
+  return {
+    emoji: reaction.emoji,
+    reactorId: reaction.reactorId,
+    messageId: reaction.messageId,
+    messageSenderId: reaction.messageSenderId,
+    messageBody: reaction.messageBody,
+    messageImageUrl: reaction.messageImageUrl,
+    reactedAt: reaction.reactedAt,
+  };
+}
+
+function lastMessageListShape(row: MessageRow): ConversationListItem["lastMessage"] {
+  return {
+    id: row.id,
+    body: row.unsent_at ? null : row.body,
+    imageUrl: row.unsent_at ? null : row.image_url,
+    isUnsent: Boolean(row.unsent_at),
+    senderId: row.sender_id,
+    createdAt: row.created_at,
+    replyToMessageId: row.reply_to_message_id,
   };
 }
 
@@ -141,48 +312,145 @@ export class MessageService {
         if (!conversation) throw new AppError("MESSAGE_CONFLICT", "Could not open conversation.");
       }
     }
+    await ConversationModel.clearHidden(conversation.id, userId);
     return { conversation: await this.toListItem(conversation, userId), created };
   }
 
   static async listConversations(userId: string): Promise<ConversationListItem[]> {
     const rows = await ConversationModel.listInboxForUser(userId);
-    return rows.map((row) => this.inboxRowToListItem(row));
+    const mutualFriendIds = new Set(await FriendshipModel.listAcceptedMutualIds(userId));
+    const latestReactions = await MessageReactionModel.latestByConversations(
+      rows.map((row) => row.id),
+      userId
+    );
+    return rows.map((row): InboxSortItem => ({ item: this.inboxRowToListItem(row, toListLastReaction(latestReactions.get(row.id) ?? null), userId, mutualFriendIds), pinnedAt: row.pinnedAt }))
+      .sort(compareInboxItems)
+      .map(({ item }) => item);
   }
 
   static async listMessages(
     userId: string,
     conversationId: string,
-    before?: string
+    before?: string,
+    after?: string,
+    options?: { restoreIfHidden?: boolean; includeThemeLogs?: boolean }
   ): Promise<{
     conversationId: string;
     peer: ReturnType<typeof toPublicUser>;
+    peerPresence: PeerPresence | null;
+    peerLastReadAt: Date | null;
     messages: MessageView[];
     hasMore: boolean;
+    theme: ConversationThemeView;
+    themeLogs?: ThemeLogEntry[];
+    pinnedMessages: PinnedMessageView[];
+    pinActivities: MessagePinActivityView[];
   }> {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
     assertParticipant(conversation, userId);
+    if (options?.restoreIfHidden) {
+      await ConversationModel.clearHidden(conversationId, userId);
+    }
 
     const peerUser = await UserModel.findById(peerId(conversation, userId));
     if (!peerUser) throw new AppError("USER_NOT_FOUND", "Peer missing.");
 
+    const otherId = peerId(conversation, userId);
+    const areFriends = await FriendshipModel.areFriends(userId, otherId);
+    const freshlyDelivered = areFriends
+      ? await MessageModel.markInboundUndeliveredAsDelivered(conversationId, userId)
+      : [];
+    for (const row of freshlyDelivered) {
+      if (!row.delivered_at) continue;
+      await publishRealtime(async () => {
+        MessageRealtime.messageDelivered(row.sender_id, {
+          messageId: row.id,
+          conversationId: row.conversation_id,
+          deliveredAt: row.delivered_at!,
+        });
+      });
+    }
+    const deliveredAtById = new Map(
+      freshlyDelivered.map((r) => [r.id, r.delivered_at] as const)
+    );
+
     const rows = await MessageModel.listByConversation(conversationId, {
       limit: MESSAGE_PAGE_SIZE,
       before,
+      after,
+      viewerId: userId,
     });
-    const summaries = await MessageReactionModel.summariesForMessages(
-      rows.filter((r) => !r.unsent_at).map((r) => r.id),
-      userId
-    );
+    const mergedRows = rows.map((r) => {
+      const delivered = deliveredAtById.get(r.id);
+      return delivered ? { ...r, delivered_at: delivered } : r;
+    });
+
+    const pinState = await MessagePinService.listThreadPinState(conversationId, userId);
 
     return {
       conversationId,
       peer: toPublicUser(peerUser),
-      messages: rows.map((r) =>
-        toMessageView(r, summaries.get(r.id) ?? emptyReactionSummary())
-      ),
-      hasMore: rows.length >= MESSAGE_PAGE_SIZE,
+      peerPresence: areFriends
+        ? peerPresenceForUser(peerUser.id, peerUser.last_active_at ?? null)
+        : null,
+      peerLastReadAt: peerLastReadAt(conversation, userId),
+      messages: await rowsToViews(mergedRows, userId),
+      hasMore: mergedRows.length >= MESSAGE_PAGE_SIZE,
+      theme: ChatThemeService.themeFromRow(conversation),
+      ...(options?.includeThemeLogs
+        ? { themeLogs: ChatThemeService.themeLogsFromRow(conversation) }
+        : {}),
+      ...pinState,
     };
+  }
+
+  static async searchMessages(
+    userId: string,
+    conversationId: string,
+    rawQuery: unknown
+  ): Promise<{ messages: MessageView[]; hasMore: boolean }> {
+    const query = searchMessagesSchema.parse(rawQuery);
+    const conversation = await ConversationModel.findById(conversationId);
+    if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    assertParticipant(conversation, userId);
+
+    const rows = await MessageModel.searchByConversation(
+      conversationId,
+      userId,
+      query,
+      MESSAGE_SEARCH_RESULT_LIMIT + 1
+    );
+    const hasMore = rows.length > MESSAGE_SEARCH_RESULT_LIMIT;
+    const resultRows = hasMore ? rows.slice(0, MESSAGE_SEARCH_RESULT_LIMIT) : rows;
+
+    return {
+      messages: await rowsToViews(resultRows, userId),
+      hasMore,
+    };
+  }
+
+  static async ackMessageDelivery(userId: string, messageId: string): Promise<void> {
+    const message = await MessageModel.findById(messageId);
+    if (!message || message.unsent_at || message.sender_id === userId) return;
+
+    const conversation = await ConversationModel.findById(message.conversation_id);
+    if (!conversation) return;
+    assertParticipant(conversation, userId);
+
+    const otherId = peerId(conversation, userId);
+    if (!(await FriendshipModel.areFriends(userId, otherId))) return;
+
+    const row = await MessageModel.markDelivered(messageId);
+    if (!row?.delivered_at) return;
+
+    await publishRealtime(async () => {
+      MessageRealtime.messageDelivered(row.sender_id, {
+        messageId: row.id,
+        conversationId: row.conversation_id,
+        deliveredAt: row.delivered_at!,
+      });
+    });
   }
 
   static async send(
@@ -203,14 +471,30 @@ export class MessageService {
     const body = input.body?.trim() || null;
     const imageUrl = input.imageUrl ?? null;
 
+    if (input.replyToMessageId) {
+      const target = await MessageModel.findById(input.replyToMessageId);
+      if (!target || target.conversation_id !== conversationId) {
+        throw new AppError("MESSAGE_VALIDATION", "Invalid reply target.");
+      }
+      if (target.unsent_at) {
+        throw new AppError("MESSAGE_VALIDATION", "Cannot reply to an unsent message.");
+      }
+    }
+
     const row = await MessageModel.create({
       conversationId,
       senderId: userId,
       body,
       imageUrl,
+      replyToMessageId: input.replyToMessageId ?? null,
     });
     await ConversationModel.touchLastMessage(conversationId, row.created_at);
-    const view = toMessageView(row, emptyReactionSummary());
+    // Restore inbox for recipient when they previously deleted the chat (old messages stay deleted).
+    await ConversationModel.clearHidden(conversationId, otherId);
+
+    const withReply = await MessageModel.findByIdWithReply(row.id);
+    if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found after send.");
+    const view = await rowToView(withReply, userId);
     await publishRealtime(() => MessageRealtime.messageCreated(conversation, view));
     return view;
   }
@@ -227,13 +511,69 @@ export class MessageService {
       throw new AppError("MESSAGE_FORBIDDEN", "You can only unsend your own messages.");
     }
     if (existing.unsent_at) {
-      return toMessageView(existing, emptyReactionSummary());
+      const withReply = await MessageModel.findByIdWithReply(messageId);
+      if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
+      return rowToView(withReply, userId);
     }
 
-    const row = await MessageModel.markUnsent(messageId, userId);
+    const { row, removedPin } = await db.transaction(async (trx) => {
+      const updated = await MessageModel.markUnsent(messageId, userId, trx);
+      if (!updated) return { row: undefined, removedPin: false };
+      return {
+        row: updated,
+        removedPin: await MessagePinService.deletePinForUnsentMessage(messageId, trx),
+      };
+    });
     if (!row) throw new AppError("MESSAGE_NOT_FOUND", "Message not found or already unsent.");
-    const view = toMessageView(row, emptyReactionSummary());
-    await publishRealtime(() => MessageRealtime.messageUnsent(conversation, view));
+    const withReply = await MessageModel.findByIdWithReply(row.id);
+    if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
+    const view = await rowToView(withReply, userId);
+    await publishRealtime(async () => {
+      await MessageRealtime.messageUnsent(conversation, view);
+      if (removedPin) {
+        const targets = await MessagePinService.listPinnedMessagesForParticipants(conversation);
+        await MessageRealtime.messagePinsUpdated(conversation, targets);
+      }
+    });
+    return view;
+  }
+
+  static async edit(userId: string, messageId: string, raw: unknown): Promise<MessageView> {
+    const existing = await MessageModel.findById(messageId);
+    if (!existing) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
+
+    const conversation = await ConversationModel.findById(existing.conversation_id);
+    if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    assertParticipant(conversation, userId);
+
+    if (existing.sender_id !== userId) {
+      throw new AppError("MESSAGE_FORBIDDEN", "You can only edit your own messages.");
+    }
+    if (existing.unsent_at) {
+      throw new AppError("MESSAGE_VALIDATION", "Cannot edit an unsent message.");
+    }
+    if (!existing.body?.trim()) {
+      throw new AppError("MESSAGE_VALIDATION", "This message has no text to edit.");
+    }
+
+    const input = editMessageSchema.parse(raw);
+    const trimmed = input.body.trim();
+    if (!existing.image_url && !trimmed) {
+      throw new AppError("MESSAGE_VALIDATION", "Message body cannot be empty.");
+    }
+
+    const newBody = trimmed || null;
+    const summaries = await MessageReactionModel.summariesForMessages([messageId], userId);
+    const currentSummary = summaries.get(messageId) ?? emptyReactionSummary();
+
+    if ((existing.body ?? "") === (newBody ?? "")) {
+      return toMessageView(existing, currentSummary);
+    }
+
+    const row = await MessageModel.updateBody(messageId, userId, newBody);
+    if (!row) throw new AppError("MESSAGE_NOT_FOUND", "Message not found or already unsent.");
+    const view = toMessageView(row, currentSummary);
+    await publishRealtime(() => MessageRealtime.messageEdited(conversation, view));
     return view;
   }
 
@@ -248,11 +588,16 @@ export class MessageService {
     }
     const input = reactionSchema.parse(raw);
     await MessageReactionModel.upsert(userId, messageId, input.emoji);
-    const targets = await this.reactionViewsForParticipants(conversation, message);
+    const targets = await this.reactionViewsForParticipants(conversation, message.id);
     const viewerView =
       targets.find((t) => t.userId === userId)?.message ??
-      toMessageView(message, emptyReactionSummary());
-    await publishRealtime(() => MessageRealtime.messageReaction(targets));
+      (await this.viewForMessage(message.id, userId));
+    await publishRealtime(async () => {
+      await MessageRealtime.messageReaction(conversation, targets, userId);
+      if (message.sender_id !== userId) {
+        await MessageRealtime.unreadCountForUser(message.sender_id);
+      }
+    });
     return viewerView;
   }
 
@@ -262,11 +607,16 @@ export class MessageService {
       throw new AppError("MESSAGE_VALIDATION", "Cannot react to an unsent message.");
     }
     await MessageReactionModel.delete(userId, messageId);
-    const targets = await this.reactionViewsForParticipants(conversation, message);
+    const targets = await this.reactionViewsForParticipants(conversation, message.id);
     const viewerView =
       targets.find((t) => t.userId === userId)?.message ??
-      toMessageView(message, emptyReactionSummary());
-    await publishRealtime(() => MessageRealtime.messageReaction(targets));
+      (await this.viewForMessage(message.id, userId));
+    await publishRealtime(async () => {
+      await MessageRealtime.messageReaction(conversation, targets, userId);
+      if (message.sender_id !== userId) {
+        await MessageRealtime.unreadCountForUser(message.sender_id);
+      }
+    });
     return viewerView;
   }
 
@@ -274,14 +624,47 @@ export class MessageService {
     const conversation = await ConversationModel.findById(conversationId);
     if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
     assertParticipant(conversation, userId);
-    await ConversationModel.markRead(conversationId, userId, new Date());
-    await publishRealtime(() => MessageRealtime.conversationRead(conversation, userId));
+    const updated = await ConversationModel.markRead(conversationId, userId, new Date());
+    if (!updated) return { ok: true };
+
+    const readerLastReadAt = lastReadAt(updated, userId);
+    const notifyId = peerId(updated, userId);
+
+    await publishRealtime(async () => {
+      await MessageRealtime.conversationRead(updated, userId);
+      if (readerLastReadAt) {
+        MessageRealtime.conversationPeerRead(notifyId, {
+          conversationId: updated.id,
+          readerId: userId,
+          peerLastReadAt: readerLastReadAt,
+        });
+      }
+    });
     return { ok: true };
   }
 
   static async unreadCount(userId: string): Promise<{ unread: number }> {
     const unread = await ConversationModel.countUnreadConversations(userId);
     return { unread };
+  }
+
+  static async deleteConversationForUser(
+    userId: string,
+    conversationId: string
+  ): Promise<{ ok: true }> {
+    const conversation = await ConversationModel.findById(conversationId);
+    if (!conversation) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    assertParticipant(conversation, userId);
+
+    const updated = await db.transaction(async (trx) => {
+      await MessageUserDeletionModel.markAllInConversationForUser(conversationId, userId, trx);
+      await ConversationPinModel.deleteForUser(conversationId, userId, trx);
+      return ConversationModel.setHidden(conversationId, userId, new Date(), trx);
+    });
+
+    if (!updated) throw new AppError("CONVERSATION_NOT_FOUND", "Conversation not found.");
+    await publishRealtime(() => MessageRealtime.conversationHidden(updated, userId));
+    return { ok: true };
   }
 
   private static async requireMessageAccess(userId: string, messageId: string) {
@@ -293,39 +676,68 @@ export class MessageService {
     return { message, conversation };
   }
 
+  private static async viewForMessage(messageId: string, viewerId: string): Promise<MessageView> {
+    const withReply = await MessageModel.findByIdWithReply(messageId);
+    if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
+    return rowToView(withReply, viewerId);
+  }
+
   private static async reactionViewsForParticipants(
     conversation: ConversationRow,
-    message: MessageRow
+    messageId: string
   ): Promise<Array<{ userId: string; message: MessageView }>> {
+    const withReply = await MessageModel.findByIdWithReply(messageId);
+    if (!withReply) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.");
     const userIds = [conversation.user_a, conversation.user_b];
     return Promise.all(
-      userIds.map(async (uid) => {
-        const summaries = await MessageReactionModel.summariesForMessages([message.id], uid);
-        return {
-          userId: uid,
-          message: toMessageView(message, summaries.get(message.id) ?? emptyReactionSummary()),
-        };
-      })
+      userIds.map(async (uid) => ({
+        userId: uid,
+        message: await rowToView(withReply, uid),
+      }))
     );
   }
 
-  private static inboxRowToListItem(row: ConversationInboxRow): ConversationListItem {
+  private static inboxRowToListItem(
+    row: ConversationInboxRow,
+    lastReaction: ConversationListLastReaction | null,
+    viewerId: string,
+    mutualFriendIds: ReadonlySet<string>
+  ): ConversationListItem {
     const latest = row.lastMessage;
+    const messageAt = latest?.created_at ?? null;
+    const reactionAt = lastReaction?.reactedAt ?? null;
+    const lastSystemLog = toListLastSystemLog(latestThemeLogFromRow(row));
+    const systemLogAt = lastSystemLog?.createdAt ?? null;
+    const lastPinActivity = toListLastPinActivity(row.latestPinActivity);
+    const pinActivityAt = lastPinActivity?.createdAt ?? null;
+    const lastActivityAt = latestActivityAt(
+      messageAt,
+      reactionAt,
+      systemLogAt,
+      pinActivityAt,
+      row.last_message_at
+    );
+    const peerUserId = peerId(row, viewerId);
+
     return {
       id: row.id,
+      isPinned: row.isPinned,
       peer: toPublicUser(row.peer),
-      lastMessage: latest
-        ? {
-            id: latest.id,
-            body: latest.unsent_at ? null : latest.body,
-            imageUrl: latest.unsent_at ? null : latest.image_url,
-            isUnsent: Boolean(latest.unsent_at),
-            senderId: latest.sender_id,
-            createdAt: latest.created_at,
-          }
+      peerPresence: mutualFriendIds.has(row.peer.id)
+        ? peerPresenceForUser(row.peer.id, row.peer.last_active_at ?? null)
         : null,
+      lastMessage: latest ? lastMessageListShape(latest) : null,
+      lastReaction,
+      lastSystemLog,
+      lastPinActivity,
+      hasUnreadReaction: hasUnreadPeerReaction(
+        lastReaction,
+        viewerId,
+        peerUserId,
+        lastReadAt(row, viewerId)
+      ),
       unreadCount: row.unreadCount,
-      lastMessageAt: row.last_message_at,
+      lastMessageAt: lastActivityAt,
     };
   }
 
@@ -336,27 +748,40 @@ export class MessageService {
     const peerUser = await UserModel.findById(peerId(row, viewerId));
     if (!peerUser) throw new AppError("USER_NOT_FOUND", "Peer missing.");
     const latest = await MessageModel.latestForConversation(row.id);
+    const latestReactions = await MessageReactionModel.latestByConversations([row.id], viewerId);
+    const lastReaction = toListLastReaction(latestReactions.get(row.id) ?? null);
     const unreadCount = await MessageModel.countUnreadInConversation(
       row.id,
       viewerId,
       lastReadAt(row, viewerId)
     );
+    const isPinned = await ConversationPinModel.isPinnedForUser(row.id, viewerId);
+
+    const lastSystemLog = toListLastSystemLog(latestThemeLogFromRow(row));
 
     return {
       id: row.id,
+      isPinned,
       peer: toPublicUser(peerUser),
-      lastMessage: latest
-        ? {
-            id: latest.id,
-            body: latest.unsent_at ? null : latest.body,
-            imageUrl: latest.unsent_at ? null : latest.image_url,
-            isUnsent: Boolean(latest.unsent_at),
-            senderId: latest.sender_id,
-            createdAt: latest.created_at,
-          }
-        : null,
+      peerPresence: peerPresenceForUser(peerUser.id, peerUser.last_active_at ?? null),
+      lastMessage: latest ? lastMessageListShape(latest) : null,
+      lastReaction,
+      lastSystemLog,
+      lastPinActivity: null,
+      hasUnreadReaction: hasUnreadPeerReaction(
+        lastReaction,
+        viewerId,
+        peerId(row, viewerId),
+        lastReadAt(row, viewerId)
+      ),
       unreadCount,
-      lastMessageAt: row.last_message_at,
+      lastMessageAt: latestActivityAt(
+        latest?.created_at ?? null,
+        lastReaction?.reactedAt ?? null,
+        lastSystemLog?.createdAt ?? null,
+        null,
+        row.last_message_at
+      ),
     };
   }
 }

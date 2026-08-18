@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Acceptance Checklist — Compact pinned-message activity rows</title>
+  <style>
+    body { max-width: 850px; margin: 36px auto; padding: 0 20px; font: 16px/1.5 system-ui, sans-serif; color: #111; }
+    article { border: 1px solid #ddd; border-radius: 8px; padding: 18px; margin: 14px 0; }
+    h1 { line-height: 1.1; } textarea { width: 100%; min-height: 56px; margin-top: 8px; box-sizing: border-box; }
+    button { padding: 9px 12px; font: inherit; } label { font-weight: 700; } ol { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Acceptance Checklist</h1>
+  <p>Source of truth: <code>test-results.json</code>. Use this viewer to record a run, then copy each status and evidence into that JSON file.</p>
+  <div id="items"></div>
+  <button id="download" type="button">Download recorded results</button>
+  <script>
+    const items = [
+      { id: "A1", title: "Adjacent pin events are distinct plain system-log lines", steps: ["Open a same-day thread with adjacent pin/unpin events.", "Confirm each event retains its action text but has no card, border, background, icon, or side divider lines.", "Confirm the 11px lines have a compact gap with no large blank band.", "Confirm there are no close controls, count badges, or merged events."], expected: "Events remain separate and chronological as compact plain system-log lines." },
+      { id: "A2", title: "Pin activity uses viewer-relative text across thread themes", steps: ["Confirm the plain system-log text is readable in a gradient chat theme.", "Pin as the signed-in user and confirm the line says You pinned a message.", "Open the same conversation as the other participant and confirm it uses only the pinning user’s first display-name word.", "Repeat in the default/un-themed appearance and confirm surrounding timeline spacing is unchanged."], expected: "Each viewer sees the correct actor-relative text in a readable, isolated plain system-log line." },
+      { id: "A3", title: "Frontend quality gates", steps: ["Run npm run typecheck in frontend/.", "Run npm run lint in frontend/.", "Run npm run build in frontend/."], expected: "Every command exits successfully; record unrelated advisories separately." }
+    ];
+    const root = document.querySelector("#items");
+    items.forEach((item) => root.insertAdjacentHTML("beforeend", `<article data-id="${item.id}"><h2>${item.id} — ${item.title}</h2><ol>${item.steps.map((step) => `<li>${step}</li>`).join("")}</ol><p><strong>Expected:</strong> ${item.expected}</p><label>Status <select><option>pending</option><option>pass</option><option>fail</option></select></label><textarea placeholder="Evidence / waiver / notes"></textarea></article>`));
+    document.querySelector("#download").onclick = () => {
+      const output = { status: "pending", items: [...document.querySelectorAll("article")].map((element) => ({ id: element.dataset.id, status: element.querySelector("select").value, evidence: element.querySelector("textarea").value })) };
+      output.status = output.items.every((item) => item.status === "pass") ? "passed" : output.items.some((item) => item.status === "fail") ? "failed" : "pending";
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([JSON.stringify(output, null, 2)], { type: "application/json" }));
+      link.download = "test-results-recorded.json";
+      link.click();
+    };
+  </script>
+</body>
+</html>

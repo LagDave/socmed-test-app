@@ -1,5 +1,8 @@
 import type { Response } from "express";
 import { MessageService } from "../../services/MessageService";
+import { MessagePinService } from "../../services/MessagePinService";
+import { ConversationPriorityService } from "../../services/ConversationPriorityService";
+import { ChatThemeService } from "../../services/ChatThemeService";
 import { ok, fail } from "../../utils/response";
 import { AppError, statusForCode } from "../../utils/AppError";
 import type { AuthedRequest } from "../../middleware/requireAuth";
@@ -42,10 +45,31 @@ export class MessagesController {
   static async listMessages(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const before = typeof req.query.before === "string" ? req.query.before : undefined;
+      const after = typeof req.query.after === "string" ? req.query.after : undefined;
+      if (before && after) {
+        return fail(res, 400, "MESSAGE_VALIDATION", "Use one message cursor at a time.");
+      }
+      const restoreIfHidden = req.query.restore === "1";
+      const includeThemeLogs = req.query.includeThemeLogs === "1" || restoreIfHidden;
       const data = await MessageService.listMessages(
         req.userId!,
         String(req.params.id),
-        before
+        before,
+        after,
+        { restoreIfHidden, includeThemeLogs }
+      );
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async searchMessages(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessageService.searchMessages(
+        req.userId!,
+        String(req.params.id),
+        req.query.q
       );
       return ok(res, data);
     } catch (err) {
@@ -80,6 +104,15 @@ export class MessagesController {
     }
   }
 
+  static async edit(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const message = await MessageService.edit(req.userId!, String(req.params.id), req.body);
+      return ok(res, { message });
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
   static async setReaction(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const message = await MessageService.setReaction(
@@ -102,10 +135,70 @@ export class MessagesController {
     }
   }
 
+  static async pinMessage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessagePinService.pinMessage(req.userId!, String(req.params.id));
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async unpinMessage(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessagePinService.unpinMessage(req.userId!, String(req.params.id));
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+  static async pinConversation(req: AuthedRequest, res: Response): Promise<Response> {
+    try { return ok(res, await ConversationPriorityService.pin(req.userId!, String(req.params.id))); }
+    catch (err) { return handle(res, err); }
+  }
+  static async unpinConversation(req: AuthedRequest, res: Response): Promise<Response> {
+    try { return ok(res, await ConversationPriorityService.unpin(req.userId!, String(req.params.id))); }
+    catch (err) { return handle(res, err); }
+  }
+
   static async unreadCount(req: AuthedRequest, res: Response): Promise<Response> {
     try {
       const data = await MessageService.unreadCount(req.userId!);
       return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async hideConversation(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const data = await MessageService.deleteConversationForUser(
+        req.userId!,
+        String(req.params.id)
+      );
+      return ok(res, data);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async getTheme(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const theme = await ChatThemeService.getTheme(req.userId!, String(req.params.id));
+      return ok(res, theme);
+    } catch (err) {
+      return handle(res, err);
+    }
+  }
+
+  static async updateTheme(req: AuthedRequest, res: Response): Promise<Response> {
+    try {
+      const theme = await ChatThemeService.updateTheme(
+        req.userId!,
+        String(req.params.id),
+        req.body
+      );
+      return ok(res, theme);
     } catch (err) {
       return handle(res, err);
     }

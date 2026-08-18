@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Share Button UI — Caption Composer Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; line-height:1.5; }
+    .spec-shell { width:min(1120px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }
+    .spec-hero, .spec-card, .task-card { border:1px solid var(--line); border-radius:8px; background:var(--paper); }
+    .spec-hero { border-color:var(--ink); padding:32px; margin-bottom:20px; }
+    .hero-topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .spec-card { padding:28px; margin-top:16px; }
+    .task-card { padding:20px; background:var(--soft); margin-top:12px; }
+    .eyebrow, dt { color:var(--muted); font-size:0.78rem; font-weight:700; text-transform:uppercase; }
+    .eyebrow { margin:0; }
+    .status-pill { display:inline-flex; align-items:center; min-height:34px; padding:0 12px; border:1px solid var(--ink); border-radius:999px; background:var(--ink); color:var(--paper); font-size:0.78rem; font-weight:800; text-transform:uppercase; }
+    .meta-grid, .split-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .meta-grid { margin:0; }
+    .meta-grid div, .split-grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    dd { margin:4px 0 0; font-weight:700; }
+    .checklist { list-style:none; padding-left:0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid var(--line); }
+    .callout { border:2px solid var(--ink); border-radius:8px; padding:18px 20px; margin-top:14px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:920px; margin-bottom:24px; font-size:clamp(2rem,5vw,3.5rem); line-height:0.95; }
+    h2 { font-size:1.35rem; }
+    code { padding:0.1rem 0.3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:0.92em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:0.78rem; text-transform:uppercase; }
+    ul { padding-left:1.2rem; }
+    .wire { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:0.92rem; white-space:pre; overflow-x:auto; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="spec-shell">
+    <header class="spec-hero">
+      <div class="hero-topline">
+        <p class="eyebrow">Socmed Plan Spec · Seq 41</p>
+        <span class="status-pill">Completed</span>
+      </div>
+      <h1>Share Button UI — Caption Composer &amp; Reshare Polish</h1>
+      <dl class="meta-grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan Folder</dt><dd>plans/08012026-41-share-button-ui</dd></div>
+        <div><dt>Extends</dt><dd><a href="../07302026-26-share-button/spec.html">plans/07302026-26-share-button</a></dd></div>
+        <div><dt>Size</dt><dd>Small (4 tasks, FE + BE polish)</dd></div>
+        <div><dt>Risk</dt><dd>Level 2</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/share-button-ui</dd></div>
+        <div><dt>Depends on</dt><dd>Plan 26 share backend + PostActionRow Share2</dd></div>
+      </dl>
+    </header>
+
+    <section class="spec-card" id="why">
+      <h2>Why</h2>
+      <p>Plan 26 shipped one-click Facebook-style reshare with no commentary. PR #56 expands the UX to match Facebook’s “Say something about this post” flow: a modal caption composer before posting, optional wrapper body on the share API, polished attribution chrome, and a success notice on post detail. The original plan explicitly deferred commentary; this plan documents and accepts that expanded scope.</p>
+    </section>
+
+    <section class="spec-card" id="what">
+      <h2>What</h2>
+      <ul>
+        <li><code>SharePostDialog</code> — modal with optional caption textarea, original-post preview, Cancel / Share post actions.</li>
+        <li>Feed + Post detail open the dialog from Share2 instead of silent one-click share.</li>
+        <li><code>POST /api/posts/:id/share</code> accepts optional <code>{ body?: string }</code>; trimmed caption stored on wrapper post.</li>
+        <li><code>ShareAttribution</code> — “You shared Alex’s post” line with profile links on shared cards.</li>
+        <li><code>ShareSuccessNotice</code> — polite status banner after share on post detail.</li>
+        <li>Empty caption allowed — wrapper body may be empty string; nested embed carries original content.</li>
+      </ul>
+      <pre class="wire">Share flow (friend’s original post):
+[ Share2 click ] → SharePostDialog
+  ┌─ modal ──────────────────────────────────────────┐
+  │  (you)  Write a caption…                         │
+  │  ┌─ Original post preview ─────────────────────┐ │
+  │  │  (Alex)  Alex’s post body / image            │ │
+  │  └──────────────────────────────────────────────┘ │
+  │  [ Cancel ]  [ Share post ]                       │
+  └──────────────────────────────────────────────────┘
+
+Feed card after share with caption:
+┌─ feed-card ─────────────────────────────────────────┐
+│  You shared Alex’s post                   · 2m      │
+│  Your caption text here…                            │
+│  ┌─ nested original ──────────────────────────────┐ │
+│  │  (Alex)  original body / image                   │ │
+│  └────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘</pre>
+      <p><strong>Done when:</strong> Dialog opens from Feed + detail Share2; optional caption persists on wrapper; empty caption share works; API validates body length; auth + friendship rules unchanged; acceptance Passed.</p>
+      <div class="callout">
+        <strong>Scope delta from plan 26:</strong> commentary modal (was out-of-scope) · optional <code>body</code> on share API (was fixed empty) · <code>ShareAttribution</code> / <code>ShareSuccessNotice</code> polish · dialog-driven UX replaces one-click share.
+      </div>
+    </section>
+
+    <section class="spec-card" id="context">
+      <h2>Context</h2>
+      <ul>
+        <li><code>frontend/src/components/SharePostDialog.tsx</code> — caption composer modal (max 5000 chars, trim on submit).</li>
+        <li><code>frontend/src/components/ShareAttribution.tsx</code> — attribution line for shared wrapper cards.</li>
+        <li><code>frontend/src/components/ShareSuccessNotice.tsx</code> — post-detail success banner.</li>
+        <li><code>frontend/src/components/SharedPostEmbed.tsx</code> — nested original preview (plan 26); reused in dialog.</li>
+        <li><code>frontend/src/pages/FeedPage.tsx</code> / <code>PostDetailPage.tsx</code> — wire dialog + <code>confirmShare(caption)</code>.</li>
+        <li><code>frontend/src/lib/sharePost.ts</code> — <code>canSharePost</code> (viewer ≠ author, not a share wrapper).</li>
+        <li><code>src/services/PostService.ts</code> — <code>sharePostSchema</code>, <code>PostService.share(viewerId, postId, raw?)</code>.</li>
+        <li><code>src/controllers/posts/PostsController.ts</code> — <code>POST /api/posts/:id/share</code> (auth via <code>requireAuth</code>).</li>
+      </ul>
+      <p><strong>Closest analog:</strong> <code>CommentComposer</code> / <code>FeedComposer</code> for textarea patterns; <code>ConfirmDialog</code> for modal shell patterns.</p>
+    </section>
+
+    <section class="spec-card" id="constraints">
+      <h2>Constraints</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Share2 still icon-only on action row; opens dialog instead of immediate share</li>
+            <li>Caption optional; trim whitespace before persist</li>
+            <li><code>body</code> optional on share API; max 5000 chars (Zod)</li>
+            <li>Preserve plan 26 rules: mutual friends only, no own-post share, no share-of-share</li>
+            <li>Shared cards show attribution + optional caption + nested original</li>
+            <li>Dialog dismiss via Cancel, backdrop, Escape (when not busy)</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must Not</h3>
+          <ul>
+            <li>Do not bypass friendship / visibility checks in the dialog layer</li>
+            <li>Do not require non-empty caption</li>
+            <li>Do not add new npm dependencies</li>
+            <li>Do not change normal compose <code>body.min(1)</code> validation</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Out Of Scope</h3>
+      <ul>
+        <li>Share counts / notifications</li>
+        <li>Quote-share editing of nested original</li>
+        <li>OS Web Share API</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="risk">
+      <h2>Risk</h2>
+      <p><strong>Level 2 — Concern.</strong> Caption path must not weaken share authorization; empty-body wrapper must not break feed rendering.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Dialog bypasses canSharePost guard</td><td>Share2 only rendered when <code>canSharePost</code>; service re-validates friendship</td></tr>
+          <tr><td>Oversized caption</td><td>Zod <code>max(5000)</code> on API; textarea <code>maxLength</code> in dialog</td></tr>
+          <tr><td>Scope drift undocumented</td><td>This plan + plan 26 Rev 3 cross-reference</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="spec-card" id="data">
+      <h2>Data &amp; API</h2>
+      <h3>Share request</h3>
+      <ul>
+        <li><code>POST /api/posts/:id/share</code> (auth) body: <code>{ body?: string }</code></li>
+        <li><code>sharePostSchema</code>: <code>body</code> optional string, max 5000</li>
+        <li>Service: <code>caption = input.body?.trim() ?? ""</code> stored on wrapper <code>posts.body</code></li>
+        <li>Rules unchanged from plan 26: original exists, not a wrapper, author ≠ viewer, mutual friends</li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="tasks">
+      <h2>Tasks</h2>
+      <article class="task-card" id="T1">
+        <h3>T1 — SharePostDialog + Feed/detail wiring</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add modal composer; replace one-click share with openShare → confirmShare(caption) on Feed and Post detail.</dd></div>
+          <div><dt>Files</dt><dd><code>SharePostDialog.tsx</code>; <code>FeedPage.tsx</code>; <code>PostDetailPage.tsx</code></dd></div>
+          <div><dt>Verify</dt><dd>Share2 opens dialog; Share post calls API with trimmed caption</dd></div>
+        </dl>
+      </article>
+      <article class="task-card" id="T2">
+        <h3>T2 — Optional body on share API</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extend <code>PostService.share</code> with <code>sharePostSchema</code>; pass <code>req.body</code> from controller.</dd></div>
+          <div><dt>Files</dt><dd><code>PostService.ts</code>; <code>PostsController.ts</code></dd></div>
+          <div><dt>Verify</dt><dd>Caption persists; omitted/empty body creates empty wrapper body</dd></div>
+        </dl>
+      </article>
+      <article class="task-card" id="T3">
+        <h3>T3 — ShareAttribution + ShareSuccessNotice</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Extract attribution line and detail success notice components; integrate in PostCard / detail.</dd></div>
+          <div><dt>Files</dt><dd><code>ShareAttribution.tsx</code>; <code>ShareSuccessNotice.tsx</code>; <code>PostCard.tsx</code></dd></div>
+          <div><dt>Verify</dt><dd>Shared cards show linked attribution; detail shows success after share</dd></div>
+        </dl>
+      </article>
+      <article class="task-card" id="T4">
+        <h3>T4 — Acceptance + build gate</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Author <code>test-results.json</code> / <code>test.html</code>; run frontend typecheck.</dd></div>
+          <div><dt>Verify</dt><dd>All A1–A6 pass; <code>npm run typecheck</code> clean in frontend</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="spec-card" id="done">
+      <h2>Done</h2>
+      <ul class="checklist">
+        <li><span>☑</span><span>SharePostDialog opens from Feed + Post detail Share2</span></li>
+        <li><span>☑</span><span>Optional caption stored on wrapper; empty caption allowed</span></li>
+        <li><span>☑</span><span>sharePostSchema validates optional body max 5000</span></li>
+        <li><span>☑</span><span>ShareAttribution + ShareSuccessNotice integrated</span></li>
+        <li><span>☑</span><span>Plan scope + acceptance artifacts in this folder</span></li>
+        <li><span>☑</span><span>Frontend typecheck passes</span></li>
+      </ul>
+    </section>
+
+    <section class="spec-card" id="acceptance">
+      <h2>Acceptance</h2>
+      <p>Runnable checklist: <code>test-results.json</code> + <code>test.html</code> in this folder.</p>
+    </section>
+
+    <section class="spec-card" id="revision-log">
+      <h2>Revision Log</h2>
+      <table>
+        <thead><tr><th>Rev</th><th>Date</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>2026-08-02</td>
+            <td>Initial spec documenting PR #56 expanded scope (caption composer, optional share body, ShareAttribution, ShareSuccessNotice). Extends plan 26. Executed on kylie/share-button-ui; acceptance A1–A6 Passed; frontend typecheck green.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

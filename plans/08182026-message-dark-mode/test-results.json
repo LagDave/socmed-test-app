@@ -1,0 +1,73 @@
+{
+  "plan": "plans/08182026-message-dark-mode",
+  "generatedAt": "2026-08-18",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Shared toggle preserves its accessible contract",
+      "surface": "ui",
+      "precondition": "Execution complete; signed-out app is available.",
+      "steps": [
+        "Open a signed-out route and locate the existing navbar theme toggle.",
+        "Confirm its target-mode accessible label and pressed state.",
+        "Toggle once."
+      ],
+      "expected": "The existing navbar control retains its appearance and accessibility semantics while switching the shared theme.",
+      "status": "pass",
+      "evidence": "User-validated 2026-08-18: Messenger uses its own control and retains the global profile control independently.",
+      "notes": "Acceptance superseded the original shared-toggle scope.",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Inbox dark mode toggle",
+      "surface": "ui",
+      "precondition": "Signed in with access to /messages.",
+      "steps": [
+        "Open /messages.",
+        "Locate the theme toggle beside Message settings and activate it with pointer and keyboard.",
+        "Confirm the visual mode, html.dark, and localStorage socmed-theme change.",
+        "Reload the page."
+      ],
+      "expected": "The inbox control changes the shared persistent theme immediately; the chosen mode survives reload, and Message settings still opens.",
+      "status": "pass",
+      "evidence": "User-validated 2026-08-18: Messenger mode changes the full Messages screen without changing other routes.",
+      "notes": "Acceptance superseded the original shared-toggle scope.",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Thread-header dark mode toggle and chat-theme compatibility",
+      "surface": "ui",
+      "precondition": "Signed in with a conversation; test one default-theme and one custom-theme thread when available.",
+      "steps": [
+        "Open /messages/:conversationId at desktop and narrow/mobile width.",
+        "Locate the compact theme control among Search, Customize chat theme, and conversation options.",
+        "Toggle the app mode in each thread, then exercise Search, chat-theme picker, and conversation options.",
+        "Check text and controls are readable in both app modes."
+      ],
+      "expected": "All thread-header actions remain reachable, theme switching persists, and both default/custom chat-theme views remain usable and legible.",
+      "status": "pass",
+      "evidence": "User-validated 2026-08-18: conversation header has no duplicate switch; dark chat-theme variants retain selected colors with improved contrast.",
+      "notes": "Acceptance superseded the original thread-switch scope.",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Frontend verification gate",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "All commands exit successfully with no errors caused by this change.",
+      "status": "pass",
+      "evidence": "2026-08-18: npm run typecheck, npm --prefix frontend run typecheck, npm --prefix frontend run lint, and npm --prefix frontend run build all completed successfully.",
+      "notes": "Frontend lint emitted six pre-existing warnings outside the changed files; Vite emitted its pre-existing large-chunk advisory.",
+      "waiver": ""
+    }
+  ]
+}

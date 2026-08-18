@@ -1,0 +1,55 @@
+{
+  "plan": "plans/08072026-50-friends-tone-down",
+  "generatedAt": "2026-08-07",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Flat Friends sections",
+      "surface": "ui",
+      "precondition": "Signed in and open /friends with no incoming requests.",
+      "steps": ["Inspect the page at desktop width.", "Compare the loaded and loading states with the supplied screenshot.", "Confirm the header does not repeat the Friends-section count."],
+      "expected": "The page uses exactly one quiet, Messages-style card with no padded outer canvas, nested add-request strip background, Friends-only pronounced shadow, or redundant mutual-count header chip.",
+      "status": "pass",
+      "evidence": "2026-08-07: User confirmed the final browser visual check after Rev 6. Friends has one Messages-style card, no outer canvas or nested strip surface, and no redundant mutual-count header chip.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Compact, accessible empty states",
+      "surface": "ui",
+      "precondition": "Signed in; first with no incoming requests, then with no mutual friends.",
+      "steps": ["Open /friends at desktop width and 375px width.", "Inspect the Friend Requests and Friends empty states."],
+      "expected": "Each state retains its icon, heading, description, and any action slot in a compact, left-aligned status row that does not dominate the vertical page area.",
+      "status": "pass",
+      "evidence": "2026-08-07: User confirmed the final browser visual check. Empty states are compact status rows and remain readable in the tested UI.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Existing Friends actions remain intact",
+      "surface": "ui",
+      "precondition": "Signed in with fixtures or accounts covering a request, an outgoing request, and a mutual friend.",
+      "steps": ["Submit an add-by-username request.", "Confirm or decline an incoming request and cancel an outgoing request.", "Use search and Escape to close it, open a message, and open then cancel the unfriend dialog."],
+      "expected": "Every existing action, error treatment, focus behavior, and navigation path behaves as before.",
+      "status": "pass",
+      "evidence": "2026-08-07: User confirmed the implemented Friends changes were tested, covering the existing Friends flows.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Frontend verification gates",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": ["Run npm --prefix frontend run typecheck.", "Run npm --prefix frontend run build.", "Run npm --prefix frontend run lint."],
+      "expected": "All commands succeed. Any execution-caused failure is corrected before finalization.",
+      "status": "pass",
+      "evidence": "2026-08-07: npm --prefix frontend run typecheck, npm --prefix frontend run build, and npm --prefix frontend run lint passed after the Rev 6 refinement. The build emitted only Vite's chunk-size advisory.",
+      "notes": "Lint emitted six pre-existing warnings outside the Friends files. npm run check:conventions -- --strict is unavailable because the repository does not define that script.",
+      "waiver": ""
+    }
+  ]
+}
