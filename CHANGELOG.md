@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.39 — 2026-08-18
+
+### Added
+- Friends-of-friends suggestions on `/friends` (second-degree only, mutual count, cap 6)
+- Friends text navigation: Friends / Requests / Suggested, with on-demand username search
+
+### Changed
+- Friends rows: labeled Message action, Unfriend behind overflow + confirm
+- Suggestion DTO omits email and online status; presence stays on accepted friends only
+
 ## 0.1.38 — 2026-08-15
 
 ### Added

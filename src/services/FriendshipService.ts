@@ -12,7 +12,6 @@ export type FriendSuggestion = {
   displayName: string;
   username: string;
   avatarUrl: string | null;
-  isOnline: boolean;
   mutualFriendCount: number;
 };
 
@@ -91,7 +90,6 @@ export class FriendshipService {
       displayName: row.display_name,
       username: row.username,
       avatarUrl: row.avatar_url,
-      isOnline: isUserOnline(row.id),
       mutualFriendCount: row.mutual_friend_count,
     }));
   }

@@ -14,10 +14,16 @@ type FriendListRowProps = {
   user: FriendListUser;
   actions: ReactNode;
   subtext?: ReactNode;
+  canViewPresence?: boolean;
 };
 
-export function FriendListRow({ user, actions, subtext }: FriendListRowProps) {
-  const isOnline = useFriendOnline(user.id, user.isOnline, user.isOnline !== undefined);
+export function FriendListRow({
+  user,
+  actions,
+  subtext,
+  canViewPresence = user.isOnline !== undefined,
+}: FriendListRowProps) {
+  const isOnline = useFriendOnline(user.id, user.isOnline, canViewPresence);
   const hasMeta = user.username || subtext || isOnline;
 
   return (
@@ -26,7 +32,7 @@ export function FriendListRow({ user, actions, subtext }: FriendListRowProps) {
         to={profilePath(user)}
         className="friends-row-link flex min-w-0 flex-1 items-center gap-3 p-1"
       >
-        <FriendPresenceAvatar user={user} className="h-11 w-11 text-base" />
+        <FriendPresenceAvatar user={user} canViewPresence={canViewPresence} className="h-11 w-11 text-base" />
         <span className="min-w-0">
           <span className="block truncate text-[15px] font-semibold leading-snug">{user.displayName}</span>
           {hasMeta ? (

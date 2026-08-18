@@ -19,6 +19,7 @@ export function useFriendsInbox() {
   const [outgoing, setOutgoing] = useState<InboxItem[]>([]);
   const [mutuals, setMutuals] = useState<PublicUser[]>([]);
   const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([]);
+  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const loadingRef = useRef(false);
@@ -29,20 +30,24 @@ export function useFriendsInbox() {
     setLoading(true);
     setError(null);
     try {
-      const [inbox, mutualsData, suggestionsData] = await Promise.all([
-        getFriendsInbox(),
-        getMutualFriends(),
-        getFriendSuggestions(),
-      ]);
+      const [inbox, mutualsData] = await Promise.all([getFriendsInbox(), getMutualFriends()]);
       setIncoming(inbox.incoming);
       setOutgoing(inbox.outgoing);
       setMutuals(mutualsData.users);
-      setSuggestions(suggestionsData.users);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load friends");
     } finally {
       setLoading(false);
       loadingRef.current = false;
+    }
+
+    try {
+      const suggestionsData = await getFriendSuggestions();
+      setSuggestions(suggestionsData.users);
+      setSuggestionsError(null);
+    } catch (err) {
+      setSuggestions([]);
+      setSuggestionsError(err instanceof Error ? err.message : "Failed to load suggestions");
     }
   }, []);
 
@@ -115,6 +120,7 @@ export function useFriendsInbox() {
     outgoing,
     mutuals,
     suggestions,
+    suggestionsError,
     loading,
     error,
     refresh,

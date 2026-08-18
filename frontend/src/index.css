@@ -1018,11 +1018,11 @@ body {
   cursor: pointer;
 }
 
-.friends-view-tab[aria-selected="true"] {
+.friends-view-tab[aria-pressed="true"] {
   color: var(--foreground);
 }
 
-.friends-view-tab[aria-selected="true"]::after {
+.friends-view-tab[aria-pressed="true"]::after {
   position: absolute;
   right: 0;
   bottom: -0.6875rem;
@@ -1051,7 +1051,7 @@ body {
   font-weight: 800;
 }
 
-.friends-view-tab[aria-selected="true"] .friends-view-count {
+.friends-view-tab[aria-pressed="true"] .friends-view-count {
   background: color-mix(in srgb, var(--foreground) 18%, var(--background));
   color: var(--foreground);
 }

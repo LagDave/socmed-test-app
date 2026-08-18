@@ -16,7 +16,6 @@ export type FriendSuggestion = {
   displayName: string;
   username: string;
   avatarUrl: string | null;
-  isOnline: boolean;
   mutualFriendCount: number;
 };
 
