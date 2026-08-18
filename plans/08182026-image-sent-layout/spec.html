@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sent Photo Message Layout Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#111; --muted:#626262; --line:#d8d8d8; --soft:#f6f6f6; --risk:#854d0e; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1040px,calc(100% - 32px)); margin:auto; padding:44px 0; }
+    header,section,article { border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    header { border-color:var(--ink); padding:30px; margin-bottom:16px; }
+    section { padding:24px; margin-top:16px; }
+    article { padding:18px; margin-top:12px; background:var(--soft); }
+    .topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+    .eyebrow,dt { color:var(--muted); font-size:.76rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+    .status { display:inline-flex; border-radius:999px; padding:6px 11px; background:var(--ink); color:#fff; font-size:.76rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+    h1 { margin:0 0 22px; font-size:clamp(2rem,5vw,3.25rem); line-height:1; }
+    h2,h3 { margin-top:0; }
+    p:last-child,ul:last-child { margin-bottom:0; }
+    dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(165px,1fr)); gap:10px; margin:0; }
+    dl > div { border:1px solid var(--line); border-radius:8px; padding:12px; }
+    dd { margin:3px 0 0; font-weight:700; }
+    code { padding:.08rem .3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:.9em; }
+    .columns { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
+    .columns > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    table { width:100%; border-collapse:collapse; font-size:.93rem; }
+    th,td { border:1px solid var(--line); padding:9px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:.76rem; letter-spacing:.04em; text-transform:uppercase; }
+    .callout { border:2px solid var(--risk); border-radius:8px; padding:14px 16px; color:#513100; }
+    .checks { padding-left:1.2rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="topline">
+        <p class="eyebrow">Socmed plan spec</p>
+        <span class="status">Completed</span>
+      </div>
+      <h1>Sent Photo Message Layout</h1>
+      <dl>
+        <div><dt>Plan folder</dt><dd>plans/08182026-image-sent-layout</dd></div>
+        <div><dt>Planning branch</dt><dd>kylie/image-sent-fix-plan</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/image-sent-fix</dd></div>
+        <div><dt>Merge target</dt><dd>dev</dd></div>
+        <div><dt>Size</dt><dd>Small · 3 tasks · 2 app files</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 · concern</dd></div>
+      </dl>
+    </header>
+
+    <section>
+      <h2>Why</h2>
+      <p>Incoming photo messages currently render their action toolbar in the same horizontal row as the image. On a photo-heavy message, that separates the controls from the message group and consumes space beside the media. The result in the supplied reference is an oversized-looking image with reaction, reply, and overflow controls floating at its midpoint.</p>
+    </section>
+
+    <section>
+      <h2>What</h2>
+      <p>Make photo-bearing messages read as one compact message unit: avatar, optional text caption, and media stay on the sender’s message rail; the media follows the same maximum inline width as the rail; and the action toolbar is placed below the photo/caption on hover or touch reveal. Text-only messages retain their present side-toolbar layout.</p>
+      <p><strong>Done when:</strong> incoming and outgoing photos stay aligned with their own message group, their controls never occupy the image’s side, captions remain attached to the photo, and the next message starts with normal thread spacing.</p>
+    </section>
+
+    <section>
+      <h2>Context and closest patterns</h2>
+      <ul>
+        <li><code>frontend/src/components/MessageBubbleRow.tsx</code> owns the message avatar, media, bubble, action toolbar, reaction badge, timestamp, and image lightbox trigger. Its shared <code>flex … items-center</code> content row is the direct cause of the side-mounted toolbar.</li>
+        <li><code>frontend/src/components/messages/ThreadViewContent.tsx</code> is the live thread renderer. It supplies grouping, avatar, hover/touch, reaction, reply, edit, pin, and error props to <code>MessageBubbleRow</code>.</li>
+        <li><code>frontend/src/index.css</code> owns thread item spacing, media-bubble helpers, reaction badge placement, and toolbar stacking. It is the closest pattern for named, reusable presentation constraints.</li>
+        <li><code>frontend/src/components/ViewChatImageDialog.tsx</code> is the existing full-size image experience and remains the destination for photo clicks.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Scope and constraints</h2>
+      <div class="columns">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Keep avatar, text caption, image, reaction badge, timestamp, and toolbar associated with the same message and sender side.</li>
+            <li>Give photo-bearing messages a vertical content/action layout; preserve the existing hover and touch-reveal behavior and accessibility labels.</li>
+            <li>Use one named media-size rule, bounded by the established message-content rail, so photos cannot widen into action space or the next message.</li>
+            <li>Preserve image-only rounded corners, mixed text-and-image bubble treatment, custom chat themes, reaction badges, and the lightbox.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>No changes to message body rendering, sanitization, uploads, image API data, database schema, or message delivery.</li>
+            <li>No changes to text-only bubble geometry, reaction behavior, reply/edit/pin/unsend semantics, or conversation grouping rules.</li>
+            <li>No dependency, route, or theme-system changes.</li>
+          </ul>
+          <h3>Out of scope</h3>
+          <p>Image cropping controls, multi-image albums, captions as a separate message type, media compression, and redesigning the image lightbox.</p>
+        </div>
+      </div>
+      <p class="callout"><strong>Required pushback — Level 2:</strong> Moving actions out from beside the image changes how quickly desktop users discover them. The mitigation is to retain the current hover/focus/touch reveal rules and verify both hover and non-hover paths; adding permanently visible controls would make narrow photo messages crowded and is not recommended.</p>
+    </section>
+
+    <section>
+      <h2>Risk and blast radius</h2>
+      <table>
+        <thead><tr><th>Hazard</th><th>Consumers / blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Toolbar moves to a new flex relationship</td><td>Incoming/outgoing messages in the live thread, plus the retained <code>ConversationMessageList</code> consumer of <code>MessageBubbleRow</code></td><td>Keep action component props and reveal states unchanged; add a photo-only layout branch that leaves text-only rows intact.</td></tr>
+          <tr><td>Media exceeds the available inline space on a narrow screen</td><td>Phone-width thread, avatar rail, grouping, reaction badge, and following message</td><td>Use a media max-inline-size bounded by its parent message rail; test incoming and outgoing photo-only and captioned messages at narrow width.</td></tr>
+          <tr><td>Visual regressions around reactions, themes, and the lightbox</td><td>Messages with reactions, selected chat themes, keyboard access, and full-size image viewing</td><td>Preserve current DOM responsibilities and interactive handlers; manually test default and custom chat themes, reactions, keyboard actions, and lightbox opening.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Confirmed consumers:</strong> <code>ThreadViewContent</code> is the active route consumer. <code>ConversationMessageList</code> also renders <code>MessageBubbleRow</code> and must remain compatible, even though no current import renders that list. <code>ViewChatImageDialog</code>, <code>ReactionBar</code>, <code>MessageQuoteStrip</code>, <code>MessageStatusIconForMessage</code>, and the CSS chat-theme selectors are indirect consumers that must retain their current behavior.</p>
+    </section>
+
+    <section>
+      <h2>Tasks</h2>
+      <article>
+        <h3>T1 — Separate photo content from its action rail</h3>
+        <dl>
+          <div><dt>Do</dt><dd>In <code>MessageBubbleRow</code>, branch only photo-bearing messages into a vertical message-content stack. Keep the photo/caption bubble and reaction badge on the sender-aligned rail, then render the existing <code>MessageActionToolbar</code> below it. Preserve text-only side-toolbar placement and all handlers, labels, timestamp toggles, and state.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/MessageBubbleRow.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>Incoming and outgoing image-only and captioned messages show controls below their content on hover/focus/touch; text-only messages remain unchanged.</dd></div>
+        </dl>
+      </article>
+      <article>
+        <h3>T2 — Establish a bounded photo-message media rule</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add a named CSS custom property/class for chat-message media, constrained by the existing message-content rail. Apply it to the image element/button without changing lightbox behavior or mixed-content corner treatment. Ensure the action row and next thread item have their own vertical space.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/index.css</code>; <code>frontend/src/components/MessageBubbleRow.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>At desktop and phone widths, images do not overflow the thread pane, push into the avatar rail, or share a horizontal lane with the toolbar; grouping and reaction spacing stay correct.</dd></div>
+        </dl>
+      </article>
+      <article>
+        <h3>T3 — Verify photo-message interaction and responsive presentation</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Run the frontend verification gates and complete the supplied acceptance checklist against a local isolated runtime. Record actual results and evidence; do not mark visual items passed without the observed thread states.</dd></div>
+          <div><dt>Files</dt><dd><code>plans/08182026-image-sent-layout/test-results.json</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd><code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> pass; all UI acceptance items pass or have written waivers.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section>
+      <h2>Done</h2>
+      <ul class="checks">
+        <li>Photo-only and captioned messages keep their image, caption, and controls on one sender-aligned vertical group.</li>
+        <li>Reaction, reply, and overflow controls do not occupy horizontal space beside a photo.</li>
+        <li>Photo media remains bounded by the message-content rail at desktop and narrow widths.</li>
+        <li>Text-only messages remain visually and behaviorally unchanged.</li>
+        <li>Lightbox, reaction badge, timestamp, reply, edit, pin, unsend, custom chat-theme, and touch-reveal behaviors still work.</li>
+        <li>Frontend typecheck, lint, build, and acceptance checklist pass, or failures carry written waivers.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Revision Log</h2>
+      <table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody>
+        <tr><td>Rev 1</td><td>2026-08-18</td><td>Initial plan from the supplied chat screenshot. Scope is limited to photo-message geometry and action placement; literal message-content rendering is explicitly excluded.</td></tr>
+        <tr><td>Rev 2</td><td>2026-08-18</td><td>Executed T1–T2 on <code>kylie/image-sent-fix</code>: photo-bearing message actions now stack beneath the media, aligned to the sender side; media dimensions are named CSS constraints. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending.</td></tr>
+        <tr><td>Rev 3</td><td>2026-08-18</td><td>User rejected the stacked action layout. The pre-existing side toolbar was restored and the media constraint remains named CSS. The faint writing in the supplied screenshot is baked into the image asset rather than a chat-text layer, so text-overlap work is blocked pending an example of the actual rendered overlap. This revision supersedes Rev 2's toolbar-placement outcome.</td></tr>
+        <tr><td>Rev 4</td><td>2026-08-18</td><td>User clarified that sent photos must align with the right edge while retaining the side toolbar. The outgoing message row now fills its thread width and uses end alignment; its internal toolbar/photo ordering is unchanged. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 5</td><td>2026-08-18</td><td>Live screenshot showed the seen-status row at the right edge while the nested photo/action row remained left. Added an explicit outgoing-row auto margin to anchor that row at the right edge without moving the toolbar. Frontend typecheck, lint, and production build pass; authenticated visual verification remains pending.</td></tr>
+        <tr><td>Rev 6</td><td>2026-08-18</td><td>Port 5180 was confirmed to serve the latest source, so the remaining issue was the outgoing wrapper retaining an unnecessary reverse flex direction. The wrapper now uses right auto margin and end justification, while the inner photo/menu row preserves its original order. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 7</td><td>2026-08-18</td><td>User requested restoration of the earlier approved layout. Both task files were restored exactly to their pre-execution contents, returning the sent-photo presentation to the supplied reference. Frontend typecheck, lint, and production build pass; the execution branch has no remaining code changes.</td></tr>
+        <tr><td>Rev 8</td><td>2026-08-18</td><td>Quickfix from a live screenshot: the negative compact spacing between consecutive same-sender messages was allowing an incoming photo to overlap a preceding text bubble. Compact spacing now applies only when both messages are text-only. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 9</td><td>2026-08-18</td><td>User accepted the restored baseline photo/menu layout with the grouping fix. This supersedes the original T1–T2 toolbar-repositioning scope: the final change only prevents a photo following text from overlapping it, while retaining compact spacing for text that follows a photo. User acceptance on the local server and frontend verification complete the plan.</td></tr>
+      </tbody></table>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.40 — 2026-08-18
+
+### Fixed
+- Prevented an incoming photo from overlapping a preceding message while preserving compact spacing for text that follows a photo
+
 ## 0.1.39 — 2026-08-18
 
 ### Added
