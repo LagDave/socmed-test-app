@@ -11,6 +11,14 @@ export type PublicUser = {
   lastActiveAt?: string | null;
 };
 
+export type FriendSuggestion = {
+  id: string;
+  displayName: string;
+  username: string;
+  avatarUrl: string | null;
+  mutualFriendCount: number;
+};
+
 export type ApiSuccess<T> = { success: true; data: T; error: null };
 export type ApiError = {
   success: false;

@@ -7,12 +7,14 @@ export function FriendPresenceAvatar({
   user,
   size = "sm",
   className,
+  canViewPresence = user.isOnline !== undefined,
 }: {
-  user: PublicUser;
+  user: Pick<PublicUser, "id" | "displayName" | "avatarUrl" | "isOnline">;
   size?: ProfileAvatarSize;
   className?: string;
+  canViewPresence?: boolean;
 }) {
-  const isOnline = useFriendOnline(user.id, user.isOnline, user.isOnline !== undefined);
+  const isOnline = useFriendOnline(user.id, user.isOnline, canViewPresence);
 
   return (
     <span className="relative shrink-0">

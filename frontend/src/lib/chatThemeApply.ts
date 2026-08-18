@@ -23,6 +23,16 @@ function extractFirstHex(color: string): string | null {
   return match ? `#${match[1]}` : null;
 }
 
+const DARK_VARIANT_CHANNEL_FACTOR = 0.4;
+const DARK_VARIANT_BUBBLE_CHANNEL_FACTOR = 0.3;
+
+function darkenThemeColors(value: string, factor = DARK_VARIANT_CHANNEL_FACTOR): string {
+  return value.replace(/#[0-9A-Fa-f]{6}/g, (hex) => {
+    const channels = [1, 3, 5].map((index) => Math.round(parseInt(hex.slice(index, index + 2), 16) * factor));
+    return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+  });
+}
+
 function sampleBackgroundColor(background: string, fallback: string): string {
   return extractFirstHex(background) ?? fallback;
 }
@@ -66,7 +76,7 @@ function finalizeResolvedTheme(
   };
 }
 
-export function resolveChatTheme(theme: ChatTheme | null | undefined): ResolvedChatTheme {
+export function resolveChatTheme(theme: ChatTheme | null | undefined, useDarkVariant = false): ResolvedChatTheme {
   if (!theme) {
     return {
       active: false,
@@ -90,27 +100,31 @@ export function resolveChatTheme(theme: ChatTheme | null | undefined): ResolvedC
       return resolveChatTheme(null);
     }
     return finalizeResolvedTheme(
-      preset.background,
-      resolveColors(preset.bubbleMine, preset.bubbleTheirs, preset.accent)
+      useDarkVariant ? darkenThemeColors(preset.background) : preset.background,
+      resolveColors(
+        useDarkVariant ? darkenThemeColors(preset.bubbleMine, DARK_VARIANT_BUBBLE_CHANNEL_FACTOR) : preset.bubbleMine,
+        useDarkVariant ? darkenThemeColors(preset.bubbleTheirs, DARK_VARIANT_BUBBLE_CHANNEL_FACTOR) : preset.bubbleTheirs,
+        useDarkVariant ? darkenThemeColors(preset.accent) : preset.accent
+      )
     );
   }
 
   if (theme.kind === "solid") {
     return finalizeResolvedTheme(
-      theme.background,
-      resolveColors(theme.bubbleMine, theme.bubbleTheirs, theme.accent)
+      useDarkVariant ? darkenThemeColors(theme.background) : theme.background,
+      resolveColors(useDarkVariant ? darkenThemeColors(theme.bubbleMine) : theme.bubbleMine, useDarkVariant ? darkenThemeColors(theme.bubbleTheirs) : theme.bubbleTheirs, useDarkVariant ? darkenThemeColors(theme.accent) : theme.accent)
     );
   }
 
   const gradient = `linear-gradient(${theme.angle}deg, ${theme.stops[0]} 0%, ${theme.stops[1]} 100%)`;
   return finalizeResolvedTheme(
-    gradient,
-    resolveColors(theme.bubbleMine, theme.bubbleTheirs, theme.accent)
+    useDarkVariant ? darkenThemeColors(gradient) : gradient,
+    resolveColors(useDarkVariant ? darkenThemeColors(theme.bubbleMine) : theme.bubbleMine, useDarkVariant ? darkenThemeColors(theme.bubbleTheirs) : theme.bubbleTheirs, useDarkVariant ? darkenThemeColors(theme.accent) : theme.accent)
   );
 }
 
-export function resolveConversationTheme(view: ConversationThemeView | null): ResolvedChatTheme {
-  return resolveChatTheme(view?.theme ?? null);
+export function resolveConversationTheme(view: ConversationThemeView | null, useDarkVariant = false): ResolvedChatTheme {
+  return resolveChatTheme(view?.theme ?? null, useDarkVariant);
 }
 
 export function chatThemeCssVars(resolved: ResolvedChatTheme): CSSProperties {
