@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { SwipeableConversationListRow } from "@/components/SwipeableConversationListRow";
 import { MessagesErrorBanner, MessagesInboxEmptyConversations, MessagesRowSkeleton } from "@/components/MessagesUiHelpers";
 import { MessagesFriendPicker } from "@/components/MessagesFriendPicker";
+import { MessagesThemeToggle } from "@/components/messages/MessagesThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInboxPeerTyping } from "@/hooks/useTypingIndicator";
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,7 @@ export function InboxView() {
           >
             <UserPlus className="h-5 w-5" />
           </Button>
+          <MessagesThemeToggle />
           <Button asChild variant="ghost" size="icon">
             <Link to="/messages/settings" aria-label="Message settings">
               <Settings className="h-5 w-5" />

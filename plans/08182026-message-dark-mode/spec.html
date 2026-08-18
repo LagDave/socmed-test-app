@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Messages Dark Mode Toggle Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#0a0a0a; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; --warn:#7a4b00; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1080px,calc(100% - 32px)); margin:0 auto; padding:44px 0; }
+    .hero,.card,.task { border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    .hero { border-color:var(--ink); padding:30px; margin-bottom:18px; }
+    .card { padding:25px; margin-top:16px; }
+    .task { padding:18px; margin-top:12px; background:var(--soft); }
+    .topline,.meta { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+    .topline { justify-content:space-between; margin-bottom:18px; }
+    .meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); margin:0; }
+    .meta div { padding:13px; border:1px solid var(--line); border-radius:8px; }
+    dt,.eyebrow { color:var(--muted); font-size:.76rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+    dd { margin:3px 0 0; font-weight:700; }
+    .eyebrow { margin:0; }
+    .status { display:inline-flex; border:1px solid var(--ink); border-radius:999px; padding:6px 11px; background:var(--ink); color:#fff; font-size:.76rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+    h1 { max-width:840px; margin:0 0 22px; font-size:clamp(2rem,5vw,3.4rem); line-height:.98; }
+    h2 { margin:0 0 12px; font-size:1.35rem; }
+    h3 { margin:0 0 10px; font-size:1.05rem; }
+    p:last-child,ul:last-child { margin-bottom:0; }
+    code { padding:.08rem .3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:.9em; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
+    .grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    .callout { margin-top:14px; border:2px solid var(--warn); border-radius:8px; padding:15px 17px; color:#442a00; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.93rem; }
+    th,td { padding:9px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:.75rem; letter-spacing:.04em; text-transform:uppercase; }
+    .task dl { margin:0; display:grid; gap:10px; }
+    .task dd { font-weight:400; }
+    .checks { list-style:none; padding:0; margin:0; }
+    .checks li { padding:9px 0; border-top:1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="topline">
+        <p class="eyebrow">Socmed Plan Spec</p>
+        <span class="status">Completed</span>
+      </div>
+      <h1>Messages Dark Mode Toggle</h1>
+      <dl class="meta">
+        <div><dt>Plan folder</dt><dd>plans/08182026-message-dark-mode</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/message-switch-mode</dd></div>
+        <div><dt>Merge target</dt><dd>dev</dd></div>
+        <div><dt>Size</dt><dd>Small · 3 tasks · 3 app files</dd></div>
+        <div><dt>Risk</dt><dd>Level 3 · structural risk</dd></div>
+      </dl>
+    </header>
+
+    <section class="card">
+      <h2>Why</h2>
+      <p>Messages already participates in the application’s persisted light/dark preference, but signed-in users can reach that preference only through the profile menu. Put a clear, icon-only toggle where users are actively messaging, without creating a second theme system or changing message data.</p>
+    </section>
+
+    <section class="card">
+      <h2>What</h2>
+      <p>Replace the current global Messages toggle with one Messenger-style display-mode switch in the inbox header beside Message settings. It controls the whole Messages route only (inbox, thread, composer, and Message settings), persists independently, and is never rendered in a conversation action strip.</p>
+      <p><strong>Done when:</strong> the inbox-header toggle changes the whole Messages experience immediately and persists after reload; profile/global theme changes do not alter Messages; the thread has no Moon/Sun action; and frontend checks pass.</p>
+    </section>
+
+    <section class="card">
+      <h2>Context and closest patterns</h2>
+      <ul>
+        <li><code>frontend/src/components/ThemeToggle.tsx</code> is the sole theme-control component. It already calls <code>useTheme().toggleTheme()</code>, exposes the target-mode <code>aria-label</code>, and uses the existing Sun/Moon icons.</li>
+        <li><code>frontend/src/contexts/ThemeContext.tsx</code> owns the only theme state and persists it under <code>socmed-theme</code>; <code>frontend/src/lib/theme.ts</code> updates <code>&lt;html class=&quot;dark&quot;&gt;</code>.</li>
+        <li><code>frontend/src/components/messages/InboxView.tsx</code> contains the Messages title and the existing Message settings icon action—the inbox insertion point.</li>
+        <li><code>frontend/src/components/messages/ThreadViewContent.tsx</code> owns the thread-header action cluster and is the closest visual analog for the compact thread control.</li>
+        <li><code>frontend/src/index.css</code> contains <code>.messages-thread-header-action</code> and its custom-chat-theme color treatment. The new thread control must use that same class and compact sizing.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Scope and decisions</h2>
+      <p><strong>Revised grill locked 2026-08-18:</strong> separate Messages route mode · device-derived independent first visit · Messenger-style scope across inbox, thread, composer, and Message settings · a single compact control in the inbox header only.</p>
+      <div class="grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Store a Messages-specific preference separate from <code>socmed-theme</code> and scope its CSS variables beneath the Messages route root.</li>
+            <li>Show one compact control in the <code>/messages</code> header beside Message settings; it must not appear in <code>/messages/:conversationId</code>.</li>
+            <li>Match neighboring icon control sizing and preserve useful <code>aria-label</code>/<code>aria-pressed</code> state.</li>
+            <li>Keep custom conversation themes readable; the app preference changes app/default surfaces while selected chat-theme styling remains intact.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>No change to the profile/global theme preference, API endpoint, database migration, or dependency.</li>
+            <li>No duplicate switch in the conversation action strip.</li>
+            <li>No message sending, polling, socket, search, composer, or chat-theme behavior changes.</li>
+            <li>No global token or palette redesign; dark mode already exists.</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Out of scope:</strong> a system/auto tri-state, per-conversation dark preference, server-side theme sync, and changes to the profile-menu toggle.</p>
+      <aside class="callout"><strong>Required pushback — Level 2:</strong> a message-only dark setting would conflict with the established global <code>ThemeContext</code> and leave the same user with two competing preferences. This plan intentionally makes the control local to Messages but keeps its effect global and persistent.</aside>
+    </section>
+
+    <section class="card">
+      <h2>Risk and blast radius</h2>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Two theme sources of truth</td><td>All app surfaces and future theme controls</td><td>Reuse <code>ThemeToggle</code> and <code>ThemeContext</code>; do not add Messages state or storage.</td></tr>
+          <tr><td>Thread-header crowding on mobile</td><td>Open conversation header actions</td><td>Use the established <code>h-8 w-8 messages-thread-header-action</code> treatment and verify at narrow width.</td></tr>
+          <tr><td>Custom chat-theme contrast regression</td><td>Threads with a selected chat theme</td><td>Keep the existing <code>data-chat-theme</code> styling path; manually test default and selected themes in both light and dark application modes.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Confirmed consumers:</strong> <code>ThemeToggle</code> (signed-out navbar), <code>AppShell</code>/<code>AppNavbar</code> (profile-menu theme action), <code>InboxView</code>, <code>ThreadViewContent</code>, and the shared <code>ThemeContext</code>. The execution touches only the component API and the two Messages rendering sites; it does not change the provider or global CSS tokens.</p>
+    </section>
+
+    <section class="card">
+      <h2>Tasks</h2>
+      <article class="task" id="T1">
+        <h3>T1 — Make the shared toggle layout-configurable</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add an optional <code>className</code> prop to <code>ThemeToggle</code>, merging it with its current ghost icon-button defaults via the project <code>cn</code> helper. Preserve its click behavior, icons, <code>aria-label</code>, and <code>aria-pressed</code>.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ThemeToggle.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>Existing signed-out navbar usage remains visually unchanged; a compact class override produces an <code>h-8 w-8</code> button.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T2">
+        <h3>T2 — Add the inbox Messages toggle</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Import <code>ThemeToggle</code> in <code>InboxView</code> and place it in the existing header action group before Message settings. Retain the unread badge and settings link behavior.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/messages/InboxView.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>At <code>/messages</code>, the toggle changes the app theme, then settings navigation and unread badge behavior still work.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T3">
+        <h3>T3 — Add the compact thread-header toggle</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Import <code>ThemeToggle</code> in <code>ThreadViewContent</code> and add it to the existing header-actions cluster with the established compact sizing and <code>messages-thread-header-action</code> class. Do not change search, chat-theme picker, pinned-message, or delete-conversation handlers.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/messages/ThreadViewContent.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>At <code>/messages/:conversationId</code>, all four header actions remain reachable at mobile width; test default and custom chat themes in both global modes.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Done</h2>
+      <ul class="checks">
+        <li>☐ Inbox header exposes an accessible theme toggle beside Message settings.</li>
+        <li>☐ Thread header exposes an accessible compact theme toggle without hiding or disabling existing actions.</li>
+        <li>☐ Toggling updates <code>html.dark</code>, <code>color-scheme</code>, and <code>socmed-theme</code>; reload retains the chosen mode.</li>
+        <li>☐ Default and custom-chat-theme threads remain legible and operable in both application modes, including narrow/mobile layout.</li>
+        <li>☐ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> pass.</li>
+        <li>☐ <code>test-results.json</code> is updated to Passed, or each failure carries a written waiver.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Revision Log</h2>
+      <table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody>
+        <tr><td>Rev 1</td><td>2026-08-18</td><td>Initial planning spec. Reuse the global persistent theme preference, with presentation controls added to both Messages views.</td></tr>
+        <tr><td>Rev 2</td><td>2026-08-18</td><td>Grill decisions accepted: shared app preference (1A), inbox and thread placement (2A), and compact icon-only control with dynamic accessible label (3A).</td></tr>
+        <tr><td>Rev 3</td><td>2026-08-18</td><td>Executed T1–T3 on <code>kylie/message-switch-mode</code>. Root and frontend typechecks, frontend lint, and frontend production build pass. Browser acceptance remains pending a requested <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 4</td><td>2026-08-18</td><td>Scope change requested: Messages must own a separate display-mode preference; changing the profile/global mode must not alter Messages. Supersedes Rev 2 decision 1A. Execution halted pending revised boundary, default, and custom-chat-theme decisions.</td></tr>
+        <tr><td>Rev 5</td><td>2026-08-18</td><td>Revised grill decisions accepted: Messages route content only (1A), device-derived independent first visit then persistence (2A), and separate Messages mode overrides custom chat themes (3B). Open decision: the existing custom chat-theme picker cannot remain actionable while its output is forcibly hidden.</td></tr>
+        <tr><td>Rev 6</td><td>2026-08-18</td><td>Boundary clarified: the separate switch darkens the whole Messenger-style Messages experience (inbox, thread, composer, and Messages settings) while leaving the application navbar and every non-Messages route on the profile/global preference.</td></tr>
+        <tr><td>Rev 7</td><td>2026-08-18</td><td>Placement clarified from screenshot: remove the Moon/Sun control from the conversation thread header. The sole Messages-mode control belongs in the inbox header beside Message settings and controls the entire Messages route after navigation.</td></tr>
+        <tr><td>Rev 8</td><td>2026-08-18</td><td>Keep the existing Palette / Customize chat theme control and its saved conversation data unchanged. It is out of scope for this revision; the separate Messages display mode remains the active visual authority.</td></tr>
+        <tr><td>Rev 9</td><td>2026-08-18</td><td>Executed revised display-mode work: added independent Messages theme context/storage and scoped tokens, moved the only control to the inbox header, removed the conversation-header switch, and retained the global profile theme independently. Typecheck, lint, and production build pass; visual acceptance remains pending.</td></tr>
+        <tr><td>Rev 10</td><td>2026-08-18</td><td>Undid Rev 9 at user request. The branch is restored to <code>a11af01</code>, retaining only the earlier global theme-toggle implementation. Revised separate-Messages-mode requirements need a new clarified spec before another execution.</td></tr>
+      </tbody></table>
+    </section>
+  </main>
+</body>
+</html>
