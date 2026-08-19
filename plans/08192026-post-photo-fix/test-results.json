@@ -1,0 +1,64 @@
+{
+  "plan": "plans/08192026-post-photo-fix",
+  "generatedAt": "2026-08-19",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "D1",
+      "title": "Automated frontend verification",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": ["Run npm run typecheck.", "Run npm --prefix frontend run lint.", "Run npm --prefix frontend run build.", "Run npm run test:notifications.", "Search frontend source for object-cover, object-fit: cover, and background-size: cover; confirm any remaining crop-to-fill rule is an approved circular identity-avatar surface."],
+      "expected": "All commands succeed with no errors caused by this change. Full content photos have no crop-to-fill rule; the approved circular identity-avatar surfaces and compact multi-photo carousel previews are the only crop-to-fill exceptions.",
+      "status": "pass",
+      "evidence": "2026-08-19: root/frontend typecheck passed; frontend lint completed with six pre-existing warnings outside this change; frontend production build passed; notification test suite passed 4/4. The crop audit permits the approved circular identity-avatar locations plus PostMediaGallery's compact four-tile carousel previews; full post media has no crop-to-fill rule.",
+      "notes": "The production build retains its pre-existing large-chunk advisory.",
+      "waiver": ""
+    },
+    {
+      "id": "T1",
+      "title": "Post and shared-post media show every image edge",
+      "surface": "ui",
+      "precondition": "Signed in; portrait, landscape, and square posts are available, including a multi-photo and shared post.",
+      "steps": ["Inspect regular feed posts, profile timeline posts, and their detail views.", "Inspect multi-photo grids, a shared-post embed, and the photo-comments page.", "Repeat portrait checks at a narrow/mobile viewport."],
+      "expected": "Full post-detail and photo-comment media is complete and uses natural height with no extra surrounding panel or nested album border; tall images shrink within a viewport-safe area. Multi-photo previews show the original fixed four-tile grid and a +N overlay on the fourth tile; opening the post exposes every original image.",
+      "status": "pass", "evidence": "2026-08-19: User completed local acceptance for feed, profile timeline, post detail, shared-post, photo-comments, and multi-photo carousel views. Confirmed full photos have no added panel, the compact carousel shows four tiles with +N on the fourth, and the redundant album border is gone.", "notes": "", "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Comment and composer photos show every image edge",
+      "surface": "ui",
+      "precondition": "Signed in; have a comment image and files of all three orientations ready to attach.",
+      "steps": ["Inspect an existing image comment.", "Attach portrait, landscape, and square photos in the post composer and comment composer.", "Confirm thumbnail labels, remove controls, and submission behavior."],
+      "expected": "Existing comment media and selected attachment thumbnails show all edges; composer interactions remain unchanged.",
+      "status": "pass", "evidence": "2026-08-19: User confirmed comment attachments and post/comment composer photo previews in the local app retain their expected behavior and display treatment.", "notes": "", "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Message photos and reply previews show every image edge",
+      "surface": "ui",
+      "precondition": "Signed in with a conversation containing image-only and captioned image messages.",
+      "steps": ["Inspect landscape and portrait message bubbles.", "Open the image viewer.", "Reply to an image and inspect its quote strip and composer preview."],
+      "expected": "No message, reply, or composer preview crops image content; the existing viewer still opens the complete image.",
+      "status": "pass", "evidence": "2026-08-19: User confirmed image messages and reply/composer previews in the local app after the media-policy update.", "notes": "", "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Profile covers show every image edge; avatars remain circular",
+      "surface": "ui",
+      "precondition": "Signed in with portrait and landscape avatar and cover files ready for preview or update.",
+      "steps": ["Inspect avatars in the navbar, feed, comments, friends, and messages.", "Inspect a profile-header cover and the full profile-picture dialog.", "Open profile edit and photo-update previews for portrait and landscape files."],
+      "expected": "Cover photos show every image edge with neutral unused space rather than crop. Avatars and profile-picture activity remain circular and centered, with no extra square backdrop.",
+      "status": "pass", "evidence": "2026-08-19: User confirmed circular avatars have no square backdrop and profile cover rendering remains intact.", "notes": "", "waiver": ""
+    },
+    {
+      "id": "T5",
+      "title": "Future uploads and frontend verification gate",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": ["Create new post, comment, message, and cover uploads with mixed orientations.", "Verify each new content upload follows the no-crop rule without special settings.", "Update an avatar and confirm it stays circular without a square backdrop.", "Run npm --prefix frontend run typecheck.", "Run npm --prefix frontend run lint.", "Run npm --prefix frontend run build."],
+      "expected": "The no-crop rule applies automatically to future content uploads; avatars retain the approved circular profile treatment; and all frontend commands finish without errors caused by this change.",
+      "status": "pass", "evidence": "2026-08-19: User confirmed the local end-to-end behavior for future uploads. Frontend typecheck, lint, and production build also passed after the final carousel refinement.", "notes": "", "waiver": ""
+    }
+  ]
+}
