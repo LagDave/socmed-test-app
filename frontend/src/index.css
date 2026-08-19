@@ -1636,7 +1636,8 @@ body {
   backdrop-filter: blur(6px);
 }
 
-.dark .chat-image-modal-backdrop {
+.dark .chat-image-modal-backdrop,
+.dark .image-viewer-backdrop {
   background: rgba(0, 0, 0, 0.72);
 }
 
