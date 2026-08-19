@@ -49,7 +49,7 @@
         <div><dt>Plan folder</dt><dd>plans/08192026-photo-modal-fix</dd></div>
         <div><dt>Execution branch</dt><dd>kylie/photo-modal-fix</dd></div>
         <div><dt>Merge target</dt><dd>dev</dd></div>
-        <div><dt>Size</dt><dd>Small · 2 tasks · 1 app file</dd></div>
+        <div><dt>Size</dt><dd>Small · 3 tasks · 1 app file</dd></div>
         <div><dt>Risk</dt><dd>Level 2 · concern</dd></div>
       </dl>
     </header>
@@ -61,8 +61,8 @@
 
     <section class="card">
       <h2>What</h2>
-      <p>Restyle the chat-photo viewer as an image-first lightbox: remove the visible “Image preview” header and all modal-panel/media padding; remove the opaque dialog frame; center the image within the viewport; and cap displayed media at 70vh and 32rem wide. Keep a compact Close action overlaid at the image’s upper-right edge so it remains available without rebuilding the former header.</p>
-      <p><strong>Done when:</strong> portrait and landscape chat photos open centered with no broad white frame or surrounding in-modal padding; the image stays inside the viewport and visibly smaller than the prior 3xl-wide layout; and all existing dismissal and keyboard behavior works.</p>
+      <p>Restyle the chat-photo viewer as an image-first lightbox: remove the visible “Image preview” header and all modal-panel/media padding; remove the opaque dialog frame; center the image within the viewport; and cap displayed media at 70vh and 24rem wide. Keep a compact Close action overlaid at the image’s upper-right edge. Clicking the photo toggles between this compact view and an enlarged, viewport-contained view.</p>
+      <p><strong>Done when:</strong> portrait and landscape chat photos open centered with no broad white frame or surrounding in-modal padding; the compact image remains smaller than the prior 3xl-wide layout; clicking it enlarges it without exceeding the viewport; and all existing dismissal and keyboard behavior works.</p>
     </section>
 
     <section class="card">
@@ -83,7 +83,8 @@
           <ul>
             <li>Remove the visible “Image preview” heading, header border, and padded image container.</li>
             <li>Make the dialog frame transparent and content-sized rather than a full-width <code>max-w-3xl</code> panel.</li>
-            <li>Center the image and preserve responsive containment with a maximum of <code>70vh</code> height and <code>32rem</code> width.</li>
+            <li>Center the image and preserve responsive containment with a maximum of <code>70vh</code> height and <code>24rem</code> width.</li>
+            <li>Let the photo itself toggle between compact and enlarged view, with useful accessible state and no extra control.</li>
             <li>Place a visible Close action as an overlay near the image, with a pointer and keyboard-accessible target.</li>
             <li>Retain click-away dismissal, Escape dismissal, focus-on-open, modal semantics, and body scroll restoration.</li>
           </ul>
@@ -97,7 +98,7 @@
           </ul>
         </div>
       </div>
-      <p><strong>Out of scope:</strong> zooming, panning, image download, image metadata, gallery navigation, and visual changes to cover-photo or profile-picture viewers.</p>
+      <p><strong>Out of scope:</strong> continuous pinch/wheel zoom, panning, image download, image metadata, gallery navigation, and visual changes to cover-photo or profile-picture viewers.</p>
       <aside class="callout"><strong>Required pushback — Level 2:</strong> removing the visible heading must not leave the dialog unnamed to assistive technology. The implementation must replace <code>aria-labelledby</code> with an equivalent static <code>aria-label</code> (for example, “Chat image”), keeping the user-requested absence of visible “Image preview” text without weakening modal semantics.</aside>
     </section>
 
@@ -108,7 +109,8 @@
         <tbody>
           <tr><td>Changing shared modal CSS unintentionally restyles settings, profile, and post dialogs.</td><td>Every component using <code>.modal-panel</code> or <code>.modal-backdrop</code>.</td><td>Scope all presentation changes to <code>ViewChatImageDialog</code> utility classes only; do not modify <code>index.css</code>.</td></tr>
           <tr><td>Removing the visual heading breaks the accessible dialog name.</td><td>Keyboard and screen-reader users opening received images.</td><td>Preserve <code>role=&quot;dialog&quot;</code>, <code>aria-modal</code>, and add a static <code>aria-label</code> when removing the heading/id pairing.</td></tr>
-          <tr><td>Image or overlay close control exceeds a narrow viewport.</td><td>Mobile and narrow desktop message threads.</td><td>Keep the outer viewport gutter, cap the image to 70vh/32rem, use <code>max-w-full</code>, and manually verify at desktop and narrow widths with portrait and landscape images.</td></tr>
+          <tr><td>Image or overlay close control exceeds a narrow viewport.</td><td>Mobile and narrow desktop message threads.</td><td>Keep the outer viewport gutter, cap the image to 70vh/24rem, use <code>max-w-full</code>, and manually verify at desktop and narrow widths with portrait and landscape images.</td></tr>
+          <tr><td>Click-to-zoom makes an image exceed the viewport or hides the Close action.</td><td>All received-chat image viewers, especially narrow screens.</td><td>Use a two-state toggle only: compact 70vh/24rem and enlarged 90vh/48rem; preserve responsive width constraints and keep the Close overlay in the image-relative dialog.</td></tr>
         </tbody>
       </table>
       <p><strong>Confirmed consumers:</strong> <code>MessageBubbleRow</code> renders the viewer for any message carrying <code>imageUrl</code>. The shared dialog CSS is a non-target consumer group and must remain unchanged.</p>
@@ -119,7 +121,7 @@
       <article class="task" id="T1">
         <h3>T1 — Convert the chat image dialog to a compact floating viewer</h3>
         <dl>
-          <div><dt>Do</dt><dd>In <code>ViewChatImageDialog</code>, remove the visual title/header and padded media wrapper. Replace the full-width opaque modal panel with a transparent, content-sized image container that stays centered. Limit the image to <code>max-h-[70vh]</code>, <code>max-w-[32rem]</code>, and <code>max-w-full</code> while retaining object containment and image rounding/shadow. Keep the page-level viewport gutter.</dd></div>
+          <div><dt>Do</dt><dd>In <code>ViewChatImageDialog</code>, remove the visual title/header and padded media wrapper. Replace the full-width opaque modal panel with a transparent, content-sized image container that stays centered. Limit the image to <code>max-h-[70vh]</code>, <code>max-w-[24rem]</code>, and <code>max-w-full</code> while retaining object containment and image rounding/shadow. Keep the page-level viewport gutter.</dd></div>
           <div><dt>Files</dt><dd><code>frontend/src/components/ViewChatImageDialog.tsx</code></dd></div>
           <div><dt>Depends on</dt><dd>—</dd></div>
           <div><dt>Verify</dt><dd>Portrait and landscape received images are centered, capped, and no longer surrounded by an opaque panel or broad internal whitespace at desktop and narrow viewport widths.</dd></div>
@@ -134,15 +136,25 @@
           <div><dt>Verify</dt><dd>Close works by overlay control, backdrop click, and Escape; focus lands on Close after opening; the dialog has an accessible name; and closing restores body scrolling.</dd></div>
         </dl>
       </article>
+      <article class="task" id="T3">
+        <h3>T3 — Toggle the photo between compact and enlarged viewing</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add local UI state in <code>ViewChatImageDialog</code> for a two-state image zoom. Make the image a semantic button: activate it to enlarge from the compact <code>70vh/24rem</code> limit to an enlarged <code>90vh/48rem</code> limit; activate it again to return to compact size. Reset to compact whenever a viewer opens, and expose the action with dynamic accessible labeling and pressed state.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ViewChatImageDialog.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd>Pointer and keyboard activation each toggle compact/enlarged size, both states fit desktop and narrow viewports, and the Close control remains visible and usable.</dd></div>
+        </dl>
+      </article>
     </section>
 
     <section class="card">
       <h2>Done</h2>
       <ul class="checks">
         <li>☑ Received chat images open without visible “Image preview” text, header, opaque white frame, or broad internal padding.</li>
-        <li>☑ The image is centered and constrained to 70vh maximum height and 32rem maximum width, while fitting safely within narrow viewports.</li>
+        <li>☑ The image is centered and constrained to 70vh maximum height and 24rem maximum width, while fitting safely within narrow viewports.</li>
         <li>☑ The overlay Close action, backdrop click, Escape key, focus-on-open, and body scroll restoration all work.</li>
         <li>☑ The viewer retains an accessible dialog name after removal of the visible heading.</li>
+        <li>☑ Clicking or keyboard-activating the photo toggles it between compact and enlarged viewport-contained states.</li>
         <li>☑ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> pass.</li>
         <li>☑ <code>test-results.json</code> is updated to Passed, or each failure carries a written waiver.</li>
       </ul>
@@ -154,6 +166,9 @@
         <tr><td>Rev 1</td><td>2026-08-19</td><td>Initial plan: convert the received-chat-image viewer to a compact, centered floating image capped at 70vh/32rem, with no visual heading or in-modal padding and a preserved accessible Close action.</td></tr>
         <tr><td>Rev 2</td><td>2026-08-19</td><td>Executed T1–T2 on <code>kylie/photo-modal-fix</code>. The viewer now has an image-only centered layout, a 70vh/32rem display cap, a labeled overlay Close control, and preserved existing dismissal behavior. Typecheck, lint, and production build pass; isolated browser acceptance remains pending.</td></tr>
         <tr><td>Rev 3</td><td>2026-08-19</td><td>User acceptance completed locally: the close control is a compact, background-free X that uses difference blending for contrast on both light and dark images. All acceptance items pass.</td></tr>
+        <tr><td>Rev 4</td><td>2026-08-19</td><td>Follow-up refinement: reduce the desktop image-width cap from <code>32rem</code> to <code>24rem</code> after local review found square images still too dominant. Browser acceptance reopens for the revised cap.</td></tr>
+        <tr><td>Rev 5</td><td>2026-08-19</td><td>Scope extended at user request: clicking the opened photo toggles a bounded enlarged view; this is a two-state zoom, not continuous zoom or panning. Execution pending.</td></tr>
+        <tr><td>Rev 6</td><td>2026-08-19</td><td>Executed the 24rem compact cap and bounded click-to-zoom behavior. User acceptance completed locally, including mobile visual validation; all plan tasks pass.</td></tr>
       </tbody></table>
     </section>
   </main>

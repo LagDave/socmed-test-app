@@ -13,10 +13,10 @@
         "Confirm the visible 'Image preview' label, header separator, opaque dialog panel, and broad inner padding are absent.",
         "Resize to a narrow/mobile viewport and open both images again."
       ],
-      "expected": "Each image appears as a centered floating object, never exceeds 70vh height or 32rem width, fits within the viewport, and has no broad white frame around it.",
+      "expected": "Each image appears as a centered floating object, never exceeds 70vh height or 24rem width, fits within the viewport, and has no broad white frame around it.",
       "status": "pass",
-      "evidence": "User-validated locally on 2026-08-19 with light and dark images.",
-      "notes": "The compact X uses difference blending to maintain contrast without a visible background.",
+      "evidence": "User-validated locally on 2026-08-19, including mobile visual validation.",
+      "notes": "The compact X continues to use difference blending to maintain contrast without a visible background.",
       "waiver": ""
     },
     {
@@ -37,6 +37,22 @@
       "waiver": ""
     },
     {
+      "id": "T3",
+      "title": "Click-to-zoom photo toggle",
+      "surface": "ui",
+      "precondition": "A received image is open in the chat photo viewer.",
+      "steps": [
+        "Activate the compact photo with a pointer and confirm it enlarges.",
+        "Activate the enlarged photo again and confirm it returns to compact size.",
+        "Repeat with keyboard activation, then verify both states at a narrow/mobile viewport."
+      ],
+      "expected": "The photo toggles only between compact and enlarged viewport-contained states; its accessible control state changes with the visual state, and Close remains visible and usable.",
+      "status": "pass",
+      "evidence": "User-validated locally on 2026-08-19, including mobile visual validation.",
+      "notes": "Continuous zoom and panning are out of scope.",
+      "waiver": ""
+    },
+    {
       "id": "D1",
       "title": "Frontend verification gate",
       "surface": "cli",
@@ -48,7 +64,7 @@
       ],
       "expected": "All commands exit successfully with no errors caused by this change.",
       "status": "pass",
-      "evidence": "2026-08-19: npm --prefix frontend run typecheck, npm --prefix frontend run lint, and npm --prefix frontend run build completed successfully.",
+      "evidence": "2026-08-19: npm --prefix frontend run typecheck, npm --prefix frontend run lint, and npm --prefix frontend run build completed successfully after click-to-zoom implementation.",
       "notes": "Lint emitted six pre-existing warnings outside the changed file. Vite emitted its existing large-chunk advisory.",
       "waiver": ""
     }
