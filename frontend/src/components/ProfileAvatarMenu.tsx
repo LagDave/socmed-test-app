@@ -25,7 +25,7 @@ export function ProfileAvatarMenu({
   const rootRef = useRef<HTMLDivElement>(null);
   const canViewPresence = user.isOnline !== undefined;
   const isOnline = useFriendOnline(user.id, user.isOnline, canViewPresence);
-  const canOpenMenu = canEdit || Boolean(user.avatarUrl);
+  const canViewPicture = Boolean(user.avatarUrl);
 
   useEffect(() => {
     if (!open) return;
@@ -63,27 +63,36 @@ export function ProfileAvatarMenu({
     </>
   );
 
-  if (!canOpenMenu) {
+  if (!canViewPicture && !canEdit) {
     return <span className="relative block">{avatar}</span>;
   }
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-label="Profile picture options"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className="group relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        onClick={() => setOpen((value) => !value)}
-      >
-        {avatar}
-        {canEdit && (
-          <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-            <Camera className="size-6 text-white" aria-hidden="true" />
-          </span>
-        )}
-      </button>
+    <div ref={rootRef} className="group relative">
+      {canViewPicture ? (
+        <button
+          type="button"
+          aria-label={`View ${user.displayName}'s profile picture`}
+          className="relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => run(onViewPicture)}
+        >
+          {avatar}
+        </button>
+      ) : (
+        <span className="relative block">{avatar}</span>
+      )}
+      {canEdit && (
+        <button
+          type="button"
+          aria-label="Profile picture options"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          className="absolute bottom-0 left-0 z-10 flex size-8 items-center justify-center rounded-full bg-black/65 text-white shadow-md transition-opacity sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => setOpen((value) => !value)}
+        >
+          <Camera className="size-4" aria-hidden="true" />
+        </button>
+      )}
       {open && (
         <div role="menu" className="profile-dropdown-menu animate-menu-enter absolute left-full top-1/2 z-30 ml-2 min-w-56 -translate-y-1/2">
           {canEdit && (
