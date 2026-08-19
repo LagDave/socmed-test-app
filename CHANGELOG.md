@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.40 — 2026-08-19
+
+### Fixed
+- User-uploaded content photos now preserve their full image in full post, comment, message, share, and cover views without forced cropping.
+- Restored the compact four-tile multi-photo carousel with a `+N` counter on its fourth tile; opened post photos remain full-size.
+- Removed redundant media panels and nested carousel borders while keeping profile avatars circular.
+
 ## 0.1.39 — 2026-08-18
 
 ### Added

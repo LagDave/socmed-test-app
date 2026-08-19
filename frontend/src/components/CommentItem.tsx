@@ -118,14 +118,13 @@ export function CommentItem({
             ) : null}
 
             {comment.imageUrl && (
-              <img
-                src={comment.imageUrl}
-                alt=""
-                className={cn(
-                  "comment-bubble-image max-h-52 w-full object-cover",
-                  comment.body ? "mt-2" : "mt-0.5"
-                )}
-              />
+              <div className={cn("user-media-stage", comment.body ? "mt-2" : "mt-0.5")}>
+                <img
+                  src={comment.imageUrl}
+                  alt=""
+                  className="comment-bubble-image user-media-full"
+                />
+              </div>
             )}
           </div>
 

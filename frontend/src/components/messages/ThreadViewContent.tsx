@@ -455,11 +455,9 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                   <span className="text-foreground/90">{replyPreview.snippet}</span>
                 </p>
                 {replyPreview.imageUrl && (
-                  <img
-                    src={replyPreview.imageUrl}
-                    alt=""
-                    className="mt-2 h-10 w-10 rounded object-cover"
-                  />
+                  <div className="user-media-stage mt-2 h-10 w-10 rounded">
+                    <img src={replyPreview.imageUrl} alt="" className="user-media-thumbnail rounded" />
+                  </div>
                 )}
               </div>
               <Button

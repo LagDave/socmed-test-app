@@ -538,12 +538,12 @@ export function ProfilePage() {
       <section className="animate-fade-up space-y-5">
       <header className="feed-card profile-header-card text-card-foreground">
         <div className="relative">
-          <div className="relative h-40 overflow-hidden sm:h-52">
+          <div className="user-media-stage relative h-40 overflow-hidden sm:h-52">
             {headerCoverUrl ? (
               <img
                 src={headerCoverUrl}
                 alt=""
-                className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out hover:scale-[1.02]"
+                className="user-media-thumbnail absolute inset-0"
               />
             ) : (
               <div className="profile-cover absolute inset-0" aria-hidden="true" />

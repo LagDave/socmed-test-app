@@ -162,11 +162,11 @@ export function CommentComposer({
           </div>
 
           {imagePreview && (
-            <div className="relative mt-2 inline-block max-w-full">
+            <div className="user-media-stage relative mt-2 inline-block max-w-full rounded-xl">
               <img
                 src={imagePreview}
                 alt="Selected attachment preview"
-                className="max-h-44 rounded-xl border border-border object-cover"
+                className="user-media-full rounded-xl border border-border"
               />
               <Button
                 type="button"
