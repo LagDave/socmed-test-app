@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.41 — 2026-08-19
+
+### Fixed
+- Made profile-header avatars and profile-picture update posts open the same centered, immersive close-up viewer.
+- Refined photo viewer close controls for contrast, responsive sizing, and dark-mode black blurred backdrops.
+
+### Plans
+- `plans/08192026-post-photo-fix` — completed on `kylie/post-photo-fix`
+
 ## 0.1.40 — 2026-08-19
 
 ### Fixed
