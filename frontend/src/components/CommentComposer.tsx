@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUp, ImagePlus, Loader2, X } from "lucide-react";
 import type { PublicUser } from "@/api/types";
@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 
 const MAX_BODY = 2000;
 const WARN_AT = 1900;
+const MAX_TEXTAREA_LINES = 3;
+const TEXTAREA_OVERFLOW_TOLERANCE = 1;
 
 type CommentComposerProps = {
   user: PublicUser;
@@ -35,7 +37,7 @@ export function CommentComposer({
   compact = false,
 }: CommentComposerProps) {
   const [body, setBody] = useState("");
-  const [expanded, setExpanded] = useState(Boolean(replyingTo || autoFocus));
+  const [hasWrappedText, setHasWrappedText] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -43,6 +45,7 @@ export function CommentComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const profilePath = `/u/${user.username || "me"}`;
   const isReply = Boolean(replyingTo);
+  const isExpanded = Boolean(imageFile) || hasWrappedText;
 
   const trimmed = body.trim();
   const canSubmit = Boolean(trimmed || imageFile);
@@ -55,6 +58,37 @@ export function CommentComposer({
     textareaRef.current?.focus();
   }, [autoFocus, replyingTo]);
 
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    if (imageFile) {
+      textarea.style.height = "";
+      textarea.style.overflowY = "";
+      setHasWrappedText(false);
+      return;
+    }
+
+    textarea.style.height = "auto";
+    textarea.style.overflowY = "hidden";
+
+    const compactHeight = textarea.clientHeight;
+    const contentHeight = textarea.scrollHeight;
+    const hasMultipleLines = body.includes("\n") || contentHeight > compactHeight + TEXTAREA_OVERFLOW_TOLERANCE;
+    const maxHeight = compactHeight * MAX_TEXTAREA_LINES;
+
+    setHasWrappedText((current) => (current === hasMultipleLines ? current : hasMultipleLines));
+
+    if (!hasMultipleLines) {
+      textarea.style.height = "";
+      textarea.style.overflowY = "";
+      return;
+    }
+
+    textarea.style.height = `${Math.min(contentHeight, maxHeight)}px`;
+    textarea.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
+  }, [body, imageFile]);
+
   function clearImage() {
     setImageFile(null);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -62,15 +96,9 @@ export function CommentComposer({
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  function collapseIfEmpty() {
-    if (isReply || imageFile) return;
-    if (!trimmed) setExpanded(false);
-  }
-
   function resetForm() {
     setBody("");
     clearImage();
-    if (!replyingTo) setExpanded(false);
   }
 
   function onPickImage(file: File | null) {
@@ -78,7 +106,6 @@ export function CommentComposer({
     if (!file) return;
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
-    setExpanded(true);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -98,7 +125,7 @@ export function CommentComposer({
       onSubmit={handleSubmit}
       className={cn(
         "comment-composer",
-        expanded && "comment-composer-expanded",
+        isExpanded && "comment-composer-expanded",
         compact && "comment-composer-reply"
       )}
     >
@@ -122,10 +149,17 @@ export function CommentComposer({
         </Link>
 
         <div className="min-w-0 flex-1">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(e) => onPickImage(e.target.files?.[0] ?? null)}
+          />
           <div
             className={cn(
               "comment-composer-shell",
-              expanded && "comment-composer-shell-expanded"
+              isExpanded && "comment-composer-shell-expanded"
             )}
           >
             <Textarea
@@ -133,31 +167,47 @@ export function CommentComposer({
               placeholder={placeholder}
               value={body}
               onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
-              onFocus={() => setExpanded(true)}
-              onBlur={collapseIfEmpty}
               onKeyDown={submitOnEnter}
-              rows={expanded ? 3 : 1}
+              rows={imageFile ? MAX_TEXTAREA_LINES : 1}
               maxLength={MAX_BODY}
               className={cn(
                 "min-w-0 w-full resize-none border-0 bg-transparent px-0 py-0 text-[15px] leading-6 shadow-none focus-visible:ring-0",
-                expanded ? "min-h-[3.5rem]" : "min-h-6"
+                imageFile ? "min-h-[3.5rem]" : "min-h-6"
               )}
             />
 
-            {!expanded && (
-              <Button
-                type="submit"
-                size="icon"
-                className="comment-composer-send h-8 w-8 shrink-0 rounded-full"
-                disabled={disabled || !canSubmit}
-                aria-label={sendLabel}
-              >
-                {submitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <ArrowUp className="h-4 w-4" aria-hidden="true" />
-                )}
-              </Button>
+            {!isExpanded ? (
+              <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                  disabled={disabled}
+                  aria-label="Attach photo"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                </Button>
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="comment-composer-send h-8 w-8 rounded-full"
+                  disabled={disabled || !canSubmit}
+                  aria-label={sendLabel}
+                >
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex shrink-0 items-center gap-1" aria-hidden="true">
+                <span className="h-8 w-8" />
+                <span className="h-8 w-8" />
+              </div>
             )}
           </div>
 
@@ -181,16 +231,9 @@ export function CommentComposer({
             </div>
           )}
 
-          {expanded && (
+          {isExpanded && (
             <div className="mt-2 flex items-center justify-between gap-2">
               <div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(e) => onPickImage(e.target.files?.[0] ?? null)}
-                />
                 <Button
                   type="button"
                   variant="ghost"
