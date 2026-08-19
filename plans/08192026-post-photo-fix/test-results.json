@@ -59,6 +59,18 @@
       "steps": ["Create new post, comment, message, and cover uploads with mixed orientations.", "Verify each new content upload follows the no-crop rule without special settings.", "Update an avatar and confirm it stays circular without a square backdrop.", "Run npm --prefix frontend run typecheck.", "Run npm --prefix frontend run lint.", "Run npm --prefix frontend run build."],
       "expected": "The no-crop rule applies automatically to future content uploads; avatars retain the approved circular profile treatment; and all frontend commands finish without errors caused by this change.",
       "status": "pass", "evidence": "2026-08-19: User confirmed the local end-to-end behavior for future uploads. Frontend typecheck, lint, and production build also passed after the final carousel refinement.", "notes": "", "waiver": ""
+    },
+    {
+      "id": "T6",
+      "title": "Post photos open the selected full image",
+      "surface": "ui",
+      "precondition": "Signed in with single- and multi-photo posts available in the feed, shared-post embed, and post-detail view.",
+      "steps": ["Click a single post photo or a multi-photo carousel, including the fourth tile with a +N overlay.", "Confirm the post-detail album opens.", "Click several individual album photos, then close the dialog with the X, backdrop click, and Escape."],
+      "expected": "The feed/post preview opens the album first. Clicking an album photo then opens that selected image in the browser viewport center, independently of the album animation. Desktop retains the 28rem cap; mobile uses reduced 80vw by 64dvh bounds; neither crops, adds a title, border, or padding. The small plain X is anchored inside the photo’s upper-right edge with no surrounding circle or outline; the backdrop is black and blurred in dark mode; backdrop click and Escape dismiss it.",
+      "status": "pass",
+      "evidence": "2026-08-19: User completed local acceptance for the post-photo navigation sequence and selected-photo viewer, including the centered placement, compact desktop/mobile sizing, plain X, and dark-mode blurred backdrop.",
+      "notes": "User-verified during finalization.",
+      "waiver": ""
     }
   ]
 }
