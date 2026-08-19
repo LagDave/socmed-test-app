@@ -57,23 +57,9 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
   const profilePath = `/u/${sharedFrom.author.username || sharedFrom.author.id}`;
   const postPath = `/posts/${sharedFrom.id}`;
   const media = postMediaImages(sharedFrom);
-  const originalMedia =
-    media.length > 1 ? (
-      <PostMediaGallery media={media} postPath={postPath} mode="feed" className="mt-2.5" />
-    ) : media.length === 1 ? (
-      <Link
-        to={postPath}
-        className="group/embed mt-2.5 block rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-      >
-        <div className="shared-post-embed-media user-media-stage overflow-hidden rounded-lg">
-          <img
-            src={media[0].url}
-            alt=""
-            className="user-media-full block w-full"
-          />
-        </div>
-      </Link>
-    ) : null;
+  const originalMedia = media.length > 0 ? (
+    <PostMediaGallery media={media} postPath={postPath} mode="feed" className="mt-2.5" />
+  ) : null;
 
   return (
     <div className={cn("shared-post-embed", className)}>

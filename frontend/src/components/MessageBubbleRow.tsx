@@ -6,7 +6,7 @@ import { MessageQuoteStrip } from "@/components/MessageQuoteStrip";
 import { ReactionBar } from "@/components/ReactionBar";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { MessageStatusIconForMessage } from "@/components/MessageStatusIcon";
-import { ViewChatImageDialog } from "@/components/ViewChatImageDialog";
+import { ViewImageDialog } from "@/components/ViewImageDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -400,7 +400,7 @@ export function MessageBubbleRow({
       </div>
 
       {message.imageUrl && (
-        <ViewChatImageDialog
+        <ViewImageDialog
           open={lightboxOpen}
           imageUrl={message.imageUrl}
           onClose={() => setLightboxOpen(false)}

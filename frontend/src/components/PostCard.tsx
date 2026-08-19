@@ -95,25 +95,13 @@ function PostStandardMedia({
         }
       : undefined;
 
-  if (media.length > 1 || mediaMode === "detail") {
-    return wrapFeedMediaStage(
-      <PostMediaGallery
-        media={media}
-        postPath={postPath}
-        mode={mediaMode === "detail" ? "detail" : "feed"}
-        postActions={detailActions}
-      />,
-      variant
-    );
-  }
   return wrapFeedMediaStage(
-    <Link to={postPath} className="mt-3 block overflow-hidden rounded-xl">
-      <img
-        src={media[0].url}
-        alt=""
-        className="user-media-full block w-full"
-      />
-    </Link>,
+    <PostMediaGallery
+      media={media}
+      postPath={postPath}
+      mode={mediaMode === "detail" ? "detail" : "feed"}
+      postActions={detailActions}
+    />,
     variant
   );
 }

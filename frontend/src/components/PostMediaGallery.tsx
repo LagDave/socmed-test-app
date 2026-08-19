@@ -1,8 +1,10 @@
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Images } from "lucide-react";
 import type { PostImageView, ReactionSummary } from "@/api/types";
 import { PostActionRow } from "@/components/PostActionRow";
 import { ReactionBar } from "@/components/ReactionBar";
+import { ViewImageDialog } from "@/components/ViewImageDialog";
 import { postPhotoCommentsPath } from "@/lib/postMedia";
 import { emptyReactionSummary } from "@/lib/reactions";
 import { cn } from "@/lib/utils";
@@ -54,7 +56,7 @@ function GridCell({
         draggable={false}
       />
       {overlay ? (
-        <div className="absolute inset-0 z-[1] flex items-center justify-center bg-black/50 backdrop-blur-[1px]">
+        <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/50 backdrop-blur-[1px]">
           <span className="text-2xl font-bold tracking-tight text-white drop-shadow-sm sm:text-3xl">
             {overlay}
           </span>
@@ -127,11 +129,13 @@ function PostPhotoSlide({
   photoIndex,
   total,
   postActions,
+  onPreview,
 }: {
   image: PostImageView;
   photoIndex: number;
   total: number;
   postActions?: PostMediaActionsConfig;
+  onPreview?: (imageUrl: string) => void;
 }) {
   const commentPath =
     postActions && image.id
@@ -148,15 +152,33 @@ function PostPhotoSlide({
   return (
     <figure className="post-photo-slide overflow-visible">
       <div className="relative w-full overflow-hidden">
-        <img
-          src={image.url}
-          alt=""
-          className="user-media-full w-full rounded-t-xl"
-          loading={photoIndex === 0 ? "eager" : "lazy"}
-        />
-        <span className="absolute bottom-2.5 right-2.5 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
-          {photoIndex + 1} / {total}
-        </span>
+        {onPreview ? (
+          <button
+            type="button"
+            aria-label={`View photo ${photoIndex + 1}`}
+            className="block w-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            onClick={() => onPreview(image.url)}
+          >
+            <img
+              src={image.url}
+              alt=""
+              className="user-media-full w-full rounded-t-xl"
+              loading={photoIndex === 0 ? "eager" : "lazy"}
+            />
+          </button>
+        ) : (
+          <img
+            src={image.url}
+            alt=""
+            className="user-media-full w-full rounded-t-xl"
+            loading={photoIndex === 0 ? "eager" : "lazy"}
+          />
+        )}
+        {total > 1 ? (
+          <span className="pointer-events-none absolute bottom-2.5 right-2.5 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
+            {photoIndex + 1} / {total}
+          </span>
+        ) : null}
       </div>
 
       {postActions ? (
@@ -201,12 +223,14 @@ function PostMediaAlbum({
   className,
   detail = false,
   postActions,
+  onPreview,
 }: {
   media: PostImageView[];
   compact: boolean;
   className?: string;
   detail?: boolean;
   postActions?: PostMediaActionsConfig;
+  onPreview: (imageUrl: string) => void;
 }) {
   return (
     <section
@@ -251,6 +275,7 @@ function PostMediaAlbum({
             photoIndex={index}
             total={media.length}
             postActions={detail ? postActions : undefined}
+            onPreview={onPreview}
           />
         ))}
       </div>
@@ -265,16 +290,19 @@ export function PostMediaGallery({
   postActions,
   className,
 }: PostMediaGalleryProps) {
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   if (media.length === 0) return null;
 
   const compact = mode === "compact";
   const imageUrls = media.map((m) => m.url);
+  const closePreview = () => setPreviewImageUrl(null);
+  let content: ReactNode;
 
   if (media.length === 1) {
     const frame = (
       <div
         className={cn(
-        "overflow-visible",
+          "overflow-visible",
           className
         )}
       >
@@ -283,36 +311,41 @@ export function PostMediaGallery({
           photoIndex={0}
           total={1}
           postActions={mode === "detail" ? postActions : undefined}
+          onPreview={mode === "detail" ? setPreviewImageUrl : undefined}
         />
       </div>
     );
 
-    if (postPath && mode !== "detail") {
-      return (
-        <Link to={postPath} className={cn("mt-3 block focus-visible:outline-none", className)}>
-          {frame}
-        </Link>
-      );
-    }
-
-    return <div className={cn("mt-3", className)}>{frame}</div>;
-  }
-
-  if (mode === "detail") {
-    return (
+    content = postPath && mode !== "detail" ? (
+      <Link to={postPath} className={cn("mt-3 block focus-visible:outline-none", className)}>
+        {frame}
+      </Link>
+    ) : (
+      <div className={cn("mt-3", className)}>{frame}</div>
+    );
+  } else if (mode === "detail") {
+    content = (
       <PostMediaAlbum
         media={media}
         compact={false}
         detail
         postActions={postActions}
+        onPreview={setPreviewImageUrl}
         className={cn("mt-3", className)}
       />
+    );
+  } else {
+    content = (
+      <div className={cn("post-media-gallery mt-3", className)}>
+        <PostMediaGridPreview imageUrls={imageUrls} compact={compact} postPath={postPath} />
+      </div>
     );
   }
 
   return (
-    <div className={cn("post-media-gallery mt-3", className)}>
-      <PostMediaGridPreview imageUrls={imageUrls} compact={compact} postPath={postPath} />
-    </div>
+    <>
+      {content}
+      <ViewImageDialog open={previewImageUrl !== null} imageUrl={previewImageUrl ?? ""} onClose={closePreview} />
+    </>
   );
 }
