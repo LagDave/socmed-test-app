@@ -1,7 +1,7 @@
 {
   "plan": "plans/08192026-post-photo-fix",
   "generatedAt": "2026-08-19",
-  "status": "Passed",
+  "status": "In Progress",
   "items": [
     {
       "id": "D1",
@@ -62,14 +62,14 @@
     },
     {
       "id": "T6",
-      "title": "Post photos open the selected full image",
+      "title": "Post and profile photos open their selected full image",
       "surface": "ui",
-      "precondition": "Signed in with single- and multi-photo posts available in the feed, shared-post embed, and post-detail view.",
-      "steps": ["Click a single post photo or a multi-photo carousel, including the fourth tile with a +N overlay.", "Confirm the post-detail album opens.", "Click several individual album photos, then close the dialog with the X, backdrop click, and Escape."],
-      "expected": "The feed/post preview opens the album first. Clicking an album photo then opens that selected image in the browser viewport center, independently of the album animation. Desktop retains the 28rem cap; mobile uses reduced 80vw by 64dvh bounds; neither crops, adds a title, border, or padding. The small plain X is anchored inside the photo’s upper-right edge with no surrounding circle or outline; the backdrop is black and blurred in dark mode; backdrop click and Escape dismiss it.",
+      "precondition": "Signed in with a profile avatar and single- and multi-photo posts available in the feed, shared-post embed, and post-detail view.",
+      "steps": ["Click the profile-header avatar and confirm its close-up opens without changing the avatar’s circular presentation.", "Click the circular image in a profile-picture update post and confirm the same close-up opens.", "As the profile owner, use the separate camera control and confirm change, view, and remove options remain available.", "Click a single post photo or a multi-photo carousel, including the fourth tile with a +N overlay.", "Confirm the post-detail album opens.", "Click several individual album photos, then close the dialog with the X, backdrop click, and Escape."],
+      "expected": "Both the profile-header avatar and the circular image in a profile-picture update post open the same immersive circular view at the browser viewport level, with no surrounding dialog card, visible text, ring, halo, or drop shadow. Its plain X sits on the photo’s upper-right edge and there is no footer Close button. The backdrop is black and blurred in dark mode. Profile-owner photo actions remain available from the camera control. The feed/post preview opens the album first. Clicking an album photo then opens that selected image in the browser viewport center, independently of the album animation. Desktop retains the 28rem cap; mobile uses reduced 80vw by 64dvh bounds; neither crops, adds a title, border, or padding. The small plain X is anchored inside the photo’s upper-right edge with no surrounding circle or outline, turns black on a light photo area and white on a dark one; the backdrop is black and blurred in dark mode; backdrop click and Escape dismiss it.",
       "status": "pass",
-      "evidence": "2026-08-19: User completed local acceptance for the post-photo navigation sequence and selected-photo viewer, including the centered placement, compact desktop/mobile sizing, plain X, and dark-mode blurred backdrop.",
-      "notes": "User-verified during finalization.",
+      "evidence": "2026-08-19: User completed local acceptance for the profile-header and profile-update viewers, including their matching viewport presentation, plain X controls, dark-mode black blur, and responsive photo behavior.",
+      "notes": "",
       "waiver": ""
     }
   ]
