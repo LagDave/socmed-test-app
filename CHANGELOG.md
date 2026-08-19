@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.42 — 2026-08-19
+
+### Fixed
+- Removed chat-photo click-to-zoom and restored the compact, viewport-safe 24rem viewer cap
+- Prevented consecutive received image messages from overlapping while preserving compact text-only groups
+- Made the chat-photo viewer backdrop black and blurred in global and Messages dark modes without altering other dialogs
+
+### Plans
+- `plans/08192026-photo-modal-fix` — completed follow-up acceptance on `kylie/photo-modal-fix`
+
 ## 0.1.41 — 2026-08-19
 
 ### Changed
