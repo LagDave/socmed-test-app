@@ -15,7 +15,7 @@
       ],
       "expected": "Each image appears as a centered floating object, never exceeds 70vh height or 24rem width, fits within the viewport, and has no broad white frame around it.",
       "status": "pass",
-      "evidence": "User-validated locally on 2026-08-19, including mobile visual validation.",
+      "evidence": "User-validated locally on 2026-08-19 after the compact 24rem viewer was restored without click-to-zoom.",
       "notes": "The compact X continues to use difference blending to maintain contrast without a visible background.",
       "waiver": ""
     },
@@ -37,19 +37,35 @@
       "waiver": ""
     },
     {
-      "id": "T3",
-      "title": "Click-to-zoom photo toggle",
+      "id": "T4",
+      "title": "Image-message row spacing",
       "surface": "ui",
-      "precondition": "A received image is open in the chat photo viewer.",
+      "precondition": "A conversation contains consecutive image messages and at least one consecutive text-message pair.",
       "steps": [
-        "Activate the compact photo with a pointer and confirm it enlarges.",
-        "Activate the enlarged photo again and confirm it returns to compact size.",
-        "Repeat with keyboard activation, then verify both states at a narrow/mobile viewport."
+        "View two consecutive image messages from the same sender.",
+        "View an image followed immediately by a text message from the same sender.",
+        "View two consecutive text messages from the same sender."
       ],
-      "expected": "The photo toggles only between compact and enlarged viewport-contained states; its accessible control state changes with the visual state, and Close remains visible and usable.",
+      "expected": "Image thumbnails and the following text do not overlap; the existing compact text-only grouping remains intact.",
       "status": "pass",
-      "evidence": "User-validated locally on 2026-08-19, including mobile visual validation.",
-      "notes": "Continuous zoom and panning are out of scope.",
+      "evidence": "User-validated locally on 2026-08-19.",
+      "notes": "Image-bearing message rows now break compact grouping, while text-only groups retain their existing compact spacing.",
+      "waiver": ""
+    },
+    {
+      "id": "T5",
+      "title": "Dark-mode photo backdrop",
+      "surface": "ui",
+      "precondition": "A received image is available; test both global dark mode and Messages-specific dark mode when available.",
+      "steps": [
+        "Open a received photo in global dark mode.",
+        "Open a received photo in Messages-specific dark mode.",
+        "Open the same viewer in light mode, then open another modal in dark mode."
+      ],
+      "expected": "The photo viewer’s backdrop is black and blurred in either dark mode. Light mode retains the existing lighter backdrop, and unrelated modal backdrops are unchanged.",
+      "status": "pass",
+      "evidence": "User-validated locally on 2026-08-19.",
+      "notes": "The selector covers both global .dark and Messages-specific .messages-theme-dark roots.",
       "waiver": ""
     },
     {
@@ -64,8 +80,8 @@
       ],
       "expected": "All commands exit successfully with no errors caused by this change.",
       "status": "pass",
-      "evidence": "2026-08-19: npm --prefix frontend run typecheck, npm --prefix frontend run lint, and npm --prefix frontend run build completed successfully after click-to-zoom implementation.",
-      "notes": "Lint emitted six pre-existing warnings outside the changed file. Vite emitted its existing large-chunk advisory.",
+      "evidence": "2026-08-19: npm --prefix frontend run typecheck, npm --prefix frontend run lint, and npm --prefix frontend run build completed successfully after removing click-to-zoom, correcting image-row spacing, and adding the dark-mode photo backdrop.",
+      "notes": "Lint emitted six pre-existing warnings outside the changed files. Vite emitted its existing large-chunk advisory.",
       "waiver": ""
     }
   ]
