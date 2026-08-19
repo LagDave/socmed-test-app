@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Compact Chat Photo Modal Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#0a0a0a; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; --warn:#7a4b00; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1080px,calc(100% - 32px)); margin:0 auto; padding:44px 0; }
+    .hero,.card,.task { border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    .hero { border-color:var(--ink); padding:30px; margin-bottom:18px; }
+    .card { padding:25px; margin-top:16px; }
+    .task { padding:18px; margin-top:12px; background:var(--soft); }
+    .topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px; }
+    .meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:0; }
+    .meta div { padding:13px; border:1px solid var(--line); border-radius:8px; }
+    dt,.eyebrow { color:var(--muted); font-size:.76rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+    dd { margin:3px 0 0; font-weight:700; }
+    .eyebrow { margin:0; }
+    .status { display:inline-flex; border:1px solid var(--ink); border-radius:999px; padding:6px 11px; background:var(--ink); color:#fff; font-size:.76rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+    h1 { max-width:840px; margin:0 0 22px; font-size:clamp(2rem,5vw,3.4rem); line-height:.98; }
+    h2 { margin:0 0 12px; font-size:1.35rem; }
+    h3 { margin:0 0 10px; font-size:1.05rem; }
+    p:last-child,ul:last-child { margin-bottom:0; }
+    code { padding:.08rem .3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:.9em; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
+    .grid > div { border:1px solid var(--line); border-radius:8px; padding:16px; }
+    .callout { margin-top:14px; border:2px solid var(--warn); border-radius:8px; padding:15px 17px; color:#442a00; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.93rem; }
+    th,td { padding:9px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:.75rem; letter-spacing:.04em; text-transform:uppercase; }
+    .task dl { margin:0; display:grid; gap:10px; }
+    .task dd { font-weight:400; }
+    .checks { list-style:none; padding:0; margin:0; }
+    .checks li { padding:9px 0; border-top:1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="topline">
+        <p class="eyebrow">Socmed Plan Spec</p>
+        <span class="status">Completed</span>
+      </div>
+      <h1>Compact Chat Photo Modal</h1>
+      <dl class="meta">
+        <div><dt>Plan folder</dt><dd>plans/08192026-photo-modal-fix</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/photo-modal-fix</dd></div>
+        <div><dt>Merge target</dt><dd>dev</dd></div>
+        <div><dt>Size</dt><dd>Small · 2 tasks · 1 app file</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 · concern</dd></div>
+      </dl>
+    </header>
+
+    <section class="card">
+      <h2>Why</h2>
+      <p>Opening a photo received in a conversation currently renders a wide, white modal with a titled header and padded media region. Portrait images fill most of the viewport while the surrounding frame dominates the screen. The viewer should instead make the image feel like a compact, floating object centered over the conversation.</p>
+    </section>
+
+    <section class="card">
+      <h2>What</h2>
+      <p>Restyle the chat-photo viewer as an image-first lightbox: remove the visible “Image preview” header and all modal-panel/media padding; remove the opaque dialog frame; center the image within the viewport; and cap displayed media at 70vh and 32rem wide. Keep a compact Close action overlaid at the image’s upper-right edge so it remains available without rebuilding the former header.</p>
+      <p><strong>Done when:</strong> portrait and landscape chat photos open centered with no broad white frame or surrounding in-modal padding; the image stays inside the viewport and visibly smaller than the prior 3xl-wide layout; and all existing dismissal and keyboard behavior works.</p>
+    </section>
+
+    <section class="card">
+      <h2>Context and closest patterns</h2>
+      <ul>
+        <li><code>frontend/src/components/ViewChatImageDialog.tsx</code> is the only received-chat-image viewer and the sole implementation target. It owns the dialog markup, focus-on-open behavior, Escape handling, click-away dismiss button, and body scroll lock.</li>
+        <li><code>frontend/src/components/MessageBubbleRow.tsx</code> is the only confirmed consumer. It passes the message image URL and owns the lightbox open state; its message rendering and interaction handlers are out of scope.</li>
+        <li><code>frontend/src/components/ViewCoverPhotoDialog.tsx</code> is the closest existing image viewer for responsive object containment, although it intentionally retains a titled panel and is not a styling template for this compact chat viewer.</li>
+        <li><code>frontend/src/index.css</code> defines shared <code>.modal-backdrop</code>, <code>.modal-panel</code>, and modal animation styles used by several unrelated dialogs. Those shared selectors must not change.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Scope and decisions</h2>
+      <div class="grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Remove the visible “Image preview” heading, header border, and padded image container.</li>
+            <li>Make the dialog frame transparent and content-sized rather than a full-width <code>max-w-3xl</code> panel.</li>
+            <li>Center the image and preserve responsive containment with a maximum of <code>70vh</code> height and <code>32rem</code> width.</li>
+            <li>Place a visible Close action as an overlay near the image, with a pointer and keyboard-accessible target.</li>
+            <li>Retain click-away dismissal, Escape dismissal, focus-on-open, modal semantics, and body scroll restoration.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>Do not alter shared <code>.modal-panel</code>, <code>.modal-backdrop</code>, or animation CSS used by other dialogs.</li>
+            <li>Do not change message image upload, message-bubble layout, image URL data, or the open-state contract in <code>MessageBubbleRow</code>.</li>
+            <li>Do not add a dependency, create a second dialog system, or change the close behavior’s callback contract.</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Out of scope:</strong> zooming, panning, image download, image metadata, gallery navigation, and visual changes to cover-photo or profile-picture viewers.</p>
+      <aside class="callout"><strong>Required pushback — Level 2:</strong> removing the visible heading must not leave the dialog unnamed to assistive technology. The implementation must replace <code>aria-labelledby</code> with an equivalent static <code>aria-label</code> (for example, “Chat image”), keeping the user-requested absence of visible “Image preview” text without weakening modal semantics.</aside>
+    </section>
+
+    <section class="card">
+      <h2>Risk and blast radius</h2>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Changing shared modal CSS unintentionally restyles settings, profile, and post dialogs.</td><td>Every component using <code>.modal-panel</code> or <code>.modal-backdrop</code>.</td><td>Scope all presentation changes to <code>ViewChatImageDialog</code> utility classes only; do not modify <code>index.css</code>.</td></tr>
+          <tr><td>Removing the visual heading breaks the accessible dialog name.</td><td>Keyboard and screen-reader users opening received images.</td><td>Preserve <code>role=&quot;dialog&quot;</code>, <code>aria-modal</code>, and add a static <code>aria-label</code> when removing the heading/id pairing.</td></tr>
+          <tr><td>Image or overlay close control exceeds a narrow viewport.</td><td>Mobile and narrow desktop message threads.</td><td>Keep the outer viewport gutter, cap the image to 70vh/32rem, use <code>max-w-full</code>, and manually verify at desktop and narrow widths with portrait and landscape images.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Confirmed consumers:</strong> <code>MessageBubbleRow</code> renders the viewer for any message carrying <code>imageUrl</code>. The shared dialog CSS is a non-target consumer group and must remain unchanged.</p>
+    </section>
+
+    <section class="card">
+      <h2>Tasks</h2>
+      <article class="task" id="T1">
+        <h3>T1 — Convert the chat image dialog to a compact floating viewer</h3>
+        <dl>
+          <div><dt>Do</dt><dd>In <code>ViewChatImageDialog</code>, remove the visual title/header and padded media wrapper. Replace the full-width opaque modal panel with a transparent, content-sized image container that stays centered. Limit the image to <code>max-h-[70vh]</code>, <code>max-w-[32rem]</code>, and <code>max-w-full</code> while retaining object containment and image rounding/shadow. Keep the page-level viewport gutter.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ViewChatImageDialog.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>Portrait and landscape received images are centered, capped, and no longer surrounded by an opaque panel or broad internal whitespace at desktop and narrow viewport widths.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T2">
+        <h3>T2 — Preserve accessible and reliable dismissal behavior</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Replace the removed heading’s <code>aria-labelledby</code> relationship with a static dialog label. Move the existing Close button into an image-relative overlay without changing its ref or <code>onClose</code> callback. Preserve the backdrop button, Escape listener, focus-on-open, and body-overflow cleanup exactly as today.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ViewChatImageDialog.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Close works by overlay control, backdrop click, and Escape; focus lands on Close after opening; the dialog has an accessible name; and closing restores body scrolling.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Done</h2>
+      <ul class="checks">
+        <li>☑ Received chat images open without visible “Image preview” text, header, opaque white frame, or broad internal padding.</li>
+        <li>☑ The image is centered and constrained to 70vh maximum height and 32rem maximum width, while fitting safely within narrow viewports.</li>
+        <li>☑ The overlay Close action, backdrop click, Escape key, focus-on-open, and body scroll restoration all work.</li>
+        <li>☑ The viewer retains an accessible dialog name after removal of the visible heading.</li>
+        <li>☑ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> pass.</li>
+        <li>☑ <code>test-results.json</code> is updated to Passed, or each failure carries a written waiver.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Revision Log</h2>
+      <table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody>
+        <tr><td>Rev 1</td><td>2026-08-19</td><td>Initial plan: convert the received-chat-image viewer to a compact, centered floating image capped at 70vh/32rem, with no visual heading or in-modal padding and a preserved accessible Close action.</td></tr>
+        <tr><td>Rev 2</td><td>2026-08-19</td><td>Executed T1–T2 on <code>kylie/photo-modal-fix</code>. The viewer now has an image-only centered layout, a 70vh/32rem display cap, a labeled overlay Close control, and preserved existing dismissal behavior. Typecheck, lint, and production build pass; isolated browser acceptance remains pending.</td></tr>
+        <tr><td>Rev 3</td><td>2026-08-19</td><td>User acceptance completed locally: the close control is a compact, background-free X that uses difference blending for contrast on both light and dark images. All acceptance items pass.</td></tr>
+      </tbody></table>
+    </section>
+  </main>
+</body>
+</html>

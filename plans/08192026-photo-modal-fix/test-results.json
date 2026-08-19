@@ -1,0 +1,56 @@
+{
+  "plan": "plans/08192026-photo-modal-fix",
+  "generatedAt": "2026-08-19",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Compact centered photo presentation",
+      "surface": "ui",
+      "precondition": "Signed in with a conversation that contains one portrait image and one landscape image.",
+      "steps": [
+        "Open each image from its message bubble at desktop width.",
+        "Confirm the visible 'Image preview' label, header separator, opaque dialog panel, and broad inner padding are absent.",
+        "Resize to a narrow/mobile viewport and open both images again."
+      ],
+      "expected": "Each image appears as a centered floating object, never exceeds 70vh height or 32rem width, fits within the viewport, and has no broad white frame around it.",
+      "status": "pass",
+      "evidence": "User-validated locally on 2026-08-19 with light and dark images.",
+      "notes": "The compact X uses difference blending to maintain contrast without a visible background.",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Accessible dismissal behavior",
+      "surface": "ui",
+      "precondition": "A received image is available in a signed-in conversation.",
+      "steps": [
+        "Open the image and confirm keyboard focus lands on the visible overlay Close action.",
+        "Close once with the overlay control, once by clicking the shaded backdrop, and once with Escape.",
+        "For each close path, confirm the viewer closes and the page scrolls normally afterward.",
+        "Inspect the open dialog with accessibility tooling or its rendered attributes."
+      ],
+      "expected": "All dismissal paths work, closing restores page scrolling, and the dialog has an accessible name even though no visible title is rendered.",
+      "status": "pass",
+      "evidence": "User-validated locally on 2026-08-19.",
+      "notes": "The existing backdrop, Escape listener, focus ref, and scroll cleanup remain intact; the dialog has aria-label='Chat image'.",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Frontend verification gate",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "All commands exit successfully with no errors caused by this change.",
+      "status": "pass",
+      "evidence": "2026-08-19: npm --prefix frontend run typecheck, npm --prefix frontend run lint, and npm --prefix frontend run build completed successfully.",
+      "notes": "Lint emitted six pre-existing warnings outside the changed file. Vite emitted its existing large-chunk advisory.",
+      "waiver": ""
+    }
+  ]
+}
