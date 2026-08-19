@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.40 — 2026-08-20
+
+### Fixed
+- Conversation headers now share one continuous surface with the message pane in default, solid-theme, and gradient-theme chats; removed the visible header divider and gradient restart.
+
+### Plans
+- `plans/08202026-convo-header-border` — completed on `kylie/convo-header-fix`
+
 ## 0.1.39 — 2026-08-18
 
 ### Added
