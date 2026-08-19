@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comment Composer Typing Transition Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#080808; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f5f5f5; }
+    * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1080px,calc(100% - 32px)); margin:auto; padding:48px 0; } header,section,article { border:1px solid var(--line); border-radius:10px; padding:24px; margin-bottom:16px; } header { border-color:var(--ink); }
+    .top { display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; align-items:center; } .eyebrow,dt { color:var(--muted); font-size:.76rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+    .status { border-radius:999px; background:var(--ink); color:#fff; padding:6px 12px; font-size:.76rem; font-weight:800; text-transform:uppercase; } h1 { margin:16px 0 8px; font-size:clamp(2rem,5vw,3.4rem); line-height:.98; }
+    h2 { margin-top:0; font-size:1.35rem; } h3 { margin-top:0; } p:last-child,ul:last-child { margin-bottom:0; } code { padding:.08rem .3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; } .grid div { padding:12px; border:1px solid var(--line); border-radius:7px; } dd { margin:3px 0 0; font-weight:700; }
+    .callout { padding:14px; border:2px solid var(--ink); border-radius:8px; background:var(--soft); } table { width:100%; border-collapse:collapse; } th,td { border:1px solid var(--line); padding:9px; vertical-align:top; text-align:left; } th { background:var(--soft); font-size:.76rem; text-transform:uppercase; }
+    article { background:var(--soft); } article dl { display:grid; gap:8px; margin:0; } article dd { margin:0; font-weight:400; } .check { list-style:none; padding:0; } .check li { padding:9px 0; border-top:1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="top"><p class="eyebrow">Socmed plan spec · Seq 64</p><span class="status">In Progress</span></div>
+      <h1>Comment Composer: One Row Until Text Wraps</h1>
+      <dl class="grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan folder</dt><dd>plans/08192026-comment-typing-fix</dd></div>
+        <div><dt>Size</dt><dd>Small · 3 tasks · 3 files</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 · UI interaction</dd></div>
+        <div><dt>Planning branch</dt><dd>codex/plan-08192026-comment-typing-fix</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/comment-typing-fix → dev</dd></div>
+      </dl>
+    </header>
+
+    <section>
+      <h2>Why</h2>
+      <p>The comment composer changes twice on a simple click: focus immediately sets <code>expanded</code>, which changes the shell from a horizontal pill to a column, then the textarea jumps from one to three rows. The supplied screenshot captures that oversized focused state before the user has written enough text to need it.</p>
+      <p>The intended interaction is calmer: focusing and typing a short comment should retain the original single-row composer. The composer should grow only when the entered content needs more than one visible line.</p>
+    </section>
+
+    <section>
+      <h2>What</h2>
+      <ul>
+        <li>Keep both top-level comment and reply composers in their current one-row shell, with compact image-attach and arrow-send affordances, while focused and while text fits on one visual line.</li>
+        <li>Detect actual visual wrapping—not a character-count threshold—then grow the textarea and reveal the existing expanded controls only after a second line is needed.</li>
+        <li>Let the field shrink back to the compact one-row state when text is shortened to one visual line or cleared, unless an attachment is still selected.</li>
+        <li>Keep the reply composer’s “Replying to” banner and cancel context, but give its input the same compact-to-expanded behavior as the top-level composer.</li>
+        <li>Preserve Enter-to-submit, Shift+Enter newline, image attachment, submit/reset, disabled, accessibility-label, light-theme, and dark-theme behavior.</li>
+      </ul>
+      <p><strong>Done when:</strong> a short comment can be focused and typed with no focus-triggered size or layout jump; a naturally wrapped or newline-containing comment expands predictably; reducing it returns it to one row; all existing comment and reply submissions still work.</p>
+    </section>
+
+    <section>
+      <h2>Context and closest analog</h2>
+      <ul>
+        <li><code>frontend/src/components/CommentComposer.tsx</code> is the only composer implementation. Its <code>onFocus={() =&gt; setExpanded(true)}</code>, conditional <code>rows={expanded ? 3 : 1}</code>, and expanded min-height are the direct cause of the jump.</li>
+        <li><code>frontend/src/components/CommentsSection.tsx</code> is the only consumer: it mounts a top-level composer and a reply composer. No API, page, backend, or database consumer needs to change.</li>
+        <li><code>frontend/src/index.css</code> owns <code>.comment-composer-shell</code> and its expanded geometry/transitions.</li>
+        <li>Closest in-app behavior: <code>MessageComposeBar.tsx</code> keeps its textarea at one row; it is a styling reference only, not a shared abstraction candidate.</li>
+      </ul>
+      <div class="callout"><strong>Blast radius:</strong> post-detail and post-photo comment sections, including their inline reply composer. Both composer instances now share the same compact-to-expanded input behavior; reply context and cancellation remain protected.</div>
+    </section>
+
+    <section>
+      <h2>Locked decisions</h2>
+      <table>
+        <thead><tr><th>Decision</th><th>Choice</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>Expansion trigger</td><td>Actual textarea visual-line overflow or an explicit newline</td><td>Viewport width and font metrics determine wrapping; a character threshold would fail across devices.</td></tr>
+          <tr><td>Focus behavior</td><td>Focus alone does not alter either composer layout</td><td>This removes the unwanted first transition shown in both screenshots.</td></tr>
+          <tr><td>Compact controls</td><td>Keep image-attach and icon-only arrow send controls for one-line text</td><td>Typing a short comment or reply remains directly submittable without opening the expanded footer.</td></tr>
+          <tr><td>Reply composer</td><td>Use the same content-driven field behavior; retain the reply banner and cancel context</td><td>The requested visual parity removes the oversized reply field without losing reply identity or cancellation.</td></tr>
+          <tr><td>Resize bound</td><td>Preserve the current approximately three-row composed-field limit, then allow normal textarea scrolling</td><td>Prevents a long comment from consuming the whole post-detail screen.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Constraints</h2>
+      <div class="grid">
+        <div><h3>Must</h3><ul><li>Use the existing controlled textarea and component state; add no dependency.</li><li>Use named constants for any line/height cap (§4.2).</li><li>Keep component concerns local (§13.3); no new global state or API calls.</li><li>Run frontend typecheck, lint, and production build.</li></ul></div>
+        <div><h3>Must not</h3><ul><li>No backend, route, API, schema, migration, or design-system primitive changes.</li><li>No character-count-only expansion rule.</li><li>No removal of Enter/Shift+Enter semantics or accessible labels.</li><li>No change to <code>CommentsSection.tsx</code> unless required solely to preserve a verified composer contract.</li></ul></div>
+        <div><h3>Out of scope</h3><ul><li>Comment bubbles, reactions, counts, and visual restyling, except the user-requested separated-media layout for uploaded comment images.</li><li>Message composer behavior.</li><li>Comment editing, drafts, mentions, or attachments beyond current behavior.</li></ul></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Risk and mitigation</h2>
+      <p><strong>Level 2 — concern.</strong> Measuring wrapped text can oscillate at the one-line boundary if the expanded layout changes the textarea’s available width, and height changes can disrupt mobile or IME input. This is a focused interaction fix, but these failure modes require deliberate verification.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Text alternates between one and two lines as controls change width</td><td>Measure against stable textarea geometry; keep the compact width reservation for the send affordance while determining wrapped state. Test at desktop and narrow viewport widths.</td></tr>
+          <tr><td>Long text expands without a bound</td><td>Use named one-line and maximum-height values; cap visual growth at the current roughly three-row behavior, then scroll.</td></tr>
+          <tr><td>Shortened text remains visually expanded</td><td>Recalculate after each value change and collapse only for the top-level composer with no attachment.</td></tr>
+          <tr><td>Reply workflow regresses</td><td>Keep <code>replyingTo</code> as an explicit expanded-mode override; acceptance includes reply/cancel/submit checks.</td></tr>
+          <tr><td>New frontend convention drift</td><td>Keep the logic inside the existing component and verify §§13.1, 13.2, 13.3, 17.1, 17.2, and 20.3.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Tasks</h2>
+      <article id="T1"><h3>T1 — Make top-level expansion content-driven</h3><dl><dt>Do</dt><dd>Refactor the top-level <code>CommentComposer</code> state so <code>autoFocus</code> requests browser focus only and ordinary <code>onFocus</code> does not set expanded mode. Add a small, named visual-line measurement path tied to textarea value/geometry: retain one row while content fits; grow up to the defined cap and set expanded mode only after a second visual line is required; shrink when content becomes one line again. Keep image selection and <code>replyingTo</code> as explicit expanded-mode overrides. Preserve submit, reset, Enter, Shift+Enter, disabled, and screen-reader labels.</dd><dt>Files</dt><dd><code>frontend/src/components/CommentComposer.tsx</code></dd><dt>Depends on</dt><dd>Execution baseline clean and branch confirmed</dd><dt>Verify</dt><dd>Focus, type a short comment, edit a long comment, insert Shift+Enter, remove text, attach/remove photo, submit, and use a reply composer.</dd></dl></article>
+      <article id="T2"><h3>T2 — Align shell geometry with content-driven growth</h3><dl><dt>Do</dt><dd>Adjust only the comment-composer selectors necessary to keep compact focus styling stable and to support the measured multi-line height. Remove the focus-driven/min-height styling relationship that forces a three-row field. Retain token-based light/dark colors and the existing send control styling.</dd><dt>Files</dt><dd><code>frontend/src/index.css</code></dd><dt>Depends on</dt><dd>T1</dd><dt>Verify</dt><dd>No visible layout jump on focus or one-line typing; expansion is bounded; light and dark themes retain contrast; no horizontal overflow on narrow screens.</dd></dl></article>
+      <article id="T3"><h3>T3 — Let uploaded comment images meet the bubble edge</h3><dl><dt>Do</dt><dd>Mark image-bearing <code>CommentItem</code> bubbles and use a narrowly scoped full-bleed image rule: retain padding around author/body content, remove only the uploaded image’s horizontal border and padding, clip it to the bubble’s rounded outer edge, and retain the reply bubble’s narrower inset calculation.</dd><dt>Files</dt><dd><code>frontend/src/components/CommentItem.tsx</code>, <code>frontend/src/index.css</code></dd><dt>Depends on</dt><dd>T1/T2</dd><dt>Verify</dt><dd>Upload and view image-only and text-plus-image comments in root and reply threads; the photo is naturally full-width with no white border while author metadata, delete menu, and reaction row remain usable.</dd></dl></article>
+      <article id="T4"><h3>T4 — Apply content-driven expansion to reply inputs</h3><dl><dt>Do</dt><dd>Remove the reply-only expanded-state override in <code>CommentComposer</code>. Let reply text use the same visual-line measurement, one-row compact controls, and bounded expansion as comments. Keep the “Replying to” banner, Cancel action, reply-specific submit label, and automatic focus.</dd><dt>Files</dt><dd><code>frontend/src/components/CommentComposer.tsx</code></dd><dt>Depends on</dt><dd>T1/T2</dd><dt>Verify</dt><dd>Opening Reply focuses a compact one-line input with image-attach and arrow-send controls; wrapping or attaching a photo expands it; Cancel and Reply submit still work.</dd></dl></article>
+      <article id="T5"><h3>T5 — Remove the image-only gap below comment metadata</h3><dl><dt>Do</dt><dd>Remove the image-only top-margin utility from <code>CommentItem</code>. Preserve the existing text-plus-image gap so only an image-only comment begins directly beneath its author/time row.</dd><dt>Files</dt><dd><code>frontend/src/components/CommentItem.tsx</code></dd><dt>Depends on</dt><dd>T3</dd><dt>Verify</dt><dd>An image-only comment has no blank strip above the photo; a text-plus-image comment retains a natural body-to-image separation.</dd></dl></article>
+      <article id="T6"><h3>T6 — Separate comment identity from uploaded media</h3><dl><dt>Do</dt><dd>Render author/time/menu (and optional body text) in the existing compact <code>comment-bubble</code>, then render an uploaded image as a distinct rounded media card beneath it. Remove the now-obsolete full-bleed selectors; retain root/reply media widths and a small intentional gap between the two separate elements.</dd><dt>Files</dt><dd><code>frontend/src/components/CommentItem.tsx</code>, <code>frontend/src/index.css</code></dd><dt>Depends on</dt><dd>T3/T5</dd><dt>Verify</dt><dd>Image-only and text-plus-image comments show a compact profile/text bubble and a separate rounded photo below it, in root and reply threads.</dd></dl></article>
+      <article id="T7"><h3>T7 — Keep separate media natural and profile metadata plain</h3><dl><dt>Do</dt><dd>Remove forced 100%-width stretching from separate attachment images while retaining root/reply maximum bounds. For every photo comment, remove the metadata wrapper’s border, fill, shadow, and padding so name/time reads as a plain Facebook-style row above the photo.</dd><dt>Files</dt><dd><code>frontend/src/components/CommentItem.tsx</code>, <code>frontend/src/index.css</code></dd><dt>Depends on</dt><dd>T6</dd><dt>Verify</dt><dd>Small/narrow photos display at natural size without filling the available row; large photos cap at the existing width; every photo comment has a plain profile row with no border.</dd></dl></article>
+      <article id="T8"><h3>T8 — Align the photo-comment menu with its media</h3><dl><dt>Do</dt><dd>Wrap each photo comment’s plain metadata row and separate image in one natural-width media container. Let the metadata row span that container so its existing absolute ellipsis menu aligns with the photo’s right edge instead of sitting immediately after the timestamp.</dd><dt>Files</dt><dd><code>frontend/src/components/CommentItem.tsx</code>, <code>frontend/src/index.css</code></dd><dt>Depends on</dt><dd>T6/T7</dd><dt>Verify</dt><dd>On root and reply photo comments, the ellipsis aligns to the media edge; the profile row remains borderless; the photo keeps its natural bounded size.</dd></dl></article>
+      <article id="T9"><h3>T9 — Make photo and text comments use the compact plain treatment</h3><dl><dt>Do</dt><dd>Apply the plain profile/body presentation to text comments as well as photo comments. Replace the photo’s variable top-margin utilities with a compact fixed grid gap between its metadata row and media, preserving the natural-width media container and aligned menu.</dd><dt>Files</dt><dd><code>frontend/src/components/CommentItem.tsx</code>, <code>frontend/src/index.css</code></dd><dt>Depends on</dt><dd>T7/T8</dd><dt>Verify</dt><dd>Text-only comments have no profile-card border and use compact spacing; photo comments have the same plain header and a small fixed header-to-photo gap.</dd></dl></article>
+    </section>
+
+    <section>
+      <h2>Done checklist</h2>
+      <ul class="check">
+        <li>☑ T1, T2, T3, T4, T5, T6, T7, T8, and T9 complete with no scope deviation, or an append-only Revision Log entry explains the change.</li>
+        <li>☑ Top-level focus and one-line typing retain the original compact row.</li>
+        <li>☑ Wrapping/newline content grows smoothly, caps its height, and returns to one row after shortening.</li>
+        <li>☑ Image, comment submission, reply/cancel/submission, Enter, and Shift+Enter behavior remains correct.</li>
+        <li>☑ Light/dark and narrow/desktop visual acceptance passes.</li>
+        <li>☑ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> pass.</li>
+        <li>☑ Acceptance checklist passes or every failed item carries a written waiver.</li>
+      </ul>
+    </section>
+
+    <section><h2>Acceptance</h2><p>Run and record the executable checklist in <code>test-results.json</code> using <code>test.html</code> after execution. UI validation must use a contained runtime under <code>-tw</code>; do not use shared staging services.</p></section>
+    <section><h2>Revision Log</h2><table><thead><tr><th>Rev</th><th>Date</th><th>Note</th></tr></thead><tbody><tr><td>1</td><td>08192026</td><td>Initial planning spec from the supplied screenshot and current composer implementation. No application code changed.</td></tr><tr><td>2</td><td>08192026</td><td>Executed T1/T2 on <code>kylie/comment-typing-fix</code>: focus no longer expands the top-level composer; wrapped text drives bounded growth; the send-control slot remains reserved. Frontend typecheck, lint, and build pass. Contained UI acceptance remains pending.</td></tr><tr><td>3</td><td>08192026</td><td>Continuation: restored the compact image-attach trigger beside Send. The earlier change had kept attachment handling but hid its trigger until expansion, which was a UI regression.</td></tr><tr><td>4</td><td>08192026</td><td>Continuation: added T3 after the supplied screenshot showed excess white padding around an uploaded comment image. Image-bearing comment bubbles now use a scoped full-bleed treatment while retaining the metadata inset.</td></tr><tr><td>5</td><td>08192026</td><td>Continuation: user requested reply-input parity. T4 removes the reply-only expanded field while preserving reply context, cancellation, attachment, and submit behavior.</td></tr><tr><td>6</td><td>08192026</td><td>Continuation: the supplied image-only screenshot exposed a residual gap above the photo. T5 removes only that image-only margin; text-plus-image spacing stays intact.</td></tr><tr><td>7</td><td>08192026</td><td>Continuation: user requested the profile/name and photo be separate. T6 supersedes the full-bleed result of T3/T5: metadata/body stays in a compact bubble and the photo is a separate rounded media card below it.</td></tr><tr><td>8</td><td>08192026</td><td>Continuation: user requested natural media sizing and a plain Facebook-style profile row. T7 removes forced full-width stretching and strips image-only metadata of its card chrome.</td></tr><tr><td>9</td><td>08192026</td><td>Continuation: corrected the profile-row scope. All photo comments—including a captioned photo—now use the plain metadata treatment; the earlier condition was too narrow.</td></tr><tr><td>10</td><td>08192026</td><td>Continuation: the plain profile row shrink-wrapped the menu next to the timestamp. T8 groups it with its photo so the ellipsis aligns with the media edge.</td></tr><tr><td>11</td><td>08192026</td><td>Continuation: user requested a compact layout and parity for text comments. T9 applies the plain treatment to all comments and replaces variable photo margins with one small fixed grid gap.</td></tr><tr><td>12</td><td>08192026</td><td>Finalized on <code>kylie/comment-typing-fix</code>. The user confirmed all UI acceptance scenarios after visual testing; the frontend typecheck, lint, and production build completed successfully. A contained runtime was started with isolated worktree, database, uploads, and ports; its browser bridge could not reach the loopback URL, so no browser result is claimed.</td></tr></tbody></table></section>
+  </main>
+</body>
+</html>

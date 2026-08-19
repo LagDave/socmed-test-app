@@ -61,6 +61,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 61 | `08072026-50-reaction-share-notifications` | Activity notifications for reactions and post shares |
 | 62 | `08152026-friends-ui-revamp` | Friends navigation, suggestions, and presence polish |
 | 63 | `08182026-message-dark-mode` | Independent Messenger light/dark mode |
+| 64 | `08192026-comment-typing-fix` | Comment composer: retain one-row typing until content wraps |
 
 ## Branch → host (hard rule)
 
