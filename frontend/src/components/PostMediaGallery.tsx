@@ -126,13 +126,11 @@ function PostPhotoSlide({
   image,
   photoIndex,
   total,
-  compact,
   postActions,
 }: {
   image: PostImageView;
   photoIndex: number;
   total: number;
-  compact: boolean;
   postActions?: PostMediaActionsConfig;
 }) {
   const commentPath =
@@ -148,17 +146,12 @@ function PostPhotoSlide({
     : postActions?.postReactionSummary ?? emptyReactionSummary();
 
   return (
-    <figure className="post-photo-slide overflow-visible rounded-xl bg-gradient-to-b from-muted/20 to-muted/10 ring-1 ring-border/45 shadow-sm">
-      <div
-        className={cn(
-          "relative w-full overflow-hidden rounded-t-xl bg-muted/20",
-          compact ? "post-media-slide--compact" : "post-media-slide"
-        )}
-      >
+    <figure className="post-photo-slide overflow-visible">
+      <div className="relative w-full overflow-hidden">
         <img
           src={image.url}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          className="user-media-full w-full rounded-t-xl"
           loading={photoIndex === 0 ? "eager" : "lazy"}
         />
         <span className="absolute bottom-2.5 right-2.5 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
@@ -218,7 +211,7 @@ function PostMediaAlbum({
   return (
     <section
       className={cn(
-        "post-media-gallery overflow-hidden rounded-2xl border border-border/50 bg-card shadow-[var(--feed-shadow)]",
+        "overflow-visible",
         detail && "post-media-gallery--detail",
         className
       )}
@@ -242,7 +235,7 @@ function PostMediaAlbum({
 
       <div
         className={cn(
-          "post-media-gallery-scroll space-y-2.5 p-2.5 sm:p-3",
+          "post-media-gallery-scroll space-y-2.5",
           detail
             ? "post-media-gallery-scroll--detail"
             : compact
@@ -257,7 +250,6 @@ function PostMediaAlbum({
             image={image}
             photoIndex={index}
             total={media.length}
-            compact={compact}
             postActions={detail ? postActions : undefined}
           />
         ))}
@@ -282,7 +274,7 @@ export function PostMediaGallery({
     const frame = (
       <div
         className={cn(
-          "post-media-gallery overflow-visible rounded-2xl border border-border/50 bg-card shadow-[var(--feed-shadow)]",
+        "overflow-visible",
           className
         )}
       >
@@ -290,7 +282,6 @@ export function PostMediaGallery({
           image={media[0]}
           photoIndex={0}
           total={1}
-          compact={compact}
           postActions={mode === "detail" ? postActions : undefined}
         />
       </div>

@@ -110,8 +110,8 @@ export function PhotoUpdateDialog({
                 />
               </div>
             ) : (
-              <div className="overflow-hidden rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.14)] ring-1 ring-border/60">
-                <img src={previewUrl} alt="" className="block h-44 w-full object-cover sm:h-52" />
+              <div className="user-media-stage overflow-hidden rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.14)] ring-1 ring-border/60">
+                <img src={previewUrl} alt="" className="user-media-thumbnail h-44 sm:h-52" />
               </div>
             )}
           </div>

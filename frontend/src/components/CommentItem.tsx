@@ -127,7 +127,13 @@ export function CommentItem({
           </div>
 
           {comment.imageUrl && (
-            <img src={comment.imageUrl} alt="" className="comment-attachment-image max-h-52 object-cover" />
+            <div className="user-media-stage mt-2 max-h-52 w-full max-w-sm">
+              <img
+                src={comment.imageUrl}
+                alt=""
+                className="comment-attachment-image user-media-thumbnail max-h-52"
+              />
+            </div>
           )}
           </div>
 

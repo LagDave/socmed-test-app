@@ -44,7 +44,7 @@ function ProfileActivityMedia({ body, imageUrl }: { body: string; imageUrl: stri
   return (
     <div className={`mt-3 ${POST_MEDIA_BREAKOUT}`}>
       <div className="w-full max-w-2xl overflow-hidden rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] ring-1 ring-border/70">
-        <img src={imageUrl} alt="" className="block max-h-80 w-full object-cover sm:max-h-96" />
+        <img src={imageUrl} alt="" className="user-media-full block w-full" />
       </div>
     </div>
   );
@@ -107,11 +107,11 @@ function PostStandardMedia({
     );
   }
   return wrapFeedMediaStage(
-    <Link to={postPath} className="mt-3 block overflow-hidden rounded-xl border border-border/60">
+    <Link to={postPath} className="mt-3 block overflow-hidden rounded-xl">
       <img
         src={media[0].url}
         alt=""
-        className="max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]"
+        className="user-media-full block w-full"
       />
     </Link>,
     variant
