@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.40 — 2026-08-19
+
+### Fixed
+- Centered the compact post, photo, and comment reaction-summary glyphs within their padded circular containers
+
+### Plans
+- `plans/08192026-reaction-side-fix` — completed on `kylie/reaction-side-fix`
+
 ## 0.1.39 — 2026-08-18
 
 ### Added
