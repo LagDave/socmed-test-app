@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.41 — 2026-08-19
+
+### Changed
+- Reduced the compact chat-photo viewer cap to 24rem on desktop
+- Let users click or keyboard-activate an opened chat photo to toggle a larger, viewport-contained view
+
+### Plans
+- `plans/08192026-photo-modal-fix` — follow-up acceptance completed on `kylie/photo-modal-fix`
+
 ## 0.1.40 — 2026-08-19
 
 ### Changed

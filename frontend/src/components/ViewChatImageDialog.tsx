@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -9,12 +9,14 @@ type ViewChatImageDialogProps = {
 };
 
 export function ViewChatImageDialog({ open, imageUrl, onClose }: ViewChatImageDialogProps) {
+  const [isZoomed, setIsZoomed] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
+    setIsZoomed(false);
     closeRef.current?.focus();
 
     function onKeyDown(event: KeyboardEvent) {
@@ -57,11 +59,25 @@ export function ViewChatImageDialog({ open, imageUrl, onClose }: ViewChatImageDi
         >
           <X className="size-3.5" aria-hidden="true" />
         </Button>
-        <img
-          src={imageUrl}
-          alt=""
-          className="max-h-[70vh] max-w-full rounded-lg object-contain shadow-lg sm:max-w-[32rem]"
-        />
+        <button
+          type="button"
+          className={`block max-w-full rounded-lg border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+            isZoomed ? "cursor-zoom-out" : "cursor-zoom-in"
+          }`}
+          aria-label={isZoomed ? "Return image to compact size" : "Zoom in image"}
+          aria-pressed={isZoomed}
+          onClick={() => setIsZoomed((zoomed) => !zoomed)}
+        >
+          <img
+            src={imageUrl}
+            alt=""
+            className={
+              isZoomed
+                ? "max-h-[90vh] max-w-full rounded-lg object-contain shadow-lg sm:max-w-[48rem]"
+                : "max-h-[70vh] max-w-full rounded-lg object-contain shadow-lg sm:max-w-[24rem]"
+            }
+          />
+        </button>
       </div>
     </div>
   );
