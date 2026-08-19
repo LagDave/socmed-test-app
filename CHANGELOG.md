@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.40 — 2026-08-19
+
+### Changed
+- Reworked received-chat-photo viewing into a compact, centered image lightbox without the prior title, panel frame, or broad padding
+- Added a small background-free close X that remains visible over both light and dark images
+
+### Plans
+- `plans/08192026-photo-modal-fix` — completed on `kylie/photo-modal-fix`
+
 ## 0.1.39 — 2026-08-18
 
 ### Added
