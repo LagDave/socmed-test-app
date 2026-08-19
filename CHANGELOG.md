@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.40 — 2026-08-19
+
+### Fixed
+- Kept comment and reply composers compact until text wraps, while retaining photo attachment and send controls.
+- Made text and photo comments compact and borderless, with natural-size media and aligned overflow menus.
+
+### Plans
+- `plans/08192026-comment-typing-fix` — completed on `kylie/comment-typing-fix`
+
 ## 0.1.39 — 2026-08-18
 
 ### Added
