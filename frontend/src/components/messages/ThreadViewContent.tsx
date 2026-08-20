@@ -353,13 +353,13 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                 const groupedWithNext = Boolean(next && messagesShareGroup(m, next));
                 const previousHasReaction = prev ? hasMessageReaction(prev) : false;
                 const messageHasReaction = hasMessageReaction(m);
-                const messageHasImage = Boolean(m.imageUrl);
+                const imagesBreakCompactGrouping = Boolean(prev?.imageUrl || m.imageUrl);
                 const compactWithPrevious = Boolean(
                   prev &&
                     prev.senderId === m.senderId &&
                     !previousHasReaction &&
                     !messageHasReaction &&
-                    !messageHasImage
+                    !imagesBreakCompactGrouping
                 );
                 const showTimeGap = Boolean(prev && !showDay && messagesHaveTimeGap(prev, m));
 

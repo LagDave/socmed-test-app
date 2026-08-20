@@ -1604,6 +1604,11 @@ body {
   backdrop-filter: blur(6px);
 }
 
+.dark .chat-image-modal-backdrop,
+.messages-theme-dark .chat-image-modal-backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
 .modal-panel {
   border-radius: 12px;
   border: 1px solid var(--border);
