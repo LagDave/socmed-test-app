@@ -441,44 +441,7 @@ body {
   position: relative;
   isolation: isolate;
   padding: 0.625rem 1rem 0.75rem;
-}
-
-.messages-thread-header::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--chat-bg, var(--card)) 92%, var(--foreground)) 0%,
-    var(--chat-bg, var(--card)) 100%
-  );
-}
-
-.messages-thread-header::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 1px;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--chat-thread-fg, var(--foreground)) 16%, transparent) 20%,
-    color-mix(in srgb, var(--chat-thread-fg, var(--foreground)) 16%, transparent) 80%,
-    transparent
-  );
-}
-
-.messages-thread-header--default::before {
-  background: color-mix(in srgb, var(--card) 88%, transparent);
-  backdrop-filter: blur(14px);
-}
-
-.messages-thread-header--default::after {
-  background: color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--secondary) 35%, var(--card));
 }
 
 .messages-thread-header-inner {
@@ -536,10 +499,13 @@ body {
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 6%, transparent);
 }
 
-[data-chat-theme="true"] .messages-thread-header {
+.messages-thread-shell[data-chat-theme="true"] {
   background: var(--chat-bg);
+}
+
+[data-chat-theme="true"] .messages-thread-header {
+  background: transparent;
   color: var(--chat-thread-fg);
-  border-bottom-color: transparent;
   box-shadow: none;
 }
 
@@ -560,6 +526,7 @@ body {
 }
 
 [data-chat-theme="true"] .messages-thread-pane {
+  background: transparent;
   color: var(--chat-thread-fg);
 }
 
