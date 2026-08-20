@@ -9,7 +9,7 @@
 - Kept the #108 compact chat-photo lightbox; post album photos still open the selected-image viewer.
 
 ### Plans
-- `plans/08192026-post-photo-fix` — in progress on `kylie/post-photo-fix` (visual acceptance pending)
+- `plans/08192026-post-photo-fix` — completed on `kylie/post-photo-fix` (T1–T5 visual recheck waived)
 
 ## 0.1.40 — 2026-08-20
 

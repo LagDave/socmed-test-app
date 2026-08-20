@@ -1,14 +1,20 @@
 {
   "plan": "plans/08192026-post-photo-fix",
   "generatedAt": "2026-08-20",
-  "status": "In Progress",
+  "status": "Passed",
   "items": [
     {
       "id": "D1",
       "title": "Automated frontend verification",
       "surface": "cli",
       "precondition": "Implementation complete.",
-      "steps": ["Run npm run typecheck.", "Run npm --prefix frontend run lint.", "Run npm --prefix frontend run build.", "Run npm run test:notifications.", "Search frontend source for object-cover, object-fit: cover, and background-size: cover; confirm any remaining crop-to-fill rule is an approved circular identity-avatar surface."],
+      "steps": [
+        "Run npm run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build.",
+        "Run npm run test:notifications.",
+        "Search frontend source for object-cover, object-fit: cover, and background-size: cover; confirm any remaining crop-to-fill rule is an approved circular identity-avatar surface."
+      ],
       "expected": "All commands succeed with no errors caused by this change. Full content photos have no crop-to-fill rule; the approved circular identity-avatar surfaces and compact multi-photo carousel previews are the only crop-to-fill exceptions.",
       "status": "pass",
       "evidence": "2026-08-20: frontend typecheck and production build passed after R1-R4 fixes. Frontend lint completed with the same six pre-existing warnings outside this change. Root package has no check:all script, so the documented frontend gates were run directly.",
@@ -20,53 +26,98 @@
       "title": "Post and shared-post media show every image edge",
       "surface": "ui",
       "precondition": "Signed in; portrait, landscape, and square posts are available, including a multi-photo and shared post.",
-      "steps": ["Inspect regular feed posts, profile timeline posts, and their detail views.", "Inspect multi-photo grids, a shared-post embed, and the photo-comments page.", "Repeat portrait checks at a narrow/mobile viewport."],
+      "steps": [
+        "Inspect regular feed posts, profile timeline posts, and their detail views.",
+        "Inspect multi-photo grids, a shared-post embed, and the photo-comments page.",
+        "Repeat portrait checks at a narrow/mobile viewport."
+      ],
       "expected": "Full post-detail and photo-comment media is complete and uses natural height with no extra surrounding panel or nested album border; tall images shrink within a viewport-safe area. Multi-photo previews show the original fixed four-tile grid and a +N overlay on the fourth tile; opening the post exposes every original image.",
-      "status": "pending", "evidence": "2026-08-20: Recheck required after R4 removed the shared-post media stage.", "notes": "Verify the shared original media no longer receives an extra muted panel.", "waiver": ""
+      "status": "fail",
+      "evidence": "2026-08-20: Recheck required after R4 removed the shared-post media stage.",
+      "notes": "Verify the shared original media no longer receives an extra muted panel. Waived by explicit human direction before merge.",
+      "waiver": "2026-08-20: dave explicitly directed to waive the post-rebase T1\u2013T5 visual recheck, self-approve, and merge #104 to dest. Prior T6 local acceptance (2026-08-19) and code review of R1\u2013R4/R6 stand in. Residual visual risk accepted on staging after land."
     },
     {
       "id": "T2",
       "title": "Comment and composer photos show every image edge",
       "surface": "ui",
       "precondition": "Signed in; have a comment image and files of all three orientations ready to attach.",
-      "steps": ["Inspect an existing image comment.", "Attach portrait, landscape, and square photos in the post composer and comment composer.", "Confirm thumbnail labels, remove controls, and submission behavior."],
+      "steps": [
+        "Inspect an existing image comment.",
+        "Attach portrait, landscape, and square photos in the post composer and comment composer.",
+        "Confirm thumbnail labels, remove controls, and submission behavior."
+      ],
       "expected": "Existing comment media and selected attachment thumbnails show all edges; composer interactions remain unchanged.",
-      "status": "pending", "evidence": "2026-08-20: Recheck required after R3 changed the comment attachment to a bounded contained thumbnail stage.", "notes": "Verify portrait, landscape, and square comment attachments remain contained and the remove control works.", "waiver": ""
+      "status": "fail",
+      "evidence": "2026-08-20: Recheck required after R3 changed the comment attachment to a bounded contained thumbnail stage.",
+      "notes": "Verify portrait, landscape, and square comment attachments remain contained and the remove control works. Waived by explicit human direction before merge.",
+      "waiver": "2026-08-20: dave explicitly directed to waive the post-rebase T1\u2013T5 visual recheck, self-approve, and merge #104 to dest. Prior T6 local acceptance (2026-08-19) and code review of R1\u2013R4/R6 stand in. Residual visual risk accepted on staging after land."
     },
     {
       "id": "T3",
       "title": "Message photos and reply previews show every image edge",
       "surface": "ui",
       "precondition": "Signed in with a conversation containing image-only and captioned image messages.",
-      "steps": ["Inspect landscape and portrait message bubbles.", "Open the image viewer.", "Reply to an image and inspect its quote strip and composer preview."],
+      "steps": [
+        "Inspect landscape and portrait message bubbles.",
+        "Open the image viewer.",
+        "Reply to an image and inspect its quote strip and composer preview."
+      ],
       "expected": "No message, reply, or composer preview crops image content; the existing viewer still opens the complete image.",
-      "status": "pending", "evidence": "2026-08-20: Recheck required after R1/R2 restored the chat-local lightbox and its 220px by 12rem media rail.", "notes": "Verify Messenger-dark with app-light, portrait/landscape media caps, and Escape/backdrop dismissal.", "waiver": ""
+      "status": "fail",
+      "evidence": "2026-08-20: Recheck required after R1/R2 restored the chat-local lightbox and its 220px by 12rem media rail.",
+      "notes": "Verify Messenger-dark with app-light, portrait/landscape media caps, and Escape/backdrop dismissal. Waived by explicit human direction before merge.",
+      "waiver": "2026-08-20: dave explicitly directed to waive the post-rebase T1\u2013T5 visual recheck, self-approve, and merge #104 to dest. Prior T6 local acceptance (2026-08-19) and code review of R1\u2013R4/R6 stand in. Residual visual risk accepted on staging after land."
     },
     {
       "id": "T4",
       "title": "Profile covers show every image edge; avatars remain circular",
       "surface": "ui",
       "precondition": "Signed in with portrait and landscape avatar and cover files ready for preview or update.",
-      "steps": ["Inspect avatars in the navbar, feed, comments, friends, and messages.", "Inspect a profile-header cover and the full profile-picture dialog.", "Open profile edit and photo-update previews for portrait and landscape files."],
+      "steps": [
+        "Inspect avatars in the navbar, feed, comments, friends, and messages.",
+        "Inspect a profile-header cover and the full profile-picture dialog.",
+        "Open profile edit and photo-update previews for portrait and landscape files."
+      ],
       "expected": "Cover photos show every image edge with neutral unused space rather than crop. Avatars and profile-picture activity remain circular and centered, with no extra square backdrop.",
-      "status": "pending", "evidence": "2026-08-20: Recheck required after R1 moved the cover-update preview dimensions from the image to its stage.", "notes": "Verify h-44 / sm:h-52 cover preview sizing and contained portrait/landscape images.", "waiver": ""
+      "status": "fail",
+      "evidence": "2026-08-20: Recheck required after R1 moved the cover-update preview dimensions from the image to its stage.",
+      "notes": "Verify h-44 / sm:h-52 cover preview sizing and contained portrait/landscape images. Waived by explicit human direction before merge.",
+      "waiver": "2026-08-20: dave explicitly directed to waive the post-rebase T1\u2013T5 visual recheck, self-approve, and merge #104 to dest. Prior T6 local acceptance (2026-08-19) and code review of R1\u2013R4/R6 stand in. Residual visual risk accepted on staging after land."
     },
     {
       "id": "T5",
       "title": "Future uploads and frontend verification gate",
       "surface": "cli",
       "precondition": "Implementation complete.",
-      "steps": ["Create new post, comment, message, and cover uploads with mixed orientations.", "Verify each new content upload follows the no-crop rule without special settings.", "Update an avatar and confirm it stays circular without a square backdrop.", "Run npm --prefix frontend run typecheck.", "Run npm --prefix frontend run lint.", "Run npm --prefix frontend run build."],
+      "steps": [
+        "Create new post, comment, message, and cover uploads with mixed orientations.",
+        "Verify each new content upload follows the no-crop rule without special settings.",
+        "Update an avatar and confirm it stays circular without a square backdrop.",
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
       "expected": "The no-crop rule applies automatically to future content uploads; avatars retain the approved circular profile treatment; and all frontend commands finish without errors caused by this change.",
-      "status": "pending", "evidence": "2026-08-20: Automated gates reran successfully; the affected comment, message, and cover visual checks remain pending.", "notes": "Complete T1-T4 before marking this end-to-end item passed.", "waiver": ""
+      "status": "fail",
+      "evidence": "2026-08-20: Automated gates reran successfully; the affected comment, message, and cover visual checks remain pending.",
+      "notes": "Complete T1-T4 before marking this end-to-end item passed. Waived by explicit human direction before merge.",
+      "waiver": "2026-08-20: dave explicitly directed to waive the post-rebase T1\u2013T5 visual recheck, self-approve, and merge #104 to dest. Prior T6 local acceptance (2026-08-19) and code review of R1\u2013R4/R6 stand in. Residual visual risk accepted on staging after land."
     },
     {
       "id": "T6",
       "title": "Post and profile photos open their selected full image",
       "surface": "ui",
       "precondition": "Signed in with a profile avatar and single- and multi-photo posts available in the feed, shared-post embed, and post-detail view.",
-      "steps": ["Click the profile-header avatar and confirm its close-up opens without changing the avatar’s circular presentation.", "Click the circular image in a profile-picture update post and confirm the same close-up opens.", "As the profile owner, use the separate camera control and confirm change, view, and remove options remain available.", "Click a single post photo or a multi-photo carousel, including the fourth tile with a +N overlay.", "Confirm the post-detail album opens.", "Click several individual album photos, then close the dialog with the X, backdrop click, and Escape."],
-      "expected": "Both the profile-header avatar and the circular image in a profile-picture update post open the same immersive circular view at the browser viewport level, with no surrounding dialog card, visible text, ring, halo, or drop shadow. Its plain X sits on the photo’s upper-right edge and there is no footer Close button. The backdrop is black and blurred in dark mode. Profile-owner photo actions remain available from the camera control. The feed/post preview opens the album first. Clicking an album photo then opens that selected image in the browser viewport center, independently of the album animation. Desktop retains the 28rem cap; mobile uses reduced 80vw by 64dvh bounds; neither crops, adds a title, border, or padding. The small plain X is anchored inside the photo’s upper-right edge with no surrounding circle or outline, turns black on a light photo area and white on a dark one; the backdrop is black and blurred in dark mode; backdrop click and Escape dismiss it.",
+      "steps": [
+        "Click the profile-header avatar and confirm its close-up opens without changing the avatar\u2019s circular presentation.",
+        "Click the circular image in a profile-picture update post and confirm the same close-up opens.",
+        "As the profile owner, use the separate camera control and confirm change, view, and remove options remain available.",
+        "Click a single post photo or a multi-photo carousel, including the fourth tile with a +N overlay.",
+        "Confirm the post-detail album opens.",
+        "Click several individual album photos, then close the dialog with the X, backdrop click, and Escape."
+      ],
+      "expected": "Both the profile-header avatar and the circular image in a profile-picture update post open the same immersive circular view at the browser viewport level, with no surrounding dialog card, visible text, ring, halo, or drop shadow. Its plain X sits on the photo\u2019s upper-right edge and there is no footer Close button. The backdrop is black and blurred in dark mode. Profile-owner photo actions remain available from the camera control. The feed/post preview opens the album first. Clicking an album photo then opens that selected image in the browser viewport center, independently of the album animation. Desktop retains the 28rem cap; mobile uses reduced 80vw by 64dvh bounds; neither crops, adds a title, border, or padding. The small plain X is anchored inside the photo\u2019s upper-right edge with no surrounding circle or outline, turns black on a light photo area and white on a dark one; the backdrop is black and blurred in dark mode; backdrop click and Escape dismiss it.",
       "status": "pass",
       "evidence": "2026-08-19: User completed local acceptance for the profile-header and profile-update viewers, including their matching viewport presentation, plain X controls, dark-mode black blur, and responsive photo behavior.",
       "notes": "",
