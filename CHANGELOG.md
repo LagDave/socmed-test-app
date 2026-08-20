@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.42 — 2026-08-20
+
+### Fixed
+- User-uploaded content photos now preserve their full image in full post, comment, message, share, and cover views without forced cropping.
+- Restored the compact four-tile multi-photo carousel with a `+N` counter on its fourth tile; opened post photos remain full-size.
+- Posted comment images stay contained (`max-h-52`) instead of using the post `70dvh` full-media cap.
+- Kept the #108 compact chat-photo lightbox; post album photos still open the selected-image viewer.
+
+### Plans
+- `plans/08192026-post-photo-fix` — in progress on `kylie/post-photo-fix` (visual acceptance pending)
+
 ## 0.1.40 — 2026-08-20
 
 ### Removed
