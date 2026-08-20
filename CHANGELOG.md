@@ -7,10 +7,12 @@
 
 ### Fixed
 - Centered the compact post, photo, and comment reaction-summary glyphs within their padded circular containers
+- Prevented an incoming photo from overlapping a preceding message while preserving compact spacing for text that follows a photo
 
 ### Plans
 - `plans/08182026-remove-message-switch-mode` — completed on `kylie/remove-message-switch-mode`
 - `plans/08192026-reaction-side-fix` — completed on `kylie/reaction-side-fix`
+- `plans/08182026-image-sent-layout` — completed on `kylie/image-sent-fix`
 
 ## 0.1.39 — 2026-08-18
 
