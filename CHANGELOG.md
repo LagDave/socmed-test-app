@@ -10,7 +10,9 @@
 - Skip compact incoming-message grouping when either row has an image, so consecutive photos do not overlap
 - Reworked chat-photo viewing into a compact, centered lightbox (viewport-safe 24rem desktop cap, no click-to-zoom) with a black blurred backdrop in dark mode
 - Added a small background-free close X on the chat-photo viewer
-- Conversation headers now share one continuous surface with the message pane in default, solid-theme, and gradient-theme chats; removed the visible header divider and gradient restart.
+- Conversation headers now share one continuous surface with the message pane in default, solid-theme, and gradient-theme chats; removed the visible header divider and gradient restart
+- Kept comment and reply composers compact until text wraps, while retaining photo attachment and send controls
+- Made text and photo comments compact and borderless, with natural-size media and aligned overflow menus
 
 ### Plans
 - `plans/08182026-remove-message-switch-mode` — completed on `kylie/remove-message-switch-mode`
@@ -18,6 +20,7 @@
 - `plans/08182026-image-sent-layout` — completed on `kylie/image-sent-fix`
 - `plans/08192026-photo-modal-fix` — completed on `kylie/photo-modal-fix`
 - `plans/08202026-convo-header-border` — completed on `kylie/convo-header-fix`
+- `plans/08192026-comment-typing-fix` — completed on `kylie/comment-typing-fix`
 
 ## 0.1.39 — 2026-08-18
 
