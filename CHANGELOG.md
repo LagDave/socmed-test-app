@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.40 — 2026-08-20
+
+### Fixed
+- Incoming message runs now place the peer avatar beside the final/latest bubble instead of the first bubble.
+
+### Plans
+- `plans/08202026-message-avatar-latest` — completed on `kylie/message-avatar-fix`
+
 ## 0.1.39 — 2026-08-18
 
 ### Added

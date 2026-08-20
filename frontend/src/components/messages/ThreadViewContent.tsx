@@ -348,7 +348,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                 const nextItem = threadTimeline[timelineIndex + 1] ?? null;
                 const next = nextItem?.kind === "message" ? nextItem.message : null;
                 const mine = m.senderId === user?.id;
-                const showAvatar = !mine && (!prev || !messagesShareGroup(prev, m));
+                const showAvatar = !mine && (!next || !messagesShareGroup(m, next));
                 const groupedWithPrev = Boolean(prev && messagesShareGroup(prev, m));
                 const groupedWithNext = Boolean(next && messagesShareGroup(m, next));
                 const previousHasReaction = prev ? hasMessageReaction(prev) : false;
