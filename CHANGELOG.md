@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.40 — 2026-08-20
+
+### Changed
+- Redesigned Messages as a responsive master-detail experience: a selected conversation appears beside the connected inbox card at desktop, while mobile retains route-based single-screen navigation.
+- Unified the Messages heading, controls, and conversation list into one responsive card surface; conversation rows are compact, separator-free, and retain swipe-to-delete, unread, and selected states.
+- Refined the navbar profile dropdown with compact spacing and no dark-mode glow.
+
+### Plans
+- `plans/08202026-inbox-message-header` — completed on `kylie/message-card`
+
 ## 0.1.39 — 2026-08-18
 
 ### Added

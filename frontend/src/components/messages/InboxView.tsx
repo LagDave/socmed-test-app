@@ -20,7 +20,7 @@ type PendingDeleteConversation = { id: string; peerName: string };
 function deleteConversationDescription(peerName: string): string {
   return `This permanently deletes the chat and all messages from your inbox. ${peerName} will still have the conversation.`;
 }
-export function InboxView() {
+export function InboxView({ className }: { className?: string }) {
   const { user } = useAuth();
   const typingByConversation = useInboxPeerTyping(user?.id);
   const [items, setItems] = useState<ConversationListItem[]>([]);
@@ -113,39 +113,39 @@ export function InboxView() {
   );
 
   return (
-    <section className="messages-page space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3 px-1">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Messages</h1>
-          <p className="text-sm text-muted-foreground">Chat with friends.</p>
+    <section className={cn("messages-page h-full", className)}>
+      <div className="feed-card messages-inbox-surface h-full min-h-[calc(100dvh-3.5rem)] overflow-hidden lg:min-h-0">
+        <div className="flex flex-wrap items-end justify-between gap-3 px-4 py-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Messages</h1>
+            <p className="text-sm text-muted-foreground">Chat with friends.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {!loading && unreadTotal > 0 && (
+              <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+                {unreadTotal} unread
+              </span>
+            )}
+            <Button
+              ref={newMessageTriggerRef}
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="New message"
+              aria-expanded={isNewMessagePickerOpen}
+              onClick={() => handleNewMessagePickerOpenChange(true)}
+            >
+              <UserPlus className="h-5 w-5" />
+            </Button>
+            <MessagesThemeToggle />
+            <Button asChild variant="ghost" size="icon">
+              <Link to="/messages/settings" aria-label="Message settings">
+                <Settings className="h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {!loading && unreadTotal > 0 && (
-            <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
-              {unreadTotal} unread
-            </span>
-          )}
-          <Button
-            ref={newMessageTriggerRef}
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="New message"
-            aria-expanded={isNewMessagePickerOpen}
-            onClick={() => handleNewMessagePickerOpenChange(true)}
-          >
-            <UserPlus className="h-5 w-5" />
-          </Button>
-          <MessagesThemeToggle />
-          <Button asChild variant="ghost" size="icon">
-            <Link to="/messages/settings" aria-label="Message settings">
-              <Settings className="h-5 w-5" />
-            </Link>
-          </Button>
-        </div>
-      </div>
 
-      <div className="feed-card overflow-hidden shadow-sm">
         {error && <MessagesErrorBanner message={error} />}
 
         <div
@@ -163,7 +163,7 @@ export function InboxView() {
         </div>
 
         <div>
-          <div className="border-t border-border px-4 py-3">
+          <div className="px-4 py-3">
             <h2 className="messages-section-label">
               Conversations
               {!loading && items.length > 0 && (
@@ -177,7 +177,7 @@ export function InboxView() {
           {loading ? (
             <MessagesRowSkeleton rows={3} />
           ) : items.length > 0 ? (
-            <ul className="space-y-2 px-4 pb-4">
+            <ul className="px-4 pb-4">
               {items.map((c) => (
                 <SwipeableConversationListRow
                   key={c.id}

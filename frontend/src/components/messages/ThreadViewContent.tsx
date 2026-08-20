@@ -34,6 +34,7 @@ function hasMessageReaction(message: MessageView): boolean {
 }
 
 type ThreadViewContentProps = {
+  embedded: boolean;
   user: PublicUser | null;
   resolvedTheme: ResolvedChatTheme;
   themeVars: CSSProperties;
@@ -105,7 +106,7 @@ type ThreadViewContentProps = {
 
 export function ThreadViewContent(props: ThreadViewContentProps) {
   const {
-    user, resolvedTheme, themeVars, navigate, peer, peerPresence, peerProfilePath, isSearchOpen, onToggleSearch, setThemePickerOpen, onOpenPinnedMessages,
+    embedded, user, resolvedTheme, themeVars, navigate, peer, peerPresence, peerProfilePath, isSearchOpen, onToggleSearch, setThemePickerOpen, onOpenPinnedMessages,
     setPendingDelete, conversationId, bottomRef, scrollRef, stickToBottomRef, canHover, setTappedMessageId,
     loadingThread, hasMore, hasMoreNewer, loadingEarlier, loadingNewer, loadEarlier, loadNewer, error, setError, isPeerTyping,
     threadTimeline, focusedMessageId, searchHighlightQuery, peerLastReadAt, editingMessageId, tappedMessageId, startEdit, patchMessageReaction, pinnedMessageIds, pinSavingMessageId, changeMessagePin,
@@ -179,9 +180,12 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
   }, [hasMoreNewer, loadingNewer, loadingThread, loadNewer, scrollRef]);
 
   return (
-    <section className="messages-page space-y-4">
+    <section className={cn("messages-page space-y-4", embedded && "lg:h-full lg:space-y-0")}>
       <div
-        className="feed-card relative flex h-[calc(100dvh-7rem)] min-h-[70vh] flex-col overflow-hidden"
+        className={cn(
+          "feed-card relative flex h-[calc(100dvh-7rem)] min-h-[70vh] flex-col overflow-hidden",
+          embedded && "lg:h-full lg:min-h-0 lg:rounded-none lg:shadow-none"
+        )}
         data-chat-theme={resolvedTheme.active ? "true" : undefined}
         style={themeVars}
       >
