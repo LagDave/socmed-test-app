@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reaction Summary Side Padding — Spec</title>
+    <style>
+      :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      body { max-width: 980px; margin: 0 auto; padding: 2rem; line-height: 1.55; background: Canvas; color: CanvasText; }
+      header, section { border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: 12px; padding: 1.25rem 1.4rem; margin: 1rem 0; }
+      h1, h2, h3 { line-height: 1.2; } h1 { margin-top: 0; } h2 { margin: 0 0 .6rem; font-size: 1.15rem; }
+      .status { display: inline-block; padding: .3rem .6rem; border-radius: 999px; background: #f0b429; color: #231700; font-weight: 800; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+      table { width: 100%; border-collapse: collapse; } th, td { padding: .7rem; vertical-align: top; text-align: left; border-top: 1px solid color-mix(in srgb, CanvasText 15%, transparent); }
+      th { width: 11rem; } ul { padding-left: 1.25rem; } .risk { border-left: 4px solid #4b8edb; padding-left: .8rem; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="status">Completed</span>
+      <h1>Reaction Summary Side Padding</h1>
+      <table>
+        <tr><th>Plan folder</th><td><code>plans/08192026-reaction-side-fix</code></td></tr>
+        <tr><th>Planning branch</th><td><code>codex/plan-08192026-reaction-side-fix</code></td></tr>
+        <tr><th>Execution branch</th><td><code>kylie/reaction-side-fix</code></td></tr>
+        <tr><th>Status</th><td>Completed; automated and visual acceptance passed</td></tr>
+      </table>
+    </header>
+
+    <section>
+      <h2>Why</h2>
+      <p>The stacked reaction icons at the right side of post and comment action rows do not have the compact circular spacing shown in the supplied reference. The current component has the same wrapper structure but omits the reference’s 4px icon-container padding and the emoji alignment adjustments.</p>
+    </section>
+
+    <section>
+      <h2>What</h2>
+      <p>Adjust only the non-message reaction-summary icon stack in <code>ReactionBar</code> so each circular icon container uses 4px horizontal and vertical padding and a 10px emoji centered in a fixed 10px inline-grid. Do not use visual margin offsets. Preserve the existing <code>-space-x-1</code> overlap, background/ring, reaction count, dialog trigger, and all reaction behavior.</p>
+      <p><strong>Done when:</strong> A single and a multi-type post/comment summary visibly match the supplied compact circular treatment; the summary remains clickable and opens its people list; picker and count behavior remain unchanged; frontend typecheck, lint, and build pass.</p>
+    </section>
+
+    <section>
+      <h2>Context and blast radius</h2>
+      <ul>
+        <li><code>frontend/src/components/ReactionBar.tsx</code> owns the summary markup at lines 418–451. Its non-message guard means this exact summary renders for post, comment, and post-image targets only.</li>
+        <li><code>PostCard.tsx</code>, <code>PostMediaGallery.tsx</code>, and <code>CommentItem.tsx</code> consume <code>ReactionBar</code>; no page should gain its own reaction-summary styling.</li>
+        <li><code>MessageBubbleRow.tsx</code> has a separate <code>MessageReactionBadge</code>; it is explicitly outside this change.</li>
+        <li><code>ReactionIcon.tsx</code> already accepts a class name on its glyph span. The adjustment belongs at the summary call site, not in that shared renderer, so picker and message icon sizing cannot regress.</li>
+      </ul>
+      <p><strong>Closest analog:</strong> the existing summary stack in <code>ReactionBar.tsx</code>; it already contains the supplied outer wrapper, circular background, and ring.</p>
+    </section>
+
+    <section>
+      <h2>Constraints</h2>
+      <ul>
+        <li><strong>Must:</strong> preserve the current semantic button, aria label, dialog wiring, icon ordering, total count, and <code>-space-x-1</code> stacking.</li>
+        <li><strong>Must:</strong> keep the spacing scoped to summary icon containers; use existing Tailwind utilities or scoped styles without adding a dependency or a second reaction renderer.</li>
+        <li><strong>Must not:</strong> alter message reaction badges, reaction API calls, summary data, picker interaction, global emoji sizing, or theme tokens.</li>
+        <li><strong>Out of scope:</strong> changing the total-count typography, reaction emoji set, icon order, hover treatment, or any other feed/chat polish.</li>
+      </ul>
+    </section>
+
+    <section class="risk">
+      <h2>Risk — Level 1: localized visual adjustment</h2>
+      <p>The same component serves posts, images, and comments, so an overly broad change could alter all three. Mitigation: limit the modification to the existing non-message summary mapping and verify both one-icon and overlapping multi-icon states in light and dark themes. No database, API, accessibility-contract, or dependency risk is introduced.</p>
+    </section>
+
+    <section>
+      <h2>Tasks</h2>
+      <table>
+        <tr><th>T1 — Apply reference sizing</th><td><strong>Do:</strong> Update the existing reaction-summary icon container and its <code>ReactionIcon</code> call in <code>ReactionBar.tsx</code> to faithfully express the supplied 4px padding and 10px fixed-grid centering, without visual margin offsets. Keep all existing summary markup and behavior intact.<br /><strong>Files:</strong> <code>frontend/src/components/ReactionBar.tsx</code><br /><strong>Depends on:</strong> none<br /><strong>Verify:</strong> typecheck and visual inspection of one and multiple reaction types.</td></tr>
+        <tr><th>T2 — Validate consumers</th><td><strong>Do:</strong> Run the frontend verification commands and complete the isolated visual acceptance checks for post, post-image, and comment consumers. Record evidence in <code>test-results.json</code>.<br /><strong>Files:</strong> <code>plans/08192026-reaction-side-fix/test-results.json</code><br /><strong>Depends on:</strong> T1<br /><strong>Verify:</strong> lint, typecheck, build, and all acceptance items pass (or have written waivers).</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>Revision Log</h2>
+      <p><strong>Rev 1 · 2026-08-19:</strong> Initial planning artifact from the supplied summary-markup reference. Scope is one rendering component plus acceptance evidence; no app code was changed during planning.</p>
+      <p><strong>Rev 2 · 2026-08-19:</strong> Executed T1 on <code>kylie/reaction-side-fix</code>: the existing non-message summary icon containers now use 4px padding and their shared glyphs use 10px grid-centering with the requested −2px/−1px optical offsets. No API, message-badge, or interaction behavior changed. Frontend lint, typecheck, and build passed; isolated visual acceptance remains pending.</p>
+      <p><strong>Rev 3 · 2026-08-19:</strong> User visual feedback showed the negative margins in Rev 2 displaced the heart glyph. The accepted visual rule is revised: a fixed 10px inline-grid centers each glyph without manual margin offsets. Scope and consumers are unchanged.</p>
+      <p><strong>Rev 4 · 2026-08-19:</strong> Executed the Rev 3 correction on <code>kylie/reaction-side-fix</code>: each 4px-padded summary icon now wraps <code>ReactionIcon</code> in a fixed 10px inline-grid with no manual margin offsets. Frontend lint, typecheck, and build passed again; isolated visual acceptance remains pending.</p>
+      <p><strong>Rev 5 · 2026-08-19:</strong> User completed and confirmed visual acceptance. A1–A3 now pass; this plan is completed and ready for finalization.</p>
+    </section>
+  </body>
+</html>

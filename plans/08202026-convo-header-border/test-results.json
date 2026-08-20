@@ -1,0 +1,42 @@
+{
+  "plan": "plans/08202026-convo-header-border",
+  "generatedAt": "2026-08-20",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Conversation header is a continuous Messenger-style surface",
+      "surface": "ui",
+      "precondition": "Sign in with access to at least one conversation; set a custom chat theme if one is available.",
+      "steps": [
+        "Open /messages/:conversationId with the default chat theme at a normal desktop width.",
+        "Inspect the boundary between the profile/action header and the messages; confirm there is no horizontal divider or visible color/gradient seam.",
+        "Confirm the Search, Customize chat theme, and Conversation options controls remain visible and their shared action pill still has its border.",
+        "Confirm the composer still has its own top separator.",
+        "Repeat with one selected solid custom chat theme and one selected gradient custom chat theme at a narrow/mobile viewport width.",
+        "Scroll the gradient-themed message pane and confirm its background remains continuous with the header."
+      ],
+      "expected": "The conversation header and thread form one continuous surface in default, solid custom, and gradient custom themes. All controls, the action-pill border, message bubbles, and composer separator remain unchanged.",
+      "status": "pass",
+      "evidence": "2026-08-20: user tested the default and selected custom conversation themes and confirmed the Messenger-style continuous surface is correct.",
+      "notes": "User-confirmed live acceptance.",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Frontend verification gate",
+      "surface": "cli",
+      "precondition": "T1 is complete.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "All commands exit successfully with no errors caused by the divider removal.",
+      "status": "pass",
+      "evidence": "2026-08-20: npm --prefix frontend run typecheck, lint, and build completed successfully after the initial divider removal and again after the Rev 2 continuous-surface refinement.",
+      "notes": "Lint emitted six pre-existing warnings in MessageQuoteStrip, PostPhotoCommentsPage, AuthContext, ThemeContext, and PostDetailPage. Vite emitted its pre-existing large-chunk advisory.",
+      "waiver": ""
+    }
+  ]
+}

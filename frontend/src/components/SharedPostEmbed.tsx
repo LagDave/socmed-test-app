@@ -30,8 +30,8 @@ export function SharePostPreview({ post, className }: SharePostPreviewProps) {
           {media.length > 1 ? (
             <PostMediaGallery media={media} mode="compact" className="mt-2.5" />
           ) : media.length === 1 ? (
-            <div className="shared-post-embed-media mt-2.5 overflow-hidden rounded-lg">
-              <img src={media[0].url} alt="" className="max-h-48 w-full object-cover sm:max-h-56" />
+            <div className="shared-post-embed-media user-media-stage mt-2.5 overflow-hidden rounded-lg">
+              <img src={media[0].url} alt="" className="user-media-thumbnail max-h-48 w-full sm:max-h-56" />
             </div>
           ) : null}
         </div>
@@ -57,23 +57,9 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
   const profilePath = `/u/${sharedFrom.author.username || sharedFrom.author.id}`;
   const postPath = `/posts/${sharedFrom.id}`;
   const media = postMediaImages(sharedFrom);
-  const originalMedia =
-    media.length > 1 ? (
-      <PostMediaGallery media={media} postPath={postPath} mode="feed" className="mt-2.5" />
-    ) : media.length === 1 ? (
-      <Link
-        to={postPath}
-        className="group/embed mt-2.5 block rounded-md outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-      >
-        <div className="shared-post-embed-media overflow-hidden rounded-lg">
-          <img
-            src={media[0].url}
-            alt=""
-            className="max-h-96 w-full object-cover transition-transform duration-300 group-hover/embed:scale-[1.01]"
-          />
-        </div>
-      </Link>
-    ) : null;
+  const originalMedia = media.length > 0 ? (
+    <PostMediaGallery media={media} postPath={postPath} mode="feed" className="mt-2.5" />
+  ) : null;
 
   return (
     <div className={cn("shared-post-embed", className)}>

@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 const SIZE_CLASS = {
   xs: "h-4 w-4 text-[10px]",
   sm: "h-10 w-10 text-sm",
@@ -19,15 +21,17 @@ export function ProfileAvatar({
   size?: ProfileAvatarSize;
   className?: string;
 }) {
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const dim = SIZE_CLASS[size];
   const letter = displayName.trim().slice(0, 1).toUpperCase() || "?";
 
-  if (avatarUrl) {
+  if (avatarUrl && failedAvatarUrl !== avatarUrl) {
     return (
       <img
         src={avatarUrl}
         alt=""
         className={`${dim} shrink-0 rounded-full border border-border object-cover shadow-sm ${className}`}
+        onError={() => setFailedAvatarUrl(avatarUrl)}
       />
     );
   }

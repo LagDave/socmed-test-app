@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { Button } from "@/components/ui/button";
 
 type ViewProfilePictureDialogProps = {
   open: boolean;
@@ -39,46 +40,52 @@ export function ViewProfilePictureDialog({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <button
         type="button"
         aria-label="Dismiss"
-        className="modal-backdrop absolute inset-0"
+        className="image-viewer-backdrop modal-backdrop absolute inset-0"
         onClick={() => onCloseRef.current()}
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="modal-panel animate-modal-enter relative z-10 w-full max-w-md overflow-hidden"
+        className="animate-modal-enter relative z-10 flex max-h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] flex-col items-center"
       >
-        <div className="bg-gradient-to-b from-muted/70 to-card px-6 pb-8 pt-6 text-center">
-          <h2 id={titleId} className="text-lg font-semibold tracking-tight">
-            {displayName}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">Profile picture</p>
-          <div className="mt-6 flex justify-center">
+        <div className="relative">
+          <button
+            ref={closeRef}
+            type="button"
+            aria-label="Close profile picture"
+            className="absolute right-3 top-3 z-10 grid size-7 place-items-center text-white mix-blend-difference transition-opacity hover:opacity-70 focus-visible:outline-none"
+            onClick={() => onCloseRef.current()}
+          >
+            <X className="size-5" aria-hidden="true" />
+          </button>
+          <div className="relative flex justify-center">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
                 alt=""
-                className="size-44 rounded-full object-cover shadow-[0_8px_24px_rgba(0,0,0,0.18)] ring-4 ring-card sm:size-48"
+                className="size-[min(72vw,18rem)] rounded-full object-cover sm:size-[min(58vw,20rem)]"
               />
             ) : (
-              <ProfileAvatar displayName={displayName} avatarUrl={null} size="xl" className="ring-4 ring-card shadow-lg" />
+              <ProfileAvatar
+                displayName={displayName}
+                avatarUrl={null}
+                size="xl"
+                className="size-[min(72vw,18rem)] text-6xl sm:size-[min(58vw,20rem)]"
+              />
             )}
           </div>
-          {!avatarUrl && (
-            <p className="mt-4 text-sm text-muted-foreground">No profile picture set.</p>
-          )}
         </div>
-        <div className="flex justify-end border-t border-border/70 px-5 py-4">
-          <Button ref={closeRef} type="button" variant="outline" onClick={() => onCloseRef.current()}>
-            Close
-          </Button>
-        </div>
+        <h2 id={titleId} className="sr-only">
+          {displayName}&apos;s profile picture
+        </h2>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
