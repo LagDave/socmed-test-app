@@ -419,6 +419,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
           <TypingIndicator
             displayName={peer.displayName}
             themed={resolvedTheme.active}
+            className="messages-typing-indicator"
           />
         )}
 

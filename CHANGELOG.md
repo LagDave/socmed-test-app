@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.43 — 2026-08-21
+
+### Fixed
+- Message typing labels now use the peer’s first name, themed typing rows retain a matching readable background, and Messages inbox/thread cards have no shadow at rest or hover (including dark mode).
+- Shared Messages socket remains connected through same-user component cleanup.
+
+### Plans
+- `plans/08202026-messages-visual-polish` — completed on `kylie/typing-fix`
+
 ## 0.1.42 — 2026-08-20
 
 ### Fixed
