@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reaction Summary Side Padding — Acceptance</title>
+    <style>
+      body { max-width: 800px; margin: 2rem auto; padding: 0 1rem; font: 16px/1.5 system-ui, sans-serif; } article { border: 1px solid #ccc; border-radius: 10px; padding: 1rem; margin: 1rem 0; } select, textarea, button { font: inherit; } textarea { box-sizing: border-box; width: 100%; min-height: 4rem; margin-top: .5rem; } button { padding: .5rem .8rem; } .meta { color: #555; font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Reaction Summary Side Padding — Acceptance</h1>
+    <p>Update the checklist, then download the result and replace <code>test-results.json</code> in the execution worktree.</p>
+    <main id="items"></main>
+    <button id="download" type="button">Download updated test-results.json</button>
+    <script>
+      const results = {
+        plan: "plans/08192026-reaction-side-fix", status: "passed",
+        items: [
+          { id: "A1", title: "Post reaction summary follows the reference padding", surface: "ui", precondition: "Isolated runtime with reacted posts.", steps: ["Inspect a one-icon summary.", "Inspect a multi-icon summary.", "Open and close the people list."], expected: "4px padded circular icons, compact optically centered glyphs, retained overlap and behavior.", status: "pass", evidence: "2026-08-19: user manually confirmed the corrected live summary.", notes: "", waiver: "" },
+          { id: "A2", title: "Comment and photo consumers stay consistent", surface: "ui", precondition: "Isolated runtime with reacted comment and post image.", steps: ["Inspect comment and photo summaries.", "Confirm message badges remain unchanged."], expected: "The shared non-message summaries match; message badge does not change.", status: "pass", evidence: "2026-08-19: user confirmed the completed change was visually tested.", notes: "", waiver: "" },
+          { id: "A3", title: "Frontend build gates pass", surface: "cli", precondition: "Dependencies installed.", steps: ["Run frontend lint.", "Run frontend typecheck.", "Run frontend build."], expected: "All pass.", status: "pass", evidence: "2026-08-19: lint, typecheck, and build all exited 0, including a re-run after the centering correction.", notes: "Lint reported six existing unrelated warnings; build retained the existing >500 kB chunk advisory.", waiver: "" }
+        ]
+      };
+      const mount = document.querySelector('#items');
+      results.items.forEach((item) => {
+        const article = document.createElement('article');
+        article.innerHTML = `<h2>${item.id}: ${item.title}</h2><p class="meta">${item.surface.toUpperCase()} · ${item.precondition}</p><ol>${item.steps.map(step => `<li>${step}</li>`).join('')}</ol><p><strong>Expected:</strong> ${item.expected}</p><label>Status <select><option>pending</option><option>pass</option><option>fail</option></select></label><label>Evidence<textarea></textarea></label><label>Notes / waiver<textarea></textarea></label>`;
+        const [status, evidence, notes] = article.querySelectorAll('select, textarea');
+        status.value = item.status; status.onchange = () => item.status = status.value;
+        evidence.oninput = () => item.evidence = evidence.value;
+        notes.oninput = () => { item.notes = notes.value; item.waiver = notes.value; };
+        mount.append(article);
+      });
+      document.querySelector('#download').onclick = () => {
+        results.status = results.items.every(item => item.status === 'pass' || (item.status === 'fail' && item.waiver)) ? 'passed' : 'pending';
+        const blob = new Blob([JSON.stringify(results, null, 2) + '\n'], { type: 'application/json' });
+        const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'test-results.json' });
+        link.click(); URL.revokeObjectURL(link.href);
+      };
+    </script>
+  </body>
+</html>
