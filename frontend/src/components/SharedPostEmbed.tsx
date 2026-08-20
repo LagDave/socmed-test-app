@@ -90,7 +90,7 @@ export function SharedPostEmbed({ sharedFrom, className }: SharedPostEmbedProps)
           ) : null}
         </div>
       </div>
-      {originalMedia ? <div className="post-media-stage user-media-stage">{originalMedia}</div> : null}
+      {originalMedia ? <div className="post-media-stage">{originalMedia}</div> : null}
     </div>
   );
 }
