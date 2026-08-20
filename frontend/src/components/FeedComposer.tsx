@@ -335,11 +335,11 @@ export function FeedComposer({ user, onPosted, onError }: FeedComposerProps) {
                     >
                       {index + 1}
                     </span>
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg ring-1 ring-border/60">
+                    <div className="user-media-stage h-16 w-16 shrink-0 overflow-hidden rounded-lg ring-1 ring-border/60">
                       <img
                         src={img.preview}
                         alt={`Photo ${index + 1}`}
-                        className="h-full w-full object-cover"
+                        className="user-media-thumbnail"
                       />
                     </div>
                     <div className="min-w-0 flex-1">

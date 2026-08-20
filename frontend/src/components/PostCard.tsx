@@ -8,6 +8,7 @@ import { ReactionBar } from "@/components/ReactionBar";
 import { SharedPostEmbed } from "@/components/SharedPostEmbed";
 import { PostMediaGallery } from "@/components/PostMediaGallery";
 import { Button } from "@/components/ui/button";
+import { ViewProfilePictureDialog } from "@/components/ViewProfilePictureDialog";
 import { formatAbsoluteTime, formatRelativeTime } from "@/lib/formatRelativeTime";
 import {
   isProfilePicturePost,
@@ -24,27 +25,49 @@ import { cn } from "@/lib/utils";
 const POST_MEDIA_BREAKOUT =
   "-ml-[calc(2.5rem+0.625rem)] flex w-[calc(100%+2.5rem+0.625rem)] justify-center";
 
-function ProfileActivityMedia({ body, imageUrl }: { body: string; imageUrl: string }) {
+function ProfileActivityMedia({
+  body,
+  imageUrl,
+  displayName,
+}: {
+  body: string;
+  imageUrl: string;
+  displayName: string;
+}) {
   const isAvatar = isProfilePicturePost(body);
+  const [isAvatarViewerOpen, setIsAvatarViewerOpen] = useState(false);
 
   if (isAvatar) {
     return (
-      <div className={`mt-3 ${POST_MEDIA_BREAKOUT}`}>
-        <div className="inline-flex">
-          <img
-            src={imageUrl}
-            alt=""
-            className="size-44 rounded-full object-cover shadow-[0_4px_12px_rgba(0,0,0,0.12)] ring-4 ring-card sm:size-48"
-          />
+      <>
+        <div className={`mt-3 ${POST_MEDIA_BREAKOUT}`}>
+          <button
+            type="button"
+            aria-label={`View ${displayName}'s profile picture`}
+            className="inline-flex cursor-zoom-in rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => setIsAvatarViewerOpen(true)}
+          >
+            <img
+              src={imageUrl}
+              alt=""
+              className="size-44 rounded-full object-cover shadow-[0_4px_12px_rgba(0,0,0,0.12)] ring-4 ring-card sm:size-48"
+            />
+          </button>
         </div>
-      </div>
+        <ViewProfilePictureDialog
+          open={isAvatarViewerOpen}
+          displayName={displayName}
+          avatarUrl={imageUrl}
+          onClose={() => setIsAvatarViewerOpen(false)}
+        />
+      </>
     );
   }
 
   return (
     <div className={`mt-3 ${POST_MEDIA_BREAKOUT}`}>
       <div className="w-full max-w-2xl overflow-hidden rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] ring-1 ring-border/70">
-        <img src={imageUrl} alt="" className="block max-h-80 w-full object-cover sm:max-h-96" />
+        <img src={imageUrl} alt="" className="user-media-full block w-full" />
       </div>
     </div>
   );
@@ -95,25 +118,13 @@ function PostStandardMedia({
         }
       : undefined;
 
-  if (media.length > 1 || mediaMode === "detail") {
-    return wrapFeedMediaStage(
-      <PostMediaGallery
-        media={media}
-        postPath={postPath}
-        mode={mediaMode === "detail" ? "detail" : "feed"}
-        postActions={detailActions}
-      />,
-      variant
-    );
-  }
   return wrapFeedMediaStage(
-    <Link to={postPath} className="mt-3 block overflow-hidden rounded-xl border border-border/60">
-      <img
-        src={media[0].url}
-        alt=""
-        className="max-h-[28rem] w-full object-cover transition-transform duration-300 hover:scale-[1.01]"
-      />
-    </Link>,
+    <PostMediaGallery
+      media={media}
+      postPath={postPath}
+      mode={mediaMode === "detail" ? "detail" : "feed"}
+      postActions={detailActions}
+    />,
     variant
   );
 }
@@ -231,7 +242,7 @@ export function PostCard({
       ) : null}
       {variant === "embedded" ? standardMedia : null}
       {isActivity && post.imageUrl ? (
-        <ProfileActivityMedia body={post.body} imageUrl={post.imageUrl} />
+        <ProfileActivityMedia body={post.body} imageUrl={post.imageUrl} displayName={post.author.displayName} />
       ) : null}
     </>
   );

@@ -68,6 +68,7 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 68 | `08192026-comment-typing-fix` | Comment composer: retain one-row typing until content wraps |
 | 69 | `08192026-reaction-side-fix` | Compact padded reaction-summary glyphs |
 | 70 | `08202026-convo-header-border` | Continuous conversation header/thread surface |
+| 71 | `08192026-post-photo-fix` | Never crop user-uploaded photos |
 
 ## Branch → host (hard rule)
 
