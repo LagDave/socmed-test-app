@@ -19,6 +19,12 @@
 - Conversation themes derive a darker, high-contrast version of their selected colors in Messenger dark mode
 - Removed the duplicate dark-mode control from conversation headers; the single Messenger mode control remains beside inbox settings
 
+### Fixed
+- Failed profile-photo requests now show the existing letter avatar fallback instead of a broken-image glyph across inbox and shared avatar surfaces
+
+### Plans
+- `plans/08182026-avatar-fallback` — completed on `kylie/avatar-fallback`
+
 ## 0.1.38 — 2026-08-15
 
 ### Added
