@@ -20,6 +20,22 @@
       "waiver": ""
     },
     {
+      "id": "T2",
+      "title": "Feature branch is current and merge-clean with dev",
+      "surface": "cli",
+      "precondition": "T1 is complete and origin/dev has been fetched.",
+      "steps": [
+        "Merge origin/dev into kylie/message-avatar-fix and resolve the shared changelog conflict by retaining dev's release ledger.",
+        "Confirm a merge-tree analysis between origin/dev and the updated feature branch succeeds without conflicts.",
+        "Confirm AGENTS.md defers feature-branch CHANGELOG.md edits to integration or release promotion."
+      ],
+      "expected": "The branch contains current dev, has no merge conflict, and the documented workflow removes the shared changelog from future feature-branch changes.",
+      "status": "pass",
+      "evidence": "2026-08-20: merged origin/dev in f4f0db8; git merge-tree --write-tree origin/dev HEAD succeeded. AGENTS.md now reserves CHANGELOG.md for dev integration or release promotion.",
+      "notes": "This prevents this changelog conflict class; ordinary code conflicts still require a current-base sync before merge.",
+      "waiver": ""
+    },
+    {
       "id": "D1",
       "title": "Frontend verification gate",
       "surface": "cli",
