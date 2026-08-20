@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connected Messages Inbox Header Spec</title>
+  <style>
+    :root { --paper:#fff; --ink:#111; --muted:#626262; --line:#d8d8d8; --soft:#f6f6f6; --warn:#825400; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1080px,calc(100% - 32px)); margin:auto; padding:44px 0; }
+    .hero,.card,.task { border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    .hero { border-color:var(--ink); padding:30px; margin-bottom:18px; }
+    .card { padding:25px; margin-top:16px; }
+    .task { padding:18px; margin-top:12px; background:var(--soft); }
+    .topline { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px; }
+    .meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin:0; }
+    .meta div,.grid > div { padding:13px; border:1px solid var(--line); border-radius:8px; }
+    dt,.eyebrow { color:var(--muted); font-size:.76rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+    dd { margin:3px 0 0; font-weight:700; }
+    .eyebrow { margin:0; }
+    .status { display:inline-flex; border:1px solid var(--ink); border-radius:999px; padding:6px 11px; background:var(--ink); color:#fff; font-size:.76rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+    h1 { max-width:840px; margin:0 0 22px; font-size:clamp(2rem,5vw,3.4rem); line-height:.98; }
+    h2 { margin:0 0 12px; font-size:1.35rem; }
+    h3 { margin:0 0 10px; font-size:1.05rem; }
+    p:last-child,ul:last-child { margin-bottom:0; }
+    code { padding:.08rem .3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:.9em; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
+    .callout { margin-top:14px; border:2px solid var(--warn); border-radius:8px; padding:15px 17px; color:#4b3100; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.93rem; }
+    th,td { padding:9px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:var(--soft); font-size:.75rem; letter-spacing:.04em; text-transform:uppercase; }
+    .task dl { margin:0; display:grid; gap:10px; }
+    .task dd { font-weight:400; }
+    .checks { list-style:none; padding:0; margin:0; }
+    .checks li { padding:9px 0; border-top:1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="topline"><p class="eyebrow">Socmed Plan Spec</p><span class="status">Completed</span></div>
+      <h1>Connected Messages Inbox Header</h1>
+      <dl class="meta">
+        <div><dt>Plan folder</dt><dd>plans/08202026-inbox-message-header</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/message-card</dd></div>
+        <div><dt>Merge target</dt><dd>dev</dd></div>
+        <div><dt>Size</dt><dd>Medium · 6 tasks · 6 app files</dd></div>
+        <div><dt>Risk</dt><dd>Level 3 · layout structure</dd></div>
+      </dl>
+    </header>
+
+    <section class="card">
+      <h2>Why</h2>
+      <p>The Messages title, description, unread badge, and actions currently sit on the page background above a separately rounded inbox card. The supplied screenshot makes the visual break clear: the card does not feel connected to the header that introduces it.</p>
+    </section>
+
+    <section class="card">
+      <h2>What</h2>
+      <p>Render the existing Messages header inside the existing inbox card, creating one continuous Messages surface. Keep the header content and all interactions unchanged, without a horizontal divider before the compose panel or conversation list. At every viewport width, make this inbox surface full-bleed beneath the app navbar, without rounded outer corners or shadow. At desktop width, show the selected conversation in a left detail pane and the inbox as a fixed right pane; at mobile width, retain the current one-screen-at-a-time route flow.</p>
+      <p><strong>Done when:</strong> on <code>/messages</code>, the title/description and header actions are visibly enclosed by the same outer surface as the inbox content, without a gap or duplicate card treatment; desktop renders a responsive 22rem–53.5rem inbox sidebar plus an empty/selected detail pane; mobile renders only the active route surface; and all inbox states and controls work exactly as before.</p>
+    </section>
+
+    <section class="card">
+      <h2>Context and closest patterns</h2>
+      <ul>
+        <li><code>frontend/src/components/messages/InboxView.tsx</code> owns both the page header and the <code>feed-card overflow-hidden shadow-sm</code> body. It is the sole application file this change should touch.</li>
+        <li><code>frontend/src/index.css</code> defines the shared <code>.feed-card</code> surface. Reuse that established style rather than introducing a new card abstraction or global selector.</li>
+        <li><code>frontend/src/components/messages/ThreadViewContent.tsx</code> is the closest Messages analog: its header and body share one continuous <code>feed-card</code> container.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Scope and decisions</h2>
+      <div class="grid">
+        <div>
+          <h3>Must</h3>
+          <ul>
+            <li>Move the current InboxView page-header block into the existing <code>feed-card overflow-hidden shadow-sm</code> container.</li>
+            <li>Use the existing spacing without adding a horizontal rule between the header and the compose/conversation content.</li>
+            <li>At every width, break this inbox out of the shared centered column, remove the card’s outer rounding/shadow, and fill the viewport below the navbar.</li>
+            <li>At <code>lg</code> and above, render the existing inbox and selected thread as a two-pane layout; do not change the conversation URL format.</li>
+            <li>Below <code>lg</code>, show only the inbox at <code>/messages</code> or only the selected thread at <code>/messages/:conversationId</code>.</li>
+            <li>Preserve the exact title, description, unread count, New message, display-mode, and Message settings controls.</li>
+            <li>Keep empty, loading, error, populated, and open friend-picker states contained by the same card.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Must not</h3>
+          <ul>
+            <li>No changes to message routes, API calls, socket refreshes, conversations, unread calculation, or friend-picker behavior.</li>
+            <li>No change to thread data fetching, message actions, thread header controls, or Message settings.</li>
+            <li>No new component, dependency, card system, or global theme/layout refactor.</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>Out of scope:</strong> changing inbox row styling, message data, API contracts, desktop conversation selection defaults, Message settings, or a new responsive-state library.</p>
+      <aside class="callout"><strong>Required pushback — Level 3:</strong> a desktop split pane touches the route composition and both existing view containers. Duplicating inbox or thread instances for breakpoints would multiply sockets, polling, and UI state. The plan instead mounts one inbox and one selected thread, applies CSS-only visibility below <code>lg</code>, and preserves the existing route as the source of the selected conversation.</aside>
+    </section>
+
+    <section class="card">
+      <h2>Risk and blast radius</h2>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Weak hierarchy without a rule</td><td>Inbox hierarchy, especially when compose is visible</td><td>Preserve the established spacing, typography, and compose-panel background; verify populated and empty inboxes.</td></tr>
+          <tr><td>Header action crowding on narrow screens</td><td>New message, display-mode, and settings controls</td><td>Preserve the existing responsive <code>flex-wrap</code>, gap, alignment, and action order; manually test narrow viewport.</td></tr>
+          <tr><td>Full-width escape affects other routes</td><td>All routes sharing <code>AppShell</code></td><td>Apply viewport-width positioning and card presentation classes only in <code>InboxView</code>; do not modify <code>AppShell</code> or global CSS.</td></tr>
+          <tr><td>Route behavior regresses during master-detail composition</td><td>Inbox links, browser history, direct conversation URLs, and mobile navigation</td><td>Keep <code>/messages/:conversationId</code> intact; select the detail pane strictly from its existing route param and hide the inactive pane only below <code>lg</code>.</td></tr>
+          <tr><td>Nested viewport-height containers fail to scroll</td><td>Thread timeline and composer in the desktop detail pane</td><td>At desktop, make the detail pane and thread card height-constrained with <code>min-h-0</code>; preserve the current thread scroll ref and message logic.</td></tr>
+          <tr><td>State-dependent layout regression</td><td>Loading, error, friend-picker, and conversation-list paths</td><td>Do not change conditions or state ownership; manually exercise each affected state after execution.</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Confirmed consumers:</strong> <code>MessagesPage</code> renders <code>InboxView</code> at <code>/messages</code>; <code>MessagesFriendPicker</code>, <code>MessagesThemeToggle</code>, and the Message settings link are its header-body consumers. <code>ThreadViewContent</code> is unaffected.</p>
+    </section>
+
+    <section class="card">
+      <h2>Tasks</h2>
+      <article class="task" id="T1">
+        <h3>T1 — Compose the inbox header and body as one card</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Restructure only the InboxView JSX so the existing header block is the first child of the existing inbox <code>feed-card</code>. Give the header appropriate in-card padding without a bottom border, then retain the compose, conversation heading, list, skeleton, error, and empty-state blocks beneath it without behavioral changes. Add component-local viewport-width positioning and presentation classes so only the inbox becomes an edge-to-edge, unrounded, shadowless surface that fills the area below the navbar at every breakpoint.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/messages/InboxView.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>The resulting <code>/messages</code> surface fills the viewport below the navbar at desktop and mobile widths, with no outer rounding or shadow. Check populated, empty, loading, error, and New message picker states at both widths. Confirm the avatar/card links, action buttons, and settings navigation retain their current destinations and accessible names.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T2">
+        <h3>T2 — Compose the responsive Messages master-detail route</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Replace the route’s binary inbox/thread rendering with one full-viewport Messages layout. Render the inbox in the right grid pane at <code>lg</code> and above; render an empty detail state when no conversation ID is selected or the existing thread when one is present in the left pane. Below <code>lg</code>, hide the inactive pane while retaining the existing URL behavior.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/pages/MessagesPage.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>Desktop <code>/messages</code> shows inbox plus an empty detail pane; desktop <code>/messages/:conversationId</code> shows both panes; mobile shows one route surface at a time; direct URLs and browser back continue to work.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T3">
+        <h3>T3 — Make the existing inbox pane-compatible</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add an optional presentation class prop to <code>InboxView</code>. Let the page own viewport breakout, and make the inbox fill its grid pane at desktop without changing its fetches, actions, or state conditions.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/messages/InboxView.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>The sidebar remains usable and independently scroll-free at desktop; below <code>lg</code>, the route-appropriate inbox still fills the viewport.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T4">
+        <h3>T4 — Embed the existing thread in the desktop detail pane</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add an explicit embedded presentation mode from <code>ThreadView</code> to <code>ThreadViewContent</code>. At desktop, make its card fill the detail pane without a second outer card or height overflow; retain its existing mobile presentation and all data/action behavior.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/messages/ThreadView.tsx</code>, <code>frontend/src/components/messages/ThreadViewContent.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Selecting a conversation shows its live timeline/composer in the left pane at desktop; search, theme picker, pin/delete actions, scrolling, and mobile back navigation remain operable.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T5">
+        <h3>T5 — Flatten inbox conversation rows into one continuous list</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Remove the per-row card spacing, rounded corners, opaque row surfaces, and separators from the populated inbox list while preserving unread/hover states and the existing swipe-to-delete interaction.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/messages/InboxView.tsx</code>, <code>frontend/src/components/SwipeableConversationListRow.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1, T3</dd></div>
+          <div><dt>Verify</dt><dd>At desktop and mobile widths, conversation rows read as one uninterrupted list inside the Messages surface. Hover, unread, menu, link, and swipe-to-delete interactions remain usable.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T6">
+        <h3>T6 — Highlight the selected inbox conversation</h3>
+        <dl>
+          <div><dt>Do</dt><dd>Add a soft active state to the inbox row whose conversation matches the current route. Retain the existing plain selected-thread placeholder, direct thread URLs, and mobile behavior.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/ConversationListRow.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>T2</dd></div>
+          <div><dt>Verify</dt><dd>Opening a conversation gives its inbox row a soft active state; the desktop empty detail remains the existing plain prompt and mobile retains one-screen behavior.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Done</h2>
+      <ul class="checks">
+        <li>☑ The Messages heading, supporting text, unread badge, and action controls are inside the same outer card as inbox content.</li>
+        <li>☑ No horizontal divider separates the in-card header from the compose panel or conversation list.</li>
+        <li>☑ No gap or second outer card exists between the header and inbox body.</li>
+        <li>☑ At mobile widths, the inbox is edge-to-edge beneath the navbar, fills the remaining viewport, and uses one card-colored surface; at desktop, the inbox is a rounded-left, shadowless right card.</li>
+        <li>☑ At <code>lg</code> and above, <code>/messages</code> shows a responsive 22rem–53.5rem inbox sidebar and an empty detail pane; <code>/messages/:conversationId</code> shows the sidebar and selected thread side by side.</li>
+        <li>☑ Below <code>lg</code>, inbox and thread retain one-screen-at-a-time navigation and direct conversation URLs still work.</li>
+        <li>☑ New message, display-mode, Message settings, inbox reload, deletion, pinning, and card navigation retain their behavior.</li>
+        <li>☑ Loading, empty, error, populated, and friend-picker states remain usable at desktop and narrow/mobile widths.</li>
+        <li>☑ Populated conversation rows form one uninterrupted list without separators; hover, unread, menu, link, and swipe-to-delete interactions remain usable.</li>
+        <li>☑ The selected inbox row has a soft active state, while the desktop empty detail retains its plain prompt.</li>
+        <li>☑ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> pass.</li>
+        <li>☑ <code>test-results.json</code> is updated to Passed.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Revision Log</h2>
+      <table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody>
+        <tr><td>Rev 1</td><td>2026-08-20</td><td>Initial plan from the supplied screenshot. The inbox header and content must become one connected card, with presentation-only scope.</td></tr>
+        <tr><td>Rev 2</td><td>2026-08-20</td><td>Pre-execution parity correction: the execution branch uses <code>feed-card overflow-hidden shadow-sm</code>, not <code>messages-inbox-card</code>. The one-file, presentation-only scope and acceptance criteria are unchanged.</td></tr>
+        <tr><td>Rev 3</td><td>2026-08-20</td><td>Executed T1 on <code>kylie/message-card</code>: moved the existing inbox header into the existing card, added its divider, and removed the now-redundant conversation-list top border. Typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 4</td><td>2026-08-20</td><td>User-directed visual refinement from the supplied screenshot: remove the new in-card header divider. This supersedes the divider requirement in Rev 1; the connected-card scope and all behavior remain unchanged.</td></tr>
+        <tr><td>Rev 5</td><td>2026-08-20</td><td>Executed Rev 4 on <code>kylie/message-card</code>: removed the header border classes. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 6</td><td>2026-08-20</td><td>User-directed mobile refinement: at widths below <code>640px</code>, make the inbox full-bleed below the navbar with no outer rounding or shadow. This is scoped to <code>InboxView</code>; thread and Message settings layouts remain unchanged.</td></tr>
+        <tr><td>Rev 7</td><td>2026-08-20</td><td>Executed Rev 6 on <code>kylie/message-card</code>: added component-local mobile full-bleed, viewport-height, unrounded, shadowless classes and desktop restoration classes. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 8</td><td>2026-08-20</td><td>User-directed desktop refinement: extend the full-bleed inbox treatment to every viewport width. This supersedes the desktop restoration portion of Rev 6; thread and Message settings layouts remain unchanged.</td></tr>
+        <tr><td>Rev 9</td><td>2026-08-20</td><td>Executed Rev 8 on <code>kylie/message-card</code>: changed the inbox wrapper to component-local viewport-width positioning and removed desktop card restoration classes. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 10</td><td>2026-08-20</td><td>User approved Facebook-style desktop master-detail layout: a 22rem inbox pane and selected-thread detail pane at <code>lg</code> and above, while mobile keeps current URL-driven one-screen navigation. This supersedes the full-width desktop inbox-only outcome in Rev 8.</td></tr>
+        <tr><td>Rev 11</td><td>2026-08-20</td><td>Executed T2–T4 on <code>kylie/message-card</code>: added the responsive master-detail route composition, pane-compatible inbox, and embedded desktop thread presentation. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 12</td><td>2026-08-20</td><td>User-directed desktop refinement: reverse the master-detail column order so the selected thread is on the left and the 22rem inbox sidebar is on the right. Mobile behavior remains unchanged.</td></tr>
+        <tr><td>Rev 13</td><td>2026-08-20</td><td>Executed Rev 12 on <code>kylie/message-card</code>: reversed the desktop grid columns, positioned the inbox in column two, and moved its separator border to the left. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 14</td><td>2026-08-20</td><td>Visual regression fix from desktop screenshot: moving only grid columns allowed auto-placement to put the detail pane in the next row. Explicitly place both desktop panes in row one so they align side by side at the top.</td></tr>
+        <tr><td>Rev 15</td><td>2026-08-20</td><td>Executed Rev 14 on <code>kylie/message-card</code>: added explicit desktop row-one placement for both the inbox and detail panes. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 16</td><td>2026-08-20</td><td>User-directed sizing refinement from the supplied screenshot: widen the right inbox sidebar responsively from 22rem up to 38.5rem (about 616px), using a viewport-based middle value so the thread remains usable on smaller desktops.</td></tr>
+        <tr><td>Rev 17</td><td>2026-08-20</td><td>Executed Rev 16 on <code>kylie/message-card</code>: replaced the fixed 22rem desktop inbox track with a 22rem–38.5rem clamp. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 18</td><td>2026-08-20</td><td>User-directed sizing refinement from the supplied screenshot: keep the 32vw responsive sizing but raise the right inbox sidebar cap to 53.5rem (about 856px) for large desktop viewports.</td></tr>
+        <tr><td>Rev 19</td><td>2026-08-20</td><td>Executed Rev 18 on <code>kylie/message-card</code>: raised the desktop inbox clamp maximum to 53.5rem. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 20</td><td>2026-08-20</td><td>User-directed mode-color refinement: make the inbox surface use the existing mode-aware <code>--canvas</code> token so it matches the conversation pane in light and dark modes, while preserving row contrast.</td></tr>
+        <tr><td>Rev 21</td><td>2026-08-20</td><td>Executed Rev 20 on <code>kylie/message-card</code>: added the scoped <code>.messages-inbox-surface</code> token override and applied it to InboxView. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 22</td><td>2026-08-20</td><td>User-directed visual refinement from supplied screenshots: remove the desktop inbox-pane border so matching canvas surfaces meet without a seam, and remove the dark-mode profile dropdown shadow while retaining its border.</td></tr>
+        <tr><td>Rev 23</td><td>2026-08-20</td><td>Executed Rev 22 on <code>kylie/message-card</code>: removed the desktop inbox border and disabled the dark profile-menu shadow. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 24</td><td>2026-08-20</td><td>User-directed separator refinement from supplied screenshot: the inherited card radius/shadow still made the pane boundary conspicuous. Flatten the inbox surface in all states and add one low-contrast desktop-only token divider.</td></tr>
+        <tr><td>Rev 25</td><td>2026-08-20</td><td>Executed Rev 24 on <code>kylie/message-card</code>: disabled inbox card radius/shadow including hover states, then added one 45%-token desktop separator. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 26</td><td>2026-08-20</td><td>User-directed refinement from supplied screenshot: remove the remaining desktop separator entirely. The flattened, shadowless inbox surface remains in place.</td></tr>
+        <tr><td>Rev 27</td><td>2026-08-20</td><td>Executed Rev 26 on <code>kylie/message-card</code>: removed the desktop inbox border rule. Frontend typecheck, lint, and production build pass. Isolated visual acceptance remains pending a <code>-tw</code> run.</td></tr>
+        <tr><td>Rev 28</td><td>2026-08-20</td><td>User-approved visual refinement: flatten the populated conversation rows so the list continues the single Messages surface rather than presenting individual rounded cards. Preserve unread, hover, menu, link, and swipe-to-delete behavior with restrained separators only.</td></tr>
+        <tr><td>Rev 29</td><td>2026-08-20</td><td>Executed Rev 28 on <code>kylie/message-card</code>: removed list gaps and per-row rounding/backgrounds, then added low-contrast token separators. Frontend typecheck, lint, and production build pass. Live signed-out Messages rendering has no browser-console errors; populated-list acceptance remains pending signed-in isolated validation.</td></tr>
+        <tr><td>Rev 30</td><td>2026-08-20</td><td>Quick visual regression fix from the supplied screenshot: the transparent swipe surface exposed the delete action at rest. Restore an opaque row surface using the same <code>--canvas</code> token as the continuous inbox, so delete remains hidden until the row is swiped.</td></tr>
+        <tr><td>Rev 31</td><td>2026-08-20</td><td>Executed Rev 30 on <code>kylie/message-card</code>: changed the swipe surface to <code>--canvas</code>, hiding the delete panel at rest without restoring separate row-card styling. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 32</td><td>2026-08-20</td><td>User-directed desktop refinement: restore the earlier restrained divider between the selected conversation detail pane and the inbox sidebar. Keep the inbox surface flat and preserve mobile’s divider-free layout.</td></tr>
+        <tr><td>Rev 33</td><td>2026-08-20</td><td>Executed Rev 32 on <code>kylie/message-card</code>: restored the desktop-only 45%-token divider on the inbox pane’s left edge. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 34</td><td>2026-08-20</td><td>User-directed visual correction: replace the bare desktop divider with a single inbox card treatment. The header and list remain one continuous card; use left-side card corners and a restrained shadow, with mobile remaining flat and full-bleed.</td></tr>
+        <tr><td>Rev 35</td><td>2026-08-20</td><td>Executed Rev 34 on <code>kylie/message-card</code>: removed contradictory forced-square utility classes and replaced the divider with a desktop-only left-rounded inbox card and restrained shadow. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 36</td><td>2026-08-20</td><td>User-approved empty-thread enhancement: replace the bare desktop placeholder with an intentional empty state and a New message shortcut that opens the existing inbox friend picker; give a selected conversation row a soft active state.</td></tr>
+        <tr><td>Rev 37</td><td>2026-08-20</td><td>User-directed correction from the supplied dark-mode screenshot: remove the desktop inbox-card shadow because it reads as a bright glow in dark mode. Retain the card’s left-side rounding and the connected header/list structure.</td></tr>
+        <tr><td>Rev 38</td><td>2026-08-20</td><td>Executed Rev 37 on <code>kylie/message-card</code>: removed the desktop inbox-card shadow while retaining its left-side rounding. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 39</td><td>2026-08-20</td><td>User-directed undo from the supplied screenshot: remove the centered empty-thread illustration, heading, and New message shortcut. Restore the existing plain prompt and remove its temporary <code>compose=1</code> plumbing; retain the independent selected-row highlight.</td></tr>
+        <tr><td>Rev 40</td><td>2026-08-20</td><td>Executed Rev 39 on <code>kylie/message-card</code>: restored the original plain empty-detail prompt and removed the temporary composer-query path. The selected-row highlight remains. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 41</td><td>2026-08-20</td><td>User-directed desktop refinement: restore the white conversation-list card. Keep the connected header/list structure and ensure each swipe surface inherits the same card color so the delete action remains hidden at rest.</td></tr>
+        <tr><td>Rev 42</td><td>2026-08-20</td><td>Executed Rev 41 on <code>kylie/message-card</code>: introduced a scoped inbox-surface token that is canvas-colored on mobile and card-colored at desktop, and applied it to the swipe surface. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 43</td><td>2026-08-20</td><td>User-directed mobile refinement from the supplied screenshot: make the connected Messages surface card-colored at mobile as well, so the title, controls, and conversation list form one uninterrupted white card beneath the navbar.</td></tr>
+        <tr><td>Rev 44</td><td>2026-08-20</td><td>Executed Rev 43 on <code>kylie/message-card</code>: made the scoped inbox surface use the card token at mobile and desktop, retaining mobile’s full-bleed square edges and desktop’s left-card rounding. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 45</td><td>2026-08-20</td><td>User-directed dark-mode correction from the supplied screenshot: remove the profile dropdown’s exterior shadow/glow while retaining its border, shape, and internal dividers.</td></tr>
+        <tr><td>Rev 46</td><td>2026-08-20</td><td>Executed Rev 45 on <code>kylie/message-card</code>: added a dark-mode-only profile-menu shadow override. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 47</td><td>2026-08-20</td><td>Root-cause correction from the supplied screenshot: the reusable dropdown content adds a <code>shadow-md</code> utility that can outrank the custom profile-menu rule. Apply a dark-mode-only important no-shadow utility directly to the profile dropdown content; preserve its light-mode shadow.</td></tr>
+        <tr><td>Rev 48</td><td>2026-08-20</td><td>Executed Rev 47 on <code>kylie/message-card</code>: applied the dark-mode-only important no-shadow utility to the profile dropdown content. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 49</td><td>2026-08-20</td><td>User-directed visual refinement from the supplied screenshot: remove conversation-row separators entirely and compact the profile dropdown’s width, summary, spacing, and divider margins while retaining tappable action rows.</td></tr>
+        <tr><td>Rev 50</td><td>2026-08-20</td><td>Executed Rev 49 on <code>kylie/message-card</code>: removed row borders and reduced the profile-menu width and internal spacing while retaining 2.75rem action-row height. Frontend typecheck, lint, and production build pass.</td></tr>
+        <tr><td>Rev 51</td><td>2026-08-20</td><td>Finalized after user-confirmed manual acceptance. All plan Done criteria and acceptance items pass on <code>kylie/message-card</code>.</td></tr>
+      </tbody></table>
+    </section>
+  </main>
+</body>
+</html>
