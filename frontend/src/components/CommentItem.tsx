@@ -60,7 +60,14 @@ export function CommentItem({
         </Link>
 
         <div className="min-w-0 flex-1">
-          <div className={cn("comment-bubble", isReply && "comment-bubble-reply")}>
+          <div className={cn(comment.imageUrl && "comment-media", isReply && "comment-media-reply")}>
+          <div
+            className={cn(
+              "comment-bubble",
+              "comment-bubble-media-meta",
+              isReply && "comment-bubble-reply"
+            )}
+          >
             {isOwner && (
               <div ref={menuRef} className="comment-bubble-menu">
                 <Button
@@ -117,16 +124,17 @@ export function CommentItem({
               <p className="comment-bubble-body whitespace-pre-wrap">{comment.body}</p>
             ) : null}
 
-            {comment.imageUrl && (
+          </div>
+
+          {comment.imageUrl && (
+            <div className="user-media-stage mt-2 max-h-52 w-full max-w-sm">
               <img
                 src={comment.imageUrl}
                 alt=""
-                className={cn(
-                  "comment-bubble-image max-h-52 w-full object-cover",
-                  comment.body ? "mt-2" : "mt-0.5"
-                )}
+                className="comment-attachment-image user-media-thumbnail max-h-52"
               />
-            )}
+            </div>
+          )}
           </div>
 
           <div className="comment-meta-row">

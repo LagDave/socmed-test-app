@@ -59,11 +59,9 @@ export function MessageQuoteStrip({ replyTo, mine, themed = false, className }: 
       ) : (
         <div className="flex items-center gap-2">
           {replyTo.imageUrl && (
-            <img
-              src={replyTo.imageUrl}
-              alt=""
-              className="h-8 w-8 shrink-0 rounded object-cover"
-            />
+            <div className="user-media-stage h-8 w-8 shrink-0 rounded">
+              <img src={replyTo.imageUrl} alt="" className="user-media-thumbnail rounded" />
+            </div>
           )}
           {replyTo.body?.trim() ? (
             <p className="min-w-0 truncate opacity-90">{truncateQuoteText(replyTo.body)}</p>

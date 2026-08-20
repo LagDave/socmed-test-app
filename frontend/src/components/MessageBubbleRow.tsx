@@ -316,7 +316,7 @@ export function MessageBubbleRow({
                           type="button"
                           aria-label="View full-size image"
                           className={cn(
-                            "block cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            "message-media-stage cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                             imageOnlyPlain ? "rounded-[inherit]" : "rounded-lg",
                             message.body && "mb-1.5"
                           )}
@@ -329,10 +329,10 @@ export function MessageBubbleRow({
                             src={message.imageUrl}
                             alt=""
                             className={cn(
-                              "block max-h-48 max-w-[220px]",
+                              "message-media-image",
                               imageOnlyPlain
-                                ? "rounded-[inherit] object-cover"
-                                : "rounded-lg object-contain"
+                                ? "rounded-[inherit]"
+                                : "rounded-lg"
                             )}
                           />
                         </button>

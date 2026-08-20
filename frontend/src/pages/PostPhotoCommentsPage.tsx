@@ -313,11 +313,11 @@ function PhotoHero({
   total: number;
 }) {
   return (
-    <div className="photo-comments-hero__media relative w-full overflow-hidden bg-muted/20 post-media-single">
+    <div className="photo-comments-hero__media relative w-full overflow-hidden">
       <img
         src={image.url}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover object-center"
+        className="user-media-full w-full"
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/35 to-transparent" />
       {total > 1 ? (
