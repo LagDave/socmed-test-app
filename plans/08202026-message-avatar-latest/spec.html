@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Latest Message Avatar — Plan</title>
+  <style>
+    :root{--paper:#fff;--ink:#111;--muted:#666;--line:#d8d8d8;--soft:#f6f6f6;--accent:#0d5b36}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif}main{width:min(1040px,calc(100% - 32px));margin:auto;padding:42px 0}.hero,.card,.task{border:1px solid var(--line);border-radius:10px;padding:24px}.hero{border-color:var(--ink);margin-bottom:16px}.card{margin-top:16px}.task{background:var(--soft);margin-top:12px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.status{border-radius:999px;background:var(--ink);color:#fff;padding:6px 11px;font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}h1{margin:14px 0 20px;font-size:clamp(2rem,5vw,3.25rem);line-height:1}h2{margin:0 0 10px}h3{margin:0 0 8px}.eyebrow,dt{color:var(--muted);font-size:.76rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.meta,.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.meta div,.grid>div{border:1px solid var(--line);border-radius:8px;padding:13px}dd{margin:3px 0 0;font-weight:700}code{background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:.08rem .3rem}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}th{background:var(--soft);font-size:.76rem;text-transform:uppercase;letter-spacing:.04em}.checks{list-style:none;padding:0;margin:0}.checks li{border-top:1px solid var(--line);padding:9px 0}.note{border-left:4px solid var(--accent);padding:10px 14px;background:#f2faf5}
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="top"><p class="eyebrow">Socmed plan spec</p><span class="status">Completed</span></div>
+      <h1>Show the peer avatar on the latest bubble in a message run</h1>
+      <dl class="meta">
+        <div><dt>Plan folder</dt><dd>plans/08202026-message-avatar-latest</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/message-avatar-fix</dd></div>
+        <div><dt>Merge target</dt><dd>dev</dd></div>
+        <div><dt>Size</dt><dd>Small · 1 app file</dd></div>
+        <div><dt>Risk</dt><dd>Level 1 · localized presentation</dd></div>
+      </dl>
+    </header>
+
+    <section class="card"><h2>Why</h2><p>In a consecutive run of incoming messages, the sender avatar currently appears beside the first bubble. The provided screenshot shows that this makes the avatar sit at the top while the most recent bubble is at the bottom. The desired chat convention is to anchor the avatar to the last (latest) bubble of that incoming run.</p></section>
+
+    <section class="card"><h2>What</h2><p>Change only the active conversation renderer so each contiguous peer-message group displays one avatar beside its final bubble. A single incoming message remains a one-message group and therefore shows its avatar. The avatar remains a link to the peer profile and retains the existing fallback, size, alignment, and accessibility label.</p><p><strong>Done when:</strong> for a run of two or more incoming messages, the first through penultimate rows preserve their spacer and the avatar appears only on the final row; a following outgoing message, a different sender, or the existing time-gap grouping rule starts a new run.</p></section>
+
+    <section class="card"><h2>Context and constraints</h2>
+      <ul>
+        <li><code>frontend/src/pages/MessagesPage.tsx</code> renders <code>ThreadView</code> for <code>/messages/:conversationId</code>.</li>
+        <li><code>frontend/src/components/messages/ThreadView.tsx</code> delegates the active timeline UI to <code>ThreadViewContent</code>.</li>
+        <li><code>frontend/src/components/messages/ThreadViewContent.tsx</code> computes adjacent message grouping and passes <code>showAvatar</code> to <code>MessageBubbleRow</code>; this is the sole execution target.</li>
+        <li><code>frontend/src/lib/formatMessageDay.ts</code> supplies <code>messagesShareGroup</code>, which already defines a group as the same sender within ten minutes. Reuse it; do not create another grouping rule.</li>
+        <li><code>frontend/src/components/MessageBubbleRow.tsx</code> already renders the peer avatar or a fixed spacer based on <code>showAvatar</code>. Its layout and API do not need to change.</li>
+      </ul>
+      <div class="grid"><div><h3>Must</h3><ul><li>Use the existing next-message grouping comparison to identify the final bubble in each incoming run.</li><li>Preserve day separators, time-gap separators, pin/system timeline boundaries, bubble radii, reactions, and outgoing-message behavior.</li><li>Keep the peer avatar hidden for the current user's bubbles.</li></ul></div><div><h3>Must not</h3><ul><li>No API, database, socket, state-management, or dependency changes.</li><li>No changes to <code>MessageBubbleRow</code>, shared grouping utilities, or the unused <code>ConversationMessageList</code> component.</li><li>No visual redesign or message sorting change.</li></ul></div></div>
+    </section>
+
+    <section class="card"><h2>Risk and blast radius</h2>
+      <table><thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead><tbody>
+        <tr><td>Avatar appears more than once or disappears at a run boundary</td><td>Incoming message rows in the open conversation</td><td>Invert only the current adjacent-group predicate: show the peer avatar when there is no adjacent next message in the same group.</td></tr>
+        <tr><td>Timeline event changes the visual grouping unexpectedly</td><td>Threads with theme/pin activity</td><td>Keep the current adjacent timeline-item handling; a non-message event remains a boundary, as it is today.</td></tr>
+        <tr><td>Unrelated legacy component churn</td><td>Future/unused message-list code</td><td>Do not modify <code>ConversationMessageList</code>; it has no current consumer on the routed conversation path.</td></tr>
+      </tbody></table>
+      <p class="note"><strong>Blast radius reconfirmed:</strong> the active route is <code>MessagesPage → ThreadView → ThreadViewContent → MessageBubbleRow</code>. The change is confined to the boolean passed to the final component; it does not alter message data or rendering primitives.</p>
+    </section>
+
+    <section class="card"><h2>Tasks</h2>
+      <article class="task"><h3>T1 — Anchor the peer avatar to the run’s final bubble</h3><dl><div><dt>Do</dt><dd>In the active timeline mapping, derive <code>showAvatar</code> from the next adjacent message instead of the previous adjacent message. Preserve the existing <code>!mine</code> guard and <code>messagesShareGroup</code> predicate; do not change the separately computed rounded-corner or compact-row flags.</dd></div><div><dt>Files</dt><dd><code>frontend/src/components/messages/ThreadViewContent.tsx</code></dd></div><div><dt>Depends on</dt><dd>—</dd></div><div><dt>Verify</dt><dd>Open a thread containing multiple consecutive peer messages. Exactly one avatar appears, aligned with the last peer bubble; send/receive a boundary message and confirm the next peer run receives its own final-row avatar.</dd></div></dl></article>
+    </section>
+
+    <section class="card"><h2>Done</h2><ul class="checks"><li>☑ A consecutive incoming run shows its peer avatar only on the final/latest bubble.</li><li>☑ A one-message incoming run still shows an avatar.</li><li>☑ Sender changes, 10-minute gaps, day/timeline boundaries, outgoing messages, reactions, and message controls retain their existing behavior.</li><li>☑ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> pass without errors caused by this change.</li><li>☑ <code>test-results.json</code> is updated to Passed, or any failure includes a written waiver.</li></ul></section>
+
+    <section class="card"><h2>Revision Log</h2><table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>Rev 1</td><td>2026-08-20</td><td>Initial plan from the supplied screenshot. Scope is limited to inverting the active thread renderer’s avatar-position predicate; the current group definition remains authoritative.</td></tr><tr><td>Rev 2</td><td>2026-08-20</td><td>Executed T1 on <code>kylie/message-avatar-fix</code>: the active thread renderer now displays an incoming peer avatar when there is no subsequent message in the same group. Frontend typecheck, lint, and production build pass; the available notification suite passes 4/4. Visual acceptance remains pending <code>--test-worktree</code>.</td></tr><tr><td>Rev 3</td><td>2026-08-20</td><td>User-confirmed visual acceptance. All Done criteria pass, and the plan is complete.</td></tr></tbody></table></section>
+  </main>
+</body>
+</html>
