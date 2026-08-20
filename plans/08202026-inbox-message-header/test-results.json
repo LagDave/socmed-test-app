@@ -1,0 +1,52 @@
+{
+  "plan": "plans/08202026-inbox-message-header",
+  "generatedAt": "2026-08-20",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Connected inbox header and body",
+      "surface": "ui",
+      "precondition": "Execution complete; signed in with access to /messages. Test with at least one conversation when available.",
+      "steps": [
+        "Open /messages at desktop width.",
+        "Verify the Messages title, supporting text, unread badge when applicable, New message, display-mode, and Message settings controls are enclosed by the same continuous inbox surface.",
+        "Verify no horizontal divider separates that header from the compose panel or conversation list, and no visible gap or second outer card is introduced.",
+        "At desktop and narrow/mobile widths, verify the inbox begins directly below the navbar, extends to both screen edges and the remaining viewport height, and has no outer rounding or shadow.",
+        "At mobile width, verify the Messages title, controls, and conversation list share one uninterrupted card-colored surface beneath the navbar.",
+        "Switch between Messages light and dark modes and verify the inbox surface matches the adjacent conversation canvas while conversation rows remain readable and operable.",
+        "In dark mode, verify no visible line separates the conversation and inbox panes, then open the profile menu and verify it has no exterior glow while its border, actions, and keyboard focus remain visible.",
+        "At desktop width in both modes, verify the inbox has square, shadowless outer corners with no pane line, gap, or hover glow.",
+        "At desktop width, verify the conversation-list card uses the card surface color while its swipe-to-delete surfaces remain visually continuous and hide the delete action at rest.",
+        "At desktop width, open /messages and verify a responsive 22rem–53.5rem inbox pane on the right and an empty detail pane on the left, aligned in the same top row. Open a conversation and verify the inbox remains visible to the right of its top-aligned thread. Use browser back and a direct /messages/:conversationId URL.",
+        "At a viewport narrower than the lg breakpoint, verify /messages shows only the inbox and /messages/:conversationId shows only that thread.",
+        "At desktop /messages, verify the detail pane retains the plain Select a conversation prompt. Open a conversation and verify its inbox row has a soft active state.",
+        "Verify populated conversation rows form one uninterrupted list without separators; hover, unread, menu, link, and swipe-to-delete interactions remain usable.",
+        "Verify no visible separator sits between conversation rows, and the profile dropdown remains readable, compact, and usable with pointer and keyboard interaction.",
+        "Open and close New message, open Message settings, open a conversation, return to the inbox, and exercise pin/delete actions as available.",
+        "Repeat layout inspection at a narrow/mobile viewport and exercise loading, empty, error, or open friend-picker states as available."
+      ],
+      "expected": "The inbox reads as one connected card while all existing actions, navigation, state transitions, and responsive layout remain functional and accessible.",
+      "status": "pass",
+      "evidence": "2026-08-20: live localhost check at 1280px found the Messages inbox surface at 409.59px wide with zero border radius and shadow; at 390px, it ran edge-to-edge (0–390px) with zero border radius and shadow. No browser-console errors were reported. The user subsequently manually validated the signed-in desktop and mobile flows, including populated conversation rows, delete interactions, profile-menu styling, and responsive layouts.",
+      "notes": "User-confirmed manual acceptance on 2026-08-20.",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Frontend verification gate",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "All commands exit successfully with no errors caused by this change.",
+      "status": "pass",
+      "evidence": "2026-08-20: npm --prefix frontend run typecheck, npm --prefix frontend run lint, and npm --prefix frontend run build completed successfully after the connected-card, divider-removal, full-bleed, desktop master-detail, right-sidebar, grid-row alignment, sidebar-sizing, mode-color, dark-profile polish, separator-removal, continuous-list, delete-surface, desktop-divider, inbox-card, selected-row, shadow-removal, white-card, mobile-card, dark-profile-menu utility-override, separator-removal, and compact-profile-menu refinements.",
+      "notes": "Lint emitted six pre-existing warnings in AuthContext, ThemeContext, PostPhotoCommentsPage, PostDetailPage, and MessageQuoteStrip. Vite emitted its existing large-chunk advisory.",
+      "waiver": ""
+    }
+  ]
+}
