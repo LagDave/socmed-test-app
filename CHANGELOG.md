@@ -41,6 +41,7 @@
 - Independent Messenger light/dark mode that persists separately from the profile/global appearance preference
 
 ### Changed
+- Posted single-photo and multi-photo feed images remain static on hover, without changing photo navigation or grid overlays
 - Friends rows: labeled Message action, Unfriend behind overflow + confirm
 - Suggestion DTO omits email and online status; presence stays on accepted friends only
 - Messenger mode now themes the full Messages screen, including navigation chrome, while restoring the profile/global mode on other routes
