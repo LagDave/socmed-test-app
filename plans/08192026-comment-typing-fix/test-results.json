@@ -1,0 +1,89 @@
+{
+  "plan": "plans/08192026-comment-typing-fix",
+  "generatedAt": "2026-08-19",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Focus and one-line typing remain compact",
+      "surface": "ui",
+      "precondition": "Contained runtime; signed in; open a post detail or post-photo comments page.",
+      "steps": [
+        "Scroll to the bottom top-level comment composer.",
+        "Click the empty textarea and type a short comment that fits on one visible line.",
+        "Blur and refocus the textarea without changing its value."
+      ],
+      "expected": "Focus and one-line typing retain the compact horizontal composer, including visible image-attach and arrow-send controls; the field does not jump to a tall three-row textarea or reveal the expanded footer.",
+      "status": "pass",
+      "evidence": "2026-08-19: user confirmed focus and one-line typing remain in the compact composer row during visual testing.",
+      "notes": "Human acceptance confirmation in the local app.",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Content-driven wrap, growth, and collapse",
+      "surface": "ui",
+      "precondition": "Same contained runtime and signed-in post detail as A1.",
+      "steps": [
+        "Extend the comment until it wraps naturally to a second visual line.",
+        "Insert a newline with Shift+Enter and type additional text.",
+        "Delete text until it fits on one visual line again.",
+        "Repeat the natural-wrap check in a narrow viewport and after toggling dark theme."
+      ],
+      "expected": "The composer expands only once content needs more than one visual line, grows no taller than the defined bound before scrolling, and returns to the compact row when text fits again. It does not flicker between modes at the wrap boundary, overflow horizontally, or lose light/dark contrast.",
+      "status": "pass",
+      "evidence": "2026-08-19: user confirmed content wraps and expands only when needed, then returns to the compact row after shortening during visual testing.",
+      "notes": "Human acceptance confirmation in the local app.",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Existing compose and reply contracts remain intact",
+      "surface": "ui",
+      "precondition": "Contained runtime; signed in; a post with an existing comment is available.",
+      "steps": [
+        "Submit a one-line comment using Enter and another using the arrow send button.",
+        "Use Shift+Enter in a multi-line comment and submit it.",
+        "Attach then remove a photo before sending a comment.",
+        "Open Reply on an existing comment, verify its reply banner/control, cancel it, then submit a reply."
+      ],
+      "expected": "All submits clear successfully and update the thread as before; Shift+Enter inserts a newline; attachment controls work; a reply starts in the compact one-line layout with image-attach and arrow-send controls, then expands only after wrapping or photo selection while retaining its reply banner and cancel/submit actions.",
+      "status": "pass",
+      "evidence": "2026-08-19: user confirmed comment/reply compose, image attachment, and compact reply-input behavior during visual testing.",
+      "notes": "Human acceptance confirmation in the local app.",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Frontend quality gates",
+      "surface": "cli",
+      "precondition": "Execution complete on kylie/comment-typing-fix.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "Every command exits 0; no execution-caused type, lint, or build errors remain.",
+      "status": "pass",
+      "evidence": "2026-08-19: npm --prefix frontend run typecheck, npm --prefix frontend run lint, and npm --prefix frontend run build all exited 0 after the compact photo-trigger, reply-parity, and separated-comment-media updates. Lint reported six pre-existing warnings in PostPhotoCommentsPage, AuthContext, ThemeContext, MessageQuoteStrip, and PostDetailPage; none are in the changed files.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "Uploaded comment image is separate from profile metadata",
+      "surface": "ui",
+      "precondition": "Contained runtime; signed in; a post detail with an image-only and a text-plus-image comment, including a reply if available.",
+      "steps": [
+        "Upload an image-only comment and view it in the thread.",
+        "Upload a comment with both text and an image.",
+        "Inspect the same states in a reply thread and in dark theme."
+      ],
+      "expected": "Text and photo comments both use a compact, plain profile/body treatment with no profile-card border, background, or shadow. Photo comments keep one small fixed gap before their natural-width media, and their ellipsis aligns with the photo’s right edge rather than the timestamp. Menus and reaction controls remain usable.",
+      "status": "pass",
+      "evidence": "2026-08-19: user confirmed the compact plain text/photo comment layout, fixed media gap, and menu alignment during visual testing.",
+      "notes": "Human acceptance confirmation in the local app.",
+      "waiver": ""
+    }
+  ]
+}

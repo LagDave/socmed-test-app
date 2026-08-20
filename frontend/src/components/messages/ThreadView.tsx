@@ -34,7 +34,6 @@ import type { ChatTheme } from "@/api/types";
 import { insertTextAtSelection } from "@/lib/composerEmojiOptions";
 import { buildThreadTimeline, mergePinActivities, mergeThreadSystemLogs } from "@/components/messages/threadTimeline";
 import { patchReplyTargetsUnsent, replyTargetPreview } from "@/components/messages/threadViewUtils";
-import { useMessagesTheme } from "@/components/messages/MessagesThemeContext";
 
 const POLL_MS = 2500;
 
@@ -83,7 +82,6 @@ function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] 
 }
 
 export function ThreadView({ conversationId, embedded = false }: { conversationId: string; embedded?: boolean }) {
-  const { theme: messagesTheme } = useMessagesTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
   const socketConnected = useSocketConnected();
@@ -711,7 +709,7 @@ export function ThreadView({ conversationId, embedded = false }: { conversationI
     await sendText(word, { clearComposer: false });
   }
 
-  const resolvedTheme = resolveConversationTheme(conversationTheme, messagesTheme === "dark");
+  const resolvedTheme = resolveConversationTheme(conversationTheme);
   const themeVars = chatThemeCssVars(resolvedTheme);
   const peerProfilePath = peer?.username ? `/u/${peer.username}` : peer ? `/u/${peer.id}` : "#";
   const replyPreview =

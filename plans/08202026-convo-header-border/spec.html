@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conversation Header Divider Removal Spec</title>
+  <style>
+    :root { --paper:#fff; --ink:#101010; --muted:#636363; --line:#d8d8d8; --soft:#f6f6f6; --accent:#155e75; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1040px,calc(100% - 32px)); margin:0 auto; padding:42px 0 60px; }
+    .hero,.card,.task { border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    .hero { border-color:var(--ink); padding:30px; margin-bottom:18px; }
+    .card { padding:24px; margin-top:16px; }
+    .task { padding:17px; margin-top:12px; background:var(--soft); }
+    .topline { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+    .eyebrow,dt { margin:0; color:var(--muted); font-size:.76rem; font-weight:750; letter-spacing:.05em; text-transform:uppercase; }
+    .status { display:inline-flex; border-radius:999px; padding:6px 11px; background:var(--accent); color:#fff; font-size:.76rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+    h1 { max-width:800px; margin:0 0 20px; font-size:clamp(2rem,5vw,3.25rem); line-height:1; }
+    h2 { margin:0 0 12px; font-size:1.35rem; } h3 { margin:0 0 8px; font-size:1.05rem; }
+    .meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin:0; }
+    .meta div { padding:12px; border:1px solid var(--line); border-radius:8px; } dd { margin:3px 0 0; font-weight:700; }
+    code { padding:.08rem .3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:.9em; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.93rem; } th,td { padding:9px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; } th { background:var(--soft); font-size:.75rem; letter-spacing:.04em; text-transform:uppercase; }
+    .callout { border-left:4px solid var(--accent); padding:12px 14px; background:var(--soft); } .checks { margin:0; padding-left:1.25rem; } .checks li { margin:.5rem 0; }
+    dl.task-details { display:grid; gap:8px; margin:0; } dl.task-details dd { margin:2px 0 0; font-weight:400; }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="topline"><p class="eyebrow">Socmed Plan Spec</p><span class="status">Completed</span></div>
+      <h1>Remove the conversation-header divider</h1>
+      <dl class="meta">
+        <div><dt>Plan folder</dt><dd>plans/08202026-convo-header-border</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/convo-header-fix</dd></div>
+        <div><dt>Merge target</dt><dd>dev</dd></div>
+        <div><dt>Size</dt><dd>Small · 2 tasks · 1 app file</dd></div>
+        <div><dt>Risk</dt><dd>Level 1 · suggestion</dd></div>
+      </dl>
+    </header>
+
+    <section class="card">
+      <h2>Why</h2>
+      <p>The supplied conversation screenshot shows a visible horizontal rule separating the profile/action header from the message pane. It makes the header read as a distinct bordered panel; the requested visual is a continuous conversation surface without that divider.</p>
+    </section>
+
+    <section class="card">
+      <h2>What</h2>
+      <p>Remove the bottom divider produced by <code>.messages-thread-header::after</code> and eliminate the card-like seam beneath a custom-themed header. A custom chat background must be painted once by the thread container, with transparent header and pane children over it, so a gradient does not restart at the header boundary. The header keeps its sticky position, padding, accessibility, profile link, and all action controls. The small border surrounding the Search/Palette/More action cluster is explicitly retained.</p>
+      <p><strong>Done when:</strong> default and custom-chat-theme conversation headers have no bottom line or visible surface seam, while the rest of the thread header and composer separator remain unchanged.</p>
+    </section>
+
+    <section class="card">
+      <h2>Context and blast radius</h2>
+      <table>
+        <thead><tr><th>File / consumer</th><th>Role and impact</th></tr></thead>
+        <tbody>
+          <tr><td><code>frontend/src/index.css</code></td><td>Owns the divider source and thread theme selectors. It will make the default header match the thread pane and paint an active custom theme once on the outer thread container.</td></tr>
+          <tr><td><code>frontend/src/components/messages/ThreadViewContent.tsx</code></td><td>The only live renderer of <code>messages-thread-header</code>, used at <code>/messages/:conversationId</code>. It currently applies the active theme background to the pane; that local paint must move to the outer container so the gradient remains continuous.</td></tr>
+          <tr><td>Default and selected chat themes</td><td>Both render the shared header selector. Custom gradients currently restart in the header and pane independently, creating the screenshot’s visible seam; both states require acceptance verification.</td></tr>
+          <tr><td><code>frontend/src/components/messages/ConversationThreadHeader.tsx</code></td><td>Unused legacy header component. It is not a consumer of <code>messages-thread-header</code> and is out of scope.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Constraints / out of scope</h2>
+      <ul>
+        <li>Remove the header-to-thread divider and the custom-gradient seam only; retain the action-cluster border, avatar outline, and composer top separator.</li>
+        <li>Do not alter header structure, interaction handlers, theme data, routes, APIs, state, or persistence.</li>
+        <li>Use the existing Messages stylesheet; no new dependency, component, migration, or generalized chat-style refactor.</li>
+        <li>Follow Code Constitution §§2.1 and 4.3 by keeping this visual concern in its existing CSS owner, and §§13.3 and 17.2 by leaving the React component and its typing unchanged.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Risk and mitigation</h2>
+      <p class="callout"><strong>Level 2 — Concern.</strong> Moving the custom background to the outer thread container changes which element paints the theme. Its blast radius is every selected chat theme, including gradients and scrollable pane content. <strong>Mitigation:</strong> preserve the existing CSS variables and message color rules, keep the default surface unchanged except for matching its header/pane background, and verify solid and gradient themes at desktop and narrow widths before finalization.</p>
+    </section>
+
+    <section class="card">
+      <h2>Tasks</h2>
+      <article class="task" id="T1">
+        <h3>T1 — Remove the thread-header divider source</h3>
+        <dl class="task-details">
+          <div><dt>Do</dt><dd>Delete the <code>.messages-thread-header::after</code> pseudo-element rule and its default-theme override, so no bottom divider is painted in either default or custom-theme threads. Keep the header <code>::before</code> background treatment and all unrelated border selectors.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>A1, D1; inspect the selector search to confirm no residual header-divider rule remains.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T2">
+        <h3>T2 — Record focused visual acceptance</h3>
+        <dl class="task-details">
+          <div><dt>Do</dt><dd>Run the frontend quality gates and record acceptance for a default conversation and an available custom-chat-theme conversation. Check both a normal desktop width and a narrow/mobile width.</dd></div>
+          <div><dt>Files</dt><dd><code>plans/08202026-convo-header-border/test-results.json</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>A1, D1; every item passes or a failure has a written waiver.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T3">
+        <h3>T3 — Make the header and themed thread a continuous surface</h3>
+        <dl class="task-details">
+          <div><dt>Do</dt><dd>Match the default header background to the default thread pane. For an active custom theme, paint <code>--chat-bg</code> once on the thread container and remove the pane’s independent inline background so the header and scrollable pane share one continuous gradient. Preserve custom-theme foreground, controls, message bubbles, and composer behavior.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/messages/ThreadViewContent.tsx</code>, <code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>A1, A2, D1; test one solid and one gradient custom theme.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Done checklist</h2>
+      <ul class="checks">
+        <li>☒ No horizontal divider appears below the conversation header in the default theme.</li>
+        <li>☒ No horizontal divider or visible color/gradient seam appears below the conversation header with a selected custom chat theme.</li>
+        <li>☒ A gradient custom theme remains continuous while the message pane scrolls; a solid custom theme remains unchanged apart from the removed seam.</li>
+        <li>☒ The action-cluster border, header background, sticky behavior, controls, and composer top separator remain intact.</li>
+        <li>☒ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> complete without errors caused by this change.</li>
+        <li>☒ <code>test-results.json</code> reaches Passed, or every failure carries a written waiver.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Revision log</h2>
+      <table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>Rev 0</td><td>2026-08-20</td><td>Initial plan from the supplied conversation screenshot. Scoped the request to the header's <code>::after</code> divider; retained all other borders and header behavior.</td></tr><tr><td>Rev 1</td><td>2026-08-20</td><td>Executed T1 on <code>kylie/convo-header-fix</code>: removed the thread header’s <code>::after</code> divider and default-theme override. Frontend typecheck, lint, and production build pass; A1 remains pending live UI acceptance.</td></tr><tr><td>Rev 2</td><td>2026-08-20</td><td>User feedback identified a residual Messenger-style seam in custom gradient themes. The scope now includes T3: paint the theme once on the outer thread container and make its header/pane children transparent, while making the default header match the default pane. This supersedes the Rev 0 constraint to retain the existing header background treatment.</td></tr><tr><td>Rev 3</td><td>2026-08-20</td><td>Executed T3 on <code>kylie/convo-header-fix</code>: the outer thread shell now paints an active theme once, while the header and pane are transparent over it; the default header matches the default pane. Removed the obsolete default-header class. Frontend typecheck, lint, and production build pass; A1 remains pending live UI acceptance.</td></tr><tr><td>Rev 4</td><td>2026-08-20</td><td>User completed live acceptance and confirmed the Messenger-style continuous surface. A1 and D1 pass; the plan is complete.</td></tr></tbody></table>
+    </section>
+  </main>
+</body>
+</html>

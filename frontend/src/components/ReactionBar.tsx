@@ -433,9 +433,11 @@ export function ReactionBar({
               {presentTypes.map((opt) => (
                 <span
                   key={opt.emoji}
-                  className="inline-flex items-center justify-center rounded-full bg-background ring-1 ring-border/70"
+                  className="inline-flex items-center justify-center rounded-full bg-background p-1 text-[10px] ring-1 ring-border/70"
                 >
-                  <ReactionIcon emoji={opt.emoji} className={s.summaryIcon} />
+                  <span className="inline-grid size-2.5 place-items-center leading-none">
+                    <ReactionIcon emoji={opt.emoji} className="text-[10px]" />
+                  </span>
                 </span>
               ))}
             </span>

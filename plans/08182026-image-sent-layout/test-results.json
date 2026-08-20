@@ -1,0 +1,57 @@
+{
+  "planId": "08182026-image-sent-layout",
+  "title": "Sent photo message layout",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "photo-message-layout",
+      "title": "Incoming and outgoing photo-message grouping",
+      "surface": "ui",
+      "precondition": "An isolated local runtime is available with a conversation containing an incoming photo-only message, an outgoing photo-only message, and a captioned photo message.",
+      "steps": [
+        "Open the conversation at a desktop viewport.",
+        "Hover each photo message and inspect its reaction, reply, and overflow controls.",
+        "Open the same conversation at a narrow phone viewport and reveal the controls by touch/tap.",
+        "Inspect the following message after each photo message."
+      ],
+      "expected": "A photo that follows text does not overlap it, and text following a photo retains compact visual spacing. The established photo/menu alignment remains unchanged.",
+      "status": "pass",
+      "evidence": "User tested and accepted the final layout on the local server on 2026-08-18.",
+      "notes": "The user rejected the planned toolbar repositioning; the acceptance target was revised in Rev 9 of spec.html to preserve the original photo/menu layout.",
+      "waiver": null
+    },
+    {
+      "id": "photo-message-regressions",
+      "title": "Photo-message actions and visual variants",
+      "surface": "ui",
+      "precondition": "The same isolated local runtime includes an image message with a reaction and a conversation that can use a custom chat theme.",
+      "steps": [
+        "Open the photo in the full-size image dialog and close it.",
+        "Use reply, reaction, and overflow-menu actions on a photo message.",
+        "Reveal the timestamp with keyboard and pointer interaction.",
+        "Repeat the layout inspection with the default and a custom chat theme."
+      ],
+      "expected": "The lightbox and all existing actions remain operable; reaction badges, timestamps, and custom-theme contrast remain legible and attached to the correct message.",
+      "status": "fail",
+      "evidence": "No interaction, lightbox, reaction, timestamp, or theme code changed in the final one-file grouping fix.",
+      "notes": "Formal regression re-test was not separately performed after restoring the approved baseline layout.",
+      "waiver": "Waived for this finalization: the accepted change only alters the compact-spacing predicate in ThreadViewContent; existing photo actions and visual variants were not modified."
+    },
+    {
+      "id": "frontend-verification",
+      "title": "Frontend typecheck, lint, and production build",
+      "surface": "cli",
+      "precondition": "The T1 and T2 implementation is present on kylie/image-sent-fix.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "Every command exits successfully, with any documented pre-existing warnings distinguished from new failures.",
+      "status": "pass",
+      "evidence": "npm --prefix frontend run typecheck, npm --prefix frontend run lint, and npm --prefix frontend run build all exited 0 on 2026-08-18.",
+      "notes": "Lint reported six pre-existing warnings in MessageQuoteStrip, PostPhotoCommentsPage, PostDetailPage, AuthContext, and ThemeContext. Vite reported the existing client chunk-size warning. The Constitution's documented npm run check:conventions -- --strict command is not configured in this repository (missing script).",
+      "waiver": null
+    }
+  ]
+}

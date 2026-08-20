@@ -1,0 +1,54 @@
+{
+  "plan": "plans/08192026-reaction-side-fix",
+  "status": "passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Post reaction summary follows the reference padding",
+      "surface": "ui",
+      "precondition": "Run the feature branch in an isolated acceptance runtime; sign in and open a post with one reaction, then a post with two reaction types.",
+      "steps": [
+        "Inspect the right-side reaction summary for a single icon.",
+        "Inspect it again with two or more reaction types.",
+        "Click the summary and close the people list dialog."
+      ],
+      "expected": "Each reaction sits in a rounded background/ring with 4px padding; glyphs are compact and optically centered; multiple icons retain their slight overlap; the total and people list behavior are unchanged.",
+      "status": "pass",
+      "evidence": "2026-08-19: User manually confirmed the corrected, centered live reaction summary after visual testing.",
+      "notes": "User acceptance confirmed the centered glyph and unchanged summary behavior.",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Comment and photo consumers stay consistent",
+      "surface": "ui",
+      "precondition": "An isolated acceptance runtime has a reacted comment and a reacted post image available.",
+      "steps": [
+        "Open the reacted comment and inspect its reaction summary.",
+        "Open the reacted post image/card and inspect its reaction summary.",
+        "Confirm message-bubble reaction badges are visually unchanged."
+      ],
+      "expected": "Comment and post-image summaries use the same compact treatment as posts; the separate message badge is unaffected.",
+      "status": "pass",
+      "evidence": "2026-08-19: User confirmed visual testing of the completed change; message reaction badges remain out of scope and unchanged by the single summary renderer edit.",
+      "notes": "The message assertion protects the explicitly out-of-scope consumer.",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Frontend build gates pass",
+      "surface": "cli",
+      "precondition": "Dependencies are installed in the execution worktree.",
+      "steps": [
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "All commands exit successfully with no errors caused by the change.",
+      "status": "pass",
+      "evidence": "2026-08-19: npm --prefix frontend run lint exited 0 (six existing unrelated warnings); npm --prefix frontend run typecheck exited 0; npm --prefix frontend run build exited 0. Re-run after the Rev 3 centering correction also exited 0 for all three commands.",
+      "notes": "Class-only changes still require the hard typecheck/build gate. Build retains the pre-existing Vite advisory for a >500 kB generated chunk.",
+      "waiver": ""
+    }
+  ]
+}

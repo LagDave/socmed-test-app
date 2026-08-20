@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Remove Messages Switch Mode — Spec</title>
+  <style>
+    :root { --paper:#fff; --ink:#111; --muted:#5f5f5f; --line:#d8d8d8; --soft:#f6f6f6; --risk:#7a4b00; }
+    * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 ui-sans-serif,system-ui,sans-serif; }
+    main { width:min(1080px,calc(100% - 32px)); margin:0 auto; padding:40px 0; } .hero,.card,.task { border:1px solid var(--line); border-radius:10px; padding:24px; margin-top:16px; }
+    .hero { margin-top:0; border-color:var(--ink); } .topline { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:16px; }
+    .eyebrow,dt { color:var(--muted); font-size:.76rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; } .eyebrow { margin:0; }
+    .status { border-radius:999px; padding:6px 11px; background:var(--ink); color:#fff; font-size:.76rem; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+    h1 { margin:0 0 20px; font-size:clamp(2rem,5vw,3.4rem); line-height:1; } h2 { margin:0 0 10px; font-size:1.35rem; } h3 { margin:0 0 8px; font-size:1.05rem; }
+    .meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin:0; }.meta div,.grid > div { border:1px solid var(--line); border-radius:8px; padding:12px; } dd { margin:3px 0 0; font-weight:700; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:12px; } .task { background:var(--soft); } .task dl { display:grid; gap:9px; margin:0; } .task dd { font-weight:400; }
+    code { padding:.08rem .3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:.9em; } table { width:100%; border-collapse:collapse; margin-top:10px; font-size:.92rem; }
+    th,td { border:1px solid var(--line); padding:9px; vertical-align:top; text-align:left; } th { background:var(--soft); font-size:.76rem; text-transform:uppercase; letter-spacing:.04em; }
+    .callout { border:2px solid var(--risk); color:#4a2d00; border-radius:8px; padding:14px; } .checks { margin:0; padding-left:1.2rem; } li + li { margin-top:6px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="topline"><p class="eyebrow">Socmed plan spec</p><span class="status">Completed</span></div>
+      <h1>Remove Messages Switch Mode</h1>
+      <dl class="meta">
+        <div><dt>Plan folder</dt><dd>plans/08182026-remove-message-switch-mode</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/remove-message-switch-mode</dd></div>
+        <div><dt>Merge target</dt><dd>dev</dd></div>
+        <div><dt>Size</dt><dd>Small · 4 tasks · 10 files</dd></div>
+        <div><dt>Risk</dt><dd>Level 3 · structural</dd></div>
+      </dl>
+    </header>
+
+    <section class="card">
+      <h2>Why</h2>
+      <p>The recently added Messages-only light/dark mode creates a second appearance preference, stored separately from the application preference, and adds the Moon/Sun button shown in the inbox header. The approved outcome is to remove that feature completely so Messages follows the established global appearance again.</p>
+    </section>
+
+    <section class="card">
+      <h2>What</h2>
+      <p>Remove the independent Messages theme provider, context, persistent <code>socmed-messages-theme</code> preference, inbox Moon/Sun control, scoped CSS token overrides, and conversation-theme darkening variant. Keep the global profile/menu appearance control, the New message action, Message settings action, and the per-conversation <em>Customize chat theme</em> palette unchanged.</p>
+      <p><strong>Done when:</strong> <code>/messages</code> contains only its New message and Message settings header actions; Messages always reflects the global theme; a saved conversation palette remains selectable and readable; and frontend quality gates pass.</p>
+    </section>
+
+    <section class="card">
+      <h2>Context and confirmed consumers</h2>
+      <table>
+        <thead><tr><th>File / surface</th><th>Role in the feature or closest pattern</th></tr></thead>
+        <tbody>
+          <tr><td><code>frontend/src/App.tsx</code></td><td>Wraps all three Messages routes in the separate provider.</td></tr>
+          <tr><td><code>frontend/src/components/messages/InboxView.tsx</code></td><td>Renders the screenshot’s Moon/Sun control between New message and Message settings.</td></tr>
+          <tr><td><code>MessagesThemeContext.ts</code>, <code>MessagesThemeProvider.tsx</code>, <code>MessagesThemeToggle.tsx</code></td><td>Feature-only state, localStorage persistence, route surface, and control; all have no other consumers.</td></tr>
+          <tr><td><code>frontend/src/components/messages/ThreadView.tsx</code></td><td>Reads the Messages-only mode and requests a derived dark conversation palette.</td></tr>
+          <tr><td><code>frontend/src/lib/chatThemeApply.ts</code></td><td>Contains the optional dark-variant calculations used only by <code>ThreadView</code>.</td></tr>
+          <tr><td><code>frontend/src/index.css</code></td><td>Defines the Messages-only light/dark token overrides.</td></tr>
+          <tr><td><code>frontend/src/components/messages/ThreadViewContent.tsx</code></td><td>Owns the independent per-conversation palette button; it is intentionally unchanged.</td></tr>
+          <tr><td><code>CHANGELOG.md</code></td><td>Current 0.1.39 entry advertises the feature and needs an auditable removal entry rather than historical rewrite.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Constraints and decisions</h2>
+      <div class="grid">
+        <div><h3>Must</h3><ul><li>Use the existing global <code>ThemeProvider</code> as the sole appearance authority.</li><li>Remove every production import/reference to the feature-only context, provider, and toggle.</li><li>Preserve message data, APIs, sockets, search, composition, and conversation-theme persistence.</li><li>Record a new changelog release entry describing the removal.</li></ul></div>
+        <div><h3>Must not / out of scope</h3><ul><li>Do not add a replacement Messages-local setting or mutate the global theme implementation.</li><li>Do not remove the Palette / Customize chat theme control or its API.</li><li>Do not add dependencies, database migrations, or an automated test framework.</li><li>Do not erase the historical 0.1.39 changelog entry.</li></ul></div>
+      </div>
+      <p>The obsolete browser key <code>socmed-messages-theme</code> is intentionally left unread rather than adding one-time cleanup code. Once the provider is gone it cannot affect the UI, and a cleanup effect would reintroduce the removed feature boundary.</p>
+    </section>
+
+    <section class="card">
+      <h2>Risk and mitigation</h2>
+      <div class="callout"><strong>Level 3 — structural risk:</strong> this branch was originally created from local <code>dev</code> at <code>b904728</code>, which predates the feature. The feature exists on current <code>origin/dev</code> at <code>72d7860</code>. Executing without first moving the branch to that baseline would produce no actual removal and risk overwriting newer integration work. <strong>Mitigation:</strong> require a clean worktree and rebase <code>kylie/remove-message-switch-mode</code> onto <code>origin/dev</code> before modifying code.</div>
+      <table>
+        <thead><tr><th>Hazard</th><th>Blast radius</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Partial removal leaves an inaccessible second theme system.</td><td>All Messages routes and custom chat-theme rendering.</td><td>Delete the provider/context/toggle together, then search production source for every removed symbol and storage key.</td></tr>
+          <tr><td>Removing local mode alters conversation-theme contrast unexpectedly.</td><td>Default and selected-theme message threads.</td><td>Restore the single-argument resolver and manually verify default plus selected palettes under both global appearances.</td></tr>
+          <tr><td>Inbox actions regress on narrow screens.</td><td>New message flow and Message settings navigation.</td><td>Verify the remaining two icon actions at desktop and narrow widths, including keyboard names and focus.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Tasks</h2>
+      <article class="task"><h3>T1 — Align the execution branch with the feature baseline</h3><dl><div><dt>Do</dt><dd>Confirm the worktree is clean, then rebase <code>kylie/remove-message-switch-mode</code> onto <code>origin/dev</code>. Reconfirm that the independent Messages theme files and inbox control are present before editing.</dd></div><div><dt>Files</dt><dd>Git branch state only; no application files.</dd></div><div><dt>Depends on</dt><dd>—</dd></div><div><dt>Verify</dt><dd><code>HEAD</code> contains <code>72d7860</code> and <code>rg</code> finds all three <code>MessagesTheme*</code> files and their consumers.</dd></div></dl></article>
+      <article class="task"><h3>T2 — Remove the Messages-local appearance boundary and inbox control</h3><dl><div><dt>Do</dt><dd>Remove route wrappers from <code>App.tsx</code>, remove <code>MessagesThemeToggle</code> from the inbox action cluster, and delete the context, provider, and toggle modules. Keep New message, Message settings, unread badge, and their accessibility behavior intact.</dd></div><div><dt>Files</dt><dd><code>frontend/src/App.tsx</code>; <code>frontend/src/components/messages/InboxView.tsx</code>; delete <code>MessagesThemeContext.ts</code>, <code>MessagesThemeProvider.tsx</code>, <code>MessagesThemeToggle.tsx</code>.</dd></div><div><dt>Depends on</dt><dd>T1</dd></div><div><dt>Verify</dt><dd>The inbox has no switch-mode action or <code>aria-label</code>, and all Messages routes render through the global provider only.</dd></div></dl></article>
+      <article class="task"><h3>T3 — Restore single-source conversation-theme resolution and tokens</h3><dl><div><dt>Do</dt><dd>Remove <code>useMessagesTheme</code> consumption and the dark-variant argument from <code>ThreadView</code>. Simplify <code>chatThemeApply</code> back to one palette-resolution path, removing feature-only color-darkening helpers. Remove Messages-only CSS token overrides.</dd></div><div><dt>Files</dt><dd><code>frontend/src/components/messages/ThreadView.tsx</code>; <code>frontend/src/lib/chatThemeApply.ts</code>; <code>frontend/src/index.css</code>.</dd></div><div><dt>Depends on</dt><dd>T2</dd></div><div><dt>Verify</dt><dd>No production source references <code>MessagesTheme</code>, <code>messages-theme-</code>, <code>socmed-messages-theme</code>, or a two-argument conversation-theme resolver; custom chat themes still render.</dd></div></dl></article>
+      <article class="task"><h3>T4 — Document and validate the removal</h3><dl><div><dt>Do</dt><dd>Add a new changelog release entry that records removal without rewriting 0.1.39 history. Run import/export audit, typecheck, lint, build, and the acceptance checklist.</dd></div><div><dt>Files</dt><dd><code>CHANGELOG.md</code>; <code>plans/08182026-remove-message-switch-mode/test-results.json</code>.</dd></div><div><dt>Depends on</dt><dd>T2, T3</dd></div><div><dt>Verify</dt><dd>All acceptance items pass or hold written waivers; changed-file quality gates are clean.</dd></div></dl></article>
+    </section>
+
+    <section class="card">
+      <h2>Done</h2>
+      <ul class="checks"><li>☐ The branch is based on current <code>origin/dev</code>.</li><li>☐ No Moon/Sun switch-mode control or Messages-local appearance provider remains.</li><li>☐ Messages follows the global appearance, including after reload; an old Messages localStorage key has no effect.</li><li>☐ New message, Message settings, message search, and per-conversation palette flows still work.</li><li>☐ Default and custom-theme threads are readable in both global appearances.</li><li>☐ Import/export audit, <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> pass.</li><li>☐ The acceptance checklist is Passed or every failure has a written waiver.</li></ul>
+    </section>
+
+    <section class="card"><h2>Revision Log</h2><table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>Rev 1</td><td>2026-08-18</td><td>Initial plan. User approved full removal of the independent Messages mode and rebasing the execution branch onto current <code>origin/dev</code>.</td></tr><tr><td>Rev 2</td><td>2026-08-18</td><td>Executed T1–T4 on <code>kylie/remove-message-switch-mode</code>. The branch rebased to <code>72d7860</code>; the duplicate local notification fallback commit was skipped because its equivalent is already present as <code>c617c04</code> on <code>origin/dev</code>. Removed the Messages-only mode and added a 0.1.40 removal entry. Import audit, frontend typecheck, lint, and production build pass.</td></tr><tr><td>Rev 3</td><td>2026-08-18</td><td>User confirmed local acceptance on <code>localhost:5180</code>. The acceptance checklist is Passed.</td></tr></tbody></table></section>
+  </main>
+</body>
+</html>

@@ -132,7 +132,7 @@ export function EditProfileDialog({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="relative h-28 shrink-0 overflow-hidden sm:h-32">
+          <div className="user-media-stage relative h-28 shrink-0 overflow-hidden sm:h-32">
             <button
               type="button"
               disabled={busy}
@@ -141,7 +141,7 @@ export function EditProfileDialog({
               aria-label="Choose cover photo"
             >
               {coverPreviewUrl ? (
-                <img src={coverPreviewUrl} alt="" className="size-full object-cover" />
+                <img src={coverPreviewUrl} alt="" className="user-media-thumbnail" />
               ) : (
                 <div className="profile-cover size-full" />
               )}

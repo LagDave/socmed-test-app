@@ -183,18 +183,13 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
     <section className={cn("messages-page space-y-4", embedded && "lg:h-full lg:space-y-0")}>
       <div
         className={cn(
-          "feed-card relative flex h-[calc(100dvh-7rem)] min-h-[70vh] flex-col overflow-hidden",
+          "feed-card messages-thread-shell relative flex h-[calc(100dvh-7rem)] min-h-[70vh] flex-col overflow-hidden",
           embedded && "lg:h-full lg:min-h-0 lg:rounded-none lg:shadow-none"
         )}
         data-chat-theme={resolvedTheme.active ? "true" : undefined}
         style={themeVars}
       >
-        <header
-          className={cn(
-            "messages-thread-header sticky top-0 z-10 shrink-0",
-            !resolvedTheme.active && "messages-thread-header--default"
-          )}
-        >
+        <header className="messages-thread-header sticky top-0 z-10 shrink-0">
           <div className="messages-thread-header-inner">
             <Button
               type="button"
@@ -305,7 +300,6 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
         <div
           ref={scrollRef}
           className="messages-thread-pane scrollbar-none min-h-0 flex-1 overflow-y-auto px-5 py-3"
-          style={resolvedTheme.active ? { background: resolvedTheme.background } : undefined}
           onScroll={() => {
             const el = scrollRef.current;
             if (!el) return;
@@ -357,8 +351,13 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                 const groupedWithNext = Boolean(next && messagesShareGroup(m, next));
                 const previousHasReaction = prev ? hasMessageReaction(prev) : false;
                 const messageHasReaction = hasMessageReaction(m);
+                const imagesBreakCompactGrouping = Boolean(prev?.imageUrl || m.imageUrl);
                 const compactWithPrevious = Boolean(
-                  prev && prev.senderId === m.senderId && !previousHasReaction && !messageHasReaction
+                  prev &&
+                    prev.senderId === m.senderId &&
+                    !previousHasReaction &&
+                    !messageHasReaction &&
+                    !imagesBreakCompactGrouping
                 );
                 const showTimeGap = Boolean(prev && !showDay && messagesHaveTimeGap(prev, m));
 
@@ -459,11 +458,9 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                   <span className="text-foreground/90">{replyPreview.snippet}</span>
                 </p>
                 {replyPreview.imageUrl && (
-                  <img
-                    src={replyPreview.imageUrl}
-                    alt=""
-                    className="mt-2 h-10 w-10 rounded object-cover"
-                  />
+                  <div className="user-media-stage mt-2 h-10 w-10 rounded">
+                    <img src={replyPreview.imageUrl} alt="" className="user-media-thumbnail rounded" />
+                  </div>
                 )}
               </div>
               <Button
