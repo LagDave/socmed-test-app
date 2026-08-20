@@ -1,7 +1,6 @@
 {
   "name": "socmed-test-app",
-  "version": "0.1.38",
-  "private": true,
+  "version": "0.1.40",  "private": true,
   "description": "Basic social media platform \u2014 auth, posts, comments, friends",
   "scripts": {
     "dev": "concurrently -n api,web -c white,black \"npm run dev:api\" \"npm run dev:web\"",

@@ -1,0 +1,88 @@
+{
+  "plan": "plans/08192026-photo-modal-fix",
+  "generatedAt": "2026-08-19",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Compact centered photo presentation",
+      "surface": "ui",
+      "precondition": "Signed in with a conversation that contains one portrait image and one landscape image.",
+      "steps": [
+        "Open each image from its message bubble at desktop width.",
+        "Confirm the visible 'Image preview' label, header separator, opaque dialog panel, and broad inner padding are absent.",
+        "Resize to a narrow/mobile viewport and open both images again."
+      ],
+      "expected": "Each image appears as a centered floating object, never exceeds 70vh height or 24rem width, fits within the viewport, and has no broad white frame around it.",
+      "status": "pass",
+      "evidence": "User-validated locally on 2026-08-19 after the compact 24rem viewer was restored without click-to-zoom.",
+      "notes": "The compact X continues to use difference blending to maintain contrast without a visible background.",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Accessible dismissal behavior",
+      "surface": "ui",
+      "precondition": "A received image is available in a signed-in conversation.",
+      "steps": [
+        "Open the image and confirm keyboard focus lands on the visible overlay Close action.",
+        "Close once with the overlay control, once by clicking the shaded backdrop, and once with Escape.",
+        "For each close path, confirm the viewer closes and the page scrolls normally afterward.",
+        "Inspect the open dialog with accessibility tooling or its rendered attributes."
+      ],
+      "expected": "All dismissal paths work, closing restores page scrolling, and the dialog has an accessible name even though no visible title is rendered.",
+      "status": "pass",
+      "evidence": "User-validated locally on 2026-08-19.",
+      "notes": "The existing backdrop, Escape listener, focus ref, and scroll cleanup remain intact; the dialog has aria-label='Chat image'.",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Image-message row spacing",
+      "surface": "ui",
+      "precondition": "A conversation contains consecutive image messages and at least one consecutive text-message pair.",
+      "steps": [
+        "View two consecutive image messages from the same sender.",
+        "View an image followed immediately by a text message from the same sender.",
+        "View two consecutive text messages from the same sender."
+      ],
+      "expected": "Image thumbnails and the following text do not overlap; the existing compact text-only grouping remains intact.",
+      "status": "pass",
+      "evidence": "User-validated locally on 2026-08-19.",
+      "notes": "Image-bearing message rows now break compact grouping, while text-only groups retain their existing compact spacing.",
+      "waiver": ""
+    },
+    {
+      "id": "T5",
+      "title": "Dark-mode photo backdrop",
+      "surface": "ui",
+      "precondition": "A received image is available; test both global dark mode and Messages-specific dark mode when available.",
+      "steps": [
+        "Open a received photo in global dark mode.",
+        "Open a received photo in Messages-specific dark mode.",
+        "Open the same viewer in light mode, then open another modal in dark mode."
+      ],
+      "expected": "The photo viewer’s backdrop is black and blurred in either dark mode. Light mode retains the existing lighter backdrop, and unrelated modal backdrops are unchanged.",
+      "status": "pass",
+      "evidence": "User-validated locally on 2026-08-19.",
+      "notes": "The selector covers both global .dark and Messages-specific .messages-theme-dark roots.",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Frontend verification gate",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "All commands exit successfully with no errors caused by this change.",
+      "status": "pass",
+      "evidence": "2026-08-19: npm --prefix frontend run typecheck, npm --prefix frontend run lint, and npm --prefix frontend run build completed successfully after removing click-to-zoom, correcting image-row spacing, and adding the dark-mode photo backdrop.",
+      "notes": "Lint emitted six pre-existing warnings outside the changed files. Vite emitted its existing large-chunk advisory.",
+      "waiver": ""
+    }
+  ]
+}

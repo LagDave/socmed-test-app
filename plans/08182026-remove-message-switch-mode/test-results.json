@@ -1,0 +1,72 @@
+{
+  "plan": "plans/08182026-remove-message-switch-mode",
+  "generatedAt": "2026-08-18",
+  "status": "passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Inbox no longer offers Messages switch mode",
+      "surface": "ui",
+      "precondition": "Signed in with access to /messages in an isolated runtime.",
+      "steps": [
+        "Open /messages at desktop and narrow/mobile width.",
+        "Inspect the title action group and its keyboard focus order.",
+        "Activate New message and Message settings."
+      ],
+      "expected": "Only New message and Message settings remain as inbox icon actions; no Moon/Sun or switch-mode accessible action is present, and both retained actions work.",
+      "status": "pass",
+      "evidence": "2026-08-18: user confirmed the local Messages test passed on localhost:5180; the inbox switch is absent and retained header actions work.",
+      "notes": "Human acceptance confirmation.",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Messages follows the global appearance only",
+      "surface": "ui",
+      "precondition": "Signed in. A global appearance control is available through the existing application UI; browser storage can be inspected.",
+      "steps": [
+        "Set the global application appearance to light and open /messages, then reload.",
+        "Set the global application appearance to dark and open /messages, then reload.",
+        "If socmed-messages-theme already exists in localStorage, set it to the opposite value and reload /messages."
+      ],
+      "expected": "Messages matches the global appearance on every route and after reload. An obsolete socmed-messages-theme value has no visual effect and no Messages-only html class or route surface controls the result.",
+      "status": "pass",
+      "evidence": "2026-08-18: user confirmed the local Messages test passed on localhost:5180.",
+      "notes": "Human acceptance confirmation.",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Conversation behavior and palettes remain available",
+      "surface": "ui",
+      "precondition": "Signed in with a conversation; use one default-theme thread and one saved custom conversation theme when available.",
+      "steps": [
+        "Open each conversation and exercise search plus the Customize chat theme palette.",
+        "Change the global application appearance and revisit each thread.",
+        "Send no messages; verify selected colors, text, controls, and composer remain readable."
+      ],
+      "expected": "Search and conversation palette behavior remain available. Default and custom threads are readable under either global appearance, without a Messages-specific palette-darkening mode.",
+      "status": "pass",
+      "evidence": "2026-08-18: user confirmed the local Messages test passed on localhost:5180.",
+      "notes": "Human acceptance confirmation.",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Frontend quality gates and dead-reference audit",
+      "surface": "cli",
+      "precondition": "Frontend dependencies are installed and implementation is complete.",
+      "steps": [
+        "Search production frontend source for MessagesTheme, messages-theme-, socmed-messages-theme, and a two-argument resolveConversationTheme call.",
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "No removed-feature references remain in production code, and every command exits successfully with no errors caused by this change.",
+      "status": "pass",
+      "evidence": "2026-08-18: production-source audit returned no MessagesTheme, messages-theme-, socmed-messages-theme, or two-argument resolveConversationTheme references. npm --prefix frontend run typecheck, lint, and build each exited 0.",
+      "notes": "Lint emitted six pre-existing warnings outside changed files; Vite emitted its existing bundle-size advisory. The Constitution-documented root check:all command is not configured in package.json. No frontend test runner is configured; typecheck, lint, build, and isolated UI acceptance are the applicable gates.",
+      "waiver": ""
+    }
+  ]
+}

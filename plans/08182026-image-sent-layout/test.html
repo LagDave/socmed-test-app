@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sent Photo Message Layout — Acceptance</title>
+  <style>
+    :root { --ink:#18181b; --line:#d4d4d8; --muted:#52525b; --soft:#f4f4f5; --pass:#166534; --fail:#991b1b; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); font:16px/1.5 system-ui,sans-serif; }
+    main { width:min(860px,calc(100% - 32px)); margin:auto; padding:32px 0; }
+    header,article { border:1px solid var(--line); border-radius:10px; padding:20px; margin-bottom:16px; }
+    h1,h2,p { margin-top:0; }
+    button { border:1px solid var(--ink); border-radius:7px; padding:8px 12px; background:white; color:var(--ink); font:inherit; cursor:pointer; }
+    .toolbar { display:flex; gap:8px; margin:16px 0; }
+    .status,.tag { display:inline-block; border-radius:999px; padding:4px 10px; font-size:.75rem; font-weight:700; text-transform:uppercase; }
+    .status { background:var(--muted); color:white; } .status.passed { background:var(--pass); } .status.failed { background:var(--fail); }
+    .tag { border:1px solid var(--line); color:var(--muted); }
+    article.pass { border-left:4px solid var(--pass); } article.fail { border-left:4px solid var(--fail); }
+    dt { margin-top:12px; color:var(--muted); font-size:.75rem; font-weight:700; text-transform:uppercase; }
+    dd { margin:4px 0 0; } ol { margin:4px 0 0; padding-left:20px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <span class="status" id="status">Loading</span>
+      <h1 id="title">Acceptance tests</h1>
+      <p id="meta"></p>
+    </header>
+    <div class="toolbar">
+      <input id="file" type="file" accept="application/json" hidden>
+      <button id="load">Load results</button>
+      <button id="download">Download updated results</button>
+    </div>
+    <section id="items"></section>
+  </main>
+  <script>
+    let data;
+    const byId = id => document.getElementById(id);
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+    const rollup = () => data.items.some(item => item.status === 'fail' && !item.waiver) ? 'Failed' : data.items.every(item => item.status === 'pass' || (item.status === 'fail' && item.waiver)) ? 'Passed' : 'Pending';
+    function render() {
+      data.status = rollup();
+      byId('title').textContent = data.title;
+      byId('meta').textContent = `Plan ${data.planId} · ${data.status}`;
+      const status = byId('status'); status.textContent = data.status; status.className = `status ${data.status.toLowerCase()}`;
+      byId('items').innerHTML = data.items.map((item, index) => `
+        <article class="${item.status}">
+          <h2><label><input type="checkbox" data-index="${index}" ${item.status === 'pass' ? 'checked' : ''}> ${escapeHtml(item.title)}</label> <span class="tag">${escapeHtml(item.surface)}</span></h2>
+          <dl>
+            <dt>Precondition</dt><dd>${escapeHtml(item.precondition)}</dd>
+            <dt>Steps</dt><dd><ol>${item.steps.map(step => `<li>${escapeHtml(step)}</li>`).join('')}</ol></dd>
+            <dt>Expected</dt><dd>${escapeHtml(item.expected)}</dd>
+            <dt>Evidence</dt><dd>${escapeHtml(item.evidence)}</dd>
+            ${item.notes ? `<dt>Notes</dt><dd>${escapeHtml(item.notes)}</dd>` : ''}
+          </dl>
+        </article>`).join('');
+      document.querySelectorAll('[data-index]').forEach(input => input.addEventListener('change', event => {
+        data.items[Number(event.target.dataset.index)].status = event.target.checked ? 'pass' : 'pending';
+        render();
+      }));
+    }
+    function loadResults(file) { const reader = new FileReader(); reader.onload = () => { data = JSON.parse(reader.result); render(); }; reader.readAsText(file); }
+    byId('load').addEventListener('click', () => byId('file').click());
+    byId('file').addEventListener('change', event => { if (event.target.files[0]) loadResults(event.target.files[0]); });
+    byId('download').addEventListener('click', () => { if (!data) return; const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type:'application/json' })); link.download = 'test-results.json'; link.click(); URL.revokeObjectURL(link.href); });
+    fetch('./test-results.json').then(response => response.json()).then(result => { data = result; render(); }).catch(() => {});
+  </script>
+</body>
+</html>

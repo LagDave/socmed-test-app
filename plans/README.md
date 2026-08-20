@@ -61,6 +61,13 @@ Execute **in order**. Stop after plan **09**; DNS is human-owned.
 | 61 | `08072026-50-reaction-share-notifications` | Activity notifications for reactions and post shares |
 | 62 | `08152026-friends-ui-revamp` | Friends navigation, suggestions, and presence polish |
 | 63 | `08182026-message-dark-mode` | Independent Messenger light/dark mode |
+| 64 | `08182026-remove-message-switch-mode` | Remove independent Messages theme; follow global appearance |
+| 65 | `08182026-avatar-fallback` | Letter avatar fallback when a profile photo fails to load |
+| 66 | `08182026-image-sent-layout` | Incoming photo grouping — skip compact overlap |
+| 67 | `08192026-photo-modal-fix` | Compact chat-photo lightbox |
+| 68 | `08192026-comment-typing-fix` | Comment composer: retain one-row typing until content wraps |
+| 69 | `08192026-reaction-side-fix` | Compact padded reaction-summary glyphs |
+| 70 | `08202026-convo-header-border` | Continuous conversation header/thread surface |
 
 ## Branch → host (hard rule)
 

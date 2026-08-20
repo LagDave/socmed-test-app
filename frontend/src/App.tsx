@@ -15,7 +15,6 @@ import { NotificationsPage } from "@/pages/NotificationsPage";
 import { NotificationSettingsPage } from "@/pages/NotificationSettingsPage";
 import { MessageSettingsPage } from "@/pages/MessageSettingsPage";
 import { MessagesPage } from "@/pages/MessagesPage";
-import { MessagesThemeProvider } from "@/components/messages/MessagesThemeProvider";
 
 function ProfileRedirect() {
   const { user, loading } = useAuth();
@@ -38,9 +37,9 @@ export default function App() {
               <Route path="/posts/:id" element={<PostDetailPage />} />
               <Route path="/posts/:postId/photos/:photoId" element={<PostPhotoCommentsPage />} />
               <Route path="/friends" element={<FriendsPage />} />
-              <Route path="/messages" element={<MessagesThemeProvider><MessagesPage /></MessagesThemeProvider>} />
-              <Route path="/messages/settings" element={<MessagesThemeProvider><MessageSettingsPage /></MessagesThemeProvider>} />
-              <Route path="/messages/:conversationId" element={<MessagesThemeProvider><MessagesPage /></MessagesThemeProvider>} />
+              <Route path="/messages" element={<MessagesPage />} />
+              <Route path="/messages/settings" element={<MessageSettingsPage />} />
+              <Route path="/messages/:conversationId" element={<MessagesPage />} />
               <Route path="/notifications/settings" element={<NotificationSettingsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/settings" element={<AccountSettingsPage />} />
