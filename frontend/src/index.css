@@ -868,6 +868,7 @@ body {
 }
 
 .message-day-separator {
+  font-size: 1rem;
   font-weight: 700;
 }
 
