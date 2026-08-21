@@ -65,9 +65,9 @@
         "Run npm --prefix frontend run build."
       ],
       "expected": "All commands exit successfully with no errors caused by the system-log presentation change.",
-      "status": "pending",
-      "evidence": "",
-      "notes": "",
+      "status": "pass",
+      "evidence": "2026-08-21: npm --prefix frontend run typecheck, lint, and build all exited successfully.",
+      "notes": "Lint emitted six pre-existing warnings in PostDetailPage, MessageQuoteStrip, PostPhotoCommentsPage, AuthContext, and ThemeContext. Vite emitted its existing large-chunk advisory.",
       "waiver": ""
     }
   ]
