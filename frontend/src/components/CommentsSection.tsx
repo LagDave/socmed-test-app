@@ -19,6 +19,7 @@ type CommentsSectionProps = {
   onDeleteComment: (comment: CommentView, kind: "comment" | "reply") => void;
   onReactionSummaryChange: (commentId: string, summary: ReactionSummary) => void;
   sectionRef?: RefObject<HTMLDivElement | null>;
+  composerRef?: RefObject<HTMLDivElement | null>;
   sectionId?: string;
   title?: string;
   composerAutoFocus?: boolean;
@@ -38,6 +39,7 @@ export function CommentsSection({
   onDeleteComment,
   onReactionSummaryChange,
   sectionRef,
+  composerRef,
   sectionId = "comments",
   title = "Comments",
   composerAutoFocus = false,
@@ -138,7 +140,7 @@ export function CommentsSection({
       </div>
 
       {user && !replyTo && (
-        <div className="border-t border-border/60 bg-canvas/20 px-4 py-3.5">
+        <div ref={composerRef} className="border-t border-border/60 bg-canvas/20 px-4 py-3.5">
           <CommentComposer
             user={user}
             busy={busy}

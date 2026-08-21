@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Images } from "lucide-react";
 import type { PostImageView, ReactionSummary } from "@/api/types";
 import { PostActionRow } from "@/components/PostActionRow";
 import { ReactionBar } from "@/components/ReactionBar";
@@ -11,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 export type PostMediaActionsConfig = {
   postId: string;
+  postCommentCount: number;
   postReactionSummary: ReactionSummary;
   onPhotoReactionSummaryChange: (postImageId: string, summary: ReactionSummary) => void;
   onPostReactionSummaryChange: (summary: ReactionSummary) => void;
@@ -137,13 +137,18 @@ function PostPhotoSlide({
   postActions?: PostMediaActionsConfig;
   onPreview?: (imageUrl: string) => void;
 }) {
+  const isSinglePhotoPost = total === 1;
   const commentPath =
-    postActions && image.id
+    postActions && isSinglePhotoPost
+      ? `/posts/${postActions.postId}#comments`
+      : postActions && image.id
       ? postPhotoCommentsPath(postActions.postId, image.id)
       : postActions
         ? `/posts/${postActions.postId}#comments`
         : undefined;
-  const commentCount = image.commentCount ?? 0;
+  const commentCount = isSinglePhotoPost
+    ? (postActions?.postCommentCount ?? image.commentCount ?? 0)
+    : (image.commentCount ?? 0);
   const usesPhotoReaction = Boolean(image.id);
   const reactionSummary = usesPhotoReaction
     ? (image.reactionSummary ?? emptyReactionSummary())
@@ -242,21 +247,6 @@ function PostMediaAlbum({
       id={detail ? POST_PHOTOS_ANCHOR : undefined}
       aria-label={`Photo album, ${media.length} images`}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-border/40 bg-gradient-to-b from-muted/35 to-transparent px-4 py-3">
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <Images className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            Photo album
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {media.length} photos · scroll to browse
-          </p>
-        </div>
-        <span className="shrink-0 rounded-full bg-muted/80 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-muted-foreground ring-1 ring-border/50">
-          {media.length}
-        </span>
-      </div>
-
       <div
         className={cn(
           "post-media-gallery-scroll space-y-2.5",

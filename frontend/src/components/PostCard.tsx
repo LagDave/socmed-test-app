@@ -106,6 +106,7 @@ function PostStandardMedia({
     mediaMode === "detail"
       ? {
           postId: post.id,
+          postCommentCount: post.commentCount,
           postReactionSummary: post.reactionSummary,
           onPostReactionSummaryChange: (summary: ReactionSummary) =>
             onReactionSummaryChange(post.id, summary),
