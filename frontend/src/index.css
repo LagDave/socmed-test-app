@@ -869,8 +869,8 @@ body {
 .message-day-separator,
 .message-time-separator {
   font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.125rem;
-  font-weight: 400;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
 .messages-inbox-compose {
