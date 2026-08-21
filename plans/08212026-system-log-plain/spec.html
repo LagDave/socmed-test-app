@@ -37,8 +37,8 @@
 
     <section class="card">
       <h2>What</h2>
-      <p>Make every entry rendered through the shared <code>MessageSystemLog</code> component visually plain, matching the existing pin/unpin activity treatment: centered muted text with no rounded shape, filled background, or separate pill padding. Theme-change history remains in the same chronological timeline position, retains its day separator and screen-reader status semantics, and stays readable in default and selected custom chat themes.</p>
-      <p><strong>Done when:</strong> historical and newly-created theme-change entries render as plain text; pin and unpin activity remains visually and behaviorally unchanged; no system log gains a bubble or shaded background in either default or custom chat themes.</p>
+      <p>Make every entry rendered through the shared <code>MessageSystemLog</code> component and every <code>MessageDaySeparator</code> date label visually plain, matching the existing pin/unpin activity treatment: centered muted text with no rounded shape, filled background, border, or separate pill padding. Theme-change history and its date labels remain in the same chronological timeline position; system-log screen-reader status semantics remain intact; all plain labels stay readable in default and selected custom chat themes.</p>
+      <p><strong>Done when:</strong> historical and newly-created theme-change entries and date/timestamp labels render as plain text; pin and unpin activity remains visually and behaviorally unchanged; no system log or date label gains a bubble or shaded background in either default or custom chat themes.</p>
     </section>
 
     <section class="card">
@@ -46,10 +46,10 @@
       <table>
         <thead><tr><th>File / consumer</th><th>Role and impact</th></tr></thead>
         <tbody>
-          <tr><td><code>frontend/src/components/MessagesUiHelpers.tsx</code></td><td>Defines <code>MessageSystemLog</code>, the sole shared renderer for theme-change timeline entries. Its current span carries all pill utilities; it will emit semantic plain text instead.</td></tr>
-          <tr><td><code>frontend/src/components/messages/ThreadViewContent.tsx</code></td><td>The only live consumer of <code>MessageSystemLog</code> in <code>/messages/:conversationId</code>. It continues to place logs in the sorted thread timeline and retains day separators.</td></tr>
+          <tr><td><code>frontend/src/components/MessagesUiHelpers.tsx</code></td><td>Defines <code>MessageSystemLog</code> and <code>MessageDaySeparator</code>, the shared renderers for theme changes and their timestamps. Both current spans carry pill utilities; both will emit plain text instead.</td></tr>
+          <tr><td><code>frontend/src/components/messages/ThreadViewContent.tsx</code></td><td>The only live consumer of <code>MessageSystemLog</code> and <code>MessageDaySeparator</code> in <code>/messages/:conversationId</code>. It continues to place logs and timestamps in the sorted thread timeline.</td></tr>
           <tr><td><code>frontend/src/components/messages/MessagePinActivityRow.tsx</code></td><td>Existing visual analogue for pin/unpin activity. It is read-only reference context; no change is planned.</td></tr>
-          <tr><td><code>frontend/src/index.css</code></td><td>Overrides <code>.message-system-log</code> for active custom themes. Its background override must be removed while preserving the muted, theme-aware foreground.</td></tr>
+          <tr><td><code>frontend/src/index.css</code></td><td>Overrides <code>.message-system-log</code> and date-separator span styling for active custom themes. Their backgrounds and border treatment must be removed while preserving the muted, theme-aware foreground.</td></tr>
           <tr><td><code>src/types/themeLog.ts</code> and <code>src/services/ChatThemeService.ts</code></td><td>Produce and persist theme-log text. They are verified as unaffected: no payload, persistence, API, realtime, or ordering change belongs in this work.</td></tr>
         </tbody>
       </table>
@@ -60,8 +60,8 @@
       <ul>
         <li>Change visual presentation only; do not alter system-log text, actor names, timestamps, timeline sorting, day-separator rules, requests, socket events, or stored theme history.</li>
         <li>Use the existing shared system-log component and stylesheet; do not introduce a dependency, migration, new activity data model, or a second system-log abstraction.</li>
-        <li>Keep <code>role="status"</code> on the system-log content and retain centered readable text.</li>
-        <li>Pin/unpin entries are the visual reference and remain unchanged. Day separators keep their existing pill treatment because they are date navigation, not system logs.</li>
+        <li>Keep <code>role="status"</code> on the system-log content and retain centered readable text. Date labels remain present but use the same plain visual language.</li>
+        <li>Pin/unpin entries are the visual reference and remain unchanged. Day separators are timestamp labels in scope for this continuation; only their pill treatment changes.</li>
         <li>Follow Code Constitution §§2.1 and 4.3: presentation belongs in the existing frontend component/CSS owners; no backend or business-logic changes are permitted.</li>
       </ul>
     </section>
@@ -76,25 +76,25 @@
       <article class="task" id="T1">
         <h3>T1 — Normalize the shared system-log markup</h3>
         <dl class="task-details">
-          <div><dt>Do</dt><dd>Replace <code>MessageSystemLog</code>'s centered rounded span wrapper with one semantic status text element using the existing <code>message-system-log</code> hook. Preserve its text value, centered placement, and <code>role="status"</code>; remove the rounded, background, and pill-padding utilities.</dd></div>
+          <div><dt>Do</dt><dd>Replace <code>MessageSystemLog</code>'s and <code>MessageDaySeparator</code>'s centered rounded span wrappers with plain text elements using their existing CSS hooks. Preserve system-log text, date labels, centered placement, and <code>role="status"</code> on system logs; remove rounded, border, background, and pill-padding utilities.</dd></div>
           <div><dt>Files</dt><dd><code>frontend/src/components/MessagesUiHelpers.tsx</code></dd></div>
           <div><dt>Depends on</dt><dd>—</dd></div>
-          <div><dt>Verify</dt><dd>A1, A2, D1; search confirms <code>MessageSystemLog</code>'s only live consumer remains <code>ThreadViewContent</code>.</dd></div>
+          <div><dt>Verify</dt><dd>A1, A2, D1; search confirms both helpers' only live consumer remains <code>ThreadViewContent</code>.</dd></div>
         </dl>
       </article>
       <article class="task" id="T2">
         <h3>T2 — Preserve theme-aware plain-text contrast</h3>
         <dl class="task-details">
-          <div><dt>Do</dt><dd>Consolidate the shared plain system-log typography with the pin-activity visual rules where appropriate, and remove the active-theme <code>.message-system-log</code> background override. Keep the existing muted custom-theme foreground token so the plain log remains readable without a chip.</dd></div>
+          <div><dt>Do</dt><dd>Consolidate shared plain system-log and date-label typography with the pin-activity visual rules where appropriate, and remove the active-theme <code>.message-system-log</code> and date-separator background/border overrides. Keep the existing muted custom-theme foreground token so each plain label remains readable without a chip.</dd></div>
           <div><dt>Files</dt><dd><code>frontend/src/index.css</code></dd></div>
           <div><dt>Depends on</dt><dd>T1</dd></div>
-          <div><dt>Verify</dt><dd>A1–A3, D1; no <code>.message-system-log</code> background declaration remains.</dd></div>
+          <div><dt>Verify</dt><dd>A1–A3, D1; no system-log or date-separator background/border declaration remains.</dd></div>
         </dl>
       </article>
       <article class="task" id="T3">
         <h3>T3 — Verify visual behavior and quality gates</h3>
         <dl class="task-details">
-          <div><dt>Do</dt><dd>Run the frontend typecheck, lint, and production build. Record live visual acceptance for existing theme history and a new theme change in default, solid, and gradient custom themes, including a narrow/mobile viewport. Confirm pin/unpin logs and day separators do not change.</dd></div>
+          <div><dt>Do</dt><dd>Run the frontend typecheck, lint, and production build. Record live visual acceptance for existing theme history, a new theme change, and its date/timestamp labels in default, solid, and gradient custom themes, including a narrow/mobile viewport. Confirm pin/unpin logs do not change.</dd></div>
           <div><dt>Files</dt><dd><code>plans/08212026-system-log-plain/test-results.json</code></dd></div>
           <div><dt>Depends on</dt><dd>T1, T2</dd></div>
           <div><dt>Verify</dt><dd>A1–A3, D1; all items pass or failed items include a written waiver.</dd></div>
@@ -105,10 +105,10 @@
     <section class="card">
       <h2>Done checklist</h2>
       <ul class="checks">
-        <li>☐ Every <code>MessageSystemLog</code> entry is centered plain text with no rounded, filled, or pill-like treatment.</li>
-        <li>☐ Default, solid custom, and gradient custom threads retain a readable muted system-log foreground without a system-log background.</li>
-        <li>☐ Existing and newly-created theme-change entries remain ordered correctly and retain their day separators and status semantics.</li>
-        <li>☐ Pin/unpin activity and date separators are unchanged.</li>
+        <li>☐ Every <code>MessageSystemLog</code> entry and <code>MessageDaySeparator</code> date label is centered plain text with no rounded, bordered, filled, or pill-like treatment.</li>
+        <li>☐ Default, solid custom, and gradient custom threads retain a readable muted foreground without a system-log or date-label background.</li>
+        <li>☐ Existing and newly-created theme-change entries and their date labels remain ordered correctly; system-log status semantics remain intact.</li>
+        <li>☐ Pin/unpin activity is unchanged.</li>
         <li>☐ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> complete without errors caused by this change.</li>
         <li>☐ <code>test-results.json</code> reaches Passed, or every failure carries a written waiver.</li>
       </ul>
@@ -116,7 +116,7 @@
 
     <section class="card">
       <h2>Revision log</h2>
-      <table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>Rev 0</td><td>2026-08-21</td><td>Initial plan from the supplied conversation screenshot. Scoped all existing shared <code>MessageSystemLog</code> entries to match the plain pin/unpin activity presentation, with no data or timeline behavior changes.</td></tr><tr><td>Rev 1</td><td>2026-08-21</td><td>Execution started on <code>kylie/system-log-plain</code>. The approved scope remains the two planned frontend presentation files.</td></tr><tr><td>Rev 2</td><td>2026-08-21</td><td>Executed T1–T2 on <code>kylie/system-log-plain</code>: <code>MessageSystemLog</code> now emits one plain status paragraph, its pill utilities and active-theme background were removed, and it shares typography with pin activity. Consumer and CSS searches confirm no data or timeline behavior changed. Frontend typecheck, lint, and build pass; UI acceptance A1–A3 remains pending.</td></tr></tbody></table>
+      <table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>Rev 0</td><td>2026-08-21</td><td>Initial plan from the supplied conversation screenshot. Scoped all existing shared <code>MessageSystemLog</code> entries to match the plain pin/unpin activity presentation, with no data or timeline behavior changes.</td></tr><tr><td>Rev 1</td><td>2026-08-21</td><td>Execution started on <code>kylie/system-log-plain</code>. The approved scope remains the two planned frontend presentation files.</td></tr><tr><td>Rev 2</td><td>2026-08-21</td><td>Executed T1–T2 on <code>kylie/system-log-plain</code>: <code>MessageSystemLog</code> now emits one plain status paragraph, its pill utilities and active-theme background were removed, and it shares typography with pin activity. Consumer and CSS searches confirm no data or timeline behavior changed. Frontend typecheck, lint, and build pass; UI acceptance A1–A3 remains pending.</td></tr><tr><td>Rev 3</td><td>2026-08-21</td><td>User continuation: the screenshot identified the date/timestamp pill as part of the requested plain activity language. Scope expands to <code>MessageDaySeparator</code> in the same two frontend files; date text and ordering remain intact, while its rounded border and background are removed.</td></tr><tr><td>Rev 4</td><td>2026-08-21</td><td>Executed the timestamp continuation on <code>kylie/system-log-plain</code>: <code>MessageDaySeparator</code> now emits one plain paragraph and shares the custom-theme muted foreground plus plain typography with system and pin activity rows. Searches confirm no residual date-pill border or background selector. Frontend typecheck, lint, and build pass again; UI acceptance A1–A3 remains pending.</td></tr></tbody></table>
     </section>
   </main>
 </body>

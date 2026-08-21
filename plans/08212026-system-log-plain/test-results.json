@@ -12,9 +12,9 @@
         "Open /messages/:conversationId with the default chat theme.",
         "Inspect every theme-change entry in the message timeline, including an entry created during this check.",
         "Confirm each entry is centered muted text without a rounded outline, fill, chip padding, or bubble-like background.",
-        "Confirm its date separator, when present, remains unchanged."
+        "Confirm its date/timestamp label, when present, is plain centered text with no rounded outline, border, or filled background."
       ],
-      "expected": "All theme-change system logs are plain centered text, while date separators retain their existing pill treatment.",
+      "expected": "Theme-change system logs and their date/timestamp labels are plain centered text with no pill treatment.",
       "status": "pending",
       "evidence": "",
       "notes": "",
@@ -28,7 +28,7 @@
       "steps": [
         "Apply one available solid custom chat theme and inspect a theme-change log at desktop and narrow/mobile widths.",
         "Apply one available gradient custom chat theme and repeat the inspection.",
-        "Confirm both logs use readable muted text only, with no system-log fill or rounded pill shape.",
+        "Confirm both logs and their date/timestamp labels use readable muted text only, with no fill, border, or rounded pill shape.",
         "Confirm changing the theme creates the expected new system-log entry exactly once."
       ],
       "expected": "System-log text remains legible in solid and gradient themes without restoring a shaded chip; theme changes still append exactly one chronological log entry.",
@@ -46,9 +46,9 @@
         "Pin a message and then unpin it.",
         "Confirm the pin and unpin activity rows stay as plain centered text.",
         "Compare them with a theme-change system log in the same thread.",
-        "Confirm normal messages, message ordering, and day separators are unchanged."
+        "Confirm normal messages and message ordering are unchanged, while the date/timestamp label is plain text."
       ],
-      "expected": "Theme-change and pin/unpin activities share a plain-text visual language; only their wording differs.",
+      "expected": "Theme-change, pin/unpin, and date/timestamp labels share a plain-text visual language; only their content differs.",
       "status": "pending",
       "evidence": "",
       "notes": "",
@@ -66,7 +66,7 @@
       ],
       "expected": "All commands exit successfully with no errors caused by the system-log presentation change.",
       "status": "pass",
-      "evidence": "2026-08-21: npm --prefix frontend run typecheck, lint, and build all exited successfully.",
+      "evidence": "2026-08-21: npm --prefix frontend run typecheck, lint, and build all exited successfully after the initial plain-log change and again after the date/timestamp pill removal.",
       "notes": "Lint emitted six pre-existing warnings in PostDetailPage, MessageQuoteStrip, PostPhotoCommentsPage, AuthContext, and ThemeContext. Vite emitted its existing large-chunk advisory.",
       "waiver": ""
     }
