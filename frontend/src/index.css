@@ -432,12 +432,6 @@ body {
   animation: feed-page-in 0.35s ease-out;
 }
 
-.messages-composer-track {
-  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  background: color-mix(in srgb, var(--secondary) 65%, var(--card));
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--foreground) 4%, transparent);
-}
-
 .messages-thread-header {
   position: relative;
   isolation: isolate;
@@ -591,11 +585,6 @@ body {
   background: var(--chat-accent);
   color: var(--chat-accent-fg);
   border-color: color-mix(in srgb, var(--chat-accent-fg) 35%, transparent);
-}
-
-[data-chat-theme="true"] .messages-composer-track {
-  border-color: color-mix(in srgb, var(--chat-accent) 35%, transparent);
-  background: color-mix(in srgb, var(--chat-accent) 22%, transparent);
 }
 
 [data-chat-theme="true"] .messages-composer-track textarea {
