@@ -603,6 +603,27 @@ body {
   color: var(--chat-thread-muted);
 }
 
+@media (min-width: 641px) {
+  .messages-composer-form {
+    padding-block: 0.375rem;
+  }
+
+  .messages-composer-track {
+    padding-block: 0.125rem;
+  }
+
+  .messages-composer-avatar,
+  .messages-composer-track > button {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .messages-composer-input-shell textarea {
+    min-height: 2rem;
+    padding-block: 0.25rem;
+  }
+}
+
 @media (max-width: 640px) {
   .messages-composer-form {
     padding: 0.5rem 0.625rem max(0.5rem, env(safe-area-inset-bottom));
