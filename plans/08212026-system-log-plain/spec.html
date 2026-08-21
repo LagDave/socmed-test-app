@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plain Conversation System Logs Spec</title>
+  <style>
+    :root { --paper:#fff; --ink:#101010; --muted:#636363; --line:#d8d8d8; --soft:#f6f6f6; --accent:#155e75; --warn:#8b5e00; }
+    * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:min(1040px,calc(100% - 32px)); margin:0 auto; padding:42px 0 60px; }
+    .hero,.card,.task { border:1px solid var(--line); border-radius:10px; background:var(--paper); } .hero { border-color:var(--ink); padding:30px; margin-bottom:18px; } .card { padding:24px; margin-top:16px; } .task { padding:17px; margin-top:12px; background:var(--soft); }
+    .topline { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; } .eyebrow,dt { margin:0; color:var(--muted); font-size:.76rem; font-weight:750; letter-spacing:.05em; text-transform:uppercase; } .status { display:inline-flex; border-radius:999px; padding:6px 11px; background:var(--warn); color:#fff; font-size:.76rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+    h1 { max-width:800px; margin:0 0 20px; font-size:clamp(2rem,5vw,3.25rem); line-height:1; } h2 { margin:0 0 12px; font-size:1.35rem; } h3 { margin:0 0 8px; font-size:1.05rem; }
+    .meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin:0; } .meta div { padding:12px; border:1px solid var(--line); border-radius:8px; } dd { margin:3px 0 0; font-weight:700; }
+    code { padding:.08rem .3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:.9em; } table { width:100%; border-collapse:collapse; margin-top:12px; font-size:.93rem; } th,td { padding:9px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; } th { background:var(--soft); font-size:.75rem; letter-spacing:.04em; text-transform:uppercase; }
+    .callout { border-left:4px solid var(--warn); padding:12px 14px; background:#fff9ea; } .checks { margin:0; padding-left:1.25rem; } .checks li { margin:.5rem 0; } dl.task-details { display:grid; gap:8px; margin:0; } dl.task-details dd { margin:2px 0 0; font-weight:400; }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="topline"><p class="eyebrow">Socmed Plan Spec</p><span class="status">Pending Execution</span></div>
+      <h1>Render conversation system logs as plain text</h1>
+      <dl class="meta">
+        <div><dt>Plan folder</dt><dd>plans/08212026-system-log-plain</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/system-log-plain</dd></div>
+        <div><dt>Merge target</dt><dd>dev</dd></div>
+        <div><dt>Size</dt><dd>Small · 3 tasks · 2 app files</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 · concern</dd></div>
+      </dl>
+    </header>
+
+    <section class="card">
+      <h2>Why</h2>
+      <p>The supplied chat screenshot shows theme-change system entries rendered as rounded, tinted pills while existing pin and unpin activity is plain centered text. The requested conversation style is consistent, plain system logs without the bubble-like pill treatment.</p>
+    </section>
+
+    <section class="card">
+      <h2>What</h2>
+      <p>Make every entry rendered through the shared <code>MessageSystemLog</code> component visually plain, matching the existing pin/unpin activity treatment: centered muted text with no rounded shape, filled background, or separate pill padding. Theme-change history remains in the same chronological timeline position, retains its day separator and screen-reader status semantics, and stays readable in default and selected custom chat themes.</p>
+      <p><strong>Done when:</strong> historical and newly-created theme-change entries render as plain text; pin and unpin activity remains visually and behaviorally unchanged; no system log gains a bubble or shaded background in either default or custom chat themes.</p>
+    </section>
+
+    <section class="card">
+      <h2>Context and blast radius</h2>
+      <table>
+        <thead><tr><th>File / consumer</th><th>Role and impact</th></tr></thead>
+        <tbody>
+          <tr><td><code>frontend/src/components/MessagesUiHelpers.tsx</code></td><td>Defines <code>MessageSystemLog</code>, the sole shared renderer for theme-change timeline entries. Its current span carries all pill utilities; it will emit semantic plain text instead.</td></tr>
+          <tr><td><code>frontend/src/components/messages/ThreadViewContent.tsx</code></td><td>The only live consumer of <code>MessageSystemLog</code> in <code>/messages/:conversationId</code>. It continues to place logs in the sorted thread timeline and retains day separators.</td></tr>
+          <tr><td><code>frontend/src/components/messages/MessagePinActivityRow.tsx</code></td><td>Existing visual analogue for pin/unpin activity. It is read-only reference context; no change is planned.</td></tr>
+          <tr><td><code>frontend/src/index.css</code></td><td>Overrides <code>.message-system-log</code> for active custom themes. Its background override must be removed while preserving the muted, theme-aware foreground.</td></tr>
+          <tr><td><code>src/types/themeLog.ts</code> and <code>src/services/ChatThemeService.ts</code></td><td>Produce and persist theme-log text. They are verified as unaffected: no payload, persistence, API, realtime, or ordering change belongs in this work.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Constraints / out of scope</h2>
+      <ul>
+        <li>Change visual presentation only; do not alter system-log text, actor names, timestamps, timeline sorting, day-separator rules, requests, socket events, or stored theme history.</li>
+        <li>Use the existing shared system-log component and stylesheet; do not introduce a dependency, migration, new activity data model, or a second system-log abstraction.</li>
+        <li>Keep <code>role="status"</code> on the system-log content and retain centered readable text.</li>
+        <li>Pin/unpin entries are the visual reference and remain unchanged. Day separators keep their existing pill treatment because they are date navigation, not system logs.</li>
+        <li>Follow Code Constitution §§2.1 and 4.3: presentation belongs in the existing frontend component/CSS owners; no backend or business-logic changes are permitted.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Risk and mitigation</h2>
+      <p class="callout"><strong>Level 2 — Concern.</strong> Removing the filled background means system-log legibility depends entirely on the muted foreground against each chat-theme background. The blast radius is every conversation that has retained theme-change history, including solid and gradient themes. <strong>Mitigation:</strong> retain the existing custom-theme muted color token, remove only the pill geometry/background, and visually verify default, solid, and gradient theme threads at desktop and narrow widths.</p>
+    </section>
+
+    <section class="card">
+      <h2>Tasks</h2>
+      <article class="task" id="T1">
+        <h3>T1 — Normalize the shared system-log markup</h3>
+        <dl class="task-details">
+          <div><dt>Do</dt><dd>Replace <code>MessageSystemLog</code>'s centered rounded span wrapper with one semantic status text element using the existing <code>message-system-log</code> hook. Preserve its text value, centered placement, and <code>role="status"</code>; remove the rounded, background, and pill-padding utilities.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/components/MessagesUiHelpers.tsx</code></dd></div>
+          <div><dt>Depends on</dt><dd>—</dd></div>
+          <div><dt>Verify</dt><dd>A1, A2, D1; search confirms <code>MessageSystemLog</code>'s only live consumer remains <code>ThreadViewContent</code>.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T2">
+        <h3>T2 — Preserve theme-aware plain-text contrast</h3>
+        <dl class="task-details">
+          <div><dt>Do</dt><dd>Consolidate the shared plain system-log typography with the pin-activity visual rules where appropriate, and remove the active-theme <code>.message-system-log</code> background override. Keep the existing muted custom-theme foreground token so the plain log remains readable without a chip.</dd></div>
+          <div><dt>Files</dt><dd><code>frontend/src/index.css</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1</dd></div>
+          <div><dt>Verify</dt><dd>A1–A3, D1; no <code>.message-system-log</code> background declaration remains.</dd></div>
+        </dl>
+      </article>
+      <article class="task" id="T3">
+        <h3>T3 — Verify visual behavior and quality gates</h3>
+        <dl class="task-details">
+          <div><dt>Do</dt><dd>Run the frontend typecheck, lint, and production build. Record live visual acceptance for existing theme history and a new theme change in default, solid, and gradient custom themes, including a narrow/mobile viewport. Confirm pin/unpin logs and day separators do not change.</dd></div>
+          <div><dt>Files</dt><dd><code>plans/08212026-system-log-plain/test-results.json</code></dd></div>
+          <div><dt>Depends on</dt><dd>T1, T2</dd></div>
+          <div><dt>Verify</dt><dd>A1–A3, D1; all items pass or failed items include a written waiver.</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Done checklist</h2>
+      <ul class="checks">
+        <li>☐ Every <code>MessageSystemLog</code> entry is centered plain text with no rounded, filled, or pill-like treatment.</li>
+        <li>☐ Default, solid custom, and gradient custom threads retain a readable muted system-log foreground without a system-log background.</li>
+        <li>☐ Existing and newly-created theme-change entries remain ordered correctly and retain their day separators and status semantics.</li>
+        <li>☐ Pin/unpin activity and date separators are unchanged.</li>
+        <li>☐ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> complete without errors caused by this change.</li>
+        <li>☐ <code>test-results.json</code> reaches Passed, or every failure carries a written waiver.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Revision log</h2>
+      <table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>Rev 0</td><td>2026-08-21</td><td>Initial plan from the supplied conversation screenshot. Scoped all existing shared <code>MessageSystemLog</code> entries to match the plain pin/unpin activity presentation, with no data or timeline behavior changes.</td></tr></tbody></table>
+    </section>
+  </main>
+</body>
+</html>
