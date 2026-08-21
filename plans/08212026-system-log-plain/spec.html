@@ -19,7 +19,7 @@
 <body>
   <main>
     <header class="hero">
-      <div class="topline"><p class="eyebrow">Socmed Plan Spec</p><span class="status">In Progress</span></div>
+      <div class="topline"><p class="eyebrow">Socmed Plan Spec</p><span class="status">Completed</span></div>
       <h1>Render conversation system logs as plain text</h1>
       <dl class="meta">
         <div><dt>Plan folder</dt><dd>plans/08212026-system-log-plain</dd></div>
@@ -37,7 +37,7 @@
 
     <section class="card">
       <h2>What</h2>
-      <p>Make every entry rendered through the shared <code>MessageSystemLog</code> component and every <code>MessageDaySeparator</code> date label visually plain: centered muted text with no rounded shape, filled background, border, or separate pill padding. Date/timestamp labels use bold text to retain their visual hierarchy; system and pin activity remain at the existing regular weight. Theme-change history and its date labels remain in the same chronological timeline position; system-log screen-reader status semantics remain intact; all plain labels stay readable in default and selected custom chat themes.</p>
+      <p>Make every entry rendered through the shared <code>MessageSystemLog</code> component and every <code>MessageDaySeparator</code> date label visually plain: centered muted text with no rounded shape, filled background, border, or separate pill padding. Theme-change system logs use 0.75rem regular text; date/timestamp labels use a 14px medium-weight hierarchy; pin activity remains at its existing regular weight. Theme-change history and its date labels remain in the same chronological timeline position; system-log screen-reader status semantics remain intact; all plain labels stay readable in default and selected custom chat themes.</p>
       <p><strong>Done when:</strong> historical and newly-created theme-change entries and date/timestamp labels render as plain text; pin and unpin activity remains visually and behaviorally unchanged; no system log or date label gains a bubble or shaded background in either default or custom chat themes.</p>
     </section>
 
@@ -105,12 +105,12 @@
     <section class="card">
       <h2>Done checklist</h2>
       <ul class="checks">
-        <li>☐ Every <code>MessageSystemLog</code> entry and <code>MessageDaySeparator</code> date label is centered plain text with no rounded, bordered, filled, or pill-like treatment; timestamp labels are bold while system and pin activity remain regular weight.</li>
-        <li>☐ Default, solid custom, and gradient custom threads retain a readable muted foreground without a system-log or date-label background.</li>
-        <li>☐ Existing and newly-created theme-change entries and their date labels remain ordered correctly; system-log status semantics remain intact.</li>
-        <li>☐ Pin/unpin activity is unchanged.</li>
-        <li>☐ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> complete without errors caused by this change.</li>
-        <li>☐ <code>test-results.json</code> reaches Passed, or every failure carries a written waiver.</li>
+        <li>☑ Every <code>MessageSystemLog</code> entry and <code>MessageDaySeparator</code> date label is centered plain text with no rounded, bordered, filled, or pill-like treatment; system logs are 0.75rem regular text and date/timestamp labels are 14px medium weight.</li>
+        <li>☑ Default, solid custom, and gradient custom threads retain a readable muted foreground without a system-log or date-label background.</li>
+        <li>☑ Existing and newly-created theme-change entries and their date labels remain ordered correctly; system-log status semantics remain intact.</li>
+        <li>☑ Pin/unpin activity is unchanged.</li>
+        <li>☑ <code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> complete without errors caused by this change.</li>
+        <li>☑ <code>test-results.json</code> reaches Passed.</li>
       </ul>
     </section>
 
@@ -133,6 +133,7 @@
       <p><strong>Rev 16 · 2026-08-21:</strong> Executed the 500-weight adjustment on <code>kylie/system-log-plain</code>. Only <code>.message-day-separator</code> changed; frontend typecheck, lint, and build pass; UI acceptance A1–A3 remains pending.</p>
       <p><strong>Rev 17 · 2026-08-21:</strong> User requested the displayed theme-change system logs be increased to <code>0.75rem</code>. Pin/unpin activity and date/timestamp labels remain unchanged.</p>
       <p><strong>Rev 18 · 2026-08-21:</strong> Executed the system-log size adjustment on <code>kylie/system-log-plain</code>: only <code>.message-system-log</code> now uses <code>0.75rem</code>. Pin/unpin activity and date/timestamp labels remain unchanged; frontend verification is rerun and UI acceptance A1–A3 remains pending.</p>
+      <p><strong>Rev 19 · 2026-08-21:</strong> User confirmed the live UI acceptance checks passed. A1–A3 are recorded as passed; D1 remains passed from the frontend verification gates. The spec is finalized for inclusion on <code>kylie/system-log-plain</code>.</p>
     </section>
   </main>
 </body>
