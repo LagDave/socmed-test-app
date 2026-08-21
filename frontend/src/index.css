@@ -868,8 +868,8 @@ body {
 }
 
 .message-day-separator {
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: 0.875rem;
+  font-weight: 400;
 }
 
 .messages-inbox-compose {
