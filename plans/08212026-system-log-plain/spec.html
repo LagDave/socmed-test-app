@@ -85,7 +85,7 @@
       <article class="task" id="T2">
         <h3>T2 — Preserve theme-aware plain-text contrast</h3>
         <dl class="task-details">
-          <div><dt>Do</dt><dd>Consolidate shared plain system-log and date-label typography with the pin-activity visual rules where appropriate, and remove the active-theme <code>.message-system-log</code> and date-separator background/border overrides. Keep the existing muted custom-theme foreground token so each plain label remains readable without a chip; give only the date/timestamp label a bold weight and 16px size for hierarchy.</dd></div>
+          <div><dt>Do</dt><dd>Consolidate shared plain system-log and date-label typography with the pin-activity visual rules where appropriate, and remove the active-theme <code>.message-system-log</code> and date-separator background/border overrides. Keep the existing muted custom-theme foreground token so each plain label remains readable without a chip; give only the date/timestamp label a semibold weight and 16px size for hierarchy.</dd></div>
           <div><dt>Files</dt><dd><code>frontend/src/index.css</code></dd></div>
           <div><dt>Depends on</dt><dd>T1</dd></div>
           <div><dt>Verify</dt><dd>A1–A3, D1; no system-log or date-separator background/border declaration remains.</dd></div>
@@ -123,6 +123,8 @@
       <h2>Revision log (continued)</h2>
       <p><strong>Rev 7 · 2026-08-21:</strong> The supplied screenshot showed the 11px plain day label was too small. The date/timestamp label is increased to 16px while retaining its existing bold weight; system and pin activity labels remain unchanged.</p>
       <p><strong>Rev 8 · 2026-08-21:</strong> Executed the 16px day-label adjustment on <code>kylie/system-log-plain</code>. Only <code>.message-day-separator</code> changed; system logs, pin activity, time-gap labels, colors, and timeline behavior are unchanged. Frontend typecheck, lint, and build pass; UI acceptance A1–A3 remains pending.</p>
+      <p><strong>Rev 9 · 2026-08-21:</strong> User requested a softer day-label weight. The 16px label changes from 700 bold to 600 semibold; all other timeline labels and behavior remain unchanged.</p>
+      <p><strong>Rev 10 · 2026-08-21:</strong> Executed the semibold refinement on <code>kylie/system-log-plain</code>. Only <code>.message-day-separator</code> changed from 700 to 600; frontend typecheck, lint, and build pass; UI acceptance A1–A3 remains pending.</p>
     </section>
   </main>
 </body>
