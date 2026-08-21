@@ -606,6 +606,48 @@ body {
   color: var(--chat-thread-muted);
 }
 
+@media (max-width: 640px) {
+  .messages-composer-form {
+    padding: 0.5rem 0.625rem max(0.5rem, env(safe-area-inset-bottom));
+    background: transparent;
+  }
+
+  .messages-composer-track {
+    gap: 0.25rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .messages-composer-avatar {
+    display: none;
+  }
+
+  .messages-composer-input-shell {
+    min-width: 0;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--secondary) 65%, var(--card));
+  }
+
+  .messages-composer-input-shell textarea {
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  [data-chat-theme="true"] .messages-composer-form {
+    background: transparent;
+  }
+
+  [data-chat-theme="true"] .messages-composer-track {
+    background: transparent;
+  }
+
+  [data-chat-theme="true"] .messages-composer-input-shell {
+    background: color-mix(in srgb, var(--chat-accent) 22%, var(--chat-bg-sample));
+  }
+}
+
 .chat-theme-strip {
   scroll-padding-inline: 0.5rem;
   margin-inline: -0.25rem;
