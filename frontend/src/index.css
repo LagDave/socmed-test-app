@@ -782,6 +782,7 @@ body {
   display: block;
   margin: 12px 0 8px;
   color: var(--muted-foreground);
+  font-size: 0.875rem;
   line-height: 1.25;
   text-align: center;
 }
@@ -866,8 +867,7 @@ body {
   text-align: center;
 }
 
-.message-day-separator,
-.message-time-separator {
+.message-day-separator {
   font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 1.5rem;
   font-weight: 700;
