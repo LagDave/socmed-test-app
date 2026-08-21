@@ -85,7 +85,7 @@
       <article class="task" id="T2">
         <h3>T2 — Preserve theme-aware plain-text contrast</h3>
         <dl class="task-details">
-          <div><dt>Do</dt><dd>Consolidate shared plain system-log and date-label typography with the pin-activity visual rules where appropriate, and remove the active-theme <code>.message-system-log</code> and date-separator background/border overrides. Keep the existing muted custom-theme foreground token so each plain label remains readable without a chip; give only the date/timestamp label a medium weight and 16px size for hierarchy.</dd></div>
+          <div><dt>Do</dt><dd>Consolidate shared plain system-log and date-label typography with the pin-activity visual rules where appropriate, and remove the active-theme <code>.message-system-log</code> and date-separator background/border overrides. Keep the existing muted custom-theme foreground token so each plain label remains readable without a chip; give only the date/timestamp label a regular weight and 14px size for hierarchy.</dd></div>
           <div><dt>Files</dt><dd><code>frontend/src/index.css</code></dd></div>
           <div><dt>Depends on</dt><dd>T1</dd></div>
           <div><dt>Verify</dt><dd>A1–A3, D1; no system-log or date-separator background/border declaration remains.</dd></div>
@@ -127,6 +127,8 @@
       <p><strong>Rev 10 · 2026-08-21:</strong> Executed the semibold refinement on <code>kylie/system-log-plain</code>. Only <code>.message-day-separator</code> changed from 700 to 600; frontend typecheck, lint, and build pass; UI acceptance A1–A3 remains pending.</p>
       <p><strong>Rev 11 · 2026-08-21:</strong> User requested a further reduction in emphasis. The 16px day label changes from 600 semibold to 500 medium; all other timeline labels and behavior remain unchanged.</p>
       <p><strong>Rev 12 · 2026-08-21:</strong> Executed the medium-weight refinement on <code>kylie/system-log-plain</code>. Only <code>.message-day-separator</code> changed from 600 to 500; frontend typecheck, lint, and build pass; UI acceptance A1–A3 remains pending.</p>
+      <p><strong>Rev 13 · 2026-08-21:</strong> User requested a further reduction in weight and size. The day label changes from 16px/500 to 14px/400; all other timeline labels and behavior remain unchanged.</p>
+      <p><strong>Rev 14 · 2026-08-21:</strong> Executed the 14px regular-weight adjustment on <code>kylie/system-log-plain</code>. Only <code>.message-day-separator</code> changed; frontend typecheck, lint, and build pass; UI acceptance A1–A3 remains pending.</p>
     </section>
   </main>
 </body>
