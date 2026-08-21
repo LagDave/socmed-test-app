@@ -52,13 +52,7 @@ export function MessageDaySeparator({ label }: { label: string }) {
 }
 
 export function MessageSystemLog({ text }: { text: string }) {
-  return (
-    <div className="flex justify-center">
-      <span className="message-system-log max-w-[90%] rounded-full bg-secondary/70 px-2.5 py-0.5 text-center text-[11px] text-muted-foreground">
-        {text}
-      </span>
-    </div>
-  );
+  return <p className="message-system-log" role="status">{text}</p>;
 }
 
 export function MessagesEmptyThread({ peerName }: { peerName: string }) {
