@@ -612,6 +612,15 @@ body {
     padding-block: 0.125rem;
   }
 
+  .messages-composer-input-shell {
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--secondary) 65%, var(--card));
+  }
+
+  [data-chat-theme="true"] .messages-composer-input-shell {
+    background: color-mix(in srgb, var(--chat-accent) 22%, var(--chat-bg-sample));
+  }
+
   .messages-composer-avatar,
   .messages-composer-track > button {
     width: 2rem;
