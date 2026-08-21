@@ -867,6 +867,10 @@ body {
   text-align: center;
 }
 
+.message-day-separator {
+  font-weight: 700;
+}
+
 .messages-inbox-compose {
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   background: color-mix(in srgb, var(--secondary) 40%, var(--card));
