@@ -12,9 +12,9 @@
         "Open /messages/:conversationId with the default chat theme.",
         "Inspect every theme-change entry in the message timeline, including an entry created during this check.",
         "Confirm each entry is centered muted text without a rounded outline, fill, chip padding, or bubble-like background.",
-        "Confirm its date/timestamp label, when present, is plain centered text with no rounded outline, border, or filled background."
+        "Confirm its date/timestamp label, when present, is bold plain centered text with no rounded outline, border, or filled background."
       ],
-      "expected": "Theme-change system logs and their date/timestamp labels are plain centered text with no pill treatment.",
+      "expected": "Theme-change system logs are regular-weight plain centered text; date/timestamp labels are bold plain centered text; neither has pill treatment.",
       "status": "pending",
       "evidence": "",
       "notes": "",
@@ -28,7 +28,7 @@
       "steps": [
         "Apply one available solid custom chat theme and inspect a theme-change log at desktop and narrow/mobile widths.",
         "Apply one available gradient custom chat theme and repeat the inspection.",
-        "Confirm both logs and their date/timestamp labels use readable muted text only, with no fill, border, or rounded pill shape.",
+        "Confirm both logs and their date/timestamp labels use readable muted text only, with no fill, border, or rounded pill shape; date/timestamp labels are bold.",
         "Confirm changing the theme creates the expected new system-log entry exactly once."
       ],
       "expected": "System-log text remains legible in solid and gradient themes without restoring a shaded chip; theme changes still append exactly one chronological log entry.",
@@ -66,7 +66,7 @@
       ],
       "expected": "All commands exit successfully with no errors caused by the system-log presentation change.",
       "status": "pass",
-      "evidence": "2026-08-21: npm --prefix frontend run typecheck, lint, and build all exited successfully after the initial plain-log change and again after the date/timestamp pill removal.",
+      "evidence": "2026-08-21: npm --prefix frontend run typecheck, lint, and build all exited successfully after the initial plain-log change, the date/timestamp pill removal, and the bold timestamp refinement.",
       "notes": "Lint emitted six pre-existing warnings in PostDetailPage, MessageQuoteStrip, PostPhotoCommentsPage, AuthContext, and ThemeContext. Vite emitted its existing large-chunk advisory.",
       "waiver": ""
     }
