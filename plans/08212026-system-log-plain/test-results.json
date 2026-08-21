@@ -12,9 +12,9 @@
         "Open /messages/:conversationId with the default chat theme.",
         "Inspect every theme-change entry in the message timeline, including an entry created during this check.",
         "Confirm each entry is centered muted text without a rounded outline, fill, chip padding, or bubble-like background.",
-        "Confirm its date/timestamp label, when present, is bold plain centered text with no rounded outline, border, or filled background."
+        "Confirm its date/timestamp label, when present, is bold 24px system sans-serif plain centered text with no rounded outline, border, or filled background."
       ],
-      "expected": "Theme-change system logs are regular-weight plain centered text; date/timestamp labels are bold plain centered text; neither has pill treatment.",
+      "expected": "Theme-change system logs are regular-weight 11px plain centered text; date/timestamp labels are bold 24px system sans-serif plain centered text; neither has pill treatment.",
       "status": "pending",
       "evidence": "",
       "notes": "",
@@ -66,7 +66,7 @@
       ],
       "expected": "All commands exit successfully with no errors caused by the system-log presentation change.",
       "status": "pass",
-      "evidence": "2026-08-21: npm --prefix frontend run typecheck, lint, and build all exited successfully after the initial plain-log change, the date/timestamp pill removal, and the bold timestamp refinement.",
+      "evidence": "2026-08-21: npm --prefix frontend run typecheck, lint, and build all exited successfully after the initial plain-log change, the date/timestamp pill removal, the bold timestamp refinement, and the 24px system-font refinement.",
       "notes": "Lint emitted six pre-existing warnings in PostDetailPage, MessageQuoteStrip, PostPhotoCommentsPage, AuthContext, and ThemeContext. Vite emitted its existing large-chunk advisory.",
       "waiver": ""
     }
