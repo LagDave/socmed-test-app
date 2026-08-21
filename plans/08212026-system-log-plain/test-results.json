@@ -12,9 +12,9 @@
         "Open /messages/:conversationId with the default chat theme.",
         "Inspect every theme-change entry in the message timeline, including an entry created during this check.",
         "Confirm each entry is centered muted text without a rounded outline, fill, chip padding, or bubble-like background.",
-        "Confirm its day label and any ten-minute-gap time label both use compact regular 18px system sans-serif text; neither has a rounded outline, border, or filled background."
+        "Confirm its day label and any ten-minute-gap time label, when present, use the same bold 24px system sans-serif centered text with no rounded outline, border, or filled background."
       ],
-      "expected": "Theme-change system logs are regular-weight 11px plain centered text; day labels and ten-minute-gap time labels share compact regular 18px system sans-serif text; neither has pill treatment.",
+      "expected": "Theme-change system logs are regular-weight 11px plain centered text; day labels and ten-minute-gap time labels share bold 24px system sans-serif centered text; neither has pill treatment.",
       "status": "pending",
       "evidence": "",
       "notes": "",
@@ -66,7 +66,7 @@
       ],
       "expected": "All commands exit successfully with no errors caused by the system-log presentation change.",
       "status": "pass",
-      "evidence": "2026-08-21: npm --prefix frontend run typecheck, lint, and build all exited successfully after the initial plain-log change, the date/timestamp pill removal, and the final compact 18px reference correction for both day and time labels.",
+      "evidence": "2026-08-21: npm --prefix frontend run typecheck, lint, and build all exited successfully after the initial plain-log change, the date/timestamp pill removal, the bold timestamp refinement, the 24px system-font refinement, and matching the ten-minute-gap time separator.",
       "notes": "Lint emitted six pre-existing warnings in PostDetailPage, MessageQuoteStrip, PostPhotoCommentsPage, AuthContext, and ThemeContext. Vite emitted its existing large-chunk advisory.",
       "waiver": ""
     }
