@@ -504,6 +504,15 @@ body {
   box-shadow: none;
 }
 
+[data-chat-theme="true"].feed-card {
+  background: var(--chat-bg);
+}
+
+[data-chat-theme="true"] .messages-thread-pane,
+[data-chat-theme="true"] .messages-composer-form {
+  background: transparent;
+}
+
 [data-chat-theme="true"] .messages-thread-header a {
   color: inherit;
 }
@@ -559,7 +568,6 @@ body {
 }
 
 [data-chat-theme="true"] .messages-composer-form {
-  background: color-mix(in srgb, var(--chat-composer-bg) 14%, var(--chat-bg-sample));
   border-top-color: color-mix(in srgb, var(--chat-thread-fg) 12%, transparent);
   color: var(--chat-thread-fg);
 }
