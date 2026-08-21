@@ -524,6 +524,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
             </div>
             <Button
               type="submit"
+              variant="ghost"
               size="icon"
               className="shrink-0"
               aria-label={editingMessageId ? "Save edit" : "Send"}
@@ -532,14 +533,6 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                 (editingMessage
                   ? !editingMessage.imageUrl && !body.trim()
                   : !body.trim())
-              }
-              style={
-                resolvedTheme.active
-                  ? {
-                      backgroundColor: "var(--chat-accent)",
-                      color: "var(--chat-accent-fg)",
-                    }
-                  : undefined
               }
             >
               <SendHorizontal className="h-4 w-4" />
