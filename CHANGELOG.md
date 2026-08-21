@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.43 — 2026-08-21
+
+### Fixed
+- Rendered conversation theme-change system logs and day labels as plain centered text without pill styling; system logs use 0.75rem text and day labels use a 14px medium-weight hierarchy.
+
+### Plans
+- `plans/08212026-system-log-plain` — completed on `kylie/system-log-plain`
+
 ## 0.1.42 — 2026-08-20
 
 ### Fixed
