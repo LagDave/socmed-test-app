@@ -143,7 +143,7 @@ export function InboxView() {
         </div>
       </div>
 
-      <div className="feed-card overflow-hidden shadow-sm">
+      <div className="feed-card messages-inbox-card overflow-hidden">
         {error && <MessagesErrorBanner message={error} />}
 
         <div

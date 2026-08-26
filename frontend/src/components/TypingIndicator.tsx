@@ -13,6 +13,8 @@ export function TypingIndicator({
   themed = false,
   className,
 }: TypingIndicatorProps) {
+  const typingName = displayName.trim().split(/\s+/, 1)[0] || displayName;
+
   return (
     <div
       aria-live="polite"
@@ -24,7 +26,7 @@ export function TypingIndicator({
       )}
     >
       <span className={cn("truncate", compact && "italic")}>
-        {displayName} is typing
+        {typingName} is typing
         {compact ? "…" : ""}
       </span>
       <span className="inline-flex shrink-0 items-center gap-0.5" aria-hidden="true">
