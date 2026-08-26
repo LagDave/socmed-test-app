@@ -107,7 +107,10 @@ export function AppNavbar({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="app-navbar-profile-menu animate-menu-enter z-50"
+                  className={cn(
+                    "app-navbar-profile-menu animate-menu-enter z-50",
+                    theme === "dark" && "!shadow-none"
+                  )}
                 >
                   <DropdownMenuItem asChild>
                     <Link
