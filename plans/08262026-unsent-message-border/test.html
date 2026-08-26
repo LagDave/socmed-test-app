@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Restore Unsent Message Border — Acceptance</title>
+  <style>
+    :root{--paper:#fff;--ink:#19202b;--muted:#556273;--line:#d7dee7;--soft:#f5f8fb;--pass:#176b38;--fail:#a61b1b}*{box-sizing:border-box}body{margin:0;background:#f2f5f8;color:var(--ink);font:16px/1.5 system-ui,sans-serif}main{width:min(900px,calc(100% - 32px));margin:auto;padding:32px 0}header,.item{border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:20px}.item{margin-top:14px}.item.pass{border-left:5px solid var(--pass)}.item.fail{border-left:5px solid var(--fail)}h1,h2{line-height:1.2}h1{margin:0 0 6px}h2{font-size:1.1rem}.muted{color:var(--muted)}.status{display:inline-block;padding:4px 9px;border-radius:999px;background:var(--soft);font-size:.8rem;font-weight:700}textarea,select,button{font:inherit}textarea{width:100%}button{border:1px solid var(--ink);border-radius:7px;background:var(--paper);padding:7px 11px;cursor:pointer}ol{padding-left:22px}
+  </style>
+</head>
+<body>
+  <main>
+    <header><h1>Restore Unsent Message Border</h1><p class="muted">Acceptance viewer for <code>test-results.json</code>. Record evidence, then download the updated JSON.</p><span id="overall" class="status">Loading</span><p><button id="download" type="button">Download updated test-results.json</button></p></header>
+    <section id="items" aria-live="polite"></section>
+  </main>
+  <script>
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    fetch('./test-results.json').then(response => response.json()).then(data => {
+      const overall = document.getElementById('overall'); const items = document.getElementById('items');
+      const render = () => { const pending = data.items.some(item => item.status === 'pending'); const failed = data.items.some(item => item.status === 'fail' && !item.waiver); data.status = failed ? 'Failed' : pending ? 'In Progress' : 'Passed'; overall.textContent = data.status; items.innerHTML = data.items.map((item,index) => `<article class="item ${escapeHtml(item.status)}"><h2>${escapeHtml(item.id)} — ${escapeHtml(item.title)}</h2><p><label><strong>Status:</strong> <select data-index="${index}" data-field="status"><option value="pending" ${item.status === 'pending' ? 'selected' : ''}>pending</option><option value="pass" ${item.status === 'pass' ? 'selected' : ''}>pass</option><option value="fail" ${item.status === 'fail' ? 'selected' : ''}>fail</option></select></label></p><p><strong>Precondition:</strong> ${escapeHtml(item.precondition)}</p><strong>Steps</strong><ol>${item.steps.map(step => `<li>${escapeHtml(step)}</li>`).join('')}</ol><p><strong>Expected:</strong> ${escapeHtml(item.expected)}</p><p><label><strong>Evidence:</strong><br><textarea rows="3" data-index="${index}" data-field="evidence">${escapeHtml(item.evidence || '')}</textarea></label></p><p><label><strong>Waiver:</strong><br><textarea rows="2" data-index="${index}" data-field="waiver">${escapeHtml(item.waiver || '')}</textarea></label></p></article>`).join(''); };
+      items.addEventListener('change', event => { const field = event.target.dataset.field; if (field) { data.items[Number(event.target.dataset.index)][field] = event.target.value; render(); } });
+      items.addEventListener('input', event => { const field = event.target.dataset.field; if (field) data.items[Number(event.target.dataset.index)][field] = event.target.value; });
+      document.getElementById('download').addEventListener('click', () => { const blob = new Blob([JSON.stringify(data,null,2)+'\n'], {type:'application/json'}); const link = Object.assign(document.createElement('a'), {href:URL.createObjectURL(blob),download:'test-results.json'}); link.click(); URL.revokeObjectURL(link.href); }); render();
+    }).catch(() => { document.getElementById('overall').textContent = 'Unable to load test-results.json'; });
+  </script>
+</body>
+</html>
