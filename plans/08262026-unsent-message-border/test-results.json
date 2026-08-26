@@ -1,0 +1,56 @@
+{
+  "plan": "plans/08262026-unsent-message-border",
+  "generatedAt": "2026-08-26",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Target runtime reproduces or rules out the missing border",
+      "surface": "ui",
+      "precondition": "A signed-in target build and a conversation with at least one unsent message are available.",
+      "steps": [
+        "Open the conversation on the target branch/build.",
+        "Locate an own and, when available, a peer unsent-message placeholder.",
+        "Compare the visible outline and computed border to the supplied reference image."
+      ],
+      "expected": "The runtime state is conclusively documented: either the rounded dashed border is present, or its absence is reproduced on the stated build.",
+      "status": "pass",
+      "evidence": "2026-08-26: User verified on the local server that dark mode shows the dashed outline but light mode renders it too close to white to see.",
+      "notes": "This changes the implementation from restoring a missing border to correcting its light-mode contrast.",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Unsent placeholders retain the requested dashed border",
+      "surface": "ui",
+      "precondition": "T1 has identified the exact target runtime; any necessary source correction is deployed locally.",
+      "steps": [
+        "Open a default-theme conversation with unsent messages from each participant when available.",
+        "Check desktop and a narrow/mobile viewport.",
+        "Confirm the outline is rounded and dashed, with transparent fill, muted italic label, and no toolbar or timestamp."
+      ],
+      "expected": "Every unsent placeholder matches the reference treatment while normal sent bubbles remain unchanged.",
+      "status": "pass",
+      "evidence": "2026-08-26: Replaced the Tailwind border-color utility with the unlayered .message-bubble-unsent rule, which emits border-color:var(--unsent-message-border) and wins over the app-wide universal border rule. The token is #3a3b3c, matching dark mode; the user validated the themed light-mode conversation on the local server.",
+      "notes": "User-validated final result.",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Theme and frontend verification gate",
+      "surface": "cli",
+      "precondition": "Implementation (if any) is complete.",
+      "steps": [
+        "Repeat the visual check in a custom chat theme when available.",
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "Theme styling remains legible, and every command exits successfully with no errors caused by this work.",
+      "status": "pass",
+      "evidence": "2026-08-26: After the cascade correction, npm --prefix frontend run typecheck and npm --prefix frontend run build passed. npm --prefix frontend run lint completed with six pre-existing warnings in AuthContext, ThemeContext, MessageQuoteStrip, PostDetailPage, and PostPhotoCommentsPage. The local Vite server returned HTTP 200.",
+      "notes": "User-validated custom-theme browser check; frontend gates completed successfully.",
+      "waiver": ""
+    }
+  ]
+}

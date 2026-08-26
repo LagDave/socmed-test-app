@@ -6,6 +6,7 @@
 - Single-photo post Comment actions now open the general post comment composer and show its count; multi-photo posts remain per-photo.
 - General comment navigation scrolls directly to the top-level composer after the browser settles its hash navigation.
 - Removed redundant multi-photo carousel album title, helper text, and count badge while retaining photo actions and position markers.
+- Restored a visible charcoal dashed outline for unsent-message placeholders in light, dark, and custom chat themes.
 
 ### Plans
 - `plans/08212026-single-photo-general-comments` — completed on `kylie/fix-image-post-comment-composer`

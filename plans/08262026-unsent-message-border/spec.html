@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Restore Unsent Message Border — Plan</title>
+  <style>
+    :root { --ink:#19202b; --muted:#556273; --paper:#fff; --line:#d7dee7; --soft:#f5f8fb; --warn:#8a4b00; --warn-bg:#fff5e6; --ok:#176b38; }
+    * { box-sizing:border-box; } body { margin:0; background:#f2f5f8; color:var(--ink); font:16px/1.5 system-ui,sans-serif; } main { width:min(960px,calc(100% - 32px)); margin:0 auto; padding:32px 0 64px; } header,section { background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:24px; margin-bottom:16px; } h1,h2,h3 { line-height:1.2; } h1 { margin:0 0 8px; } h2 { margin:0 0 12px; font-size:1.2rem; } h3 { margin:20px 0 6px; font-size:1rem; } p,li { margin:6px 0; } .status { display:inline-block; border:1px solid #d99b44; border-radius:999px; background:var(--warn-bg); color:var(--warn); padding:5px 10px; font-weight:700; } .muted { color:var(--muted); } .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); } .card { border:1px solid var(--line); border-radius:9px; padding:14px; background:var(--soft); } .task { border-left:5px solid #465d79; padding:16px; background:var(--soft); margin-top:12px; } code { background:#edf1f5; border-radius:4px; padding:1px 4px; } ul { padding-left:20px; } .risk { border-left:5px solid #d99b44; padding-left:14px; } .rev { border-left:5px solid var(--ok); padding-left:14px; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <span class="status">Completed</span>
+      <h1>Restore the Unsent Message Border</h1>
+      <p class="muted">Created 2026-08-26 for branch <code>kylie/unsent-border</code>. Merge target: <code>dev</code>.</p>
+    </header>
+
+    <section>
+      <h2>Why</h2>
+      <p>Unsent-message placeholders should retain the rounded dashed outline shown in the supplied reference image, so they remain visually distinct from ordinary chat bubbles.</p>
+      <h2>What</h2>
+      <p>Use the same charcoal border color as dark mode for unsent-message placeholders, via a dedicated application token that chat themes do not override. Preserve the existing rounded, dashed, transparent message treatment—without changing unsend behavior, text, grouping, actions, or chat-theme rules.</p>
+      <p><strong>Runtime finding:</strong> the themed light-mode UI still renders the inherited token as white, even when the prior foreground-mix correction is compiled. The outline therefore needs a dedicated, theme-independent value matching dark mode’s <code>#3a3b3c</code> border.</p>
+    </section>
+
+    <section>
+      <h2>Context and blast radius</h2>
+      <div class="grid">
+        <div class="card"><strong>Render owner</strong><br><code>frontend/src/components/MessageBubbleRow.tsx</code><br>Builds every thread message bubble and selects the <code>message.isUnsent</code> presentation.</div>
+        <div class="card"><strong>Consumer</strong><br><code>frontend/src/components/messages/ThreadViewContent.tsx</code><br>Maps conversation timeline messages into <code>MessageBubbleRow</code>.</div>
+        <div class="card"><strong>Shared base CSS</strong><br><code>frontend/src/index.css</code><br><code>.message-bubble</code> supplies only the base radius; it does not reset borders.</div>
+        <div class="card"><strong>Reference</strong><br><code>/Users/zarinakylie/Desktop/Screenshot 2026-08-26 at 9.57.30 PM.png</code><br>Rounded, light dashed outline around “Unsent a message”.</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Constraints</h2>
+      <ul>
+        <li>Must preserve the exact placeholder label, read-only behavior, and suppression of reaction/action/timestamp UI for unsent messages.</li>
+        <li>Must preserve normal sent-message bubbles, including custom chat themes, image-only bubbles, grouping, reactions, and editing states.</li>
+        <li>Must not add dependencies, database changes, APIs, or a new styling abstraction.</li>
+        <li>Out of scope: changing unsend semantics, message history, conversation-list previews, or visual redesign beyond the requested border restoration.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Risk and pushback</h2>
+      <div class="risk"><strong>Level 2 — visual regression / environment mismatch.</strong> The source already expresses the requested border. Editing it without reproducing the absence risks an unrelated CSS churn commit and still would not fix a stale deployment or an unrebuilt frontend. <strong>Recommended mitigation:</strong> validate the exact branch and running build first; apply a one-file class correction only if the declaration is missing or overridden in that target.</div>
+    </section>
+
+    <section>
+      <h2>Tasks</h2>
+      <article class="task"><strong>T1 — Reconcile the target runtime</strong><br><strong>Do:</strong> Open a conversation containing an unsent message on the target branch/build. Confirm the loaded revision and inspect the placeholder’s computed border; compare it to the supplied reference.<br><strong>Files:</strong> No application-file change; use <code>MessageBubbleRow.tsx</code> as the source of truth.<br><strong>Depends on:</strong> None.<br><strong>Verify:</strong> Establish whether the issue is reproducible in the planned target.</article>
+      <article class="task"><strong>T2 — Correct the shared unsent-border contrast</strong><br><strong>Do:</strong> Add one dedicated unsent-border token equal to the existing dark-mode border color, then reference it only from the <code>message.isUnsent</code> branch. Preserve the current rounded, dashed, transparent treatment, spacing, and muted italic text. Do not alter the sent-message branch.<br><strong>Files:</strong> <code>frontend/src/index.css</code> and <code>frontend/src/components/MessageBubbleRow.tsx</code> only.<br><strong>Depends on:</strong> T1 reproduction.<br><strong>Verify:</strong> The placeholder shows a full rounded dashed outline for both own and peer unsent messages in light, dark, and custom-theme threads.</article>
+      <article class="task"><strong>T3 — Validate behavior and visual isolation</strong><br><strong>Do:</strong> Test the restored state in default and custom-theme threads at desktop and narrow widths, then run the frontend verification gate.<br><strong>Files:</strong> <code>plans/08262026-unsent-message-border/test-results.json</code> and <code>test.html</code> are updated with evidence during execution; no additional app files are expected.<br><strong>Depends on:</strong> T2, if a code change was required.<br><strong>Verify:</strong> The acceptance checklist passes and typecheck, lint, and build have no errors caused by this work.</article>
+    </section>
+
+    <section>
+      <h2>Done</h2>
+      <ul>
+        <li>The runtime/branch discrepancy is resolved or documented with evidence.</li>
+        <li>Every unsent message displays the rounded dashed border from the reference.</li>
+        <li>Sent messages and chat themes are unchanged.</li>
+        <li>The acceptance checklist is Passed (or any failure has a written waiver).</li>
+        <li>Frontend typecheck, lint, and build pass with no execution-caused errors.</li>
+      </ul>
+    </section>
+
+    <section class="rev">
+      <h2>Revision Log</h2>
+      <p><strong>Rev 0 — 2026-08-26:</strong> Initial plan. Recorded that the isolated planning branch already carries the requested dashed-border class, so runtime reproduction is required before an implementation change is authorized.</p>
+      <p><strong>Rev 1 — 2026-08-26:</strong> Execution verification confirmed the feature branch is clean, the unsent rendering path still includes the requested border classes, and the production stylesheet emits the dashed-border utility. Frontend typecheck and production build passed; lint completed with six pre-existing warnings outside this scope. No application-code change was made. Browser/runtime acceptance remains pending because no authenticated conversation runtime was provided.</p>
+      <p><strong>Rev 2 — 2026-08-26:</strong> Runtime validation proved the light-mode dashed outline is present but imperceptible against the white background. Scope refined from restoration to a one-class color-contrast correction using the existing foreground token at low opacity; no behavior, layout, or theme-system change is authorized.</p>
+      <p><strong>Rev 3 — 2026-08-26:</strong> Replaced the unsent placeholder’s generic border token with an explicit 20% foreground color mix, following the established chat-quote styling pattern. Typecheck, lint, and production build passed after the change; the local Vite server remained available. Authenticated browser confirmation is the remaining acceptance item.</p>
+      <p><strong>Rev 4 — 2026-08-26:</strong> User validation in a themed light-mode thread showed the foreground-mix border still rendering white. Scope refined to a two-file, theme-independent token that exactly matches the existing dark-mode border color. This is a visual-token correction only.</p>
+      <p><strong>Rev 5 — 2026-08-26:</strong> Screenshot validation proved the dedicated token was still overridden. Root cause: the unlayered global universal border rule outranks Tailwind’s layered utility. The component will instead use a named, unlayered message-bubble rule that consumes the same dedicated token, preserving the two-file scope and exact dark-mode color.</p>
+      <p><strong>Rev 6 — 2026-08-26:</strong> User validated the final local-server result. The unlayered unsent-message border now remains visible in the themed light-mode thread and matches dark mode’s charcoal color. Acceptance is complete.</p>
+    </section>
+  </main>
+</body>
+</html>
