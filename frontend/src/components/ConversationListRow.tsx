@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ChevronRight, ImageIcon, MoreVertical, Pin, Trash2 } from "lucide-react";
 import type { ConversationListItem } from "@/api/types";
 import { OnlinePresenceIndicator } from "@/components/OnlinePresenceIndicator";
@@ -107,7 +107,9 @@ export function ConversationListRow({
   viewerId?: string;
   className?: string;
 }) {
+  const { conversationId } = useParams();
   const unread = item.unreadCount > 0 || item.hasUnreadReaction;
+  const isSelected = conversationId === item.id;
   const peer = item.peer;
   const peerPresence = useFriendPresence(peer.id, item.peerPresence, item.peerPresence !== null);
   const profilePath = peer.username ? `/u/${peer.username}` : `/u/${peer.id}`;
@@ -120,6 +122,7 @@ export function ConversationListRow({
       className={cn(
         "group flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-accent/50",
         unread && "bg-accent/30 hover:bg-accent/40",
+        isSelected && "bg-accent/60 hover:bg-accent/60",
         className
       )}
     >

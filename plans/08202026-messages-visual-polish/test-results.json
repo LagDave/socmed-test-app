@@ -1,0 +1,67 @@
+{
+  "plan": "plans/08202026-messages-visual-polish",
+  "generatedAt": "2026-08-20",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Typing label uses the peer's first name",
+      "surface": "ui",
+      "precondition": "A peer with a multi-word display name is typing.",
+      "steps": ["Open a conversation or inbox where the peer is typing.", "Observe the typing label."],
+      "expected": "The label reads the first name followed by 'is typing', for example 'Zarina is typing'.",
+      "status": "pass",
+      "evidence": "2026-08-20: user confirmed the local server behavior after the change.",
+      "notes": "Single-word display names remain unchanged.",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Dark themed typing indicator remains readable",
+      "surface": "ui",
+      "precondition": "A custom conversation theme is active in Messages dark mode.",
+      "steps": ["Have the peer type in the themed conversation.", "Inspect the typing row above the composer."],
+      "expected": "The label and dots are on the conversation background, with no mismatched white strip.",
+      "status": "pass",
+      "evidence": "2026-08-20: user confirmed the local server behavior after the change.",
+      "notes": "Uses the existing chat background and foreground variables.",
+      "waiver": ""
+    },
+    {
+      "id": "T3",
+      "title": "Messages cards have no shadow",
+      "surface": "ui",
+      "precondition": "Messages inbox and an open conversation are available.",
+      "steps": ["Hover the Conversations inbox card.", "Hover the full conversation panel."],
+      "expected": "Neither Messages surface has a shadow at rest or on hover.",
+      "status": "pass",
+      "evidence": "2026-08-20: user confirmed the local server behavior after the change.",
+      "notes": "The override is scoped to Messages cards only.",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Frontend typecheck",
+      "surface": "cli",
+      "precondition": "Scoped frontend changes are present.",
+      "steps": ["Run npm --prefix frontend run typecheck."],
+      "expected": "Typecheck finishes successfully.",
+      "status": "pass",
+      "evidence": "2026-08-20: npm --prefix frontend run typecheck passed after the final UI change.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "T4",
+      "title": "Shared socket survives same-user component cleanup",
+      "surface": "ui",
+      "precondition": "Two authenticated participants and an auth-state refresh test harness.",
+      "steps": ["Open a shared conversation in two sessions.", "Refresh the authenticated state for one viewer without signing out.", "Have the peer type and confirm the viewer continues to receive the typing update."],
+      "expected": "The shared socket stays connected through same-user cleanup; sign-out still disconnects it.",
+      "status": "fail",
+      "evidence": "Not exercised in a two-account refresh session during this visual-fix run.",
+      "notes": "The existing no-user branch continues to disconnect the socket; frontend typecheck passed with this edit present.",
+      "waiver": "2026-08-20: user explicitly directed inclusion of this pre-existing socket lifecycle change in the commit; two-account refresh acceptance is waived for this visual-fix session."
+    }
+  ]
+}

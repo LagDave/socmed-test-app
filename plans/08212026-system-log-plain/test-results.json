@@ -1,0 +1,74 @@
+{
+  "plan": "plans/08212026-system-log-plain",
+  "generatedAt": "2026-08-21",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Theme-change system logs are plain in the default chat theme",
+      "surface": "ui",
+      "precondition": "Sign in with a conversation containing at least one prior theme-change entry, or create one by selecting a chat theme.",
+      "steps": [
+        "Open /messages/:conversationId with the default chat theme.",
+        "Inspect every theme-change entry in the message timeline, including an entry created during this check.",
+        "Confirm each entry is centered muted text without a rounded outline, fill, chip padding, or bubble-like background.",
+        "Confirm its date/timestamp label, when present, is medium-weight 14px plain centered text with no rounded outline, border, or filled background."
+      ],
+      "expected": "Theme-change system logs are regular-weight 0.75rem plain centered text; date/timestamp labels are medium-weight 14px plain centered text; neither has pill treatment.",
+      "status": "pass",
+      "evidence": "2026-08-21: user confirmed live UI acceptance completed successfully.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Plain system logs remain readable in custom chat themes",
+      "surface": "ui",
+      "precondition": "A conversation is available and can use solid and gradient custom chat themes.",
+      "steps": [
+        "Apply one available solid custom chat theme and inspect a theme-change log at desktop and narrow/mobile widths.",
+        "Apply one available gradient custom chat theme and repeat the inspection.",
+        "Confirm both logs and their date/timestamp labels use readable muted text only, with no fill, border, or rounded pill shape; date/timestamp labels use medium weight.",
+        "Confirm changing the theme creates the expected new system-log entry exactly once."
+      ],
+      "expected": "System-log text remains legible in solid and gradient themes without restoring a shaded chip; theme changes still append exactly one chronological log entry.",
+      "status": "pass",
+      "evidence": "2026-08-21: user confirmed live UI acceptance completed successfully.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Pin activity remains the unchanged visual reference",
+      "surface": "ui",
+      "precondition": "A conversation permits pinning a message.",
+      "steps": [
+        "Pin a message and then unpin it.",
+        "Confirm the pin and unpin activity rows stay as plain centered text.",
+        "Compare them with a theme-change system log in the same thread.",
+        "Confirm normal messages and message ordering are unchanged, while the date/timestamp label is plain text."
+      ],
+      "expected": "Theme-change, pin/unpin, and date/timestamp labels share a plain-text visual language; only their content differs.",
+      "status": "pass",
+      "evidence": "2026-08-21: user confirmed live UI acceptance completed successfully.",
+      "notes": "",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Frontend verification gate",
+      "surface": "cli",
+      "precondition": "T1 and T2 are complete.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "All commands exit successfully with no errors caused by the system-log presentation change.",
+      "status": "pass",
+      "evidence": "2026-08-21: npm --prefix frontend run typecheck, lint, and build all exited successfully after the initial plain-log change, the date/timestamp pill removal, the final 14px medium-weight adjustment, and the 0.75rem system-log adjustment.",
+      "notes": "Lint emitted six pre-existing warnings in PostDetailPage, MessageQuoteStrip, PostPhotoCommentsPage, AuthContext, and ThemeContext. Vite emitted its existing large-chunk advisory.",
+      "waiver": ""
+    }
+  ]
+}

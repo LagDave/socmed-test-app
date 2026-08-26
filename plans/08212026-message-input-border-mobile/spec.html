@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Message composer border and mobile layout</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #18181b; background: #fafafa; }
+    body { max-width: 980px; margin: 0 auto; padding: 32px 20px 56px; line-height: 1.55; }
+    header, section { border: 1px solid #d4d4d8; border-radius: 12px; background: #fff; padding: 22px; margin: 16px 0; }
+    h1, h2, h3 { margin-top: 0; } h1 { margin-bottom: 4px; } p:last-child { margin-bottom: 0; }
+    code { background: #f4f4f5; border-radius: 4px; padding: 2px 5px; } .status { color: #075985; font-weight: 800; }
+    .meta { color: #52525b; } .risk { border-left: 4px solid #d97706; padding-left: 12px; }
+    li + li { margin-top: 8px; } .done li { list-style: square; }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="status">Status: Completed — automated gates passed and user-confirmed acceptance recorded</p>
+    <h1>Message composer: remove duplicate border and use a Messenger-style mobile layout</h1>
+    <p class="meta">Plan folder: <code>plans/08212026-message-input-border-mobile</code> · Execution branch: <code>kylie/input-border → dev</code> · Planning branch: <code>codex/plan-08212026-message-input-border-mobile</code> · Risk: Level 2</p>
+  </header>
+
+  <section>
+    <h2>Why</h2>
+    <p>The supplied conversation screenshot shows two competing boundaries at the composer: a top divider/elevation on the form and an outlined inner composer track. On a phone, the current avatar-and-card treatment consumes useful horizontal space and does not read like a native Messenger composer.</p>
+  </section>
+
+  <section>
+    <h2>What / acceptance target</h2>
+    <p>Remove both competing composer boundaries on desktop: the form-level divider/elevation and the outlined inner composer track identified in the screenshot. Use a compact desktop row (32px avatar, send control, and textarea minimum with reduced vertical padding) rather than the current chunky treatment. Give the desktop textarea its own soft rounded composer pill, while the Send arrow remains an icon-only ghost control with no resting filled card. In active chat themes, let the thread and composer share one parent conversation canvas rather than tinting the footer separately. At the existing mobile breakpoint (640px and below), render a compact, Messenger-style footer: no self avatar or outer card/divider; attachment and emoji actions beside one soft rounded text-input pill; and the existing send action at its trailing edge. The reply/edit previews, image upload, emoji insertion, keyboard sending, typing indicator, disabled state, and active chat-theme contrast must remain functional.</p>
+    <p>This is a presentation-only change. No API, realtime event, database, dependency, navigation, or message-state behavior changes are in scope.</p>
+  </section>
+
+  <section>
+    <h2>Context and existing pattern</h2>
+    <ul>
+      <li><code>frontend/src/components/messages/ThreadViewContent.tsx</code> is the live conversation composer. It currently applies the form divider/shadow, renders the self avatar, attachment/emoji controls, textarea, and send button. The similarly named <code>ConversationComposer.tsx</code> has no consumer and is expressly out of scope.</li>
+      <li><code>frontend/src/index.css</code> owns <code>.messages-composer-track</code> and all theme overrides for the composer. It is the closest styling analog and the correct location for responsive presentation rules.</li>
+      <li>The existing <code>@media (max-width: 640px)</code> convention in <code>frontend/src/index.css</code> is the breakpoint to extend. Preserve CSS custom-property based theme colors so chat themes do not receive a parallel visual system.</li>
+      <li>Applicable Constitution guidance: §13.1 (file-size ceiling), §13.3 (component responsibility), §4.3 (careful DRY), §17.2 (no <code>any</code>), §20.3 (no skipped tests), and §20.5 (acceptance artifact).</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Risk and mitigation</h2>
+    <p class="risk"><strong>Level 2 — shared composer states and theme variants.</strong> This view serves normal, dark, and active custom-chat themes plus edit and reply modes. A mobile-only structural change can break narrow layouts or reduce contrast. Mitigation: keep all event handlers, ARIA labels, and button semantics intact; use the existing theme variables rather than hard-coded colors; exercise normal, reply, edit, and themed cases at desktop and phone widths. Blast radius is limited to the conversation thread composer; inbox compose, comments, and feed composers are excluded.</p>
+  </section>
+
+  <section>
+    <h2>Tasks</h2>
+    <ol>
+      <li><strong>T1 — Make the live composer layout targetable.</strong><br>
+        <strong>Do:</strong> In <code>ThreadViewContent.tsx</code>, remove the form-level visual chrome that duplicates the inner track and introduce only the semantic class/wrapper needed to treat the textarea as the single mobile input pill. Render Send as a ghost icon without an inline themed background. Keep the existing form submission, file input, refs, controls, ARIA labels, edit/reply rendering, and theme condition intact.<br>
+        <strong>Files:</strong> <code>frontend/src/components/messages/ThreadViewContent.tsx</code><br>
+        <strong>Depends on:</strong> none<br>
+        <strong>Verify:</strong> TypeScript resolves all JSX/refs and the desktop composer has no outlined track.</li>
+      <li><strong>T2 — Apply the desktop and mobile composer styling.</strong><br>
+        <strong>Do:</strong> Update the existing composer CSS so the outer form and desktop track have no divider, border, or elevated-card shadow; reduce the desktop avatar, send button, and textarea minimum to a 32px row with compact vertical padding; and keep the desktop textarea flat. In active themes, apply the chat background once to the thread card and make the thread pane and composer footer transparent over it, eliminating the visual seam. Add a ≤640px rule that removes outer composer chrome, hides only the self avatar, presents attachment/emoji controls beside a softly rounded textarea pill, retains an accessible trailing send action, accommodates a growing textarea and safe-area bottom spacing, and maps normal/dark/themed colors through existing variables.<br>
+        <strong>Files:</strong> <code>frontend/src/index.css</code><br>
+        <strong>Depends on:</strong> T1<br>
+        <strong>Verify:</strong> 390px mobile and desktop layouts have no clipped controls, duplicate border, or theme contrast regression.</li>
+      <li><strong>T3 — Run gates and record behavioral acceptance.</strong><br>
+        <strong>Do:</strong> Run frontend typecheck, lint, and production build; create/update this plan’s acceptance evidence after isolated browser validation with the states below.<br>
+        <strong>Files:</strong> <code>plans/08212026-message-input-border-mobile/test-results.json</code> (execution evidence only)<br>
+        <strong>Depends on:</strong> T1, T2<br>
+        <strong>Verify:</strong> Commands pass or any pre-existing/environment failures are distinguished; every acceptance item passes or has a written waiver.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Constraints / out of scope</h2>
+    <ul>
+      <li>Do not modify the unused <code>ConversationComposer.tsx</code>, other composer types, APIs, database schema, or Socket.IO/realtime code.</li>
+      <li>Do not add dependencies, a new breakpoint system, hard-coded theme colors, or new state management.</li>
+      <li>Do not change the attachment, emoji, send, edit, reply, or typing behavior—only their composer presentation and layout.</li>
+      <li>Keep desktop’s current action set and avatar; the avatar removal is mobile-only.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Done</h2>
+    <ul class="done">
+      <li>The redundant outer composer border/elevation and outlined track are gone in a regular desktop conversation, whose idle controls use the compact 32px row and whose textarea remains flat.</li>
+      <li>At ≤640px, the composer has no self avatar or outer divider and presents the approved Messenger-style action/input/send layout.</li>
+      <li>Light, dark, and active custom chat themes remain legible, and an active theme’s conversation canvas is continuous through the composer footer.</li>
+      <li>Image attach, emoji insert, reply, edit, keyboard submit, disabled send, and multiline growth retain behavior; Send has no resting filled card.</li>
+      <li>Frontend typecheck, lint, and build are clean for this change; acceptance status is Passed or each non-pass has a written waiver.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Revision log</h2>
+    <p><strong>Rev 1 — 08212026:</strong> Initial plan from the supplied composer screenshot. User confirmed the recommended Messenger-style mobile treatment: no avatar or outer divider, controls beside a soft input pill, and the existing send action.</p>
+    <p><strong>Rev 2 — 08212026:</strong> Executed T1 and T2 on <code>kylie/input-border</code>. Frontend typecheck and production build pass; lint completes with six pre-existing warnings in unrelated files. Acceptance remains pending until an isolated authenticated runtime is available.</p>
+    <p><strong>Rev 3 — 08212026:</strong> User clarified that desktop must also lose the remaining inner track outline. Expanded the presentation-only CSS task to remove that border/shadow in normal, dark, and active chat-theme desktop variants; no behavior or API scope changed.</p>
+    <p><strong>Rev 4 — 08212026:</strong> User requested that the composer visually connect to the conversation. The themed-surface rule now applies the chat background once to the thread card and makes the pane/footer transparent above it, avoiding a separately tinted composer surface.</p>
+    <p><strong>Rev 5 — 08212026:</strong> Executed the continuous-canvas theme update on <code>kylie/input-border</code>. Frontend typecheck and production build pass; lint retains only the six unrelated baseline warnings. The local app reloads successfully; authenticated conversation acceptance remains pending.</p>
+    <p><strong>Rev 6 — 08212026:</strong> User reported that the desktop composer is too chunky. Added a desktop-only compact sizing requirement: 32px avatar, send control, and textarea minimum, with reduced row/form vertical padding. Mobile sizing remains unchanged.</p>
+    <p><strong>Rev 7 — 08212026:</strong> Executed the desktop compact-sizing update on <code>kylie/input-border</code>. Frontend typecheck and production build pass; lint retains only the six unrelated baseline warnings. Authenticated visual acceptance remains pending.</p>
+    <p><strong>Rev 8 — 08212026:</strong> User requested removal of the filled card behind the Send arrow. Send will use the existing ghost-button pattern, and the active-theme inline background will be removed; behavior and accessible labeling are unchanged.</p>
+    <p><strong>Rev 9 — 08212026:</strong> Executed the Send ghost-button update on <code>kylie/input-border</code>. Frontend typecheck and production build pass; lint retains only the six unrelated baseline warnings. Authenticated visual acceptance remains pending.</p>
+    <p><strong>Rev 10 — 08212026:</strong> User requested a composer treatment for the plain desktop input. Added a soft rounded pill around only the textarea, leaving the surrounding controls on the connected conversation canvas and avoiding a return of the full-row card.</p>
+    <p><strong>Rev 11 — 08212026:</strong> Executed the desktop input-pill update on <code>kylie/input-border</code>. Frontend typecheck and production build pass; lint retains only the six unrelated baseline warnings. Authenticated visual acceptance remains pending.</p>
+    <p><strong>Rev 12 — 08212026:</strong> User requested an undo of the desktop input-pill update. Revert <code>d78070b</code>; the desktop textarea returns to the flat connected canvas. Earlier compact sizing, theme continuity, and icon-only Send changes remain in scope.</p>
+    <p><strong>Rev 13 — 08212026:</strong> User clarified that the desktop input composer was not meant to be removed. Revert <code>b4de8c9</code> to restore the soft rounded textarea pill; the prior compact sizing, theme continuity, and icon-only Send changes remain intact.</p>
+    <p><strong>Rev 14 — 08212026:</strong> Restored the desktop input pill on <code>kylie/input-border</code>. Frontend typecheck and production build pass; lint retains only the six unrelated baseline warnings. Authenticated visual acceptance remains pending.</p>
+    <p><strong>Rev 15 — 08212026:</strong> User confirmed acceptance testing completed successfully. All checklist items are recorded as Passed; the plan is finalized for <code>kylie/input-border → dev</code>.</p>
+  </section>
+</body>
+</html>

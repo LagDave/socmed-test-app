@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Single-Photo General Comments Spec</title>
+  <style>
+    :root{color-scheme:light;--paper:#fff;--ink:#101010;--muted:#616161;--line:#d9d9d9;--soft:#f6f6f6}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}main{width:min(1040px,calc(100% - 32px));margin:auto;padding:42px 0}header,section,article{border:1px solid var(--line);border-radius:10px;padding:22px;margin-bottom:16px}header{border-color:var(--ink)}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.eyebrow,dt{color:var(--muted);font-size:.76rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}.status{border-radius:999px;background:var(--ink);color:#fff;padding:6px 12px;font-size:.76rem;font-weight:800;text-transform:uppercase}h1{margin:14px 0 8px;line-height:1;font-size:clamp(2rem,5vw,3.2rem)}h2{margin-top:0;font-size:1.35rem}h3{margin-top:0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.grid>div{border:1px solid var(--line);border-radius:7px;padding:12px}dd{margin:3px 0 0;font-weight:700}code{border:1px solid var(--line);border-radius:4px;background:var(--soft);padding:.08rem .3rem}table{width:100%;border-collapse:collapse}th,td{border:1px solid var(--line);padding:9px;text-align:left;vertical-align:top}th{background:var(--soft);font-size:.76rem;text-transform:uppercase}.callout{border:2px solid var(--ink);border-radius:8px;background:var(--soft);padding:14px}.check{list-style:none;padding:0}.check li{padding:9px 0;border-top:1px solid var(--line)}article{background:var(--soft)}article dl{display:grid;gap:7px;margin:0}article dd{font-weight:400}
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="top"><p class="eyebrow">Socmed plan spec</p><span class="status">Completed</span></div>
+      <h1>Single-Photo Posts Use General Comments</h1>
+      <dl class="grid">
+        <div><dt>Status</dt><dd>Completed</dd></div>
+        <div><dt>Plan folder</dt><dd>plans/08212026-single-photo-general-comments</dd></div>
+        <div><dt>Size</dt><dd>Small · 3 tasks · 3 files</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 · UI/data context</dd></div>
+        <div><dt>Planning branch</dt><dd>codex/plan-08212026-single-photo-general-comments</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/fix-image-post-comment-composer → dev</dd></div>
+      </dl>
+    </header>
+
+    <section>
+      <h2>Why</h2>
+      <p>An image-only post with one uploaded photo renders a per-photo Comment action. That action currently opens the photo-specific comment route. Separately, the normal post detail page suppresses the general <code>CommentsSection</code> for photo posts without a caption or existing post-level comment. The supplied screenshot is that empty state: the action is visible, but no input composer is rendered.</p>
+      <p>The requested interaction is unambiguous: when a post contains exactly one image, its Comment action must open the post’s general comments section, where a signed-in user can immediately type text, attach a photo, or do both.</p>
+    </section>
+
+    <section>
+      <h2>What</h2>
+      <ul>
+        <li>Route a single-image post’s Comment action to <code>/posts/:postId#comments</code>, rather than <code>/posts/:postId/photos/:photoId</code>.</li>
+        <li>Always render the general comments section for a single-image post, including when it has no caption and no prior comments; the hash destination scrolls to and focuses its composer.</li>
+        <li>Scroll the actual top-level composer into a useful viewport position—not merely the comments header—whenever general post comments are opened through <code>#comments</code>.</li>
+        <li>Show the post-level general comment count beside that single-image action, because it now points to—and creates—general comments.</li>
+        <li>Keep multi-image albums unchanged: each image retains its own route, scoped thread, and photo comment count.</li>
+        <li>Remove the redundant carousel-only album header (title, helper text, and album-size badge) so the photos begin directly at the carousel surface.</li>
+      </ul>
+      <p><strong>Done when:</strong> clicking Comment on a signed-in, single-image post opens its general comment composer; text-only, photo-only, and text-plus-photo submissions appear in the general thread. A multi-image album still opens the selected photo’s own comment thread.</p>
+    </section>
+
+    <section>
+      <h2>Context and closest analog</h2>
+      <ul>
+        <li><code>frontend/src/components/PostMediaGallery.tsx</code> owns each in-detail photo action. <code>PostPhotoSlide</code> currently routes every persisted image to <code>postPhotoCommentsPath</code> and displays <code>image.commentCount</code>.</li>
+        <li><code>frontend/src/components/PostCard.tsx</code> creates <code>PostMediaActionsConfig</code> for the detail gallery. It already has the post’s general <code>commentCount</code>, which is the correct value to pass to the single-image action.</li>
+        <li><code>frontend/src/pages/PostDetailPage.tsx</code> decides whether the general <code>CommentsSection</code> mounts. Its current photo-thread guard is the direct reason the screenshot has no composer.</li>
+        <li><code>frontend/src/components/CommentsSection.tsx</code> renders the top-level composer at the end of the thread. Its existing section ref identifies the card header, not the composer input.</li>
+        <li><code>PostMediaAlbum</code> in <code>frontend/src/components/PostMediaGallery.tsx</code> renders the screenshot’s header. The image count remains available through the existing per-image position marker; no data or route contract depends on this decorative block.</li>
+        <li>Closest supported flow: text-only posts already route their Comment action to <code>/posts/:postId#comments</code> and mount this same general <code>CommentsSection</code>.</li>
+      </ul>
+      <div class="callout"><strong>Blast radius:</strong> the in-detail action row for all image posts and the post-detail general comments section. Backend comment creation, uploads, comment threading, notification handling, and database schema do not change. The multi-photo route remains the protected compatibility path.</div>
+    </section>
+
+    <section>
+      <h2>Locked decisions</h2>
+      <table>
+        <thead><tr><th>Decision</th><th>Choice</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>Single-photo scope</td><td>Exactly one resolved media image</td><td>This matches the request and is available to the gallery as its existing <code>total</code> value.</td></tr>
+          <tr><td>Comment target</td><td>General post thread (<code>postImageId: null</code>)</td><td>The user explicitly asks for general comments, not the photo-specific thread.</td></tr>
+          <tr><td>Action count</td><td>Post-level <code>commentCount</code> for a single image</td><td>The count must describe the destination the action opens; photo count would become misleading.</td></tr>
+          <tr><td>Scroll target</td><td>The top-level composer wrapper, centered in the viewport</td><td>A long existing thread places the card header too far above the actionable input.</td></tr>
+          <tr><td>Albums</td><td>Unchanged per-photo comment routes/counts</td><td>Existing multi-photo isolation remains intact and is outside this targeted fix.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Constraints</h2>
+      <div class="grid">
+        <div><h3>Must</h3><ul><li>Use the existing post-detail route, hash scrolling, and <code>CommentsSection</code>; add no dependency.</li><li>Keep general and photo-specific comment data explicitly separate.</li><li>Preserve post-image reactions, share controls, and the existing action-row layout.</li><li>Run frontend typecheck, lint, build, and contained UI acceptance.</li></ul></div>
+        <div><h3>Must not</h3><ul><li>No backend, route-server, API-schema, migration, or notification change.</li><li>No merging or migrating existing photo comments into the post-level thread.</li><li>No change to album routing or per-photo counters.</li><li>No unrelated visual refactor.</li></ul></div>
+        <div><h3>Out of scope</h3><ul><li>Displaying general comments inside the photo-specific page.</li><li>Comment/reply design, editing, mentions, and reaction behavior.</li><li>Changing a post that has no persisted image ID or any profile-activity media behavior.</li></ul></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Risk and mitigation</h2>
+      <p><strong>Level 2 — concern.</strong> General and photo comments are intentionally distinct data sets with distinct counters. Redirecting only the link without aligning the counter or mounting the destination composer would leave an inconsistent, apparently broken experience. The change is frontend-only, but both the route semantics and the count must move together.</p>
+      <table>
+        <thead><tr><th>Hazard</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Single-photo action opens a general thread but shows the stale photo count</td><td>Pass the existing post-level count through <code>PostMediaActionsConfig</code> and select it only when <code>total === 1</code>.</td></tr>
+          <tr><td>Hash route still lands on no composer</td><td>Extend the existing post-detail rendering predicate to mount general comments for the one-image case, and verify focus/scroll from the action.</td></tr>
+          <tr><td>Scroll lands on the section title rather than the input</td><td>Expose a narrow ref for the existing top-level composer wrapper and scroll that ref with <code>block: "center"</code>; reply composers remain excluded.</td></tr>
+          <tr><td>Albums lose per-photo threading</td><td>Branch exclusively on exactly one resolved image; acceptance covers a two-image album and checks the selected photo ID remains scoped.</td></tr>
+          <tr><td>Scope expands into persistence changes</td><td>Retain current <code>postImageId</code> payload behavior: the existing general composer sends <code>null</code>; no service/model/migration changes are permitted.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Tasks</h2>
+      <article id="T1"><h3>T1 — Make the single-photo action describe general comments</h3><dl><dt>Do</dt><dd>Extend <code>PostMediaActionsConfig</code> with the post-level comment count and pass it from <code>PostCard</code>. In <code>PostPhotoSlide</code>, select the general post hash route and post-level count only when the gallery contains exactly one image; retain the current photo-specific path and image count for albums.</dd><dt>Files</dt><dd><code>frontend/src/components/PostCard.tsx</code>, <code>frontend/src/components/PostMediaGallery.tsx</code></dd><dt>Depends on</dt><dd>Execution baseline clean and branch confirmed</dd><dt>Verify</dt><dd>One image: Comment link targets <code>/posts/:postId#comments</code> and displays the general count. Two images: each link targets its selected <code>/photos/:photoId</code> path and preserves that image’s count.</dd></dl></article>
+      <article id="T2"><h3>T2 — Render general comments for single-image posts</h3><dl><dt>Do</dt><dd>Refine the existing general-comment visibility predicates in <code>PostDetailPage</code> so a single-image post mounts the existing <code>CommentsSection</code> even with an empty caption and no general comments. Preserve the existing caption-only general section behavior for albums and their per-photo comment isolation.</dd><dt>Files</dt><dd><code>frontend/src/pages/PostDetailPage.tsx</code></dd><dt>Depends on</dt><dd>T1</dd><dt>Verify</dt><dd>Opening the new hash route scrolls to and autofocuses the composer; posting text, a photo, and text plus photo adds a general comment. A multi-image post still has no accidental post-level composer when its established conditions do not call for one.</dd></dl></article>
+      <article id="T3"><h3>T3 — Verify routing, submission, and regression boundaries</h3><dl><dt>Do</dt><dd>Run the impacted frontend quality gates and execute the contained acceptance checklist. Confirm general comments remain general after a reload, the single-image count updates after submission, and multi-image per-photo comments remain isolated.</dd><dt>Files</dt><dd><code>plans/08212026-single-photo-general-comments/test-results.json</code> (acceptance evidence only)</dd><dt>Depends on</dt><dd>T1, T2</dd><dt>Verify</dt><dd><code>npm --prefix frontend run typecheck</code>, <code>npm --prefix frontend run lint</code>, and <code>npm --prefix frontend run build</code> exit successfully; every acceptance item passes or has a written waiver.</dd></dl></article>
+      <article id="T4"><h3>T4 — Scroll directly to the general composer</h3><dl><dt>Do</dt><dd>Give <code>CommentsSection</code> an optional ref for its existing top-level composer wrapper. In <code>PostDetailPage</code>, replace the general-comment hash scroll target with that wrapper and request centered smooth scrolling. Keep the current <code>sectionRef</code> contract for the photo-comments page, and do not focus or scroll inline reply composers.</dd><dt>Files</dt><dd><code>frontend/src/components/CommentsSection.tsx</code>, <code>frontend/src/pages/PostDetailPage.tsx</code></dd><dt>Depends on</dt><dd>T2</dd><dt>Verify</dt><dd>On a single-image post with several existing comments, clicking Comment scrolls until the top-level input is visible and ready to type; direct <code>#comments</code> navigation does the same. Multi-image photo comments and replies retain their current scroll behavior.</dd></dl></article>
+      <article id="T5"><h3>T5 — Remove carousel album chrome</h3><dl><dt>Do</dt><dd>Remove the <code>PostMediaAlbum</code> header that contains the album icon, “Photo album” title, “N photos · scroll to browse” helper text, and duplicate count badge. Keep the album section’s accessible label, scrollable photo list, individual photo sequence marker, preview, reactions, Comment actions, and share controls unchanged.</dd><dt>Files</dt><dd><code>frontend/src/components/PostMediaGallery.tsx</code></dd><dt>Depends on</dt><dd>None; may execute independently of T3 acceptance</dd><dt>Verify</dt><dd>A multi-photo post starts directly with the carousel images; no screenshot text or standalone album count remains. Every photo remains reachable and its own action row works on desktop and narrow viewports.</dd></dl></article>
+    </section>
+
+    <section>
+      <h2>Done checklist</h2>
+      <ul class="check">
+        <li>☑ T1–T5 complete with no scope deviation.</li>
+        <li>☑ A single-image Comment action opens <code>/posts/:postId#comments</code> and its general composer.</li>
+        <li>☑ Text-only, photo-only, and text-plus-photo general comments submit and persist on the single-image post.</li>
+        <li>☑ The single-image action shows general comment count; a multi-image album keeps selected-photo paths and counters.</li>
+        <li>☑ General-comment navigation scrolls the top-level input into view, including on a long thread.</li>
+        <li>☑ Multi-photo carousel has no album header text or duplicate count, while its photo interactions remain intact.</li>
+        <li>☑ Post-image reaction and sharing behavior are unchanged.</li>
+        <li>☑ Frontend typecheck, lint, production build, and acceptance pass.</li>
+      </ul>
+    </section>
+
+    <section><h2>Acceptance</h2><p>Run and record <code>test-results.json</code> with <code>test.html</code> after execution. UI validation must use the repository-contained isolated runtime under <code>-tw</code>; do not use shared staging services.</p></section>
+    <section><h2>Revision Log</h2><table><thead><tr><th>Rev</th><th>Date</th><th>Note</th></tr></thead><tbody><tr><td>1</td><td>08212026</td><td>Initial planning spec created from the supplied screenshot and current single-photo route/rendering behavior. No application code changed.</td></tr><tr><td>2</td><td>08212026</td><td>Executed T1 and T2 on <code>kylie/fix-image-post-comment-composer</code>: a single persisted image now links to general post comments and uses the general count; the post-detail general composer mounts for that case. Multi-image routing remains per-photo. Frontend typecheck, lint, and production build pass; contained UI acceptance remains pending.</td></tr><tr><td>3</td><td>08212026</td><td>Continuation: general-comment navigation must scroll to the top-level input rather than the comments-card header. T4 adds a narrowly scoped composer-wrapper ref; no application code changed in this continuation.</td></tr><tr><td>4</td><td>08212026</td><td>Executed T4 on <code>kylie/fix-image-post-comment-composer</code>: the post-detail <code>#comments</code> effect now centers the existing top-level composer wrapper, with the card as a safe fallback. Frontend typecheck, lint, and production build pass; contained UI acceptance remains pending.</td></tr><tr><td>5</td><td>08212026</td><td>Quickfix: native hash navigation could overwrite the immediate React scroll. The composer scroll now runs in the next animation frame, after the browser settles the hash target, while retaining its centered target and fallback. Frontend typecheck, lint, and production build pass; signed-in visual confirmation remains pending.</td></tr><tr><td>6</td><td>08212026</td><td>Continuation: user requested removal of the multi-photo carousel’s visual album header. T5 removes the title, helper text, and redundant count badge only; no application code changed in this continuation.</td></tr><tr><td>7</td><td>08212026</td><td>Executed T5 on <code>kylie/fix-image-post-comment-composer</code>: removed the carousel album title, helper text, and duplicate count badge. The accessible album label, scrollable images, per-image sequence marker, preview, reactions, Comment actions, and sharing remain unchanged. Frontend typecheck, lint, and production build pass; contained UI acceptance remains pending.</td></tr><tr><td>8</td><td>08212026</td><td>Finalized on <code>kylie/fix-image-post-comment-composer</code>. The user confirmed behavioral acceptance for the single-image general-comment flow, automatic composer scroll, multi-photo isolation, and carousel-header removal. Automated frontend quality gates pass.</td></tr></tbody></table></section>
+  </main>
+</body>
+</html>
