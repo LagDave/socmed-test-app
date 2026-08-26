@@ -1,0 +1,55 @@
+{
+  "planId": "08202026-remove-post-photo-hover",
+  "title": "Remove Post Photo Hover Effect",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "single-photo-static-ui",
+      "title": "Single-photo feed posts remain static on hover",
+      "surface": "ui",
+      "precondition": "A contained authenticated runtime has a regular feed post with exactly one uploaded photo.",
+      "steps": [
+        "At desktop width, hover the photo and observe its bounds before, during, and after hover.",
+        "Tab to the post photo link and activate it with the keyboard.",
+        "Repeat the hover observation at a narrow mobile viewport using a hover-capable pointer, where available."
+      ],
+      "expected": "The image does not scale, translate, or animate on hover; its post-detail navigation and keyboard focus/activation continue to work.",
+      "status": "pass",
+      "evidence": "2026-08-20: product owner confirmed this UI acceptance item passed after testing the implemented change.",
+      "notes": "User-confirmed acceptance; navigation and keyboard focus were included in the checklist.",
+      "waiver": null
+    },
+    {
+      "id": "multi-photo-static-ui",
+      "title": "Multi-photo feed grids remain static on hover",
+      "surface": "ui",
+      "precondition": "A contained authenticated runtime has feed posts with 2, 3, and 4+ uploaded photos.",
+      "steps": [
+        "At desktop width, hover every visible cell in 2-, 3-, and 4+-photo grids.",
+        "Confirm the final cell of a 4+-photo grid keeps its +N overlay.",
+        "Activate each grid link and confirm it opens the same post photos destination."
+      ],
+      "expected": "No grid image scales, translates, or animates on hover; grid geometry, the +N overlay, and post-photos navigation remain unchanged.",
+      "status": "pass",
+      "evidence": "2026-08-20: product owner confirmed this UI acceptance item passed after testing the implemented change.",
+      "notes": "User-confirmed acceptance; grids, +N overlays, and navigation were included in the checklist.",
+      "waiver": null
+    },
+    {
+      "id": "quality-gates",
+      "title": "Type, build, lint, and convention gates",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": [
+        "Search both target components for residual hover-scale or transform-transition classes on post-media images.",
+        "Run npm run typecheck, npm run build, npm --prefix frontend run lint, and npm run check:conventions when available.",
+        "Fix execution-caused failures and record any pre-existing or unavailable check with evidence."
+      ],
+      "expected": "No targeted hover-animation class remains and no execution-caused type, build, lint, or convention failure remains.",
+      "status": "pass",
+      "evidence": "2026-08-20: targeted audit found no remaining hover:scale, group-hover:scale, or transition-transform class in PostCard.tsx or PostMediaGallery.tsx. npm run typecheck and npm run build passed. npm --prefix frontend run lint exited 0 with six pre-existing warnings in PostDetailPage.tsx, MessageQuoteStrip.tsx, PostPhotoCommentsPage.tsx, AuthContext.tsx, and ThemeContext.tsx.",
+      "notes": "No component-specific automated test file exists. npm run check:conventions is unavailable because package.json defines no such script; this is recorded, not treated as a pass.",
+      "waiver": "Convention gate unavailable: the repository has no check:conventions package script."
+    }
+  ]
+}
