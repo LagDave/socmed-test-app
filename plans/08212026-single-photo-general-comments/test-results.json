@@ -1,0 +1,104 @@
+{
+  "plan": "plans/08212026-single-photo-general-comments",
+  "generatedAt": "2026-08-21",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Single-image Comment opens the general composer",
+      "surface": "ui",
+      "precondition": "Contained runtime; signed in; an image-only post with exactly one persisted image and no existing general comments.",
+      "steps": [
+        "Open the post detail and record the Comment count shown below its image.",
+        "Click Comment.",
+        "Confirm the URL is /posts/:postId#comments and the general Comments section is visible.",
+        "Type a short comment, then attach a photo and retain text before submitting."
+      ],
+      "expected": "The action scrolls to and focuses the general post composer. Text plus photo is accepted, appears in the general thread after submission/reload, and the displayed action count reflects the general thread.",
+      "status": "pass",
+      "evidence": "2026-08-21: user confirmed the single-image Comment action opens the general composer and accepts the tested comment flow.",
+      "notes": "Human local-app acceptance.",
+      "waiver": ""
+    },
+    {
+      "id": "A2",
+      "title": "Single-image empty state exposes a composer",
+      "surface": "ui",
+      "precondition": "Contained runtime; signed in; an image-only single-image post with an empty caption and no general comments.",
+      "steps": [
+        "Navigate directly to /posts/:postId#comments.",
+        "Inspect the end of the post detail without submitting a comment.",
+        "Submit a text-only comment, then return to the same hash route."
+      ],
+      "expected": "The general Comments section and composer are mounted in both the empty and populated states; no extra interaction is required to reveal the input.",
+      "status": "pass",
+      "evidence": "2026-08-21: user confirmed the image-only single-photo comment composer is available without manually revealing it.",
+      "notes": "Human local-app acceptance.",
+      "waiver": ""
+    },
+    {
+      "id": "A3",
+      "title": "Multi-image photo comments remain scoped",
+      "surface": "ui",
+      "precondition": "Contained runtime; signed in; a post with two persisted images.",
+      "steps": [
+        "Open the post detail and click Comment under the first image.",
+        "Confirm the URL includes that image’s /photos/:photoId path and submit a comment.",
+        "Open the second image’s Comment action."
+      ],
+      "expected": "Each image keeps its own photo-comments route and count. A comment on the first image is not displayed in the second image’s thread or in a general single-photo-style composer.",
+      "status": "pass",
+      "evidence": "2026-08-21: user confirmed multi-photo behavior remained usable after the change.",
+      "notes": "Human local-app acceptance.",
+      "waiver": ""
+    },
+    {
+      "id": "A4",
+      "title": "Frontend quality gates",
+      "surface": "cli",
+      "precondition": "Execution complete on kylie/fix-image-post-comment-composer.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "All commands exit 0, or any pre-existing/environment failures are documented and no failure is caused by this execution.",
+      "status": "pass",
+      "evidence": "2026-08-21: npm --prefix frontend run typecheck and npm --prefix frontend run build exited 0 after T4, the hash-scroll quickfix, and T5. npm --prefix frontend run lint exited 0 with six existing warnings (including the pre-existing PostDetailPage hook-dependency warning); no new lint warning was introduced. npm run check:conventions is unavailable because the root package has no such script.",
+      "notes": "Automated quality gates plus user-confirmed local-app acceptance.",
+      "waiver": ""
+    },
+    {
+      "id": "A5",
+      "title": "General Comment navigation reveals the input",
+      "surface": "ui",
+      "precondition": "Contained runtime; signed in; a single-image post with several general comments so the composer is below the initial viewport.",
+      "steps": [
+        "Open the post detail near the image action row and click Comment.",
+        "Confirm the top-level composer is visible and ready to type without manually scrolling.",
+        "Repeat by loading /posts/:postId#comments directly."
+      ],
+      "expected": "Smooth navigation places the top-level general comment input within the viewport, centered where space allows. It does not scroll to an inline reply input or alter a multi-image photo comment route.",
+      "status": "pass",
+      "evidence": "2026-08-21: user confirmed Comment navigation now automatically reaches the top-level composer.",
+      "notes": "Human local-app acceptance.",
+      "waiver": ""
+    },
+    {
+      "id": "A6",
+      "title": "Multi-photo carousel begins with photos",
+      "surface": "ui",
+      "precondition": "Contained runtime; signed in; a post with at least two persisted photos.",
+      "steps": [
+        "Open the post detail and scroll to the multi-photo carousel.",
+        "Verify the carousel begins with photo content, then browse the photos.",
+        "Use an image preview, reaction, Comment action, and Share control."
+      ],
+      "expected": "The “Photo album” title, “N photos · scroll to browse” helper text, and standalone album count are absent. The per-photo position marker and all existing photo interactions remain usable.",
+      "status": "pass",
+      "evidence": "2026-08-21: user confirmed the multi-photo carousel header text was removed and the carousel remained usable.",
+      "notes": "Human local-app acceptance.",
+      "waiver": ""
+    }
+  ]
+}

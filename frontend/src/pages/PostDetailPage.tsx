@@ -41,6 +41,7 @@ export function PostDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const deletingRef = useRef(false);
   const commentsSectionRef = useRef<HTMLDivElement>(null);
+  const commentComposerRef = useRef<HTMLDivElement>(null);
 
   const mediaImages = useMemo(() => (post ? postMediaImages(post) : []), [post]);
   const hasPhotoThreads = mediaImages.some((image) => Boolean(image.id));
@@ -103,8 +104,11 @@ export function PostDetailPage() {
   useEffect(() => {
     if (!post) return;
     if (location.hash === POST_COMMENTS_HASH) {
-      commentsSectionRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-      return;
+      const animationFrameId = requestAnimationFrame(() => {
+        const commentScrollTarget = commentComposerRef.current ?? commentsSectionRef.current;
+        commentScrollTarget?.scrollIntoView({ block: "center", behavior: "smooth" });
+      });
+      return () => cancelAnimationFrame(animationFrameId);
     }
     if (location.hash === POST_PHOTOS_HASH) {
       document.getElementById("photos")?.scrollIntoView({ block: "start" });
@@ -233,8 +237,11 @@ export function PostDetailPage() {
         : undefined;
 
   const showPostLevelComments = !hasPhotoThreads;
+  const isSinglePhotoPost = hasPhotoThreads && mediaImages.length === 1;
+  const showGeneralComments = showPostLevelComments || isSinglePhotoPost;
   const showPostLevelCaptionComments =
     hasPhotoThreads &&
+    !isSinglePhotoPost &&
     (postLevelComments.length > 0 || Boolean(post.body.trim()));
   const cameFromNotifications = isNotificationReturnState(location.state);
   const backPath = cameFromNotifications ? NOTIFICATIONS_PATH : "/";
@@ -288,12 +295,13 @@ export function PostDetailPage() {
           }
           onReactionSummaryChange={patchCommentSummary}
           sectionRef={commentsSectionRef}
+          composerRef={commentComposerRef}
           title="Post comments"
           composerAutoFocus={shouldAutoFocusComments}
         />
       )}
 
-      {showPostLevelComments && (
+      {showGeneralComments && (
         <CommentsSection
           comments={postLevelComments}
           threads={postThreads}
@@ -310,6 +318,7 @@ export function PostDetailPage() {
           }
           onReactionSummaryChange={patchCommentSummary}
           sectionRef={commentsSectionRef}
+          composerRef={commentComposerRef}
           composerAutoFocus={shouldAutoFocusComments}
         />
       )}
