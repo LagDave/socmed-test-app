@@ -283,7 +283,7 @@ export function MessageBubbleRow({
                   className={cn(
                     "message-bubble max-w-full text-[15px] leading-snug",
                     message.isUnsent
-                      ? "rounded-[1.25rem] border border-dashed border-border bg-transparent px-3 py-1.5 italic text-muted-foreground shadow-none"
+                      ? "message-bubble-unsent rounded-[1.25rem] border border-dashed bg-transparent px-3 py-1.5 italic text-muted-foreground shadow-none"
                       : cn(
                           imageOnlyPlain
                             ? "message-bubble-image-only cursor-pointer overflow-hidden rounded-[1.25rem] bg-transparent p-0 shadow-none ring-0"

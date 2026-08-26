@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.43 — 2026-08-26
+
+### Fixed
+- Restored a visible charcoal dashed outline for unsent-message placeholders in light, dark, and custom chat themes.
+
 ## 0.1.42 — 2026-08-20
 
 ### Fixed
