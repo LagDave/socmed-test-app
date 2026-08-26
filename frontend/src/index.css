@@ -975,7 +975,7 @@ body {
   margin: 0;
   padding-inline: 0.75rem;
   color: var(--muted-foreground);
-  font-size: 0.875rem;
+  font-size: 0.6875rem;
   line-height: 1.25;
   text-align: center;
 }
@@ -987,6 +987,10 @@ body {
 
 .message-system-log {
   font-size: 0.75rem;
+}
+
+.message-pin-activity {
+  font-size: 0.875rem;
 }
 
 .messages-inbox-compose {

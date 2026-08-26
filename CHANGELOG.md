@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.48 — 2026-08-26
+
+### Fixed
+- Message pin/unpin activity lines use 0.875rem type without changing day labels or theme-change system logs.
+
+### Plans
+- `plans/08262026-message-pin-activity-font-size` — completed on `kylie/system-log-fix`
+
 ## 0.1.47 — 2026-08-26
 
 ### Fixed
