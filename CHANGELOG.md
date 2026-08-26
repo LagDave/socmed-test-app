@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.45 — 2026-08-26
+
+### Changed
+- Refined the message composer with a compact desktop row, Messenger-style mobile controls, an icon-only Send action, and a continuous themed conversation canvas.
+
+### Plans
+- `plans/08212026-message-input-border-mobile` — completed on `kylie/input-border`
+
 ## 0.1.44 — 2026-08-26
 
 ### Changed

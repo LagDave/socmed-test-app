@@ -427,13 +427,7 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
           />
         )}
 
-        <form
-          onSubmit={onSend}
-          className={cn(
-            "messages-composer-form border-t border-border bg-card px-5 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]",
-            resolvedTheme.active && "border-transparent"
-          )}
-        >
+        <form onSubmit={onSend} className="messages-composer-form bg-card px-5 py-3">
           {editingMessageId && (
             <div className="mb-2 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
               <span>Editing message</span>
@@ -515,24 +509,27 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                 </>
               )}
             </div>
-            <Textarea
-              ref={textareaRef}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              onBlur={() => stopTyping()}
-              onKeyDown={(e) => {
-                handleComposeKeyDown(e);
-                if (e.defaultPrevented) return;
-                submitOnEnter(e);
-              }}
-              placeholder={editingMessageId ? "Edit message" : "Type a message"}
-              aria-label={editingMessageId ? "Edit message" : "Message"}
-              rows={1}
-              disabled={composeBusy}
-              className="max-h-32 min-h-10 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[15px] leading-6 shadow-none focus-visible:ring-0"
-            />
+            <div className="messages-composer-input-shell min-w-0 flex-1">
+              <Textarea
+                ref={textareaRef}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                onBlur={() => stopTyping()}
+                onKeyDown={(e) => {
+                  handleComposeKeyDown(e);
+                  if (e.defaultPrevented) return;
+                  submitOnEnter(e);
+                }}
+                placeholder={editingMessageId ? "Edit message" : "Type a message"}
+                aria-label={editingMessageId ? "Edit message" : "Message"}
+                rows={1}
+                disabled={composeBusy}
+                className="max-h-32 min-h-10 w-full resize-none border-0 bg-transparent px-1 py-2 text-[15px] leading-6 shadow-none focus-visible:ring-0"
+              />
+            </div>
             <Button
               type="submit"
+              variant="ghost"
               size="icon"
               className="shrink-0"
               aria-label={editingMessageId ? "Save edit" : "Send"}
@@ -541,14 +538,6 @@ export function ThreadViewContent(props: ThreadViewContentProps) {
                 (editingMessage
                   ? !editingMessage.imageUrl && !body.trim()
                   : !body.trim())
-              }
-              style={
-                resolvedTheme.active
-                  ? {
-                      backgroundColor: "var(--chat-accent)",
-                      color: "var(--chat-accent-fg)",
-                    }
-                  : undefined
               }
             >
               <SendHorizontal className="h-4 w-4" />
