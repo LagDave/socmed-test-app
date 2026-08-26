@@ -112,9 +112,9 @@ export function InboxView({ className }: { className?: string }) {
   );
 
   return (
-    <section className={cn("messages-page h-full", className)}>
-      <div className="feed-card messages-inbox-surface h-full min-h-[calc(100dvh-3.5rem)] overflow-hidden lg:min-h-0">
-        <div className="flex flex-wrap items-end justify-between gap-3 px-4 py-4">
+    <section className={cn("messages-page h-full min-h-0", className)}>
+      <div className="feed-card messages-inbox-surface flex h-full min-h-[calc(100dvh-3.5rem)] flex-col overflow-hidden lg:min-h-0">
+        <div className="flex shrink-0 flex-wrap items-end justify-between gap-3 px-4 py-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Messages</h1>
             <p className="text-sm text-muted-foreground">Chat with friends.</p>
@@ -143,11 +143,15 @@ export function InboxView({ className }: { className?: string }) {
             </Button>
           </div>
         </div>
-        {error && <MessagesErrorBanner message={error} />}
+        {error && (
+          <div className="shrink-0">
+            <MessagesErrorBanner message={error} />
+          </div>
+        )}
 
         <div
           className={cn(
-            "messages-inbox-compose px-4 py-4",
+            "messages-inbox-compose shrink-0 px-4 py-4",
             items.length > 0 && !isNewMessagePickerOpen && friendPickerStatus === "ready" && "hidden"
           )}
         >
@@ -159,7 +163,7 @@ export function InboxView({ className }: { className?: string }) {
           />
         </div>
 
-        <div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="px-4 py-3">
             <h2 className="messages-section-label">
               Conversations

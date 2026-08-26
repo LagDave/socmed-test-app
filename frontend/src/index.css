@@ -446,6 +446,13 @@ body {
     --messages-inbox-surface: var(--card);
     border-radius: 1rem 0 0 1rem;
   }
+
+  .messages-thread-shell,
+  .messages-thread-shell:hover,
+  .dark .messages-thread-shell:hover {
+    border-radius: 0;
+    box-shadow: none;
+  }
 }
 
 .feed-page,
