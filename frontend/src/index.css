@@ -582,10 +582,10 @@ body {
   background: var(--chat-bg);
 }
 
-[data-chat-theme="true"] .message-day-separator span {
+[data-chat-theme="true"] .message-day-separator,
+[data-chat-theme="true"] .message-system-log,
+[data-chat-theme="true"] .message-pin-activity {
   color: var(--chat-thread-muted);
-  border-color: color-mix(in srgb, var(--chat-thread-fg) 18%, transparent);
-  background: color-mix(in srgb, var(--chat-thread-fg) 8%, transparent);
 }
 
 [data-chat-theme="true"] .messages-empty-thread {
@@ -600,15 +600,6 @@ body {
   color: var(--chat-thread-fg);
   background: color-mix(in srgb, var(--chat-thread-fg) 12%, transparent);
   border-bottom-color: color-mix(in srgb, var(--chat-thread-fg) 18%, transparent);
-}
-
-[data-chat-theme="true"] .message-system-log {
-  color: var(--chat-thread-muted);
-  background: color-mix(in srgb, var(--chat-thread-fg) 12%, transparent);
-}
-
-[data-chat-theme="true"] .message-pin-activity {
-  color: var(--chat-thread-muted);
 }
 
 [data-chat-theme="true"] .messages-composer-form {
@@ -978,6 +969,8 @@ body {
   margin-block: 0.375rem;
 }
 
+.message-day-separator,
+.message-system-log,
 .message-pin-activity {
   margin: 0;
   padding-inline: 0.75rem;
@@ -985,6 +978,15 @@ body {
   font-size: 0.6875rem;
   line-height: 1.25;
   text-align: center;
+}
+
+.message-day-separator {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.message-system-log {
+  font-size: 0.75rem;
 }
 
 .messages-inbox-compose {
