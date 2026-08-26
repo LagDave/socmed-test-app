@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan 08262026 — Message pin activity font size</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    body { max-width: 960px; margin: 0 auto; padding: 32px 20px 56px; background: #111827; color: #e5e7eb; line-height: 1.55; }
+    h1, h2, h3 { line-height: 1.2; color: #fff; } h1 { margin-bottom: 8px; }
+    .status { display: inline-block; padding: 6px 11px; border-radius: 999px; background: #14532d; color: #dcfce7; font-weight: 700; }
+    .meta, .callout { padding: 14px 16px; border: 1px solid #374151; border-radius: 10px; background: #1f2937; }
+    section { margin-top: 28px; } code { color: #bfdbfe; }
+    table { width: 100%; border-collapse: collapse; } th, td { text-align: left; vertical-align: top; padding: 10px; border-bottom: 1px solid #374151; }
+    th { color: #f9fafb; } .risk { border-left: 4px solid #38bdf8; }
+  </style>
+</head>
+<body>
+  <p class="status">Completed</p>
+  <h1>Message pin activity font size</h1>
+  <div class="meta">
+    <strong>Plan:</strong> <code>plans/08262026-message-pin-activity-font-size</code><br />
+    <strong>Execution branch:</strong> <code>kylie/system-log-fix</code> → <code>dev</code><br />
+    <strong>Implementation commit:</strong> <code>a323b91 — fix: increase pin activity font size</code><br />
+    <strong>Recorded:</strong> 2026-08-26
+  </div>
+
+  <section>
+    <h2>Why</h2>
+    <p>The centered message pin/unpin activity line was 0.6875rem (11px), which was too small for the conversation timeline. The requested readable size is 0.875rem (14px).</p>
+  </section>
+
+  <section>
+    <h2>What and Done</h2>
+    <ul>
+      <li>Set only <code>.message-pin-activity</code> to <code>font-size: 0.875rem</code>.</li>
+      <li>Preserve its centered system-log treatment, spacing, line height, colors, content, semantics, and theme override.</li>
+      <li>Do not change <code>.messages-section-label</code>, ordinary message text, or any pin API, realtime, persistence, or timeline behavior.</li>
+      <li>Pass frontend typecheck, lint, and production build; record user-confirmed UI acceptance.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Context</h2>
+    <table>
+      <tr><th>File</th><th>Role</th></tr>
+      <tr><td><code>frontend/src/index.css</code></td><td>Owner of the scoped <code>.message-pin-activity</code> typography rule and chat-theme selector.</td></tr>
+      <tr><td><code>frontend/src/components/messages/MessagePinActivityRow.tsx</code></td><td>Presentational source of the semantic pin/unpin status text. Read-only context; no behavior change required.</td></tr>
+      <tr><td><code>plans/08072026-pinned-message-gap-fix/spec.html</code></td><td>Closest completed analog for the pin-activity system-log presentation and its constrained blast radius.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Constraints</h2>
+    <table>
+      <tr><th>Must</th><th>Must not / Out of scope</th></tr>
+      <tr>
+        <td><ul><li>Use the existing scoped CSS selector and rem unit.</li><li>Keep the change to a single declaration in the stylesheet.</li><li>Run the frontend quality gates.</li></ul></td>
+        <td><ul><li>No component, API, socket, database, dependency, or theme-variable change.</li><li>No global typography adjustment or unrelated selector edits.</li><li>No visual redesign of pin activity, messages, or system logs.</li></ul></td>
+      </tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Risk and blast radius</h2>
+    <div class="callout risk"><strong>Level 1 — Suggestion.</strong> The only practical risk is accidentally editing a similarly sized but unrelated text selector. <strong>Mitigation:</strong> verify the final diff names only <code>.message-pin-activity</code>; visually confirm the pin activity line in the timeline.</div>
+    <p><strong>Consumers:</strong> the message thread rendered through <code>ThreadViewContent.tsx</code> and <code>MessagePinActivityRow.tsx</code>, including default and themed conversation timelines. No backend consumer is affected.</p>
+  </section>
+
+  <section>
+    <h2>Tasks</h2>
+    <div class="callout">
+      <h3>T1 — Increase only pin-activity typography</h3>
+      <p><strong>Do:</strong> change the existing <code>.message-pin-activity</code> font size from <code>0.6875rem</code> to <code>0.875rem</code>.</p>
+      <p><strong>Files:</strong> <code>frontend/src/index.css</code> · <strong>Depends on:</strong> none · <strong>Verify:</strong> A1</p>
+      <p><strong>Status:</strong> Completed in <code>a323b91</code>.</p>
+    </div>
+    <div class="callout">
+      <h3>T2 — Verify the scoped result</h3>
+      <p><strong>Do:</strong> inspect the diff, run the frontend typecheck, lint, and production build, and confirm the UI result with the requester.</p>
+      <p><strong>Files:</strong> <code>plans/08262026-message-pin-activity-font-size/test-results.json</code> · <strong>Depends on:</strong> T1 · <strong>Verify:</strong> A1–A2</p>
+      <p><strong>Status:</strong> Completed.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Acceptance and quality gates</h2>
+    <p><code>test-results.json</code> is the machine-readable source of truth. The resulting CSS remains within the established frontend stylesheet pattern and introduces no behavior, import, state, or type change. Verification follows the applicable Code Constitution frontend checks: §§13.1, 17.1, and 17.2.</p>
+  </section>
+
+  <section>
+    <h2>Revision Log</h2>
+    <div class="callout"><p><strong>Rev 0 — 2026-08-26:</strong> Created after execution to restore spec-code parity for the already-completed, user-requested font-size correction. It records the actual one-line implementation and the completed verification; it does not authorize further application changes.</p></div>
+  </section>
+</body>
+</html>
