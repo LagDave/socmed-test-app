@@ -238,7 +238,9 @@ addresses: [turn numbers this responds to, or none]
 
 ## Finalization (`-d`)
 
-Blocked unless: a valid plan folder exists, changes exist, spec-code parity holds, **every Done item is verified**, and the acceptance checklist rolls up to Passed (or carries written waivers). Then a changelog entry is written (patch bump by default) and the session is complete.
+Blocked unless: a valid plan folder exists, changes exist, spec-code parity holds, **every Done item is verified**, and the acceptance checklist rolls up to Passed (or carries written waivers). Then feature work is finalized in its plan and the session is complete.
+
+**Changelog ownership:** feature branches must not modify the shared <code>CHANGELOG.md</code>. The dev integrator writes the consolidated release entry after merge, or it is written during an explicit <code>dev</code> integration / release promotion. Before opening or updating a PR, fetch <code>origin/dev</code> and merge or rebase it into the feature branch. This removes the changelog hot-spot conflict class; ordinary overlapping code changes still require a normal conflict resolution.
 
 ---
 

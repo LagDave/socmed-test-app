@@ -1,12 +1,21 @@
 # Changelog
 
-## 0.1.43 — 2026-08-21
+## 0.1.46 — 2026-08-26
 
 ### Fixed
 - Rendered conversation theme-change system logs and day labels as plain centered text without pill styling; system logs use 0.75rem text and day labels use a 14px medium-weight hierarchy.
 
 ### Plans
 - `plans/08212026-system-log-plain` — completed on `kylie/system-log-plain`
+
+## 0.1.43 — 2026-08-21
+
+### Fixed
+- Message typing labels now use the peer’s first name, themed typing rows retain a matching readable background, and Messages inbox/thread cards have no shadow at rest or hover (including dark mode).
+- Shared Messages socket remains connected through same-user component cleanup.
+
+### Plans
+- `plans/08202026-messages-visual-polish` — completed on `kylie/typing-fix`
 
 ## 0.1.42 — 2026-08-20
 
@@ -49,6 +58,7 @@
 - Independent Messenger light/dark mode that persists separately from the profile/global appearance preference
 
 ### Changed
+- Posted single-photo and multi-photo feed images remain static on hover, without changing photo navigation or grid overlays
 - Friends rows: labeled Message action, Unfriend behind overflow + confirm
 - Suggestion DTO omits email and online status; presence stays on accepted friends only
 - Messenger mode now themes the full Messages screen, including navigation chrome, while restoring the profile/global mode on other routes
