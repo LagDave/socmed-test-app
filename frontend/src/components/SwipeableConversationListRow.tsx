@@ -93,9 +93,9 @@ export function SwipeableConversationListRow({
   const isOpen = offset < 0;
 
   return (
-    <li className="relative overflow-hidden rounded-xl">
+    <li className="relative overflow-hidden">
       <div
-        className="absolute inset-y-0 right-0 flex w-[88px] items-stretch rounded-r-xl bg-red-500 dark:bg-red-600"
+        className="absolute inset-y-0 right-0 flex w-[88px] items-stretch bg-red-500 dark:bg-red-600"
         aria-hidden={!isOpen}
       >
         <button
@@ -114,7 +114,7 @@ export function SwipeableConversationListRow({
       <div
         ref={surfaceRef}
         className={cn(
-          "relative touch-pan-y rounded-xl bg-background",
+          "relative touch-pan-y bg-[var(--messages-inbox-surface)]",
           !dragging && "transition-transform duration-200 ease-out",
           isOpen && "shadow-[-6px_0_16px_-8px_rgba(0,0,0,0.35)] dark:shadow-[-6px_0_16px_-8px_rgba(0,0,0,0.6)]"
         )}
@@ -131,7 +131,6 @@ export function SwipeableConversationListRow({
           isPrioritySaving={isPrioritySaving}
           isPeerTyping={isPeerTyping}
           viewerId={viewerId}
-          className="rounded-xl border-b-0 bg-background"
         />
       </div>
     </li>

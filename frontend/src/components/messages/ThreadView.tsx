@@ -81,7 +81,7 @@ function mergeById(prev: MessageView[], incoming: MessageView[]): MessageView[] 
   );
 }
 
-export function ThreadView({ conversationId }: { conversationId: string }) {
+export function ThreadView({ conversationId, embedded = false }: { conversationId: string; embedded?: boolean }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const socketConnected = useSocketConnected();
@@ -732,6 +732,7 @@ export function ThreadView({ conversationId }: { conversationId: string }) {
   return (
     <>
     <ThreadViewContent
+      embedded={embedded}
       user={user}
       resolvedTheme={resolvedTheme}
       themeVars={themeVars}

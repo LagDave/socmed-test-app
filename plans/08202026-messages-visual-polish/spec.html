@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Messages Visual Polish Spec</title>
+  <style>
+    :root { color-scheme: light; --paper:#fff; --ink:#0a0a0a; --muted:#626262; --line:#d8d8d8; --soft:#f5f5f5; --ok:#126b39; }
+    * { box-sizing:border-box; } body { margin:0; color:var(--ink); background:var(--paper); font:16px/1.5 ui-sans-serif,system-ui,sans-serif; }
+    main { width:min(1050px,calc(100% - 32px)); margin:0 auto; padding:42px 0; } .hero,.card,.task { border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    .hero { border-color:var(--ink); padding:30px; margin-bottom:18px; } .card { margin-top:16px; padding:24px; } .task { margin-top:12px; padding:17px; background:var(--soft); }
+    .topline,.grid { display:grid; gap:12px; } .topline { grid-template-columns:1fr auto; align-items:start; } .grid { grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); } .grid > div { padding:13px; border:1px solid var(--line); border-radius:8px; }
+    h1 { margin:0 0 22px; font-size:clamp(2rem,5vw,3.3rem); line-height:1; } h2 { margin:0 0 12px; font-size:1.35rem; } h3 { margin:0 0 9px; font-size:1.03rem; } p:last-child,ul:last-child { margin-bottom:0; }
+    .eyebrow,dt { margin:0; color:var(--muted); font-size:.75rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; } .status { padding:6px 11px; border:1px solid var(--ok); border-radius:999px; color:#fff; background:var(--ok); font-size:.75rem; font-weight:800; text-transform:uppercase; white-space:nowrap; }
+    dd { margin:4px 0 0; font-weight:700; } code { padding:.08rem .3rem; border:1px solid var(--line); border-radius:4px; background:var(--soft); font-size:.9em; } table { width:100%; border-collapse:collapse; font-size:.93rem; } th,td { padding:9px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; } th { background:var(--soft); font-size:.75rem; text-transform:uppercase; }
+    .task dl { display:grid; gap:8px; margin:0; } .task dd { font-weight:400; } .checks { margin:0; padding:0; list-style:none; } .checks li { padding:9px 0; border-top:1px solid var(--line); } .note { padding:14px 16px; border:1px solid var(--line); border-left:4px solid var(--ink); border-radius:7px; background:var(--soft); }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div class="topline"><p class="eyebrow">Socmed completion plan</p><span class="status">Completed</span></div>
+      <h1>Messages visual polish</h1>
+      <div class="grid">
+        <div><dt>Plan folder</dt><dd>plans/08202026-messages-visual-polish</dd></div>
+        <div><dt>Execution branch</dt><dd>kylie/typing-fix</dd></div>
+        <div><dt>Merge target</dt><dd>dev</dd></div>
+        <div><dt>Risk</dt><dd>Level 2 · visibility and shared UI</dd></div>
+      </div>
+    </header>
+
+    <section class="card"><h2>Why</h2><p>In a themed dark conversation, the typing label could be rendered on a mismatched card strip and become hard to read. The inbox and open-thread cards also retained a shared hover/elevation effect that was visually distracting. The user requested a concise typing label and explicitly accepted the revised local behavior.</p></section>
+
+    <section class="card"><h2>What</h2><p>Keep the existing realtime typing behavior, but display only the peer’s first name in the typing copy. Give the typing row the active conversation background so the existing theme-aware text color has a matching surface. Remove all shadows from the Messages thread and inbox cards, including their hover state. Include the existing client socket cleanup change so the shared connection is not disconnected during same-user lifecycle cleanup.</p><div class="note"><strong>Out of scope:</strong> Socket event protocol, typing timing, chat-theme data, message behavior, backend code, and general feed-card styling.</div></section>
+
+    <section class="card"><h2>Context, risk, and mitigation</h2><table><thead><tr><th>Risk</th><th>Blast radius</th><th>Mitigation</th></tr></thead><tbody>
+      <tr><td>Level 2 — <code>TypingIndicator</code> is shared by threads and inbox rows.</td><td>All typed conversation labels.</td><td>Derive only the first whitespace-separated name; retain compact mode and all typing events/state.</td></tr>
+      <tr><td>Level 2 — chat themes supply dynamic foreground colors.</td><td>All themed open threads.</td><td>Use the existing <code>--chat-bg</code> on the typing row; do not introduce a second color resolver.</td></tr>
+      <tr><td>Level 1 — cards share base styles with feeds and Friends.</td><td>Messages inbox and open-thread screens.</td><td>Use Messages-specific classes that override shadows only on these two cards.</td></tr>
+    </tbody></table></section>
+
+    <section class="card"><h2>Tasks</h2>
+      <article class="task"><h3>T1 — Shorten the visible typing label</h3><dl><div><dt>Do</dt><dd>Use the first whitespace-separated word of the peer display name in the shared typing label; preserve the name for single-word display names.</dd></div><div><dt>Files</dt><dd><code>frontend/src/components/TypingIndicator.tsx</code></dd></div><div><dt>Depends on</dt><dd>—</dd></div><div><dt>Verify</dt><dd>“Zarina Kylie is typing” renders as “Zarina is typing” in thread and inbox contexts.</dd></div></dl></article>
+      <article class="task"><h3>T2 — Keep themed typing text on its themed surface</h3><dl><div><dt>Do</dt><dd>Mark the thread indicator and style it with the existing chat background under the active chat-theme scope.</dd></div><div><dt>Files</dt><dd><code>frontend/src/components/messages/ThreadViewContent.tsx</code>, <code>frontend/src/index.css</code></dd></div><div><dt>Depends on</dt><dd>T1</dd></div><div><dt>Verify</dt><dd>Dark themed conversations keep the typing text and animated dots readable without a white/mismatched strip.</dd></div></dl></article>
+      <article class="task"><h3>T3 — Remove Messages card shadows</h3><dl><div><dt>Do</dt><dd>Add Messages-specific card classes and remove their shadows at rest and on hover. Remove the inbox’s explicit shadow utility.</dd></div><div><dt>Files</dt><dd><code>frontend/src/components/messages/InboxView.tsx</code>, <code>frontend/src/components/messages/ThreadViewContent.tsx</code>, <code>frontend/src/index.css</code></dd></div><div><dt>Depends on</dt><dd>—</dd></div><div><dt>Verify</dt><dd>The inbox Conversations card and full conversation panel have no shadow on hover or at rest; other feed cards are unchanged.</dd></div></dl></article>
+      <article class="task"><h3>T4 — Retain the shared socket through component cleanup</h3><dl><div><dt>Do</dt><dd>Remove the cleanup-time disconnect from <code>useMessagesSocketConnection</code>; a real sign-out continues to disconnect the singleton through the existing no-user branch.</dd></div><div><dt>Files</dt><dd><code>frontend/src/hooks/useMessagesSocket.ts</code></dd></div><div><dt>Depends on</dt><dd>—</dd></div><div><dt>Verify</dt><dd>Compile the client successfully. The two-account, same-user-refresh behavior is recorded as an explicit user-approved acceptance waiver for this visual-fix session.</dd></div></dl></article>
+    </section>
+
+    <section class="card"><h2>Done</h2><ul class="checks"><li>☑ Typing labels show a peer’s first name only.</li><li>☑ Themed typing text has a matching, readable background.</li><li>☑ Messages inbox and thread cards have no shadow at rest or hover.</li><li>☑ User manually tested the local server and confirmed the visual result.</li><li>☑ <code>npm --prefix frontend run typecheck</code> passes.</li><li>☑ Socket cleanup change included at the user’s request; two-account refresh behavior has a written acceptance waiver.</li><li>☑ Committed the five scoped UI/socket files plus release metadata as <code>1714a1f</code>.</li><li>☑ Pushed <code>kylie/typing-fix</code> to <code>origin</code>.</li></ul></section>
+
+    <section class="card"><h2>Revision log</h2><table><thead><tr><th>Revision</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>Rev 1</td><td>2026-08-20</td><td>Post-execution completion plan recorded after user-approved, contained visual fixes. It documents the exact four-file scope and explicit manual acceptance before finalization.</td></tr><tr><td>Rev 2</td><td>2026-08-20</td><td>User directed that the already-present shared socket cleanup change be committed with this work. Added T4 and a written waiver for the unrun two-account refresh acceptance; no socket event protocol changed.</td></tr><tr><td>Rev 3</td><td>2026-08-20</td><td>Finalized code commit <code>1714a1f</code> and pushed <code>kylie/typing-fix</code> to origin. Acceptance remains Passed with the user-authorized T4 waiver recorded.</td></tr><tr><td>Rev 4</td><td>2026-08-20</td><td>Reviewer turn 01: dark-mode hover shadow lost to <code>.dark .feed-card:hover</code>. After #108, target <code>messages-thread-shell</code>; add matching <code>.dark …:hover</code> overrides; rebase onto <code>origin/dev</code> and bump to 0.1.41.</td></tr></tbody></table></section>
+  </main>
+</body>
+</html>

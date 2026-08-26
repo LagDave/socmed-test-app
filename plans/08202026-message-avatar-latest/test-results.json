@@ -1,0 +1,55 @@
+{
+  "plan": "plans/08202026-message-avatar-latest",
+  "generatedAt": "2026-08-20",
+  "status": "Passed",
+  "items": [
+    {
+      "id": "T1",
+      "title": "Peer avatar appears on the final bubble of an incoming run",
+      "surface": "ui",
+      "precondition": "Execution complete; signed in to a conversation with at least three consecutive peer messages, or able to receive them.",
+      "steps": [
+        "Open /messages/:conversationId containing a consecutive run of incoming messages.",
+        "Confirm that only the final bubble in the run has the peer avatar beside it.",
+        "Create or locate a boundary (an outgoing message, a later incoming message after the grouping time gap, or a timeline event), then inspect the next incoming run."
+      ],
+      "expected": "Each incoming run has exactly one peer avatar on its latest bubble. Single incoming messages keep their avatar, and outgoing bubbles never gain one.",
+      "status": "pass",
+      "evidence": "User-confirmed 2026-08-20: the completed change was tested and the avatar placement is correct.",
+      "notes": "User acceptance recorded; verify desktop and narrow/mobile widths when the next visual-regression pass runs.",
+      "waiver": ""
+    },
+    {
+      "id": "T2",
+      "title": "Feature branch is current and merge-clean with dev",
+      "surface": "cli",
+      "precondition": "T1 is complete and origin/dev has been fetched.",
+      "steps": [
+        "Merge origin/dev into kylie/message-avatar-fix and resolve the shared changelog conflict by retaining dev's release ledger.",
+        "Confirm a merge-tree analysis between origin/dev and the updated feature branch succeeds without conflicts.",
+        "Confirm AGENTS.md defers feature-branch CHANGELOG.md edits to integration or release promotion."
+      ],
+      "expected": "The branch contains current dev, has no merge conflict, and the documented workflow removes the shared changelog from future feature-branch changes.",
+      "status": "pass",
+      "evidence": "2026-08-20: merged origin/dev in f4f0db8; git merge-tree --write-tree origin/dev HEAD succeeded. AGENTS.md now reserves CHANGELOG.md for dev integration or release promotion.",
+      "notes": "This prevents this changelog conflict class; ordinary code conflicts still require a current-base sync before merge.",
+      "waiver": ""
+    },
+    {
+      "id": "D1",
+      "title": "Frontend verification gate",
+      "surface": "cli",
+      "precondition": "Implementation complete.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "Each command succeeds with no errors caused by this presentation-only change.",
+      "status": "pass",
+      "evidence": "2026-08-20: frontend typecheck, lint, and production build passed. The notification suite also passed 4/4.",
+      "notes": "Lint reported six pre-existing warnings outside the changed file; Vite retained its pre-existing large-chunk advisory.",
+      "waiver": ""
+    }
+  ]
+}

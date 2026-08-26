@@ -1,0 +1,53 @@
+{
+  "status": "Passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Desktop composer has one visual boundary",
+      "surface": "ui",
+      "precondition": "Isolated authenticated app runtime with an existing conversation at a viewport wider than 640px.",
+      "steps": [
+        "Open a standard conversation.",
+        "Inspect the composer before and after focusing the textarea.",
+        "Type a message and send it."
+      ],
+      "expected": "The form and inner composer track have no redundant divider, border, elevated-card chrome, or filled Send card; the desktop textarea has a soft rounded composer pill; idle desktop controls use a compact 32px row; and send/focus behavior works.",
+      "status": "pass",
+      "evidence": "Frontend typecheck and production build passed; user confirmed manual acceptance of the listed desktop steps on 2026-08-21.",
+      "notes": "Validate the screenshot-reported desktop issue directly.",
+      "waiver": null
+    },
+    {
+      "id": "A2",
+      "title": "Messenger-style mobile composer",
+      "surface": "ui",
+      "precondition": "Same isolated runtime, emulated at 390 CSS pixels wide or a comparable phone viewport.",
+      "steps": [
+        "Open the conversation and inspect the footer.",
+        "Confirm the self avatar and outer separator are absent.",
+        "Use image attach and emoji insertion, then type a multi-line message and send it."
+      ],
+      "expected": "Attachment and emoji controls sit beside one soft rounded input pill, Send remains reachable at the trailing edge, no controls clip when the textarea grows, and the existing behaviors work.",
+      "status": "pass",
+      "evidence": "Frontend typecheck and production build passed; user confirmed manual acceptance of the listed mobile steps on 2026-08-21.",
+      "notes": "Test with the software keyboard open when device tooling permits.",
+      "waiver": null
+    },
+    {
+      "id": "A3",
+      "title": "Composer states and chat-theme contrast",
+      "surface": "ui",
+      "precondition": "Same isolated runtime with a dark setting and a conversation using an active custom chat theme.",
+      "steps": [
+        "Open the themed conversation at desktop and mobile widths.",
+        "Enter reply mode, then edit mode.",
+        "Inspect placeholder, controls, reply/edit preview, and disabled Send state."
+      ],
+      "expected": "The themed conversation canvas continues through the footer with no separate tint or duplicate border, and reply/edit controls retain their existing behavior and accessible actions.",
+      "status": "pass",
+      "evidence": "Frontend typecheck and production build passed; user confirmed manual acceptance of the listed theme and state checks on 2026-08-21.",
+      "notes": "Includes dark-mode visual regression coverage.",
+      "waiver": null
+    }
+  ]
+}
