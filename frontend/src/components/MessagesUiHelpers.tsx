@@ -42,23 +42,11 @@ export function MessagesThreadSkeleton() {
 }
 
 export function MessageDaySeparator({ label }: { label: string }) {
-  return (
-    <div className="message-day-separator flex justify-center py-0.5">
-      <span className="rounded-full border border-border/60 bg-secondary/80 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-        {label}
-      </span>
-    </div>
-  );
+  return <p className="message-day-separator">{label}</p>;
 }
 
 export function MessageSystemLog({ text }: { text: string }) {
-  return (
-    <div className="flex justify-center">
-      <span className="message-system-log max-w-[90%] rounded-full bg-secondary/70 px-2.5 py-0.5 text-center text-[11px] text-muted-foreground">
-        {text}
-      </span>
-    </div>
-  );
+  return <p className="message-system-log" role="status">{text}</p>;
 }
 
 export function MessagesEmptyThread({ peerName }: { peerName: string }) {

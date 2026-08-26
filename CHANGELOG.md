@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.1.47 — 2026-08-26
+
+### Fixed
+- Single-photo post Comment actions now open the general post comment composer and show its count; multi-photo posts remain per-photo.
+- General comment navigation scrolls directly to the top-level composer after the browser settles its hash navigation.
+- Removed redundant multi-photo carousel album title, helper text, and count badge while retaining photo actions and position markers.
+
+### Plans
+- `plans/08212026-single-photo-general-comments` — completed on `kylie/fix-image-post-comment-composer`
+
+## 0.1.46 — 2026-08-26
+
+### Fixed
+- Rendered conversation theme-change system logs and day labels as plain centered text without pill styling; system logs use 0.75rem text and day labels use a 14px medium-weight hierarchy.
+
+### Plans
+- `plans/08212026-system-log-plain` — completed on `kylie/system-log-plain`
+
+## 0.1.45 — 2026-08-26
+
+### Changed
+- Refined the message composer with a compact desktop row, Messenger-style mobile controls, an icon-only Send action, and a continuous themed conversation canvas.
+
+### Plans
+- `plans/08212026-message-input-border-mobile` — completed on `kylie/input-border`
+
 ## 0.1.44 — 2026-08-26
 
 ### Changed
