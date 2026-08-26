@@ -1,0 +1,39 @@
+{
+  "plan": "plans/08262026-message-pin-activity-font-size",
+  "generatedAt": "2026-08-26",
+  "status": "passed",
+  "items": [
+    {
+      "id": "A1",
+      "title": "Pin activity text uses 0.875rem without changing other timeline text",
+      "surface": "ui",
+      "precondition": "A conversation contains a visible pin or unpin activity entry.",
+      "steps": [
+        "Open the conversation timeline and locate a pin or unpin activity line.",
+        "Confirm the activity text is visibly larger and remains a centered, muted system-log line.",
+        "Confirm surrounding message and section-label typography is unchanged."
+      ],
+      "expected": "Only message pin activity renders at 0.875rem (14px); layout and all unrelated timeline text remain unchanged.",
+      "status": "pass",
+      "evidence": "2026-08-26: requester confirmed the UI was tested after the scoped font-size change.",
+      "notes": "Human acceptance confirmation.",
+      "waiver": null
+    },
+    {
+      "id": "A2",
+      "title": "Frontend quality gates",
+      "surface": "cli",
+      "precondition": "Frontend dependencies are installed.",
+      "steps": [
+        "Run npm --prefix frontend run typecheck.",
+        "Run npm --prefix frontend run lint.",
+        "Run npm --prefix frontend run build."
+      ],
+      "expected": "Each command exits successfully; unrelated advisory warnings are recorded separately.",
+      "status": "pass",
+      "evidence": "2026-08-26: typecheck, lint, and production build each exited 0 after the final scoped selector correction.",
+      "notes": "Lint reported six pre-existing warnings outside the changed file; Vite reported its existing bundle-size advisory.",
+      "waiver": null
+    }
+  ]
+}

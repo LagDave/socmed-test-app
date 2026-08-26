@@ -989,6 +989,10 @@ body {
   font-size: 0.75rem;
 }
 
+.message-pin-activity {
+  font-size: 0.875rem;
+}
+
 .messages-inbox-compose {
   border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   background: color-mix(in srgb, var(--secondary) 40%, var(--card));
