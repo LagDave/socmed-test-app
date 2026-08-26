@@ -426,6 +426,15 @@ body {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
+.messages-thread-shell,
+.messages-thread-shell:hover,
+.dark .messages-thread-shell:hover,
+.messages-inbox-card,
+.messages-inbox-card:hover,
+.dark .messages-inbox-card:hover {
+  box-shadow: none;
+}
+
 .feed-page,
 .friends-page,
 .messages-page {
@@ -533,6 +542,10 @@ body {
 
 [data-chat-theme="true"] .messages-thread-pane .text-muted-foreground {
   color: var(--chat-thread-muted);
+}
+
+[data-chat-theme="true"] .messages-typing-indicator {
+  background: var(--chat-bg);
 }
 
 [data-chat-theme="true"] .message-day-separator span {

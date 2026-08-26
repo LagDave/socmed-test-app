@@ -51,7 +51,6 @@ export function useMessagesSocketConnection(): boolean {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off(MESSAGE_NEW, onMessageNew);
-      disconnectMessagesSocket();
     };
   }, [user]);
 
